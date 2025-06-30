@@ -3,10 +3,47 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>تسجيل الدخول أو إنشاء حساب</title>
+  <title>تسجيل الدخول - Am Rewards</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      direction: rtl;
+      text-align: center;
+      background-color: #f7f7f7;
+      padding-top: 100px;
+    }
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      width: 300px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    h2 {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>مرحبًا بك في Am Rewards</h2>
+    <button id="googleLoginBtn">تسجيل الدخول باستخدام Google</button>
+  </div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -20,47 +57,20 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth();
+    const provider = new GoogleAuthProvider();
 
-    document.getElementById("loginForm").addEventListener("submit", function (e) {
-      e.preventDefault();
-      const email = document.getElementById("loginEmail").value;
-      const password = document.getElementById("loginPassword").value;
-
-      signInWithEmailAndPassword(auth, email, password)
-        .then(() =>window.location.href = "dashboard.html";
-
-    document.getElementById("signupForm").addEventListener("submit", function (e) {
-      e.preventDefault();
-      const email = document.getElementById("signupEmail").value;
-      const password = document.getElementById("signupPassword").value;
-
-      createUserWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-  window.location.href = "dashboard.html";
-})
+    document.getElementById("googleLoginBtn").addEventListener("click", () => {
+      signInWithPopup(auth, provider)
+        .then((result) => {
+          // ✅ تم تسجيل الدخول - تحويل المستخدم
+          window.location.href = "dashboard.html";
+        })
+        .catch((error) => {
+          alert("فشل تسجيل الدخول: " + error.message);
+          console.error("Firebase Error:", error);
+        });
+    });
   </script>
-</head>
-<body>
-  <h2>تسجيل الدخول</h2>
-  <form id="loginForm">
-    <input type="email" id="loginEmail" placeholder="البريد الإلكتروني" required><br>
-    <input type="password" id="loginPassword" placeholder="كلمة المرور" required><br>
-    <button type="submit">دخول</button>
-  </form>
 
-  <h2>أو إنشاء حساب جديد</h2>
-  <form id="signupForm">
-    <input type="email" id="signupEmail" placeholder="البريد الإلكتروني" required><br>
-    <input type="password" id="signupPassword" placeholder="كلمة المرور" required><br>
-    <button type="submit">تسجيل</button>
-  </form>
 </body>
 </html>
-
-
----
-
-
---
-
-
