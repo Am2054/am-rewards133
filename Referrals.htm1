@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>نظام الإحالة - Am Rewards</title>
+  <script type="module" src="firebase.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      direction: rtl;
+      background-color: #f9f9f9;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    .btn {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .note {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>شارك رابط الإحالة</h2>
+    <p>انسخ رابط الإحالة وشاركه مع أصدقائك. ستحصل على نقاط عند تسجيلهم.</p>
+    <input type="text" id="refLink" readonly>
+    <button class="btn" onclick="copyLink()">نسخ الرابط</button>
+    <p class="note" id="statusMsg"></p>
+  </div>
+
+  <script type="module">
+    import { auth } from "./firebase.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const link = `https://am-rewards.vercel.app/index.html?ref=${user.uid}`;
+        document.getElementById("refLink").value = link;
+      }
+    });
+
+    window.copyLink = function () {
+      const input = document.getElementById("refLink");
+      input.select();
+      input.setSelectionRange(0, 99999);
+      document.execCommand("copy");
+      document.getElementById("statusMsg").textContent = "تم نسخ الرابط!";
+    }
+  </script>
+</body>
+</html>
