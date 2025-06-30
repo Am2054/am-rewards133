@@ -93,7 +93,41 @@
 
     window.logout = function () {
       signOut(auth).then(() => {
-        window.location.href = "index.html";
+        window.location.href = "index.html";async function visitShortLink(url, taskId) {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const userRef = doc(db, "users", user.uid);
+  const userSnap = await getDoc(userRef);
+  const userData = userSnap.data() || {};
+
+  const today = new Date().toISOString().slice(0, 10);
+  const completedTasks = userData.completedTasks || {};
+
+  // تحقق هل أتم المهمة من قبل اليوم
+  if (completedTasks[taskId] === today) {
+    alert("لقد أتممت هذه المهمة بالفعل اليوم.");
+    return;
+  }
+
+  // فتح الرابط في نافذة جديدة
+  window.open(url, "_blank");
+
+  // انتظر 15 ثانية
+  setTimeout(async () => {
+    const newPoints = (userData.points || 0) + 10;
+    completedTasks[taskId] = today;
+
+    await setDoc(userRef, {
+      ...userData,
+      points: newPoints,
+      completedTasks
+    });
+
+    alert("✅ تم إضافة 10 نقاط إلى حسابك!");
+    document.getElementById("userPoints").textContent = newPoints;
+  }, 15000);
+      }
       });
     }
   </script>
