@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>طلب سحب - Am Rewards</title>
+  <script type="module" src="firebase.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      direction: rtl;
+      background-color: #f9f9f9;
+      padding: 20px;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    label {
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+    .btn {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .msg {
+      margin-top: 15px;
+      color: green;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>طلب سحب</h2>
+    <label for="method">اختر طريقة السحب:</label>
+    <select id="method">
+      <option value="vodafone">فودافون كاش</option>
+      <option value="paypal">PayPal (1 دولار)</option>
+    </select>
+
+    <label for="number">رقم الهاتف أو البريد:</label>
+    <input type="text" id="number" placeholder="أدخل رقم الهاتف أو بريد PayPal">
+
+    <button class="btn" onclick="requestWithdraw()">طلب السحب</button>
+
+    <p class="msg" id="msg"></p>
+  </div>
+
+  <script type="module">
+    import { auth, db } from "./firebase.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+    import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+    window.requestWithdraw = async function () {
+      const method = document.getElementById("method").value;
+      const number = document.getElementById("number").value;
+
+      if (!number.trim()) {
+        alert("يرجى إدخال الرقم أو البريد.");
+        return;
+      }
+
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          await addDoc(collection(db, "withdrawals"), {
+            uid: user.uid,
+            method,
+            number,
+            status: "pending",
+            time: serverTimestamp()
+          });
+          document.getElementById("msg").textContent = "تم إرسال طلبك بنجاح، سيتم مراجعته خلال ساعات.";
+        }
+      });
+    }
+  </script>
+</body>
+      </html>
