@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar">
 <head>
@@ -10,24 +9,32 @@
       direction: rtl;
       text-align: center;
       background-color: #f7f7f7;
-      padding-top: 100px;
+      padding-top: 80px;
     }
     .container {
       background-color: white;
       padding: 30px;
       border-radius: 10px;
-      width: 300px;
+      width: 320px;
       margin: auto;
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    input, button {
+      display: block;
+      width: 100%;
+      margin-bottom: 15px;
+      padding: 10px;
+      font-size: 16px;
     }
     button {
       background-color: #4CAF50;
       color: white;
-      padding: 10px 20px;
       border: none;
       border-radius: 5px;
-      font-size: 16px;
       cursor: pointer;
+    }
+    button.google {
+      background-color: #dd4b39;
     }
     h2 {
       margin-bottom: 20px;
@@ -37,13 +44,24 @@
 <body>
 
   <div class="container">
-    <h2>مرحبًا بك في Am Rewards</h2>
-    <button id="googleLoginBtn">تسجيل الدخول باستخدام Google</button>
+    <h2>تسجيل الدخول إلى Am Rewards</h2>
+    <input type="email" id="email" placeholder="البريد الإلكتروني" />
+    <input type="password" id="password" placeholder="كلمة المرور" />
+    <button id="loginBtn">تسجيل الدخول</button>
+    <button id="registerBtn">إنشاء حساب جديد</button>
+    <button id="googleLoginBtn" class="google">تسجيل الدخول بـ Google</button>
+    <p id="status" style="color: red;"></p>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+    import {
+      getAuth,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      GoogleAuthProvider,
+      signInWithPopup
+    } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -59,15 +77,40 @@
     const auth = getAuth();
     const provider = new GoogleAuthProvider();
 
-    document.getElementById("googleLoginBtn").addEventListener("click", () => {
-      signInWithPopup(auth, provider)
-        .then((result) => {
-          // ✅ تم تسجيل الدخول - تحويل المستخدم
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const status = document.getElementById("status");
+
+    // تسجيل الدخول بالبريد وكلمة المرور
+    document.getElementById("loginBtn").addEventListener("click", () => {
+      signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
+        .then(() => {
           window.location.href = "dashboard.html";
         })
         .catch((error) => {
-          alert("فشل تسجيل الدخول: " + error.message);
-          console.error("Firebase Error:", error);
+          status.textContent = "خطأ في تسجيل الدخول: " + error.message;
+        });
+    });
+
+    // إنشاء حساب جديد
+    document.getElementById("registerBtn").addEventListener("click", () => {
+      createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
+        .then(() => {
+          window.location.href = "dashboard.html";
+        })
+        .catch((error) => {
+          status.textContent = "فشل إنشاء الحساب: " + error.message;
+        });
+    });
+
+    // تسجيل الدخول بـ Google
+    document.getElementById("googleLoginBtn").addEventListener("click", () => {
+      signInWithPopup(auth, provider)
+        .then(() => {
+          window.location.href = "dashboard.html";
+        })
+        .catch((error) => {
+          status.textContent = "فشل تسجيل الدخول بـ Google: " + error.message;
         });
     });
   </script>
