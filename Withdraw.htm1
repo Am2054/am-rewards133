@@ -2,91 +2,70 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>طلب سحب - Am Rewards</title>
-  <script type="module" src="firebase.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      direction: rtl;
-      background-color: #f9f9f9;
-      padding: 20px;
-    }
-    .container {
-      max-width: 500px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    label {
-      font-weight: bold;
-    }
-    input, select {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      margin-bottom: 20px;
-    }
-    .btn {
-      background: #4CAF50;
-      color: white;
-      border: none;
-      padding: 12px;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    .msg {
-      margin-top: 15px;
-      color: green;
-      font-weight: bold;
-    }
-  </style>
+  <title>طلب السحب - Am Rewards</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 </head>
-<body>
-  <div class="container">
-    <h2>طلب سحب</h2>
-    <label for="method">اختر طريقة السحب:</label>
-    <select id="method">
-      <option value="vodafone">فودافون كاش</option>
-      <option value="paypal">PayPal (1 دولار)</option>
+<body class="bg-gray-50 px-4 py-6">
+
+  <div class="max-w-lg mx-auto bg-white p-6 rounded-xl shadow text-right">
+    <h2 class="text-xl font-bold mb-4">💰 طلب السحب</h2>
+    <p class="mb-2">رصيدك: <span id="userPoints" class="font-bold text-green-600">0</span> نقطة</p>
+    <label>وسيلة الدفع:</label>
+    <select id="method" class="w-full p-2 border rounded mt-1">
+      <option value="vodafone">Vodafone Cash</option>
+      <option value="paypal">PayPal</option>
     </select>
-
-    <label for="number">رقم الهاتف أو البريد:</label>
-    <input type="text" id="number" placeholder="أدخل رقم الهاتف أو بريد PayPal">
-
-    <button class="btn" onclick="requestWithdraw()">طلب السحب</button>
-
-    <p class="msg" id="msg"></p>
+    <label class="mt-2 block">رقم الهاتف / الإيميل:</label>
+    <input id="account" type="text" class="w-full p-2 border rounded mt-1">
+    <button onclick="requestWithdraw()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded">طلب السحب</button>
   </div>
 
-  <script type="module">
-    import { auth, db } from "./firebase.js";
-    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
-    import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+  <script>
+    const firebaseConfig = {
+      // 🔐 بيانات Firebase
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
 
-    window.requestWithdraw = async function () {
+    let userPoints = 0;
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        db.collection("users").doc(user.uid).get().then(doc => {
+          userPoints = doc.data().points || 0;
+          document.getElementById("userPoints").innerText = userPoints;
+        });
+      }
+    });
+
+    function requestWithdraw() {
       const method = document.getElementById("method").value;
-      const number = document.getElementById("number").value;
+      const account = document.getElementById("account").value;
 
-      if (!number.trim()) {
-        alert("يرجى إدخال الرقم أو البريد.");
+      if (userPoints < 312.5) {
+        alert("يجب أن تملك على الأقل 312.5 نقطة للسحب (25 EGP)");
         return;
       }
 
-      onAuthStateChanged(auth, async (user) => {
+      auth.onAuthStateChanged(user => {
         if (user) {
-          await addDoc(collection(db, "withdrawals"), {
+          db.collection("withdrawals").add({
             uid: user.uid,
             method,
-            number,
+            account,
+            date: new Date(),
             status: "pending",
-            time: serverTimestamp()
+            amount: userPoints
+          }).then(() => {
+            alert("تم إرسال طلب السحب ✅");
           });
-          document.getElementById("msg").textContent = "تم إرسال طلبك بنجاح، سيتم مراجعته خلال ساعات.";
         }
       });
     }
   </script>
 </body>
-      </html>
+</html>
