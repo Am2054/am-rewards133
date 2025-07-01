@@ -1,54 +1,70 @@
-
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>لوحة المستخدم - Am Rewards</title>
+  <meta charset="UTF-8" />
+  <title>لوحة التحكم - Am Rewards</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       direction: rtl;
-      background-color: #f0f0f0;
+      background-color: #f0f2f5;
+      margin: 0;
       padding: 20px;
     }
     .container {
-      max-width: 600px;
+      max-width: 800px;
       margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      background-color: white;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
     }
-    .btn {
-      background: #4CAF50;
-      color: white;
-      padding: 10px;
-      border: none;
-      border-radius: 5px;
-      margin-top: 10px;
-      cursor: pointer;
+    h2 {
+      color: #333;
     }
     .points {
-      font-size: 20px;
+      font-size: 24px;
+      color: green;
+      margin-bottom: 20px;
+    }
+    .task-list {
+      list-style: none;
+      padding: 0;
+    }
+    .task-list li {
+      background: #f7f7f7;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 8px;
+    }
+    .task-list li a {
+      text-decoration: none;
+      color: #007bff;
       font-weight: bold;
-      color: #333;
+    }
+    .btn {
+      background-color: #d9534f;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>مرحبًا بك في Am Rewards!</h2>
-    <p class="points">رصيدك الحالي: <span id="userPoints">جارٍ التحميل...</span> نقطة</p>
+    <h2>مرحبا بك في لوحة التحكم</h2>
+    <p class="points">رصيدك الحالي: <span id="userPoints">...</span> نقطة</p>
 
-    <h3>مهام اليوم:</h3>
-    <ul>
-      <li><a href="#">مشاهدة إعلان 1</a></li>
-  <li><a href="#">رابط مختصر 1</a></li>
-      <li>
-  <button class="btn" onclick="visitShortLink('https://linktr.ee/example', 'shortlink1')">🔗 زيارة رابط مختصر</button>
-      </li>
-      <li><a href="#">استبيان سريع</a></li>
-      <li><a href="#">تصويت</a></li>
+    <h3>المهام اليومية</h3>
+    <ul class="task-list">
+      <li><a href="task_shortlink1.html">رابط مختصر رقم 1</a></li>
+      <li><a href="task_survey1.html">استبيان سريع رقم 1</a></li>
+      <li><a href="task_youtube1.html">تابع قناة يوتيوب</a></li>
+      <li><a href="task_offerwall.html">عروض CPA</a></li>
+      <li><a href="task_randomgift.html">هدية عشوائية</a></li>
     </ul>
 
     <button class="btn" onclick="logout()">تسجيل الخروج</button>
@@ -65,12 +81,11 @@
       projectId: "am--rewards",
       storageBucket: "am--rewards.appspot.com",
       messagingSenderId: "744783579735",
-      appId: "1:744783579735:web:45e00de9998893bbc9b112",
-      measurementId: "G-CV3GLT2TTJ"
+      appId: "1:744783579735:web:45e00de9998893bbc9b112"
     };
 
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth();
+    const auth = getAuth(app);
     const db = getFirestore(app);
 
     onAuthStateChanged(auth, async (user) => {
@@ -82,7 +97,6 @@
           const data = userSnap.data();
           document.getElementById("userPoints").textContent = data.points ?? 0;
         } else {
-          // مستخدم جديد، نضيفه برصيد 0 نقطة
           await setDoc(userRef, { points: 0 });
           document.getElementById("userPoints").textContent = 0;
         }
@@ -93,43 +107,9 @@
 
     window.logout = function () {
       signOut(auth).then(() => {
-        window.location.href = "index.html";async function visitShortLink(url, taskId) {
-  const user = auth.currentUser;
-  if (!user) return;
-
-  const userRef = doc(db, "users", user.uid);
-  const userSnap = await getDoc(userRef);
-  const userData = userSnap.data() || {};
-
-  const today = new Date().toISOString().slice(0, 10);
-  const completedTasks = userData.completedTasks || {};
-
-  // تحقق هل أتم المهمة من قبل اليوم
-  if (completedTasks[taskId] === today) {
-    alert("لقد أتممت هذه المهمة بالفعل اليوم.");
-    return;
-  }
-
-  // فتح الرابط في نافذة جديدة
-  window.open(url, "_blank");
-
-  // انتظر 15 ثانية
-  setTimeout(async () => {
-    const newPoints = (userData.points || 0) + 10;
-    completedTasks[taskId] = today;
-
-    await setDoc(userRef, {
-      ...userData,
-      points: newPoints,
-      completedTasks
-    });
-
-    alert("✅ تم إضافة 10 نقاط إلى حسابك!");
-    document.getElementById("userPoints").textContent = newPoints;
-  }, 15000);
-      }
+        window.location.href = "index.html";
       });
-    }
+    };
   </script>
 </body>
 </html>
