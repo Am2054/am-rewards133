@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>مهام سوشيال ميديا - Am Rewards</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-gray-100 px-4 py-6 text-right">
+
+  <div class="max-w-xl mx-auto bg-white p-6 rounded-xl shadow">
+    <h2 class="text-xl font-bold mb-4">📢 مهام تفاعل على السوشيال ميديا</h2>
+
+    <div class="space-y-4">
+      <div class="p-4 border rounded">
+        <p class="font-semibold">تابع قناة TikTok</p>
+        <a href="https://www.tiktok.com/@example" target="_blank" class="text-blue-500 underline">رابط القناة</a>
+        <button onclick="completeTask('social_tiktok')" class="mt-2 bg-green-500 text-white px-3 py-1 rounded">تابعتها</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      // firebaseConfig هنا
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    function completeTask(taskId) {
+      auth.onAuthStateChanged(user => {
+        if (user) {
+          const userRef = db.collection("users").doc(user.uid);
+          userRef.update({
+            points: firebase.firestore.FieldValue.increment(20),
+            [`tasks.${taskId}`]: true
+          }).then(() => {
+            alert("✅ تم احتساب 20 نقطة");
+          });
+        }
+      });
+    }
+  </script>
+</body>
+</html>
