@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>استبيان - Am Rewards</title>
+  <style>
+    body { font-family: Arial; direction: rtl; background: #f0f0f0; padding: 20px; }
+    .container { background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    button { padding: 10px 20px; margin-top: 20px; background: #007BFF; color: white; border: none; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>شارك في هذا الاستبيان</h2>
+    <p>أكمل الاستبيان وستربح 80 نقطة.</p>
+    <button onclick="startSurvey()">ابدأ الآن</button>
+    <p id="status"></p>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.appspot.com",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth();
+    const db = getFirestore();
+
+    let currentUser;
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUser = user;
+      } else {
+        window.location.href = "index.html";
+      }
+    });
+
+    function startSurvey() {
+      document.getElementById("status").textContent = "انتظر قليلاً حتى يتم تأكيد المهمة...";
+      setTimeout(async () => {
+        const userRef = doc(db, "users", currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const currentPoints = userSnap.data().points || 0;
+          await updateDoc(userRef, {
+            points: currentPoints + 80
+          });
+          document.getElementById("status").textContent = "🎉 تمت إضافة 80 نقطة! سيتم فتح الاستبيان الآن...";
+          setTimeout(() => {
+            window.open("https://cpx-research.com", "_blank"); // رابط استبيان فعلي
+          }, 2000);
+        }
+      }, 15000);
+    }
+  </script>
+</body>
+</html>
