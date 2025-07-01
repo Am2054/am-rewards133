@@ -2,69 +2,82 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>تسجيل الدخول - Am Rewards</title>
+  <title>Am Rewards - تسجيل الدخول</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
+      font-family: 'Tajawal', sans-serif;
+      background: linear-gradient(to right, #004AAD, #2E8BC0);
+      color: white;
       text-align: center;
-      direction: rtl;
       padding-top: 100px;
     }
-    .container {
-      background: #fff;
-      padding: 40px;
-      border-radius: 10px;
-      display: inline-block;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    h1 {
+      font-size: 36px;
+      margin-bottom: 20px;
     }
     button {
-      background-color: #4285F4;
-      color: white;
-      padding: 10px 25px;
-      font-size: 16px;
+      background-color: white;
+      color: #004AAD;
       border: none;
+      padding: 15px 25px;
+      font-size: 18px;
+      font-weight: bold;
       border-radius: 8px;
       cursor: pointer;
+      transition: 0.3s;
     }
-    h1 {
-      color: #444;
+    button:hover {
+      background-color: #f0f0f0;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>مرحبا بك في Am Rewards</h1>
-    <p>سجل الدخول للاستمرار</p>
-    <button id="loginBtn">تسجيل الدخول باستخدام جوجل</button>
-  </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+  <h1>مرحـبًا بك في Am Rewards</h1>
+  <p>سجل الدخول بحسابك في Google للبدء في جمع النقاط 💰</p>
+  <button onclick="signInWithGoogle()">تسجيل الدخول باستخدام جوجل</button>
 
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+  <script>
+    // ✅ 1. إعداد Firebase Config (استبدله بمعلومات مشروعك)
     const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      apiKey: "AIzaSy***********", // <-- ضعه من مشروعك
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
       storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "744783579735",
-      appId: "1:744783579735:web:45e00de9998893bbc9b112"
+      messagingSenderId: "***********",
+      appId: "1:************:web:***********"
     };
+    firebase.initializeApp(firebaseConfig);
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const provider = new GoogleAuthProvider();
+    // ✅ 2. زر تسجيل الدخول باستخدام Google
+    function signInWithGoogle() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      firebase.auth().signInWithPopup(provider)
+        .then((result) => {
+          const user = result.user;
 
-    document.getElementById("loginBtn").addEventListener("click", () => {
-      signInWithPopup(auth, provider)
-        .then(() => {
+          // ✅ 3. حفظ بيانات المستخدم في Firestore
+          firebase.firestore().collection("users").doc(user.uid).set({
+            name: user.displayName,
+            email: user.email,
+            uid: user.uid,
+            points: 0,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+
+          // ✅ 4. تحويله إلى لوحة التحكم
           window.location.href = "dashboard.html";
         })
         .catch((error) => {
-          alert("فشل تسجيل الدخول: " + error.message);
+          alert("حدث خطأ أثناء تسجيل الدخول: " + error.message);
         });
-    });
+    }
   </script>
 </body>
 </html>
