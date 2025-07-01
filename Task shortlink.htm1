@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>رابط مختصر - Am Rewards</title>
+  <style>
+    body { font-family: Arial; direction: rtl; background: #f0f0f0; padding: 20px; }
+    .container { background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    button { padding: 10px 20px; margin-top: 20px; background: green; color: white; border: none; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>رابط مختصر - 10 نقاط</h2>
+    <p>اضغط على الزر وانتظر 10 ثوانٍ ثم سيتم تحويلك.</p>
+    <button onclick="startTask()">ابدأ المهمة</button>
+    <p id="status"></p>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.appspot.com",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth();
+    const db = getFirestore();
+
+    let currentUser;
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUser = user;
+      } else {
+        window.location.href = "index.html";
+      }
+    });
+
+    function startTask() {
+      document.getElementById("status").textContent = "جاري الانتظار...";
+      setTimeout(async () => {
+        const userRef = doc(db, "users", currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const currentPoints = userSnap.data().points || 0;
+          await updateDoc(userRef, {
+            points: currentPoints + 10
+          });
+          document.getElementById("status").textContent = "تمت إضافة 10 نقاط! سيتم تحويلك الآن...";
+          setTimeout(() => {
+            window.location.href = "https://link-target.net/123456"; // رابط مختصر فعلي
+          }, 2000);
+        }
+      }, 10000);
+    }
+  </script>
+</body>
+</html>
