@@ -1,57 +1,52 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>رابط مختصر | Am Rewards</title>
+  <meta charset="UTF-8">
+  <title>مهمة الروابط المختصرة | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: Arial; direction: rtl; padding: 20px; background: #f8f8f8; text-align: center }
-    .task-box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px #ccc; max-width: 600px; margin: auto; }
-    .btn { background: green; color: white; padding: 12px 25px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; text-decoration: none; display: inline-block; margin-top: 20px; }
-    .msg { margin-top: 20px; color: green; font-weight: bold; }
+    body { font-family: Arial; direction: rtl; text-align: center; padding: 20px; background-color: #f9f9f9; }
+    a { display: inline-block; padding: 10px 20px; background-color: green; color: white; border-radius: 5px; text-decoration: none; margin-top: 20px; }
+    p { margin-top: 20px; font-weight: bold; }
   </style>
 </head>
 <body>
+  <h1>مهمة الرابط المختصر</h1>
+  <p>اضغط على الزر ثم ارجع لإضافة النقاط:</p>
 
-  <div class="task-box">
-    <h1>مهمة الرابط المختصر</h1>
-    <p>اضغط على الرابط المختصر، أكمل التحقق ثم عد لتحصل على نقاطك.</p>
+  <a href="https://shrinke.me/AmRewardsTest" target="_blank" onclick="rewardUser()">🔗 افتح الرابط المختصر</a>
 
-    <a class="btn" href="https://shrinke.me/AmRewardsTest" target="_blank" onclick="rewardUser()">اضغط هنا وابدأ المهمة</a>
+  <p id="status"></p>
 
-    <p class="msg" id="reward-msg"></p>
-  </div>
-
-  <!-- Firebase SDKs -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-
-  <!-- Firebase config -->
   <script src="firebase.js"></script>
 
   <script>
-    let currentUser = null;
+    let currentUser;
 
     auth.onAuthStateChanged(user => {
       if (user) {
         currentUser = user;
-        console.log("تم تسجيل الدخول باسم:", user.displayName);
       } else {
-        auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+        window.location.href = "index.html";
       }
     });
 
     function rewardUser() {
       if (!currentUser) return;
-      const uid = currentUser.uid;
-      const userRef = db.collection("users").doc(uid);
 
-      userRef.get().then(doc => {
-        const current = doc.exists && doc.data().points ? doc.data().points : 0;
-        const updated = current + 80;
-        userRef.set({ points: updated }).then(() => {
-          document.getElementById("reward-msg").textContent = "✅ تم إضافة 80 نقطة إلى حسابك!";
+      const ref = db.collection("users").doc(currentUser.uid);
+      ref.get().then(doc => {
+        const currentPoints = doc.exists && doc.data().points ? doc.data().points : 0;
+        const newPoints = currentPoints + 80;
+
+        ref.set({ points: newPoints }, { merge: true }).then(() => {
+          document.getElementById("status").textContent = "✅ تم إضافة 80 نقطة بنجاح!";
+        }).catch(() => {
+          document.getElementById("status").textContent = "❌ حدث خطأ، حاول مرة أخرى.";
         });
       });
     }
