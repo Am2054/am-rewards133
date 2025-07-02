@@ -1,145 +1,71 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
   <title>لوحة المستخدم | Am Rewards</title>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      font-family: 'Tajawal', sans-serif;
-      margin: 0;
-      background: #f1f5f9;
-      color: #333;
-    }
-
-    header {
-      background: #004AAD;
-      color: white;
-      padding: 15px;
-      text-align: center;
-      font-size: 24px;
-    }
-
-    .container {
-      max-width: 700px;
-      margin: 20px auto;
-      padding: 10px;
-    }
-
-    .stats {
-      display: flex;
-      justify-content: space-between;
-      background: white;
-      padding: 15px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px #ccc;
-      margin-bottom: 20px;
-    }
-
-    .task {
-      background: white;
-      padding: 15px;
-      margin-bottom: 15px;
-      border-radius: 12px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.08);
-      transition: 0.3s;
-    }
-
-    .task:hover {
-      transform: scale(1.02);
-      box-shadow: 0 0 12px rgba(0,0,0,0.1);
-    }
-
-    .task a {
-      text-decoration: none;
-      color: #004AAD;
-      font-weight: bold;
-      font-size: 18px;
-    }
-
-    .logout-btn {
-      display: block;
-      margin: 30px auto;
-      background: #ff3b3b;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    @media (max-width: 600px) {
-      .stats {
-        flex-direction: column;
-        gap: 10px;
-      }
-    }
+    body { font-family: Arial; direction: rtl; background: #f0f0f0; padding: 20px; text-align: center; }
+    .box { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px #ccc; max-width: 500px; margin: auto; }
+    .btn { background: #0077cc; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 15px; }
+    .points { font-size: 22px; margin-top: 15px; color: green; }
+    .tasks a { display: block; margin: 10px 0; color: #0077cc; text-decoration: none; font-weight: bold; }
   </style>
 </head>
 <body>
-  <header>مرحبا بك في Am Rewards</header>
-
-  <div class="container">
-    <div class="stats">
-      <div>نقاطك: <strong id="userPoints">0</strong></div>
-      <div>مستواك: <strong id="userLevel">1</strong></div>
+  <div class="box">
+    <h1>لوحة المستخدم</h1>
+    <div id="user-info">
+      <button class="btn" onclick="login()">تسجيل الدخول باستخدام جوجل</button>
     </div>
 
-    <div class="task"><a href="shortlink.html">🔗 روابط مختصرة</a></div>
-    <div class="task"><a href="youtube.html">📺 متابعة قناة يوتيوب</a></div>
-    <div class="task"><a href="cpa-task.html">🎯 عروض CPA</a></div>
-    <div class="task"><a href="surveys.html">🧠 استبيانات</a></div>
-    <div class="task"><a href="install-apps.html">📱 تثبيت تطبيقات</a></div>
-    <div class="task"><a href="play-games.html">🎮 ألعاب اونلاين</a></div>
-    <div class="task"><a href="withdraw.html">💸 طلب سحب</a></div>
-    <div class="task"><a href="referral.html">🤝 دعوة الأصدقاء</a></div>
-    <div class="task"><a href="levels.html">🏆 نظام المستويات</a></div>
+    <div id="dashboard" style="display:none;">
+      <p>مرحبًا، <span id="user-name"></span></p>
+      <p class="points">رصيدك: <span id="points">0</span> نقطة</p>
 
-    <button class="logout-btn" onclick="logout()">🚪 تسجيل خروج</button>
+      <div class="tasks">
+        <a href="shortlinks.html">مهام الروابط المختصرة</a>
+        <a href="surveys.html">الاستبيانات</a>
+        <a href="cpaoffers.html">عروض CPA</a>
+        <a href="youtube.html">يوتيوب</a>
+        <a href="ai.html">أدوات AI</a>
+        <a href="withdraw.html">سحب الأرباح</a>
+      </div>
+    </div>
   </div>
 
-  <script>
-    // ربط بيانات المستخدم
-    firebase.auth().onAuthStateChanged(user => {
-      if (user) {
-        const userId = user.uid;
-        const userRef = firebase.firestore().collection("users").doc(userId);
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
 
-        userRef.get().then(doc => {
+  <!-- firebase.js -->
+  <script src="firebase.js"></script>
+
+  <script>
+    function login() {
+      auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+    }
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        document.getElementById("user-info").style.display = "none";
+        document.getElementById("dashboard").style.display = "block";
+        document.getElementById("user-name").textContent = user.displayName;
+
+        const uid = user.uid;
+        const docRef = db.collection("users").doc(uid);
+
+        docRef.get().then(doc => {
           if (doc.exists) {
-            const data = doc.data();
-            document.getElementById("userPoints").innerText = data.points || 0;
-            document.getElementById("userLevel").innerText = data.level || 1;
+            document.getElementById("points").textContent = doc.data().points || 0;
+          } else {
+            docRef.set({ points: 0 });
+            document.getElementById("points").textContent = 0;
           }
         });
-      } else {
-        window.location.href = "index.html";
       }
     });
-
-    function logout() {
-      firebase.auth().signOut().then(() => {
-        window.location.href = "index.html";
-      });
-    }
-  </script>
-
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-  <script>
-    // firebase config
-    const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards",
-      storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "744783579735",
-      appId: "1:744783579735:web:45e00de9998893bbc9b112"
-    };
-    firebase.initializeApp(firebaseConfig);
   </script>
 </body>
 </html>
