@@ -1,69 +1,143 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>طلب السحب - Am Rewards</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-</head>
-<body class="bg-gray-50 px-4 py-6">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>طلب سحب | Am Rewards</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: #f4f6f9;
+      padding: 20px;
+      color: #333;
+    }
 
-  <div class="max-w-lg mx-auto bg-white p-6 rounded-xl shadow text-right">
-    <h2 class="text-xl font-bold mb-4">💰 طلب السحب</h2>
-    <p class="mb-2">رصيدك: <span id="userPoints" class="font-bold text-green-600">0</span> نقطة</p>
-    <label>وسيلة الدفع:</label>
-    <select id="method" class="w-full p-2 border rounded mt-1">
-      <option value="vodafone">Vodafone Cash</option>
-      <option value="paypal">PayPal</option>
+    .box {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px #ccc;
+    }
+
+    h2 {
+      text-align: center;
+      color: #004AAD;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      background: #004AAD;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .msg {
+      text-align: center;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>طلب سحب</h2>
+    <p>رصيدك الحالي: <strong id="currentPoints">0</strong> نقطة</p>
+
+    <label for="method">اختر وسيلة الدفع:</label>
+    <select id="method">
+      <option value="vodafone">📱 Vodafone Cash</option>
+      <option value="paypal">💳 PayPal</option>
     </select>
-    <label class="mt-2 block">رقم الهاتف / الإيميل:</label>
-    <input id="account" type="text" class="w-full p-2 border rounded mt-1">
-    <button onclick="requestWithdraw()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded">طلب السحب</button>
+
+    <label for="details">رقم الهاتف أو البريد:</label>
+    <input type="text" id="details" placeholder="أدخل رقمك أو بريدك" />
+
+    <button onclick="requestWithdrawal()">إرسال الطلب</button>
+
+    <div class="msg" id="msgArea"></div>
   </div>
 
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
   <script>
     const firebaseConfig = {
-      // 🔐 بيانات Firebase
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.appspot.com",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    const auth = firebase.auth();
 
+    let userId = null;
     let userPoints = 0;
 
-    auth.onAuthStateChanged(user => {
+    firebase.auth().onAuthStateChanged(user => {
       if (user) {
-        db.collection("users").doc(user.uid).get().then(doc => {
-          userPoints = doc.data().points || 0;
-          document.getElementById("userPoints").innerText = userPoints;
+        userId = user.uid;
+        db.collection("users").doc(userId).get().then(doc => {
+          if (doc.exists) {
+            userPoints = doc.data().points || 0;
+            document.getElementById("currentPoints").innerText = userPoints;
+          }
         });
+      } else {
+        window.location.href = "index.html";
       }
     });
 
-    function requestWithdraw() {
+    function requestWithdrawal() {
       const method = document.getElementById("method").value;
-      const account = document.getElementById("account").value;
+      const details = document.getElementById("details").value.trim();
+      const msgArea = document.getElementById("msgArea");
 
-      if (userPoints < 312.5) {
-        alert("يجب أن تملك على الأقل 312.5 نقطة للسحب (25 EGP)");
+      if (userPoints < 1000) {
+        msgArea.innerText = "❌ لا يمكنك السحب قبل الوصول إلى 1000 نقطة.";
+        msgArea.style.color = "red";
         return;
       }
 
-      auth.onAuthStateChanged(user => {
-        if (user) {
-          db.collection("withdrawals").add({
-            uid: user.uid,
-            method,
-            account,
-            date: new Date(),
-            status: "pending",
-            amount: userPoints
-          }).then(() => {
-            alert("تم إرسال طلب السحب ✅");
-          });
-        }
+      if (!details) {
+        msgArea.innerText = "❌ يرجى إدخال بيانات وسيلة الدفع.";
+        msgArea.style.color = "red";
+        return;
+      }
+
+      db.collection("withdrawals").add({
+        userId: userId,
+        method: method,
+        details: details,
+        status: "قيد المراجعة",
+        date: new Date()
+      }).then(() => {
+        msgArea.innerText = "✅ تم إرسال طلبك بنجاح. سيتم مراجعته خلال 24 ساعة.";
+        msgArea.style.color = "green";
       });
     }
   </script>
