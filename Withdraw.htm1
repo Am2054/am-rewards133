@@ -3,30 +3,70 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Withdraw | Am Rewards</title>
+  <title>سحب الأرباح | Am Rewards</title>
   <style>
-    body { font-family: Arial; direction: rtl; padding: 20px; background: #f8f8f8 }
-    .withdraw-box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
-    input, button { padding: 10px; width: 100%; margin-top: 10px; font-size: 16px; }
-    button { background: green; color: white; border: none; border-radius: 5px }
+    body { font-family: Arial; direction: rtl; padding: 20px; background: #f8f8f8; text-align: center }
+    .box { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 0 10px #ccc; max-width: 500px; margin: auto }
+    input, button { padding: 12px; width: 100%; margin: 10px 0; font-size: 16px }
+    button { background: green; color: white; border: none; border-radius: 5px; cursor: pointer }
+    .msg { margin-top: 10px; color: green; }
   </style>
 </head>
 <body>
-  <div class="withdraw-box">
+
+  <div class="box">
     <h1>طلب سحب الأرباح</h1>
-    <p>يرجى إدخال بياناتك لطلب السحب. لا يوجد حد أدنى.</p>
-    <form>
-      <label>الاسم:</label>
-      <input type="text" placeholder="أدخل اسمك" required />
-      
-      <label>رقم فودافون كاش / PayPal:</label>
-      <input type="text" placeholder="أدخل الرقم أو البريد" required />
-      
-      <label>المبلغ بالجنيه (من رصيدك):</label>
-      <input type="number" placeholder="أدخل المبلغ المطلوب" required />
-      
-      <button type="submit">طلب السحب</button>
-    </form>
+    <p>رصيدك الحالي: <strong id="points">--</strong> نقطة</p>
+
+    <input type="text" id="method" placeholder="رقم فودافون كاش أو PayPal" required />
+    <input type="number" id="amount" placeholder="المبلغ المطلوب (جنيه)" required />
+    <button onclick="requestWithdrawal()">طلب السحب</button>
+
+    <p class="msg" id="result"></p>
   </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+  <script src="firebase.js"></script>
+
+  <script>
+    let currentUser;
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        currentUser = user;
+        const uid = user.uid;
+        const ref = db.collection("users").doc(uid);
+        ref.get().then(doc => {
+          const points = doc.data().points || 0;
+          document.getElementById("points").textContent = points;
+        });
+      } else {
+        auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+      }
+    });
+
+    function requestWithdrawal() {
+      const method = document.getElementById("method").value.trim();
+      const amount = parseFloat(document.getElementById("amount").value.trim());
+      if (!method || !amount || isNaN(amount)) {
+        alert("يرجى إدخال البيانات بشكل صحيح");
+        return;
+      }
+
+      const uid = currentUser.uid;
+      db.collection("withdrawals").add({
+        uid,
+        email: currentUser.email,
+        amount,
+        method,
+        date: new Date().toISOString()
+      }).then(() => {
+        document.getElementById("result").textContent = "✅ تم إرسال طلب السحب بنجاح. سيتم مراجعته قريبًا.";
+      });
+    }
+  </script>
 </body>
 </html>
