@@ -2,82 +2,20 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8" />
-  <title>متابعة قناة يوتيوب - Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>تابع قناة يوتيوب | Am Rewards</title>
   <style>
-    body { font-family: Arial; direction: rtl; background: #f9f9f9; padding: 20px; }
-    .container {
-      max-width: 600px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      text-align: center;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    button {
-      background: #FF0000;
-      color: white;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 16px;
-    }
+    body { font-family: Arial; direction: rtl; padding: 20px; background: #f8f8f8 }
+    .task-box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
+    a.btn { background: green; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>ادعمنا بمتابعة قناتنا على يوتيوب</h2>
-    <p>اضغط على الزر وانتظر 10 ثوانٍ لتربح 50 نقطة.</p>
-    <button onclick="followChannel()">تابع القناة الآن</button>
-    <p id="status"></p>
+  <div class="task-box">
+    <h1>تابع قناة يوتيوب</h1>
+    <p>اضغط على الرابط وتابع القناة لتحصل على نقاط.</p>
+    <a class="btn" href="https://www.youtube.com/channel/UC-test" target="_blank">ابدأ المهمة</a>
+    <p>بعد تنفيذ المهمة، سيتم إضافة <strong>100</strong> نقطة إلى حسابك تلقائيًا.</p>
   </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards",
-      storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "744783579735",
-      appId: "1:744783579735:web:45e00de9998893bbc9b112"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth();
-    const db = getFirestore();
-
-    let currentUser;
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        currentUser = user;
-      } else {
-        window.location.href = "index.html";
-      }
-    });
-
-    function followChannel() {
-      document.getElementById("status").textContent = "يرجى الانتظار...";
-      setTimeout(async () => {
-        const userRef = doc(db, "users", currentUser.uid);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          const currentPoints = userSnap.data().points || 0;
-          await updateDoc(userRef, {
-            points: currentPoints + 50
-          });
-          document.getElementById("status").textContent = "✅ تم منحك 50 نقطة! سيتم فتح القناة الآن.";
-          setTimeout(() => {
-            window.open("https://www.youtube.com/@YOUR_CHANNEL", "_blank");
-          }, 2000);
-        }
-      }, 10000);
-    }
-  </script>
 </body>
 </html>
