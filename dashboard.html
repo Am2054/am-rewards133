@@ -2,70 +2,46 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>لوحة المستخدم | Am Rewards</title>
+  <title>لوحة التحكم | Am Rewards</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: Arial; direction: rtl; background: #f0f0f0; padding: 20px; text-align: center; }
-    .box { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px #ccc; max-width: 500px; margin: auto; }
-    .btn { background: #0077cc; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 15px; }
-    .points { font-size: 22px; margin-top: 15px; color: green; }
-    .tasks a { display: block; margin: 10px 0; color: #0077cc; text-decoration: none; font-weight: bold; }
+    body { font-family: Arial; direction: rtl; text-align: center; padding: 20px; background-color: #f9f9f9; }
+    h1 { color: #333; }
+    .box { padding: 20px; background: white; border-radius: 10px; box-shadow: 0 0 10px #ccc; max-width: 500px; margin: auto; }
+    a { display: block; margin: 10px 0; font-size: 18px; color: green; text-decoration: none; }
   </style>
 </head>
 <body>
   <div class="box">
-    <h1>لوحة المستخدم</h1>
-    <div id="user-info">
-      <button class="btn" onclick="login()">تسجيل الدخول باستخدام جوجل</button>
-    </div>
+    <h1>لوحة التحكم</h1>
+    <p>مرحبًا، <span id="user-name">...</span></p>
+    <p>رصيدك: <strong id="points">0</strong> نقطة</p>
 
-    <div id="dashboard" style="display:none;">
-      <p>مرحبًا، <span id="user-name"></span></p>
-      <p class="points">رصيدك: <span id="points">0</span> نقطة</p>
-
-      <div class="tasks">
-        <a href="shortlinks.html">مهام الروابط المختصرة</a>
-        <a href="surveys.html">الاستبيانات</a>
-        <a href="cpaoffers.html">عروض CPA</a>
-        <a href="youtube.html">يوتيوب</a>
-        <a href="ai.html">أدوات AI</a>
-        <a href="withdraw.html">سحب الأرباح</a>
-      </div>
-    </div>
+    <a href="shortlinks.html">🔗 مهمة الروابط المختصرة</a>
+    <a href="withdraw.html">💸 سحب الأرباح</a>
   </div>
 
-  <!-- Firebase SDKs -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-
-  <!-- firebase.js -->
   <script src="firebase.js"></script>
 
   <script>
-    function login() {
-      auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-    }
-
     auth.onAuthStateChanged(user => {
       if (user) {
-        document.getElementById("user-info").style.display = "none";
-        document.getElementById("dashboard").style.display = "block";
         document.getElementById("user-name").textContent = user.displayName;
-
-        const uid = user.uid;
-        const docRef = db.collection("users").doc(uid);
-
-        docRef.get().then(doc => {
+        db.collection("users").doc(user.uid).get().then(doc => {
           if (doc.exists) {
             document.getElementById("points").textContent = doc.data().points || 0;
           } else {
-            docRef.set({ points: 0 });
-            document.getElementById("points").textContent = 0;
+            db.collection("users").doc(user.uid).set({ points: 0 });
           }
         });
+      } else {
+        window.location.href = "index.html";
       }
     });
   </script>
 </body>
-</html>
+  </html>
