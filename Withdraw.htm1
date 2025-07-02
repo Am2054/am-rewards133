@@ -1,31 +1,27 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>سحب الأرباح | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: Arial; direction: rtl; padding: 20px; background: #f8f8f8; text-align: center }
-    .box { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 0 10px #ccc; max-width: 500px; margin: auto }
-    input, button { padding: 12px; width: 100%; margin: 10px 0; font-size: 16px }
-    button { background: green; color: white; border: none; border-radius: 5px; cursor: pointer }
-    .msg { margin-top: 10px; color: green; }
+    body { font-family: Arial; direction: rtl; text-align: center; padding: 20px; background-color: #f0f0f0; }
+    input, button { padding: 10px; margin: 10px 0; width: 80%; max-width: 300px; font-size: 16px; }
+    button { background: green; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    #result { margin-top: 20px; font-weight: bold; }
   </style>
 </head>
 <body>
+  <h1>طلب سحب الأرباح</h1>
+  <p>رصيدك الحالي: <strong id="points">--</strong> نقطة</p>
 
-  <div class="box">
-    <h1>طلب سحب الأرباح</h1>
-    <p>رصيدك الحالي: <strong id="points">--</strong> نقطة</p>
+  <input type="text" id="method" placeholder="رقم فودافون كاش أو PayPal">
+  <input type="number" id="amount" placeholder="المبلغ بالجنيه">
+  <button onclick="requestWithdrawal()">💸 إرسال الطلب</button>
 
-    <input type="text" id="method" placeholder="رقم فودافون كاش أو PayPal" required />
-    <input type="number" id="amount" placeholder="المبلغ المطلوب (جنيه)" required />
-    <button onclick="requestWithdrawal()">طلب السحب</button>
+  <p id="result"></p>
 
-    <p class="msg" id="result"></p>
-  </div>
-
-  <!-- Firebase SDKs -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
@@ -37,34 +33,34 @@
     auth.onAuthStateChanged(user => {
       if (user) {
         currentUser = user;
-        const uid = user.uid;
-        const ref = db.collection("users").doc(uid);
-        ref.get().then(doc => {
-          const points = doc.data().points || 0;
-          document.getElementById("points").textContent = points;
+        db.collection("users").doc(user.uid).get().then(doc => {
+          const pts = doc.exists && doc.data().points ? doc.data().points : 0;
+          document.getElementById("points").textContent = pts;
         });
       } else {
-        auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+        window.location.href = "index.html";
       }
     });
 
     function requestWithdrawal() {
       const method = document.getElementById("method").value.trim();
       const amount = parseFloat(document.getElementById("amount").value.trim());
-      if (!method || !amount || isNaN(amount)) {
-        alert("يرجى إدخال البيانات بشكل صحيح");
+
+      if (!method || isNaN(amount) || amount <= 0) {
+        document.getElementById("result").textContent = "❌ أدخل بيانات صحيحة";
         return;
       }
 
-      const uid = currentUser.uid;
       db.collection("withdrawals").add({
-        uid,
+        uid: currentUser.uid,
         email: currentUser.email,
         amount,
         method,
         date: new Date().toISOString()
       }).then(() => {
-        document.getElementById("result").textContent = "✅ تم إرسال طلب السحب بنجاح. سيتم مراجعته قريبًا.";
+        document.getElementById("result").textContent = "✅ تم إرسال طلب السحب بنجاح!";
+      }).catch(() => {
+        document.getElementById("result").textContent = "❌ حدث خطأ، حاول مرة أخرى.";
       });
     }
   </script>
