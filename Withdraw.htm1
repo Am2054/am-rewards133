@@ -1,139 +1,32 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>سحب الأرباح | Am Rewards</title>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Withdraw | Am Rewards</title>
   <style>
-    body {
-      font-family: 'Tajawal', sans-serif;
-      background: #f9f9f9;
-      padding: 20px;
-    }
-    .container {
-      max-width: 500px;
-      margin: auto;
-      background: white;
-      padding: 25px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px #ccc;
-    }
-    h2 {
-      text-align: center;
-      color: #004AAD;
-    }
-    input, button {
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-family: inherit;
-    }
-    button {
-      background: #004AAD;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    #message {
-      text-align: center;
-      margin-top: 15px;
-      font-weight: bold;
-    }
+    body { font-family: Arial; direction: rtl; padding: 20px; background: #f8f8f8 }
+    .withdraw-box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
+    input, button { padding: 10px; width: 100%; margin-top: 10px; font-size: 16px; }
+    button { background: green; color: white; border: none; border-radius: 5px }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>طلب سحب الأرباح</h2>
-    <input type="text" id="method" placeholder="مثال: Vodafone Cash 01012345678">
-    <button onclick="requestWithdrawal()">طلب السحب</button>
-    <div id="message"></div>
+  <div class="withdraw-box">
+    <h1>طلب سحب الأرباح</h1>
+    <p>يرجى إدخال بياناتك لطلب السحب. لا يوجد حد أدنى.</p>
+    <form>
+      <label>الاسم:</label>
+      <input type="text" placeholder="أدخل اسمك" required />
+      
+      <label>رقم فودافون كاش / PayPal:</label>
+      <input type="text" placeholder="أدخل الرقم أو البريد" required />
+      
+      <label>المبلغ بالجنيه (من رصيدك):</label>
+      <input type="number" placeholder="أدخل المبلغ المطلوب" required />
+      
+      <button type="submit">طلب السحب</button>
+    </form>
   </div>
-
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards",
-      storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "744783579735",
-      appId: "1:744783579735:web:45e00de9998893bbc9b112"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-
-    const minPointsToWithdraw = 250;
-    const maxPointsPerDay = 1250;
-    const maxWithdrawalsPerDay = 3;
-
-    auth.onAuthStateChanged(async (user) => {
-      if (!user) {
-        window.location.href = "index.html";
-        return;
-      }
-
-      window.requestWithdrawal = async function () {
-        const method = document.getElementById("method").value.trim();
-        const message = document.getElementById("message");
-
-        if (!method) {
-          message.innerText = "❌ يرجى إدخال طريقة السحب (مثال: Vodafone Cash).";
-          return;
-        }
-
-        const userDoc = await db.collection("users").doc(user.uid).get();
-        const points = userDoc.data().points || 0;
-
-        if (points < minPointsToWithdraw) {
-          message.innerText = "❌ تحتاج إلى 250 نقطة على الأقل للسحب.";
-          return;
-        }
-
-        const today = new Date().toISOString().substring(0, 10);
-        const snapshot = await db.collection("withdrawals")
-          .where("userId", "==", user.uid)
-          .where("date", "==", today).get();
-
-        let totalPointsToday = 0;
-
-        snapshot.forEach(doc => {
-          totalPointsToday += doc.data().points;
-        });
-
-        if (snapshot.size >= maxWithdrawalsPerDay) {
-          message.innerText = "❌ لا يمكنك السحب أكثر من 3 مرات اليوم.";
-          return;
-        }
-
-        if (totalPointsToday + points > maxPointsPerDay) {
-          message.innerText = "❌ لقد وصلت إلى الحد الأقصى للسحب اليومي (100 جنيه).";
-          return;
-        }
-
-        // تسجيل طلب السحب
-        await db.collection("withdrawals").add({
-          userId: user.uid,
-          method: method,
-          points: points,
-          date: today,
-          status: "pending",
-        });
-
-        // خصم النقاط
-        await db.collection("users").doc(user.uid).update({
-          points: firebase.firestore.FieldValue.increment(-points)
-        });
-
-        message.style.color = "green";
-        message.innerText = "✅ تم إرسال طلب السحب بنجاح، سيتم مراجعته خلال ساعات.";
-      };
-    });
-  </script>
 </body>
 </html>
