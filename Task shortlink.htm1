@@ -5,17 +5,56 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>رابط مختصر | Am Rewards</title>
   <style>
-    body { font-family: Arial; direction: rtl; padding: 20px; background: #f8f8f8 }
-    .task-box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
-    a.btn { background: green; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px }
+    body { font-family: Arial; direction: rtl; padding: 20px; background: #f8f8f8; text-align: center }
+    .task-box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px #ccc; max-width: 600px; margin: auto; }
+    .btn { background: green; color: white; padding: 12px 25px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; text-decoration: none; display: inline-block; margin-top: 20px; }
+    .msg { margin-top: 20px; color: green; font-weight: bold; }
   </style>
 </head>
 <body>
+
   <div class="task-box">
-    <h1>رابط مختصر</h1>
-    <p>اضغط على الرابط المختصر وأكمل التحقق لتحصل على نقاطك.</p>
-    <a class="btn" href="https://shrinke.me/AmRewardsTest" target="_blank">ابدأ المهمة</a>
-    <p>بعد تنفيذ المهمة، سيتم إضافة <strong>80</strong> نقطة إلى حسابك تلقائيًا.</p>
+    <h1>مهمة الرابط المختصر</h1>
+    <p>اضغط على الرابط المختصر، أكمل التحقق ثم عد لتحصل على نقاطك.</p>
+
+    <a class="btn" href="https://shrinke.me/AmRewardsTest" target="_blank" onclick="rewardUser()">اضغط هنا وابدأ المهمة</a>
+
+    <p class="msg" id="reward-msg"></p>
   </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+
+  <!-- Firebase config -->
+  <script src="firebase.js"></script>
+
+  <script>
+    let currentUser = null;
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        currentUser = user;
+        console.log("تم تسجيل الدخول باسم:", user.displayName);
+      } else {
+        auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+      }
+    });
+
+    function rewardUser() {
+      if (!currentUser) return;
+      const uid = currentUser.uid;
+      const userRef = db.collection("users").doc(uid);
+
+      userRef.get().then(doc => {
+        const current = doc.exists && doc.data().points ? doc.data().points : 0;
+        const updated = current + 80;
+        userRef.set({ points: updated }).then(() => {
+          document.getElementById("reward-msg").textContent = "✅ تم إضافة 80 نقطة إلى حسابك!";
+        });
+      });
+    }
+  </script>
 </body>
 </html>
