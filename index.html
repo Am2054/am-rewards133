@@ -1,81 +1,120 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>Am Rewards - تسجيل الدخول</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>تسجيل الدخول | Am Rewards</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
-      background: linear-gradient(to right, #004AAD, #2E8BC0);
-      color: white;
-      text-align: center;
-      padding-top: 100px;
+      background: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
     }
-    h1 {
-      font-size: 36px;
-      margin-bottom: 20px;
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+    h2 {
+      text-align: center;
+      color: #004AAD;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
     }
     button {
-      background-color: white;
-      color: #004AAD;
+      width: 100%;
+      padding: 12px;
+      background: #004AAD;
+      color: white;
       border: none;
-      padding: 15px 25px;
-      font-size: 18px;
-      font-weight: bold;
       border-radius: 8px;
+      font-size: 16px;
       cursor: pointer;
-      transition: 0.3s;
     }
     button:hover {
-      background-color: #f0f0f0;
+      background: #003080;
+    }
+    .toggle {
+      text-align: center;
+      margin-top: 15px;
+      cursor: pointer;
+      color: #004AAD;
+    }
+    .error {
+      color: red;
+      text-align: center;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
+  <div class="container">
+    <h2 id="formTitle">تسجيل الدخول</h2>
+    <input type="email" id="email" placeholder="البريد الإلكتروني">
+    <input type="password" id="password" placeholder="كلمة المرور">
+    <input type="password" id="confirmPassword" placeholder="تأكيد كلمة المرور" style="display:none;">
+    <button onclick="submitForm()">دخول</button>
+    <div class="toggle" onclick="toggleMode()">ليس لديك حساب؟ أنشئ حساب</div>
+    <div class="error" id="errorMsg"></div>
+  </div>
 
-  <h1>مرحـبًا بك في Am Rewards</h1>
-  <p>سجل الدخول بحسابك في Google للبدء في جمع النقاط 💰</p>
-  <button onclick="signInWithGoogle()">تسجيل الدخول باستخدام جوجل</button>
-
-  <!-- Firebase Scripts -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
   <script>
-    // ✅ Firebase config الخاص بك
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
-      storageBucket: "am--rewards.firebasestorage.app",
+      storageBucket: "am--rewards.appspot.com",
       messagingSenderId: "744783579735",
-      appId: "1:744783579735:web:45e00de9998893bbc9b112",
-      measurementId: "G-CV3GLT2TTJ"
+      appId: "1:744783579735:web:45e00de9998893bbc9b112"
     };
     firebase.initializeApp(firebaseConfig);
 
-    // ✅ تسجيل الدخول بـ Google
-    function signInWithGoogle() {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      firebase.auth().signInWithPopup(provider)
-        .then((result) => {
-          const user = result.user;
-          firebase.firestore().collection("users").doc(user.uid).set({
-            name: user.displayName,
-            email: user.email,
-            uid: user.uid,
-            points: 0,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
+    let isRegisterMode = false;
 
-          // بعد تسجيل الدخول → لوحة التحكم
-          window.location.href = "dashboard.html";
-        })
-        .catch((error) => {
-          alert("حدث خطأ أثناء تسجيل الدخول: " + error.message);
-        });
+    function toggleMode() {
+      isRegisterMode = !isRegisterMode;
+      document.getElementById("formTitle").innerText = isRegisterMode ? "إنشاء حساب جديد" : "تسجيل الدخول";
+      document.querySelector("#confirmPassword").style.display = isRegisterMode ? "block" : "none";
+      document.querySelector("button").innerText = isRegisterMode ? "إنشاء الحساب" : "دخول";
+      document.querySelector(".toggle").innerText = isRegisterMode ? "لديك حساب؟ تسجيل الدخول" : "ليس لديك حساب؟ أنشئ حساب";
+      document.getElementById("errorMsg").innerText = "";
+    }
+
+    function submitForm() {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const confirmPassword = document.getElementById("confirmPassword").value.trim();
+      const errorMsg = document.getElementById("errorMsg");
+
+      if (!email || !password || (isRegisterMode && password !== confirmPassword)) {
+        errorMsg.innerText = isRegisterMode ? "تأكد من تطابق كلمات المرور وإدخال البيانات." : "أدخل البريد وكلمة المرور.";
+        return;
+      }
+
+      if (isRegisterMode) {
+        firebase.auth().createUserWithEmailAndPassword(email, password)
+          .then(() => window.location.href = "dashboard.html")
+          .catch(error => errorMsg.innerText = error.message);
+      } else {
+        firebase.auth().signInWithEmailAndPassword(email, password)
+          .then(() => window.location.href = "dashboard.html")
+          .catch(error => errorMsg.innerText = error.message);
+      }
     }
   </script>
 </body>
