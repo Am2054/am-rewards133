@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>الذكاء الاصطناعي للصحة - Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background-color: #f5f8fb;
+      text-align: center;
+      padding: 20px;
+      color: #222;
+    }
+    h1 {
+      color: #004AAD;
+      margin-bottom: 20px;
+    }
+    textarea {
+      width: 90%;
+      max-width: 500px;
+      height: 120px;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 16px;
+    }
+    button {
+      margin-top: 15px;
+      padding: 12px 24px;
+      background-color: #004AAD;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .response {
+      background-color: #fff;
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>مساعد الذكاء الاصطناعي للصحة</h1>
+  <p>اكتب أعراضك أو أي سؤال صحي، وسنساعدك بإجابة ذكية (غير تشخيصية).</p>
+
+  <textarea id="userInput" placeholder="مثال: أعاني من صداع وخمول..."></textarea><br>
+  <button onclick="getAdvice()">ابدأ التحليل</button>
+
+  <div id="aiResponse" class="response"></div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.firebasestorage.app",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112",
+      measurementId: "G-CV3GLT2TTJ"
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    let currentUser = null;
+
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user) return window.location.href = "index.html";
+      currentUser = user;
+    });
+
+    async function getAdvice() {
+      const input = document.getElementById("userInput").value.trim();
+      if (!input) return alert("الرجاء إدخال السؤال أو الأعراض أولاً");
+
+      document.getElementById("aiResponse").innerText = "جارٍ التحليل باستخدام الذكاء الاصطناعي...";
+
+      // رد وهمي مؤقت (يمكن استبداله لاحقًا بـ ChatGPT API)
+      const mockResponse = `🤖 تحليل مبدئي:
+بناءً على وصفك "${input}"، قد تكون هذه الأعراض مرتبطة بالإرهاق أو نقص النوم أو مشاكل بسيطة.
+
+📌 ننصحك بالتالي:
+- الحصول على قسط كافٍ من الراحة
+- شرب كميات كافية من الماء
+- مراجعة طبيب مختص إذا استمرت الأعراض`;
+
+      document.getElementById("aiResponse").innerText = mockResponse;
+
+      // إضافة النقاط للمستخدم مرة واحدة في اليوم
+      const db = firebase.firestore();
+      const userRef = db.collection("users").doc(currentUser.uid);
+
+      userRef.get().then(doc => {
+        const today = new Date().toISOString().split('T')[0];
+        const usedDate = doc.data().aiHealthUsedDate || "";
+        if (usedDate !== today) {
+          userRef.update({
+            points: (doc.data().points || 0) + 5,
+            aiHealthUsedDate: today
+          });
+        }
+      });
+    }
+  </script>
+</body>
+                                                                                        </html>
