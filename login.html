@@ -1,3 +1,4 @@
+<!-- login.html -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -24,23 +25,13 @@
       max-width: 400px;
     }
     h2 { text-align: center; color: #023047; }
-    input {
+    input, button {
       width: 100%;
       padding: 12px;
       margin-bottom: 15px;
-      border: 1px solid #ccc;
       border-radius: 10px;
       font-size: 1rem;
-    }
-    button {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 10px;
-      font-size: 1.1rem;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 5px;
+      border: 1px solid #ccc;
     }
     .login-btn { background-color: #219ebc; color: white; }
     .signup-btn { background-color: #fb8500; color: white; }
@@ -75,7 +66,13 @@
   <!-- Firebase v10 -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getAuth,
+      setPersistence,
+      browserLocalPersistence,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -103,6 +100,7 @@
       if (!email || !password) return alert("يرجى إدخال البريد وكلمة المرور");
 
       try {
+        await setPersistence(auth, browserLocalPersistence); // ✅ مهم جداً
         await signInWithEmailAndPassword(auth, email, password);
         window.location.href = "dashboard.html";
       } catch (error) {
