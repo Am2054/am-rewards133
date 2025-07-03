@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="ar" dir="rtl">
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -7,13 +8,13 @@
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
+      margin: 0;
+      padding: 0;
       background: linear-gradient(to bottom right, #e0ffe9, #ffffff);
       min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      margin: 0;
-      padding: 0;
     }
     .container {
       background: #fff;
@@ -21,23 +22,23 @@
       border-radius: 20px;
       box-shadow: 0 0 15px rgba(0,0,0,0.1);
       width: 90%;
-      max-width: 460px;
+      max-width: 450px;
       text-align: center;
     }
     h2 {
-      color: #28a745;
       margin-bottom: 20px;
+      color: #28a745;
     }
     p {
-      font-size: 16px;
+      font-size: 18px;
       margin-bottom: 10px;
     }
-    input, select, button {
+    select, input, button {
       width: 100%;
       padding: 14px;
       margin-bottom: 12px;
-      border: 1px solid #ccc;
       border-radius: 12px;
+      border: 1px solid #ccc;
       font-size: 16px;
       box-sizing: border-box;
     }
@@ -46,15 +47,15 @@
       color: white;
       font-weight: bold;
       border: none;
-      cursor: pointer;
       transition: 0.3s;
+      cursor: pointer;
     }
     button:hover {
       background-color: #218838;
     }
     .note {
-      font-size: 13px;
-      color: #555;
+      font-size: 14px;
+      color: red;
       min-height: 20px;
     }
     .success {
@@ -67,46 +68,50 @@
 </head>
 <body>
   <div class="container">
-    <h2>طلب سحب الأرباح</h2><label><strong>تحويل النقاط إلى الجنيه:</strong></label>
-<input type="number" id="pointsInput" placeholder="أدخل عدد النقاط" oninput="convertPoints()" />
-<p class="note">قيمة النقطة = <strong>0.08</strong> جنيه</p>
-<p><strong>ما يعادلها:</strong> <span id="convertedValue">0.00</span> جنيه</p>
+    <h2>طلب سحب الأرباح</h2>
 
-<p><strong>رصيدك:</strong> <span id="balance">...</span> جنيه</p>
+    <label><strong>تحويل النقاط إلى الجنيه:</strong></label>
+    <input type="number" id="pointsInput" placeholder="أدخل عدد النقاط" oninput="convertPoints()" />
+    <p class="note">قيمة النقطة = <strong>0.08</strong> جنيه</p>
+    <p><strong>ما يعادلها:</strong> <span id="convertedValue">0.00</span> جنيه</p>
 
-<select id="method" onchange="toggleFields()">
-  <option value="vodafone">Vodafone Cash</option>
-  <option value="paypal">PayPal</option>
-</select>
+    <p><strong>رصيدك:</strong> <span id="balance">...</span> جنيه</p>
 
-<div id="vodafone-fields">
-  <input type="text" id="account-phone" placeholder="رقم الهاتف">
-  <input type="number" id="amount-phone" placeholder="المبلغ بالجنيه">
-  <p class="note">🚨 لا يوجد حد أدنى للسحب، الحد الأقصى 150 جنيه / 4 مرات يوميًا. <br> سيتم خصم 10% إذا تجاوز السحب 10 جنيه.
-  </p>
-</div>
+    <select id="method">
+      <option value="vodafone">Vodafone Cash</option>
+      <option value="paypal">PayPal</option>
+    </select>
 
-<div id="paypal-fields" class="hidden">
-  <input type="text" id="account-paypal" placeholder="معرّف PayPal (البريد)">
-  <input type="number" id="amount-paypal" placeholder="المبلغ بالدولار">
-  <p class="note">🚨 الحد الأدنى للسحب 1 دولار. لا يوجد حد أقصى أو عدد مرات السحب.</p>
-</div>
+    <div id="vodafone-fields">
+      <input type="text" id="account-phone" placeholder="رقم الهاتف">
+      <input type="number" id="amount-phone" placeholder="المبلغ بالجنيه">
+      <p class="note">🚨 لا يوجد حد أدنى للسحب، الحد الأقصى 150 جنيه / 4 مرات يوميًا. سيتم خصم 10% إذا تجاوز السحب 10 جنيه.</p>
+    </div>
 
-<button onclick="requestWithdraw()">طلب السحب</button>
-<p class="note" id="message"></p>
+    <div id="paypal-fields" class="hidden">
+      <input type="text" id="account-paypal" placeholder="معرّف PayPal (البريد)">
+      <input type="number" id="amount-paypal" placeholder="المبلغ بالدولار">
+      <p class="note">🚨 الحد الأدنى للسحب 1 دولار. لا يوجد حد أقصى أو عدد مرات السحب.</p>
+    </div>
 
-  </div>  <script type="module">
+    <button onclick="requestWithdraw()">طلب السحب</button>
+    <p class="note" id="message"></p>
+  </div>
+
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, doc, getDoc, updateDoc, addDoc, collection, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, updateDoc, addDoc, collection,
+      serverTimestamp, setDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getAuth, onAuthStateChanged, setPersistence, browserLocalPersistence
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyCw-xxxxxxxxxxxxxxxxxx",
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards",
-      storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "546178965263",
-      appId: "1:546178965263:web:xxxxxxx"
+      projectId: "am--rewards"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -117,19 +122,21 @@
     const msg = document.getElementById("message");
     let userData, user;
 
-    onAuthStateChanged(auth, async (u) => {
-      if (u) {
-        user = u;
-        const docSnap = await getDoc(doc(db, "users", user.uid));
-        if (docSnap.exists()) {
-          userData = docSnap.data();
-          balanceSpan.textContent = (userData.points * 0.08).toFixed(2);
+    setPersistence(auth, browserLocalPersistence).then(() => {
+      onAuthStateChanged(auth, async (u) => {
+        if (u) {
+          user = u;
+          const docSnap = await getDoc(doc(db, "users", user.uid));
+          if (docSnap.exists()) {
+            userData = docSnap.data();
+            balanceSpan.textContent = (userData.points * 0.08).toFixed(2);
+          } else {
+            msg.textContent = "حدث خطأ في تحميل البيانات.";
+          }
         } else {
-          msg.textContent = "حدث خطأ في تحميل البيانات.";
+          window.location.href = "login.html";
         }
-      } else {
-        window.location.href = "login.html";
-      }
+      });
     });
 
     window.convertPoints = function () {
@@ -138,11 +145,11 @@
       document.getElementById("convertedValue").textContent = value.toFixed(2);
     };
 
-    window.toggleFields = function () {
+    document.getElementById("method").addEventListener("change", () => {
       const method = document.getElementById("method").value;
-      document.getElementById("vodafone-fields").classList.toggle("hidden", method !== "vodafone");
-      document.getElementById("paypal-fields").classList.toggle("hidden", method !== "paypal");
-    };
+      document.getElementById("vodafone-fields").style.display = method === "vodafone" ? "block" : "none";
+      document.getElementById("paypal-fields").style.display = method === "paypal" ? "block" : "none";
+    });
 
     window.requestWithdraw = async function () {
       const method = document.getElementById("method").value;
@@ -218,5 +225,6 @@
       msg.classList.add("success");
       msg.textContent = `✅ تم إرسال طلب السحب بقيمة ${amount} ${method === 'paypal' ? 'دولار' : 'جنيه'} بنجاح!`;
     };
-  </script></body>
+  </script>
+</body>
   </html>
