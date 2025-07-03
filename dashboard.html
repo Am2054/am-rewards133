@@ -1,138 +1,105 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
   <meta charset="UTF-8" />
-  <title>لوحة التحكم | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>لوحة التحكم - Am Rewards</title>
   <style>
     body {
-      margin: 0;
-      font-family: 'Cairo', sans-serif;
-      background: linear-gradient(to bottom right, #4caf50, #1b5e20);
-      color: white;
-      direction: rtl;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      padding: 20px;
+      font-family: 'Tajawal', sans-serif;
+      background: linear-gradient(to bottom right, #a2d4f3, #ffffff);
+      text-align: center;
+      padding: 30px;
     }
     .container {
-      background-color: rgba(0, 0, 0, 0.4);
-      padding: 40px 30px;
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 25px;
       border-radius: 20px;
-      max-width: 420px;
-      width: 100%;
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-      text-align: center;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
     }
+    h2 { color: #333; }
+    p { font-size: 18px; margin: 10px 0; }
     .heart {
-      font-size: 40px;
-      color: #ffcccb;
-      animation: beat 1s infinite alternate;
+      font-size: 30px;
+      animation: pulse 1s infinite;
+      color: red;
     }
-    @keyframes beat {
-      to { transform: scale(1.1); }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
     }
-    h1 {
-      font-size: 28px;
-      margin-bottom: 10px;
-    }
-    .info {
-      background-color: rgba(255, 255, 255, 0.1);
+    button {
+      width: 100%;
       padding: 15px;
-      border-radius: 12px;
-      margin: 15px 0;
-      font-size: 18px;
-      line-height: 1.8;
-    }
-    .info strong {
-      color: #a5d6a7;
-      font-size: 20px;
-    }
-    .links a {
-      display: block;
-      background-color: #81c784;
-      color: #1b5e20;
-      font-weight: 700;
-      margin: 10px 0;
-      padding: 12px;
-      border-radius: 10px;
-      text-decoration: none;
-      font-size: 17px;
-    }
-    button.logout {
-      margin-top: 20px;
-      background-color: #d32f2f;
+      margin-top: 15px;
       border: none;
+      border-radius: 12px;
+      background: #28a745;
       color: white;
-      font-size: 16px;
-      padding: 12px 25px;
-      border-radius: 10px;
+      font-size: 18px;
       cursor: pointer;
+    }
+    button:hover {
+      background: #218838;
     }
   </style>
 </head>
 <body>
   <div class="container">
+    <h2>أهلاً بك في Am Rewards</h2>
     <div class="heart">❤️</div>
-    <h1>مرحبًا، <span id="user-email">...</span></h1>
-    <div class="info">
-      <p>إجمالي النقاط: <strong id="total-points">0</strong> نقطة</p>
-      <p>ما يعادل: <strong id="total-egp">0</strong> جنيه مصري</p>
-      <p>الرصيد المسحوب: <strong id="withdrawn-egp">0</strong> جنيه</p>
-      <p>الرصيد الحالي: <strong id="current-egp">0</strong> جنيه</p>
-    </div>
-    <div class="links">
-      <a href="shortlinks.html">🔗 تنفيذ مهمة: الروابط المختصرة</a>
-      <a href="withdraw.html">💸 طلب سحب الأرباح</a>
-    </div>
-    <button class="logout" onclick="logout()">تسجيل خروج</button>
+    <p><strong>البريد الإلكتروني:</strong> <span id="email">جاري التحميل...</span></p>
+    <p><strong>النقاط:</strong> <span id="points">--</span></p>
+    <p><strong>الرصيد بالجنيه:</strong> <span id="egp">--</span> جنيه</p>
+    <p><strong>الرصيد المتاح للسحب:</strong> <span id="withdrawable">--</span> جنيه</p>
+
+    <!-- زر السحب -->
+    <button onclick="window.location.href='withdraw.html'">طلب سحب الأرباح 💸</button>
+
+    <!-- أزرار مستقبلية -->
+    <!-- <button onclick="window.location.href='shortlinks.html'">مهام الروابط المختصرة</button> -->
+    <!-- <button onclick="window.location.href='surveys.html'">مهام الاستبيانات</button> -->
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script>
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
     const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      apiKey: "AIzaSyCw-xxxxxxxxxxxxxxxxxx",
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
+      storageBucket: "am--rewards.appspot.com",
+      messagingSenderId: "546178965263",
+      appId: "1:546178965263:web:xxxxxxx"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
 
-    auth.onAuthStateChanged(user => {
+    onAuthStateChanged(auth, async (user) => {
       if (user) {
-        document.getElementById("user-email").textContent = user.email;
-
-        const userDoc = db.collection("users").doc(user.uid);
-        userDoc.get().then(doc => {
-          if (doc.exists) {
-            const data = doc.data();
-            const totalPoints = data.points || 0;
-            const withdrawnEGP = data.withdrawn || 0;
-            const totalEGP = (totalPoints * 0.08).toFixed(2);
-            const currentEGP = (totalEGP - withdrawnEGP).toFixed(2);
-
-            document.getElementById("total-points").textContent = totalPoints;
-            document.getElementById("total-egp").textContent = totalEGP;
-            document.getElementById("withdrawn-egp").textContent = withdrawnEGP.toFixed(2);
-            document.getElementById("current-egp").textContent = currentEGP;
-          }
-        });
+        document.getElementById("email").textContent = user.email;
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const points = data.points || 0;
+          const egp = (points * 0.08).toFixed(2);
+          document.getElementById("points").textContent = points;
+          document.getElementById("egp").textContent = egp;
+          document.getElementById("withdrawable").textContent = egp;
+        }
       } else {
-        window.location.href = "index.html";
+        window.location.href = "login.html";
       }
     });
-
-    function logout() {
-      auth.signOut().then(() => {
-        window.location.href = "index.html";
-      });
-    }
   </script>
 </body>
 </html>
