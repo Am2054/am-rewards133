@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>سحب الأرباح</title>
+  <style>
+    body { font-family: Arial; background: #f5f5f5; text-align: center; padding: 20px; }
+    .container { max-width: 500px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 0 10px #ccc; }
+    input, select, button {
+      width: 100%; padding: 12px; margin: 10px 0;
+      border: 1px solid #ddd; border-radius: 10px;
+    }
+    button { background: #28a745; color: white; border: none; font-size: 16px; cursor: pointer; }
+    button:hover { background: #218838; }
+    .note { color: red; font-size: 14px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>طلب سحب الأرباح</h2>
+    <p><strong>رصيدك:</strong> <span id="balance">...</span> جنيه</p>
+
+    <select id="method">
+      <option value="vodafone">Vodafone Cash</option>
+      <option value="paypal">PayPal</option>
+    </select>
+
+    <input type="text" id="account" placeholder="رقم الهاتف أو البريد الإلكتروني">
+    <input type="number" id="amount" placeholder="المبلغ بالجنيه أو الدولار">
+
+    <button onclick="requestWithdraw()">طلب السحب</button>
+    <p class="note" id="message"></p>
+  </div>
+
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, updateDoc, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCw-xxxxxxxxxxxxxxxxxx",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.appspot.com",
+      messagingSenderId: "546178965263",
+      appId: "1:546178965263:web:xxxxxxx"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let user, userData;
+    const balanceSpan = document.getElementById("balance");
+    const msg = document.getElementById("message");
+
+    onAuthStateChanged(auth, async (u) => {
+      if (u) {
+        user = u;
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          userData = docSnap.data();
+          balanceSpan.textContent = (userData.points * 0.08).toFixed(2);
+        } else {
+          msg.textContent = "حدث خطأ في تحميل البيانات.";
+        }
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    async function requestWithdraw() {
+      const method = document.getElementById("method").value;
+      const account = document.getElementById("account").value.trim();
+      const amount = parseFloat(document.getElementById("amount").value.trim());
+
+      if (!account || isNaN(amount) || amount <= 0) {
+        msg.textContent = "أدخل معلومات صحيحة.";
+        return;
+      }
+
+      const today = new Date().toISOString().split("T")[0];
+      const withdrawRef = collection(db, "withdrawals");
+      let totalToday = 0;
+      let todayCount = 0;
+
+      const snapshot = await getDoc(doc(db, "users", user.uid));
+      const data = snapshot.data();
+      const pointValue = 0.08;
+      const userBalance = data.points * pointValue;
+
+      const querySnapshot = await getDoc(doc(db, "withdrawRecords", user.uid));
+      if (querySnapshot.exists()) {
+        const wData = querySnapshot.data();
+        if (wData[today]) {
+          totalToday = wData[today].total || 0;
+          todayCount = wData[today].count || 0;
+        }
+      }
+
+      if (method === "paypal") {
+        if (amount < 1) return msg.textContent = "الحد الأدنى للسحب عبر PayPal هو 1 دولار.";
+      }
+
+      if (method === "vodafone") {
+        if (totalToday + amount > 150) return msg.textContent = "تجاوزت الحد الأقصى للسحب اليومي (150 جنيه).";
+        if (todayCount >= 4) return msg.textContent = "تم الوصول للحد الأقصى لمرات السحب اليوم.";
+      }
+
+      if (userBalance < amount) return msg.textContent = "رصيدك لا يكفي لهذا السحب.";
+
+      let deducted = amount;
+      if (method === "vodafone" && amount > 10) {
+        deducted = amount * 1.1; // خصم 10%
+      }
+
+      const requiredPoints = deducted / pointValue;
+      const newPoints = data.points - requiredPoints;
+
+      await updateDoc(doc(db, "users", user.uid), { points: newPoints });
+
+      await addDoc(withdrawRef, {
+        uid: user.uid,
+        email: user.email,
+        method,
+        account,
+        amount,
+        deducted: deducted.toFixed(2),
+        timestamp: serverTimestamp()
+      });
+
+      // تحديث سجل السحب اليومي
+      const updateData = {};
+      updateData[`withdrawRecords.${today}.total`] = totalToday + amount;
+      updateData[`withdrawRecords.${today}.count`] = todayCount + 1;
+
+      const withdrawLogRef = doc(db, "withdrawRecords", user.uid);
+      await updateDoc(withdrawLogRef, updateData).catch(async () => {
+        await setDoc(withdrawLogRef, {
+          [today]: { total: amount, count: 1 }
+        });
+      });
+
+      msg.style.color = "green";
+      msg.textContent = `تم إرسال طلب السحب بقيمة ${amount} ${method === 'paypal' ? 'دولار' : 'جنيه'} بنجاح!`;
+    }
+  </script>
+</body>
+</html>
