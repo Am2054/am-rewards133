@@ -1,19 +1,66 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>سحب الأرباح</title>
+  <title>طلب سحب الأرباح - Am Rewards</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">
   <style>
-    body { font-family: Arial; background: #f5f5f5; text-align: center; padding: 20px; }
-    .container { max-width: 500px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 0 10px #ccc; }
-    input, select, button {
-      width: 100%; padding: 12px; margin: 10px 0;
-      border: 1px solid #ddd; border-radius: 10px;
+    body {
+      font-family: 'Tajawal', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(to bottom right, #e0ffe9, #ffffff);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
-    button { background: #28a745; color: white; border: none; font-size: 16px; cursor: pointer; }
-    button:hover { background: #218838; }
-    .note { color: red; font-size: 14px; margin-top: 10px; }
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      width: 90%;
+      max-width: 450px;
+      text-align: center;
+    }
+    h2 {
+      margin-bottom: 20px;
+      color: #28a745;
+    }
+    p {
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
+    select, input, button {
+      width: 100%;
+      padding: 14px;
+      margin-bottom: 15px;
+      border-radius: 12px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      font-weight: bold;
+      border: none;
+      transition: background 0.3s ease;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    .note {
+      font-size: 14px;
+      color: red;
+      min-height: 20px;
+    }
+    .success {
+      color: green;
+    }
   </style>
 </head>
 <body>
@@ -36,7 +83,7 @@
   <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, doc, getDoc, updateDoc, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, updateDoc, addDoc, collection, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const firebaseConfig = {
@@ -68,7 +115,9 @@
           msg.textContent = "حدث خطأ في تحميل البيانات.";
         }
       } else {
-        window.location.href = "login.html";
+        setTimeout(() => {
+          window.location.href = "login.html";
+        }, 500);
       }
     });
 
@@ -101,16 +150,26 @@
         }
       }
 
-      if (method === "paypal") {
-        if (amount < 1) return msg.textContent = "الحد الأدنى للسحب عبر PayPal هو 1 دولار.";
+      if (method === "paypal" && amount < 1) {
+        msg.textContent = "الحد الأدنى للسحب عبر PayPal هو 1 دولار.";
+        return;
       }
 
       if (method === "vodafone") {
-        if (totalToday + amount > 150) return msg.textContent = "تجاوزت الحد الأقصى للسحب اليومي (150 جنيه).";
-        if (todayCount >= 4) return msg.textContent = "تم الوصول للحد الأقصى لمرات السحب اليوم.";
+        if (totalToday + amount > 150) {
+          msg.textContent = "تجاوزت الحد الأقصى للسحب اليومي (150 جنيه).";
+          return;
+        }
+        if (todayCount >= 4) {
+          msg.textContent = "تم الوصول للحد الأقصى لمرات السحب اليوم.";
+          return;
+        }
       }
 
-      if (userBalance < amount) return msg.textContent = "رصيدك لا يكفي لهذا السحب.";
+      if (userBalance < amount) {
+        msg.textContent = "رصيدك لا يكفي لهذا السحب.";
+        return;
+      }
 
       let deducted = amount;
       if (method === "vodafone" && amount > 10) {
@@ -132,7 +191,6 @@
         timestamp: serverTimestamp()
       });
 
-      // تحديث سجل السحب اليومي
       const updateData = {};
       updateData[`withdrawRecords.${today}.total`] = totalToday + amount;
       updateData[`withdrawRecords.${today}.count`] = todayCount + 1;
@@ -144,8 +202,8 @@
         });
       });
 
-      msg.style.color = "green";
-      msg.textContent = `تم إرسال طلب السحب بقيمة ${amount} ${method === 'paypal' ? 'دولار' : 'جنيه'} بنجاح!`;
+      msg.classList.add("success");
+      msg.textContent = `✅ تم إرسال طلب السحب بقيمة ${amount} ${method === 'paypal' ? 'دولار' : 'جنيه'} بنجاح!`;
     }
   </script>
 </body>
