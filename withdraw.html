@@ -117,7 +117,7 @@
       } else {
         setTimeout(() => {
           window.location.href = "login.html";
-        }, 500); // ✅ تأخير آمن قبل التحويل
+        }, 500);
       }
     });
 
@@ -141,9 +141,10 @@
       const pointValue = 0.08;
       const userBalance = data.points * pointValue;
 
-      const querySnapshot = await getDoc(doc(db, "withdrawRecords", user.uid));
-      if (querySnapshot.exists()) {
-        const wData = querySnapshot.data();
+      const recordRef = doc(db, "withdrawRecords", user.uid);
+      const recordSnap = await getDoc(recordRef);
+      if (recordSnap.exists()) {
+        const wData = recordSnap.data();
         if (wData[today]) {
           totalToday = wData[today].total || 0;
           todayCount = wData[today].count || 0;
@@ -173,7 +174,7 @@
 
       let deducted = amount;
       if (method === "vodafone" && amount > 10) {
-        deducted = amount * 1.1; // خصم 10%
+        deducted = amount * 1.1;
       }
 
       const requiredPoints = deducted / pointValue;
@@ -191,12 +192,13 @@
         timestamp: serverTimestamp()
       });
 
-      const updateData = {};
-      updateData[`withdrawRecords.${today}.total`] = totalToday + amount;
-      updateData[`withdrawRecords.${today}.count`] = todayCount + 1;
-
       const withdrawLogRef = doc(db, "withdrawRecords", user.uid);
-      await updateDoc(withdrawLogRef, updateData).catch(async () => {
+      await updateDoc(withdrawLogRef, {
+        [today]: {
+          total: totalToday + amount,
+          count: todayCount + 1
+        }
+      }).catch(async () => {
         await setDoc(withdrawLogRef, {
           [today]: { total: amount, count: 1 }
         });
