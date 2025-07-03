@@ -6,15 +6,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { font-family: Arial; direction: rtl; text-align: center; padding: 20px; background-color: #f9f9f9; }
-    a { display: inline-block; padding: 10px 20px; background-color: green; color: white; border-radius: 5px; text-decoration: none; margin-top: 20px; }
+    a.button { display: inline-block; padding: 10px 20px; background-color: green; color: white; border-radius: 5px; text-decoration: none; margin-top: 20px; font-size: 18px; }
     p { margin-top: 20px; font-weight: bold; }
+    .top-btn { position: absolute; top: 10px; left: 10px; background: #eee; padding: 5px 10px; border-radius: 5px; text-decoration: none; }
   </style>
 </head>
 <body>
-  <h1>مهمة الرابط المختصر</h1>
-  <p>اضغط على الزر ثم ارجع لإضافة النقاط:</p>
+  <a class="top-btn" href="dashboard.html">🏠 العودة للوحة</a>
 
-  <a href="https://shrinke.me/AmRewardsTest" target="_blank" onclick="rewardUser()">🔗 افتح الرابط المختصر</a>
+  <h1>مهمة الرابط المختصر</h1>
+  <p>اضغط على الرابط، وانتظر 10 ثوانٍ، ثم ارجع لإضافة النقاط:</p>
+
+  <a class="button" href="https://shrinke.me/AmRewardsTest" target="_blank" onclick="rewardUser()">🔗 افتح الرابط المختصر</a>
 
   <p id="status"></p>
 
@@ -38,13 +41,13 @@
     function rewardUser() {
       if (!currentUser) return;
 
-      const ref = db.collection("users").doc(currentUser.uid);
-      ref.get().then(doc => {
+      const userRef = db.collection("users").doc(currentUser.uid);
+      userRef.get().then(doc => {
         const currentPoints = doc.exists && doc.data().points ? doc.data().points : 0;
         const newPoints = currentPoints + 80;
 
-        ref.set({ points: newPoints }, { merge: true }).then(() => {
-          document.getElementById("status").textContent = "✅ تم إضافة 80 نقطة بنجاح!";
+        userRef.set({ points: newPoints }, { merge: true }).then(() => {
+          document.getElementById("status").textContent = "✅ تم إضافة 80 نقطة!";
         }).catch(() => {
           document.getElementById("status").textContent = "❌ حدث خطأ، حاول مرة أخرى.";
         });
