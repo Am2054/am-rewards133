@@ -5,55 +5,138 @@
   <title>لوحة التحكم | Am Rewards</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: Arial; direction: rtl; text-align: center; padding: 20px; background-color: #f9f9f9; }
-    h1 { color: #333; }
-    .box { padding: 20px; background: white; border-radius: 10px; box-shadow: 0 0 10px #ccc; max-width: 500px; margin: auto; }
-    a { display: block; margin: 10px 0; font-size: 18px; color: green; text-decoration: none; }
-    .top-btn { position: absolute; top: 10px; left: 10px; background: #eee; padding: 5px 10px; border-radius: 5px; text-decoration: none; }
-    button { background-color: #d9534f; color: white; border: none; border-radius: 5px; padding: 10px 20px; cursor: pointer; font-size: 16px; margin-top: 15px; }
+    /* تصميم الفالب الخلفي */
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #4caf50, #2e7d32);
+      color: #fff;
+      direction: rtl;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      text-align: center;
+      padding: 20px;
+    }
+    /* صندوق المحتوى */
+    .container {
+      background-color: rgba(0, 0, 0, 0.55);
+      padding: 40px 30px;
+      border-radius: 16px;
+      max-width: 380px;
+      width: 100%;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    }
+    h1 {
+      font-size: 32px;
+      margin-bottom: 20px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+    }
+    p {
+      font-size: 18px;
+      margin: 10px 0 15px 0;
+      font-weight: 600;
+    }
+    strong {
+      font-size: 22px;
+      color: #a5d6a7;
+    }
+    /* روابط المهام */
+    .links a {
+      display: block;
+      background-color: #81c784;
+      color: #2e7d32;
+      font-weight: 700;
+      margin: 15px 0;
+      padding: 12px 0;
+      border-radius: 10px;
+      text-decoration: none;
+      font-size: 18px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    }
+    .links a:hover {
+      background-color: #66bb6a;
+      color: white;
+    }
+    /* زر تسجيل الخروج */
+    button.logout {
+      margin-top: 25px;
+      background-color: #d32f2f;
+      border: none;
+      color: white;
+      font-size: 18px;
+      padding: 14px 30px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: background-color 0.3s ease;
+      box-shadow: 0 3px 10px rgba(211,47,47,0.7);
+    }
+    button.logout:hover {
+      background-color: #b71c1c;
+    }
   </style>
 </head>
 <body>
-  <a class="top-btn" href="index.html">🏠 الرئيسية</a>
-
-  <div class="box">
+  <div class="container">
     <h1>لوحة التحكم</h1>
-    <p>مرحبًا، <span id="user-name">...</span></p>
+    <p>مرحبًا، <span id="user-email">...</span></p>
     <p>رصيدك: <strong id="points">0</strong> نقطة</p>
 
-    <a href="shortlinks.html">🔗 تنفيذ مهمة: الروابط المختصرة</a>
-    <a href="withdraw.html">💸 طلب سحب الأرباح</a>
+    <div class="links">
+      <a href="shortlinks.html">🔗 تنفيذ مهمة: الروابط المختصرة</a>
+      <a href="withdraw.html">💸 طلب سحب الأرباح</a>
+    </div>
 
-    <button onclick="logout()">تسجيل خروج</button>
+    <button class="logout" onclick="logout()">تسجيل خروج</button>
   </div>
 
   <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-
-  <!-- ملف التهيئة -->
-  <script src="firebase.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
   <script>
-    // التحقق من حالة المستخدم
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.appspot.com",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112",
+      measurementId: "G-CV3GLT2TTJ"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
     auth.onAuthStateChanged(user => {
       if (user) {
-        document.getElementById("user-name").textContent = user.email;
-        db.collection("users").doc(user.uid).get().then(doc => {
-          if (doc.exists) {
-            document.getElementById("points").textContent = doc.data().points || 0;
-          } else {
-            db.collection("users").doc(user.uid).set({ points: 0 });
-          }
-        });
+        document.getElementById("user-email").textContent = user.email;
+
+        db.collection("users").doc(user.uid).get()
+          .then(doc => {
+            if (doc.exists) {
+              document.getElementById("points").textContent = doc.data().points || 0;
+            } else {
+              db.collection("users").doc(user.uid).set({ points: 0 });
+              document.getElementById("points").textContent = 0;
+            }
+          })
+          .catch(error => {
+            console.error("خطأ في جلب البيانات:", error);
+            document.getElementById("points").textContent = "خطأ";
+          });
+
       } else {
-        // لو المستخدم مش مسجل دخول، ارجع لصفحة تسجيل الدخول
         window.location.href = "index.html";
       }
     });
 
-    // دالة تسجيل الخروج
     function logout() {
       auth.signOut()
         .then(() => {
