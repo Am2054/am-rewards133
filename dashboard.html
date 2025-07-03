@@ -5,109 +5,99 @@
   <title>لوحة التحكم | Am Rewards</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    /* تصميم الفالب الخلفي */
     body {
       margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #4caf50, #2e7d32);
-      color: #fff;
+      font-family: 'Cairo', sans-serif;
+      background: linear-gradient(to bottom right, #4caf50, #1b5e20);
+      color: white;
       direction: rtl;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
-      text-align: center;
       padding: 20px;
     }
-    /* صندوق المحتوى */
     .container {
-      background-color: rgba(0, 0, 0, 0.55);
+      background-color: rgba(0, 0, 0, 0.4);
       padding: 40px 30px;
-      border-radius: 16px;
-      max-width: 380px;
+      border-radius: 20px;
+      max-width: 420px;
       width: 100%;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+    .heart {
+      font-size: 40px;
+      color: #ffcccb;
+      animation: beat 1s infinite alternate;
+    }
+    @keyframes beat {
+      to { transform: scale(1.1); }
     }
     h1 {
-      font-size: 32px;
-      margin-bottom: 20px;
-      font-weight: 700;
-      letter-spacing: 1.5px;
+      font-size: 28px;
+      margin-bottom: 10px;
     }
-    p {
+    .info {
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 12px;
+      margin: 15px 0;
       font-size: 18px;
-      margin: 10px 0 15px 0;
-      font-weight: 600;
+      line-height: 1.8;
     }
-    strong {
-      font-size: 22px;
+    .info strong {
       color: #a5d6a7;
+      font-size: 20px;
     }
-    /* روابط المهام */
     .links a {
       display: block;
       background-color: #81c784;
-      color: #2e7d32;
+      color: #1b5e20;
       font-weight: 700;
-      margin: 15px 0;
-      padding: 12px 0;
+      margin: 10px 0;
+      padding: 12px;
       border-radius: 10px;
       text-decoration: none;
-      font-size: 18px;
-      transition: background-color 0.3s ease, color 0.3s ease;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+      font-size: 17px;
     }
-    .links a:hover {
-      background-color: #66bb6a;
-      color: white;
-    }
-    /* زر تسجيل الخروج */
     button.logout {
-      margin-top: 25px;
+      margin-top: 20px;
       background-color: #d32f2f;
       border: none;
       color: white;
-      font-size: 18px;
-      padding: 14px 30px;
-      border-radius: 12px;
+      font-size: 16px;
+      padding: 12px 25px;
+      border-radius: 10px;
       cursor: pointer;
-      font-weight: 700;
-      transition: background-color 0.3s ease;
-      box-shadow: 0 3px 10px rgba(211,47,47,0.7);
-    }
-    button.logout:hover {
-      background-color: #b71c1c;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>لوحة التحكم</h1>
-    <p>مرحبًا، <span id="user-email">...</span></p>
-    <p>رصيدك: <strong id="points">0</strong> نقطة</p>
-
+    <div class="heart">❤️</div>
+    <h1>مرحبًا، <span id="user-email">...</span></h1>
+    <div class="info">
+      <p>إجمالي النقاط: <strong id="total-points">0</strong> نقطة</p>
+      <p>ما يعادل: <strong id="total-egp">0</strong> جنيه مصري</p>
+      <p>الرصيد المسحوب: <strong id="withdrawn-egp">0</strong> جنيه</p>
+      <p>الرصيد الحالي: <strong id="current-egp">0</strong> جنيه</p>
+    </div>
     <div class="links">
       <a href="shortlinks.html">🔗 تنفيذ مهمة: الروابط المختصرة</a>
       <a href="withdraw.html">💸 طلب سحب الأرباح</a>
     </div>
-
     <button class="logout" onclick="logout()">تسجيل خروج</button>
   </div>
 
-  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
-      storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "744783579735",
-      appId: "1:744783579735:web:45e00de9998893bbc9b112",
-      measurementId: "G-CV3GLT2TTJ"
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -118,34 +108,30 @@
       if (user) {
         document.getElementById("user-email").textContent = user.email;
 
-        db.collection("users").doc(user.uid).get()
-          .then(doc => {
-            if (doc.exists) {
-              document.getElementById("points").textContent = doc.data().points || 0;
-            } else {
-              db.collection("users").doc(user.uid).set({ points: 0 });
-              document.getElementById("points").textContent = 0;
-            }
-          })
-          .catch(error => {
-            console.error("خطأ في جلب البيانات:", error);
-            document.getElementById("points").textContent = "خطأ";
-          });
+        const userDoc = db.collection("users").doc(user.uid);
+        userDoc.get().then(doc => {
+          if (doc.exists) {
+            const data = doc.data();
+            const totalPoints = data.points || 0;
+            const withdrawnEGP = data.withdrawn || 0;
+            const totalEGP = (totalPoints * 0.08).toFixed(2);
+            const currentEGP = (totalEGP - withdrawnEGP).toFixed(2);
 
+            document.getElementById("total-points").textContent = totalPoints;
+            document.getElementById("total-egp").textContent = totalEGP;
+            document.getElementById("withdrawn-egp").textContent = withdrawnEGP.toFixed(2);
+            document.getElementById("current-egp").textContent = currentEGP;
+          }
+        });
       } else {
         window.location.href = "index.html";
       }
     });
 
     function logout() {
-      auth.signOut()
-        .then(() => {
-          window.location.href = "index.html";
-        })
-        .catch(error => {
-          alert("حدث خطأ أثناء تسجيل الخروج: " + error.message);
-          console.error("Logout error:", error);
-        });
+      auth.signOut().then(() => {
+        window.location.href = "index.html";
+      });
     }
   </script>
 </body>
