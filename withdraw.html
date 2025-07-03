@@ -83,16 +83,18 @@
   <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, doc, getDoc, updateDoc, addDoc, collection, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, updateDoc, addDoc, collection,
+      serverTimestamp, setDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getAuth, onAuthStateChanged, setPersistence, browserLocalPersistence
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyCw-xxxxxxxxxxxxxxxxxx",
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
-      storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "546178965263",
-      appId: "1:546178965263:web:xxxxxxx"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -103,25 +105,25 @@
     const balanceSpan = document.getElementById("balance");
     const msg = document.getElementById("message");
 
-    onAuthStateChanged(auth, async (u) => {
-      if (u) {
-        user = u;
-        const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          userData = docSnap.data();
-          balanceSpan.textContent = (userData.points * 0.08).toFixed(2);
+    setPersistence(auth, browserLocalPersistence).then(() => {
+      onAuthStateChanged(auth, async (u) => {
+        if (u) {
+          user = u;
+          const docRef = doc(db, "users", user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            userData = docSnap.data();
+            balanceSpan.textContent = (userData.points * 0.08).toFixed(2);
+          } else {
+            msg.textContent = "حدث خطأ في تحميل البيانات.";
+          }
         } else {
-          msg.textContent = "حدث خطأ في تحميل البيانات.";
-        }
-      } else {
-        setTimeout(() => {
           window.location.href = "login.html";
-        }, 500);
-      }
+        }
+      });
     });
 
-    async function requestWithdraw() {
+    window.requestWithdraw = async function () {
       const method = document.getElementById("method").value;
       const account = document.getElementById("account").value.trim();
       const amount = parseFloat(document.getElementById("amount").value.trim());
@@ -192,14 +194,13 @@
         timestamp: serverTimestamp()
       });
 
-      const withdrawLogRef = doc(db, "withdrawRecords", user.uid);
-      await updateDoc(withdrawLogRef, {
+      await updateDoc(recordRef, {
         [today]: {
           total: totalToday + amount,
           count: todayCount + 1
         }
       }).catch(async () => {
-        await setDoc(withdrawLogRef, {
+        await setDoc(recordRef, {
           [today]: { total: amount, count: 1 }
         });
       });
