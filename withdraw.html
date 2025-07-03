@@ -8,13 +8,13 @@
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
-      margin: 0;
-      padding: 0;
       background: linear-gradient(to bottom right, #e0ffe9, #ffffff);
       min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
+      margin: 0;
+      padding: 0;
     }
     .container {
       background: #fff;
@@ -22,23 +22,23 @@
       border-radius: 20px;
       box-shadow: 0 0 15px rgba(0,0,0,0.1);
       width: 90%;
-      max-width: 450px;
+      max-width: 460px;
       text-align: center;
     }
     h2 {
-      margin-bottom: 20px;
       color: #28a745;
+      margin-bottom: 20px;
     }
     p {
-      font-size: 18px;
-      margin-bottom: 15px;
+      font-size: 16px;
+      margin-bottom: 10px;
     }
-    select, input, button {
+    input, select, button {
       width: 100%;
       padding: 14px;
-      margin-bottom: 15px;
-      border-radius: 12px;
+      margin-bottom: 12px;
       border: 1px solid #ccc;
+      border-radius: 12px;
       font-size: 16px;
       box-sizing: border-box;
     }
@@ -47,110 +47,135 @@
       color: white;
       font-weight: bold;
       border: none;
-      transition: background 0.3s ease;
       cursor: pointer;
+      transition: 0.3s;
     }
     button:hover {
       background-color: #218838;
     }
     .note {
-      font-size: 14px;
-      color: red;
+      font-size: 13px;
+      color: #555;
       min-height: 20px;
     }
     .success {
       color: green;
+    }
+    .hidden {
+      display: none;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h2>طلب سحب الأرباح</h2>
+
+    <label><strong>تحويل النقاط إلى الجنيه:</strong></label>
+    <input type="number" id="pointsInput" placeholder="أدخل عدد النقاط" oninput="convertPoints()" />
+    <p class="note">قيمة النقطة = <strong>0.08</strong> جنيه</p>
+    <p><strong>ما يعادلها:</strong> <span id="convertedValue">0.00</span> جنيه</p>
+
     <p><strong>رصيدك:</strong> <span id="balance">...</span> جنيه</p>
 
-    <select id="method">
+    <select id="method" onchange="toggleFields()">
       <option value="vodafone">Vodafone Cash</option>
       <option value="paypal">PayPal</option>
     </select>
 
-    <input type="text" id="account" placeholder="رقم الهاتف أو البريد الإلكتروني">
-    <input type="number" id="amount" placeholder="المبلغ بالجنيه أو الدولار">
+    <div id="vodafone-fields">
+      <input type="text" id="account-phone" placeholder="رقم الهاتف">
+      <input type="number" id="amount-phone" placeholder="المبلغ بالجنيه">
+      <p class="note">🚨 لا يوجد حد أدنى للسحب، الحد الأقصى 150 جنيه / 4 مرات يوميًا.  
+        سيتم خصم 10% إذا تجاوز السحب 10 جنيه.
+      </p>
+    </div>
+
+    <div id="paypal-fields" class="hidden">
+      <input type="text" id="account-paypal" placeholder="معرّف PayPal (البريد)">
+      <input type="number" id="amount-paypal" placeholder="المبلغ بالدولار">
+      <p class="note">🚨 الحد الأدنى للسحب 1 دولار. لا يوجد حد أقصى أو عدد مرات السحب.</p>
+    </div>
 
     <button onclick="requestWithdraw()">طلب السحب</button>
     <p class="note" id="message"></p>
   </div>
 
-  <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore, doc, getDoc, updateDoc, addDoc, collection,
-      serverTimestamp, setDoc
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import {
-      getAuth, onAuthStateChanged, setPersistence, browserLocalPersistence
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, updateDoc, addDoc, collection, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      apiKey: "AIzaSyCw-xxxxxxxxxxxxxxxxxx",
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
+      storageBucket: "am--rewards.appspot.com",
+      messagingSenderId: "546178965263",
+      appId: "1:546178965263:web:xxxxxxx"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    let user, userData;
     const balanceSpan = document.getElementById("balance");
     const msg = document.getElementById("message");
+    let userData, user;
 
-    setPersistence(auth, browserLocalPersistence).then(() => {
-      onAuthStateChanged(auth, async (u) => {
-        if (u) {
-          user = u;
-          const docRef = doc(db, "users", user.uid);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            userData = docSnap.data();
-            balanceSpan.textContent = (userData.points * 0.08).toFixed(2);
-          } else {
-            msg.textContent = "حدث خطأ في تحميل البيانات.";
-          }
+    onAuthStateChanged(auth, async (u) => {
+      if (u) {
+        user = u;
+        const docSnap = await getDoc(doc(db, "users", user.uid));
+        if (docSnap.exists()) {
+          userData = docSnap.data();
+          balanceSpan.textContent = (userData.points * 0.08).toFixed(2);
         } else {
-          window.location.href = "login.html";
+          msg.textContent = "حدث خطأ في تحميل البيانات.";
         }
-      });
+      } else {
+        window.location.href = "login.html";
+      }
     });
+
+    window.convertPoints = function () {
+      const points = parseFloat(document.getElementById("pointsInput").value.trim());
+      const value = isNaN(points) ? 0 : points * 0.08;
+      document.getElementById("convertedValue").textContent = value.toFixed(2);
+    };
+
+    window.toggleFields = function () {
+      const method = document.getElementById("method").value;
+      document.getElementById("vodafone-fields").classList.toggle("hidden", method !== "vodafone");
+      document.getElementById("paypal-fields").classList.toggle("hidden", method !== "paypal");
+    };
 
     window.requestWithdraw = async function () {
       const method = document.getElementById("method").value;
-      const account = document.getElementById("account").value.trim();
-      const amount = parseFloat(document.getElementById("amount").value.trim());
+      const pointValue = 0.08;
+      let account = "", amount = 0;
+
+      if (method === "vodafone") {
+        account = document.getElementById("account-phone").value.trim();
+        amount = parseFloat(document.getElementById("amount-phone").value.trim());
+      } else {
+        account = document.getElementById("account-paypal").value.trim();
+        amount = parseFloat(document.getElementById("amount-paypal").value.trim());
+      }
 
       if (!account || isNaN(amount) || amount <= 0) {
-        msg.textContent = "أدخل معلومات صحيحة.";
+        msg.textContent = "يرجى إدخال معلومات صحيحة.";
         return;
       }
 
+      const userBalance = userData.points * pointValue;
       const today = new Date().toISOString().split("T")[0];
-      const withdrawRef = collection(db, "withdrawals");
-      let totalToday = 0;
-      let todayCount = 0;
-
-      const snapshot = await getDoc(doc(db, "users", user.uid));
-      const data = snapshot.data();
-      const pointValue = 0.08;
-      const userBalance = data.points * pointValue;
-
       const recordRef = doc(db, "withdrawRecords", user.uid);
       const recordSnap = await getDoc(recordRef);
-      if (recordSnap.exists()) {
-        const wData = recordSnap.data();
-        if (wData[today]) {
-          totalToday = wData[today].total || 0;
-          todayCount = wData[today].count || 0;
-        }
+      let totalToday = 0, todayCount = 0;
+
+      if (recordSnap.exists() && recordSnap.data()[today]) {
+        totalToday = recordSnap.data()[today].total || 0;
+        todayCount = recordSnap.data()[today].count || 0;
       }
 
       if (method === "paypal" && amount < 1) {
@@ -159,12 +184,8 @@
       }
 
       if (method === "vodafone") {
-        if (totalToday + amount > 150) {
-          msg.textContent = "تجاوزت الحد الأقصى للسحب اليومي (150 جنيه).";
-          return;
-        }
-        if (todayCount >= 4) {
-          msg.textContent = "تم الوصول للحد الأقصى لمرات السحب اليوم.";
+        if (amount > 150 || todayCount >= 4 || totalToday + amount > 150) {
+          msg.textContent = "تجاوزت الحد الأقصى للسحب اليومي (150 جنيه / 4 مرات).";
           return;
         }
       }
@@ -176,29 +197,23 @@
 
       let deducted = amount;
       if (method === "vodafone" && amount > 10) {
-        deducted = amount * 1.1;
+        deducted = amount * 1.1; // خصم 10%
       }
 
       const requiredPoints = deducted / pointValue;
-      const newPoints = data.points - requiredPoints;
+      const newPoints = userData.points - requiredPoints;
 
       await updateDoc(doc(db, "users", user.uid), { points: newPoints });
-
-      await addDoc(withdrawRef, {
+      await addDoc(collection(db, "withdrawals"), {
         uid: user.uid,
         email: user.email,
-        method,
-        account,
-        amount,
+        method, account, amount,
         deducted: deducted.toFixed(2),
         timestamp: serverTimestamp()
       });
 
       await updateDoc(recordRef, {
-        [today]: {
-          total: totalToday + amount,
-          count: todayCount + 1
-        }
+        [today]: { total: totalToday + amount, count: todayCount + 1 }
       }).catch(async () => {
         await setDoc(recordRef, {
           [today]: { total: amount, count: 1 }
@@ -207,7 +222,7 @@
 
       msg.classList.add("success");
       msg.textContent = `✅ تم إرسال طلب السحب بقيمة ${amount} ${method === 'paypal' ? 'دولار' : 'جنيه'} بنجاح!`;
-    }
+    };
   </script>
 </body>
-</html>
+  </html>
