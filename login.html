@@ -5,154 +5,132 @@
   <title>Am Rewards - تسجيل الدخول / إنشاء حساب</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #4caf50, #2e7d32);
       margin: 0;
-      padding: 0;
+      font-family: 'Cairo', sans-serif;
+      background: #f0f8ff;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
-      color: #fff;
+      direction: rtl;
+    }
+    .form-box {
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+    h2 {
+      margin-bottom: 20px;
       text-align: center;
-    }
-    .container {
-      background-color: rgba(0,0,0,0.65);
-      padding: 40px 30px;
-      border-radius: 12px;
-      width: 320px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-    }
-    h1 {
-      margin-bottom: 30px;
-      font-weight: 700;
-      font-size: 28px;
-      letter-spacing: 1px;
+      color: #023047;
     }
     input {
       width: 100%;
-      padding: 12px 15px;
-      margin: 12px 0;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      outline: none;
-    }
-    input:focus {
-      box-shadow: 0 0 8px #81c784;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 1rem;
     }
     button {
       width: 100%;
-      padding: 14px 0;
-      margin-top: 15px;
+      padding: 12px;
       border: none;
-      border-radius: 8px;
-      font-size: 18px;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: bold;
       cursor: pointer;
-      font-weight: 600;
-      transition: background-color 0.3s ease;
+      margin-top: 5px;
     }
-    button.login {
-      background-color: #81c784;
-      color: #2e7d32;
+    .login-btn {
+      background-color: #219ebc;
+      color: white;
     }
-    button.login:hover {
-      background-color: #66bb6a;
+    .signup-btn {
+      background-color: #fb8500;
+      color: white;
     }
-    button.signup {
-      background-color: #a5d6a7;
-      color: #1b5e20;
+    .switcher {
+      background: none;
+      color: #666;
+      text-decoration: underline;
+      border: none;
+      margin-top: 10px;
+      cursor: pointer;
+      font-size: 0.95rem;
     }
-    button.signup:hover {
-      background-color: #8bc34a;
-    }
-    #message {
-      margin-top: 20px;
-      font-weight: 700;
-      min-height: 24px;
-      color: #ffbaba;
+    .hidden {
+      display: none;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>تسجيل الدخول / إنشاء حساب</h1>
-    <input type="email" id="email" placeholder="البريد الإلكتروني" />
-    <input type="password" id="password" placeholder="كلمة المرور" />
-    <input type="password" id="confirm-password" placeholder="تأكيد كلمة المرور" />
-    <button class="login" onclick="login()">🔐 تسجيل الدخول</button>
-    <button class="signup" onclick="signup()">📝 إنشاء حساب جديد</button>
-    <p id="message"></p>
+  <div class="form-box">
+    <h2 id="form-title">تسجيل الدخول إلى Am Rewards</h2>
+
+    <div id="login-form">
+      <input type="email" id="login-email" placeholder="البريد الإلكتروني" />
+      <input type="password" id="login-password" placeholder="كلمة المرور" />
+      <button class="login-btn" onclick="login()">تسجيل الدخول</button>
+    </div>
+
+    <div id="signup-form" class="hidden">
+      <input type="email" id="signup-email" placeholder="البريد الإلكتروني" />
+      <input type="password" id="signup-password" placeholder="كلمة المرور" />
+      <input type="password" id="signup-confirm" placeholder="تأكيد كلمة المرور" />
+      <button class="signup-btn" onclick="signup()">إنشاء الحساب</button>
+    </div>
+
+    <button class="switcher" onclick="toggleMode()">أو أنشئ حساب جديد</button>
   </div>
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards",
-      storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "744783579735",
-      appId: "1:744783579735:web:45e00de9998893bbc9b112",
-      measurementId: "G-CV3GLT2TTJ"
-    };
+    let isLogin = true;
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
+    function toggleMode() {
+      isLogin = !isLogin;
 
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        window.location.href = "dashboard.html";
-      }
-    });
-
-    function showMessage(msg) {
-      document.getElementById("message").textContent = msg;
+      document.getElementById("login-form").classList.toggle("hidden", !isLogin);
+      document.getElementById("signup-form").classList.toggle("hidden", isLogin);
+      document.getElementById("form-title").textContent = isLogin ? "تسجيل الدخول إلى Am Rewards" : "إنشاء حساب جديد في Am Rewards";
+      document.querySelector(".switcher").textContent = isLogin ? "أو أنشئ حساب جديد" : "أو سجّل الدخول";
     }
 
     function login() {
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value.trim();
+      const email = document.getElementById("login-email").value;
+      const password = document.getElementById("login-password").value;
 
       if (!email || !password) {
-        showMessage("⚠️ الرجاء إدخال البريد الإلكتروني وكلمة المرور");
+        alert("يرجى إدخال البريد الإلكتروني وكلمة المرور");
         return;
       }
 
-      auth.signInWithEmailAndPassword(email, password)
-        .then(() => window.location.href = "dashboard.html")
-        .catch(error => showMessage("❌ " + error.message));
+      alert("✅ تم تسجيل الدخول بنجاح!");
+      // هنا يمكنك ربط Firebase أو تحويل المستخدم إلى dashboard.html
     }
 
     function signup() {
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value.trim();
-      const confirmPassword = document.getElementById("confirm-password").value.trim();
+      const email = document.getElementById("signup-email").value;
+      const password = document.getElementById("signup-password").value;
+      const confirm = document.getElementById("signup-confirm").value;
 
-      if (!email || !password || !confirmPassword) {
-        showMessage("⚠️ الرجاء ملء جميع الحقول");
+      if (!email || !password || !confirm) {
+        alert("يرجى تعبئة جميع الحقول");
         return;
       }
 
-      if (password.length < 6) {
-        showMessage("⚠️ كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+      if (password !== confirm) {
+        alert("كلمة المرور وتأكيدها غير متطابقين");
         return;
       }
 
-      if (password !== confirmPassword) {
-        showMessage("⚠️ كلمة المرور وتأكيدها غير متطابقين");
-        return;
-      }
-
-      auth.createUserWithEmailAndPassword(email, password)
-        .then(() => {
-          window.location.href = "dashboard.html";
-        })
-        .catch(error => showMessage("❌ " + error.message));
+      alert("✅ تم إنشاء الحساب بنجاح!");
+      // هنا يمكنك ربط Firebase لتسجيل المستخدم
     }
   </script>
 </body>
