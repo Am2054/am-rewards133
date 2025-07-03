@@ -2,10 +2,9 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>Am Rewards - تسجيل الدخول</title>
+  <title>Am Rewards - تسجيل الدخول / إنشاء حساب</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    /* تصميم عام */
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(135deg, #4caf50, #2e7d32);
@@ -16,14 +15,14 @@
       align-items: center;
       height: 100vh;
       color: #fff;
+      text-align: center;
     }
     .container {
-      background-color: rgba(0, 0, 0, 0.6);
+      background-color: rgba(0,0,0,0.65);
       padding: 40px 30px;
       border-radius: 12px;
       width: 320px;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-      text-align: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
     }
     h1 {
       margin-bottom: 30px;
@@ -78,9 +77,10 @@
 </head>
 <body>
   <div class="container">
-    <h1>تسجيل الدخول إلى Am Rewards</h1>
+    <h1>تسجيل الدخول / إنشاء حساب</h1>
     <input type="email" id="email" placeholder="البريد الإلكتروني" />
     <input type="password" id="password" placeholder="كلمة المرور" />
+    <input type="password" id="confirm-password" placeholder="تأكيد كلمة المرور" />
     <button class="login" onclick="login()">🔐 تسجيل الدخول</button>
     <button class="signup" onclick="signup()">📝 إنشاء حساب جديد</button>
     <p id="message"></p>
@@ -131,27 +131,28 @@
     function signup() {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value.trim();
+      const confirmPassword = document.getElementById("confirm-password").value.trim();
 
-      console.log("Signup attempt:", email, password);
-
-      if (!email || !password) {
-        showMessage("⚠️ الرجاء إدخال البريد الإلكتروني وكلمة المرور");
+      if (!email || !password || !confirmPassword) {
+        showMessage("⚠️ الرجاء ملء جميع الحقول");
         return;
       }
+
       if (password.length < 6) {
         showMessage("⚠️ كلمة المرور يجب أن تكون 6 أحرف على الأقل");
         return;
       }
 
+      if (password !== confirmPassword) {
+        showMessage("⚠️ كلمة المرور وتأكيدها غير متطابقين");
+        return;
+      }
+
       auth.createUserWithEmailAndPassword(email, password)
         .then(() => {
-          console.log("Signup successful");
           window.location.href = "dashboard.html";
         })
-        .catch(error => {
-          console.error("Signup error:", error);
-          showMessage("❌ " + error.message);
-        });
+        .catch(error => showMessage("❌ " + error.message));
     }
   </script>
 </body>
