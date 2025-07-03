@@ -14,7 +14,6 @@
       align-items: center;
       height: 100vh;
       margin: 0;
-      direction: rtl;
     }
     .form-box {
       background: white;
@@ -73,58 +72,65 @@
     <button class="switcher" onclick="toggleMode()">أو أنشئ حساب جديد</button>
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script>
+  <!-- Firebase v10 -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
     };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
     let isLogin = true;
-    function toggleMode() {
+    window.toggleMode = function () {
       isLogin = !isLogin;
       document.getElementById("login-form").classList.toggle("hidden", !isLogin);
       document.getElementById("signup-form").classList.toggle("hidden", isLogin);
       document.getElementById("form-title").textContent = isLogin ? "تسجيل الدخول إلى Am Rewards" : "إنشاء حساب جديد في Am Rewards";
       document.querySelector(".switcher").textContent = isLogin ? "أو أنشئ حساب جديد" : "أو سجّل الدخول";
-    }
+    };
 
-    function login() {
-      const email = document.getElementById("login-email").value;
-      const password = document.getElementById("login-password").value;
+    window.login = async function () {
+      const email = document.getElementById("login-email").value.trim();
+      const password = document.getElementById("login-password").value.trim();
       if (!email || !password) return alert("يرجى إدخال البريد وكلمة المرور");
 
-      auth.signInWithEmailAndPassword(email, password)
-        .then(() => {
-          window.location.href = "dashboard.html";
-        })
-        .catch(error => {
-          alert("فشل تسجيل الدخول: " + error.message);
-        });
-    }
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        window.location.href = "dashboard.html";
+      } catch (error) {
+        alert("فشل تسجيل الدخول: " + error.message);
+      }
+    };
 
-    function signup() {
-      const email = document.getElementById("signup-email").value;
-      const password = document.getElementById("signup-password").value;
-      const confirm = document.getElementById("signup-confirm").value;
+    window.signup = async function () {
+      const email = document.getElementById("signup-email").value.trim();
+      const password = document.getElementById("signup-password").value.trim();
+      const confirm = document.getElementById("signup-confirm").value.trim();
+
       if (!email || !password || !confirm) return alert("يرجى تعبئة جميع الحقول");
       if (password !== confirm) return alert("كلمة المرور وتأكيدها غير متطابقين");
 
-      auth.createUserWithEmailAndPassword(email, password)
-        .then(userCredential => {
-          const uid = userCredential.user.uid;
-          db.collection("users").doc(uid).set({ points: 0, withdrawn: 0 });
-          alert("✅ تم إنشاء الحساب بنجاح!");
-          window.location.href = "dashboard.html";
-        })
-        .catch(error => alert("خطأ أثناء إنشاء الحساب: " + error.message));
-    }
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const uid = userCredential.user.uid;
+        await setDoc(doc(db, "users", uid), {
+          points: 0,
+          withdrawn: 0
+        });
+        alert("✅ تم إنشاء الحساب بنجاح!");
+        window.location.href = "dashboard.html";
+      } catch (error) {
+        alert("خطأ أثناء إنشاء الحساب: " + error.message);
+      }
+    };
   </script>
 </body>
 </html>
