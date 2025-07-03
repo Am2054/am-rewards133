@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>مهام الروابط المختصرة - Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: linear-gradient(135deg, #72edf2 10%, #5151e5 100%);
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      color: #333;
+    }
+    header {
+      width: 100%;
+      max-width: 900px;
+      margin-bottom: 30px;
+      background: rgba(255, 255, 255, 0.15);
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      text-align: center;
+      color: white;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    .summary {
+      max-width: 900px;
+      background: white;
+      border-radius: 15px;
+      padding: 20px 30px;
+      margin-bottom: 25px;
+      width: 100%;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-around;
+      font-weight: 600;
+      font-size: 18px;
+      color: #333;
+    }
+    .summary div {
+      flex: 1;
+      text-align: center;
+    }
+    ul.task-list {
+      max-width: 900px;
+      width: 100%;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill,minmax(280px,1fr));
+      gap: 18px;
+    }
+    ul.task-list li {
+      background: white;
+      border-radius: 15px;
+      padding: 18px 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.3s ease;
+    }
+    ul.task-list li:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+    ul.task-list li.completed {
+      opacity: 0.5;
+      text-decoration: line-through;
+      pointer-events: none;
+      background: #d3f4e1;
+    }
+    .task-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 15px;
+      color: #333;
+      min-height: 50px;
+    }
+    button.execute-btn {
+      padding: 12px;
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+      color: white;
+      transition: background-color 0.3s ease;
+    }
+    button.execute-btn:disabled {
+      background: #bbb;
+      cursor: not-allowed;
+    }
+    /* ألوان مختلفة للأزرار */
+    button.execute-btn:nth-child(odd) {
+      background: #4caf50;
+    }
+    button.execute-btn:nth-child(even) {
+      background: #2196f3;
+    }
+    button.execute-btn.red {
+      background: #f44336;
+    }
+    button.execute-btn.orange {
+      background: #ff9800;
+    }
+    button.execute-btn.purple {
+      background: #9c27b0;
+    }
+  </style>
+</head>
+<body>
+  <header>مهام الروابط المختصرة - Am Rewards</header>
+
+  <div class="summary">
+    <div>المهام المنجزة: <span id="completedCount">0</span></div>
+    <div>المهام المتبقية: <span id="remainingCount">0</span></div>
+    <div>إجمالي المهام: <span id="totalTasks">0</span></div>
+  </div>
+
+  <ul class="task-list" id="taskList">
+    <!-- المهام سيتم تحميلها هنا -->
+  </ul>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const taskListEl = document.getElementById("taskList");
+    const completedCountEl = document.getElementById("completedCount");
+    const remainingCountEl = document.getElementById("remainingCount");
+    const totalTasksEl = document.getElementById("totalTasks");
+
+    // مهام فعلية للتجربة
+    const tasks = [
+      { id: "shortlink_1", title: "رابط مختصر - مهمة 1", url: "https://shorte.st/abcd1234" },
+      { id: "shortlink_2", title: "رابط مختصر - مهمة 2", url: "https://ouo.io/wxyz5678" },
+      { id: "shortlink_3", title: "رابط مختصر - مهمة 3", url: "https://adf.ly/efgh9012" },
+      { id: "shortlink_4", title: "رابط مختصر - مهمة 4", url: "https://short.io/ijkl3456" },
+      { id: "shortlink_5", title: "رابط مختصر - مهمة 5", url: "https://linkvertise.com/mnop7890" },
+    ];
+
+    let user = null;
+    let userTasks = {};
+
+    onAuthStateChanged(auth, async (u) => {
+      if (u) {
+        user = u;
+        await loadUserTasks();
+        renderTasks();
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    async function loadUserTasks() {
+      const docRef = doc(db, "userTasks", user.uid);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        userTasks = docSnap.data();
+      } else {
+        userTasks = {};
+        await setDoc(docRef, userTasks);
+      }
+    }
+
+    function renderTasks() {
+      taskListEl.innerHTML = "";
+      let completedCount = 0;
+
+      tasks.forEach((task, index) => {
+        const done = userTasks[task.id] === true;
+        if (done) completedCount++;
+
+        const li = document.createElement("li");
+        li.className = done ? "completed" : "";
+
+        // ألوان مختلفة للأزرار بناءً على ترتيب المهمة (أو يمكنك تخصيص أكثر)
+        const colors = ["green", "blue", "red", "orange", "purple"];
+        const btnColorClass = {
+          green: "#4caf50",
+          blue: "#2196f3",
+          red: "#f44336",
+          orange: "#ff9800",
+          purple: "#9c27b0"
+        };
+        const colorKey = Object.keys(btnColorClass)[index % colors.length];
+        const btnColor = btnColorClass[colorKey];
+
+        li.innerHTML = `
+          <div class="task-title">${task.title}</div>
+          <button
+            class="execute-btn"
+            style="background-color: ${btnColor};"
+            ${done ? "disabled" : ""}
+            onclick="executeTask('${task.id}', '${task.url}')"
+          >
+            ${done ? "تم التنفيذ" : "تنفيذ"}
+          </button>
+        `;
+
+        taskListEl.appendChild(li);
+      });
+
+      completedCountEl.textContent = completedCount;
+      remainingCountEl.textContent = tasks.length - completedCount;
+      totalTasksEl.textContent = tasks.length;
+    }
+
+    window.executeTask = async function (taskId, url) {
+      window.open(url, "_blank");
+      userTasks
