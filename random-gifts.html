@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>بطاقات وهدايا عشوائية | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: #fffde7;
+      margin: 0;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+      color: #f9a825;
+    }
+    .gift {
+      background: #fff;
+      border: 2px solid #fff9c4;
+      margin: 15px auto;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      max-width: 600px;
+    }
+    .gift h3 {
+      margin: 0;
+      color: #f9a825;
+    }
+    .btn {
+      display: inline-block;
+      background: #ffc107;
+      color: black;
+      padding: 10px 16px;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    .btn:hover {
+      background: #d39e00;
+    }
+    .done {
+      background-color: #28a745 !important;
+      color: white !important;
+    }
+  </style>
+</head>
+<body>
+  <h2>🎁 بطاقات وهدايا عشوائية</h2>
+  <div id="giftContainer"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let currentUser;
+
+    const gifts = [
+      {
+        title: "بطاقة هدية رقم 1",
+        desc: "افتح هذه البطاقة للحصول على نقاط مفاجئة",
+        points: 3
+      },
+      {
+        title: "بطاقة حظ اليوم",
+        desc: "افتحها مرة واحدة فقط يوميًا لتحصل على مكافأتك",
+        points: 3
+      }
+    ];
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        currentUser = user;
+        renderGifts();
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    function renderGifts() {
+      const container = document.getElementById("giftContainer");
+      gifts.forEach((gift, index) => {
+        const div = document.createElement("div");
+        div.className = "gift";
+        div.innerHTML = `
+          <h3>${gift.title}</h3>
+          <p>${gift.desc}</p>
+          <button class="btn" id="btn-${index}">🎁 فتح البطاقة +${gift.points} نقطة</button>
+        `;
+        container.appendChild(div);
+
+        const btn = document.getElementById(`btn-${index}`);
+        btn.addEventListener("click", async () => {
+          await rewardUser(gift.points);
+          btn.textContent = "✅ تم فتح البطاقة";
+          btn.classList.add("done");
+          btn.disabled = true;
+        });
+      });
+    }
+
+    async function rewardUser(points) {
+      if (!currentUser) return;
+      const ref = doc(db, "users", currentUser.uid);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const current = snap.data().points || 0;
+        await updateDoc(ref, { points: current + points });
+      }
+    }
+  </script>
+</body>
+</html>
