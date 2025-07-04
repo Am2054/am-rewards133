@@ -58,6 +58,12 @@
     .success {
       color: green;
     }
+    .result-box {
+      background-color: #f3f3f3;
+      border-radius: 10px;
+      padding: 10px;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -65,9 +71,16 @@
     <h2>طلب سحب الأرباح عبر PayPal</h2>
 
     <input type="email" id="paypalEmail" placeholder="أدخل بريد PayPal الخاص بك" />
-    <input type="number" id="points" placeholder="عدد النقاط" oninput="convertPoints()" />
 
-    <p><strong>ما يعادل:</strong> <span id="egpValue">0.00</span> جنيه / <span id="usdValue">0.00</span> دولار</p>
+    <input type="number" id="pointsInput" placeholder="أدخل عدد النقاط" />
+    <button onclick="convertPoints()">🔁 تحويل النقاط</button>
+
+    <div class="result-box" id="conversionResult" style="display:none;">
+      <p><strong>✅ تعادل:</strong></p>
+      <p><span id="egpValue">0</span> جنيه مصري</p>
+      <p><span id="usdValue">0</span> دولار أمريكي</p>
+    </div>
+
     <p class="note">🚨 سيتم مراجعة طلبك خلال ساعة.</p>
     <p class="note">💡 سيتم توفير طرق الدفع المصرية قريبًا.</p>
 
@@ -95,8 +108,8 @@
     const auth = getAuth(app);
     const msg = document.getElementById("message");
 
-    const pointValueEGP = 0.08; // قيمة النقطة بالجنيه
-    const dollarRate = 50;      // سعر الدولار (تغييره حسب السوق)
+    const pointValueEGP = 0.08;  // قيمة النقطة بالجنيه
+    const dollarRate = 50;       // سعر صرف الدولار
 
     let user;
 
@@ -111,16 +124,25 @@
     });
 
     window.convertPoints = function () {
-      const points = parseFloat(document.getElementById("points").value) || 0;
+      const points = parseFloat(document.getElementById("pointsInput").value.trim());
+      if (isNaN(points) || points <= 0) {
+        document.getElementById("conversionResult").style.display = "none";
+        msg.textContent = "❌ أدخل عدد نقاط صحيح.";
+        return;
+      }
+
       const egp = points * pointValueEGP;
       const usd = egp / dollarRate;
+
       document.getElementById("egpValue").textContent = egp.toFixed(2);
       document.getElementById("usdValue").textContent = usd.toFixed(2);
+      document.getElementById("conversionResult").style.display = "block";
+      msg.textContent = "";
     };
 
     window.requestPaypalWithdraw = async function () {
       const email = document.getElementById("paypalEmail").value.trim();
-      const points = parseFloat(document.getElementById("points").value.trim());
+      const points = parseFloat(document.getElementById("pointsInput").value.trim());
 
       if (!email || isNaN(points) || points <= 0) {
         msg.textContent = "❌ أدخل بيانات صحيحة.";
@@ -131,7 +153,7 @@
       const usd = egp / dollarRate;
 
       if (usd > 10) {
-        msg.textContent = "❌ الحد الأقصى للسحب هو ما يعادل 10 دولار.";
+        msg.textContent = "❌ الحد الأقصى للسحب هو 10 دولار.";
         return;
       }
 
@@ -158,4 +180,4 @@
     };
   </script>
 </body>
-      </html>
+</html>
