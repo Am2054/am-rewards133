@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>عروض CPA | Am Rewards</title>
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: #fff3cd;
+      margin: 0;
+      padding: 20px;
+      direction: rtl;
+    }
+    h2 {
+      text-align: center;
+      color: #856404;
+    }
+    .offer-box {
+      background: #fff;
+      border-right: 6px solid #ffc107;
+      padding: 15px;
+      margin: 15px auto;
+      border-radius: 12px;
+      max-width: 600px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .offer-box h3 {
+      margin: 0;
+      color: #856404;
+    }
+    .offer-box p {
+      font-size: 16px;
+      margin: 10px 0;
+    }
+    .btn {
+      display: inline-block;
+      background: #ffc107;
+      color: black;
+      padding: 10px 18px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .btn:hover {
+      background: #e0a800;
+    }
+    .done {
+      background-color: #28a745 !important;
+    }
+  </style>
+</head>
+<body>
+  <h2>💼 عروض CPA - أرباح عالية</h2>
+  <div id="offerList"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let currentUser;
+
+    const offers = [
+      {
+        title: "سجل للحصول على بطاقة هدايا مجانية",
+        desc: "افتح العرض وسجل ببريدك الإلكتروني.",
+        url: "https://example.com/cpa1",
+        points: 9
+      },
+      {
+        title: "احصل على فرصة ربح جوال مجاني",
+        desc: "أكمل الاستبيان القصير وسجل.",
+        url: "https://example.com/cpa2",
+        points: 9
+      }
+    ];
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        currentUser = user;
+        renderOffers();
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    function renderOffers() {
+      const container = document.getElementById("offerList");
+      offers.forEach((offer, index) => {
+        const div = document.createElement("div");
+        div.className = "offer-box";
+        div.innerHTML = `
+          <h3>${offer.title}</h3>
+          <p>${offer.desc}</p>
+          <a href="${offer.url}" target="_blank" class="btn" id="btn-${index}">تنفيذ +${offer.points} نقطة</a>
+        `;
+        container.appendChild(div);
+
+        const btn = document.getElementById(`btn-${index}`);
+        btn.addEventListener("click", async () => {
+          await rewardUser(offer.points);
+          btn.textContent = "✅ تم التنفيذ";
+          btn.classList.add("done");
+          btn.disabled = true;
+        });
+      });
+    }
+
+    async function rewardUser(points) {
+      if (!currentUser) return;
+      const ref = doc(db, "users", currentUser.uid);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const current = snap.data().points || 0;
+        await updateDoc(ref, { points: current + points });
+      }
+    }
+  </script>
+</body>
+</html>
