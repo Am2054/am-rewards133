@@ -65,13 +65,13 @@
     <h2>طلب سحب الأرباح عبر PayPal</h2>
 
     <input type="email" id="paypalEmail" placeholder="أدخل بريد PayPal الخاص بك" />
-    <input type="number" id="amount" placeholder="المبلغ بالدولار (حد أقصى 10$)" />
+    <input type="number" id="points" placeholder="عدد النقاط" oninput="convertPoints()" />
 
+    <p><strong>ما يعادل:</strong> <span id="egpValue">0.00</span> جنيه / <span id="usdValue">0.00</span> دولار</p>
     <p class="note">🚨 سيتم مراجعة طلبك خلال ساعة.</p>
     <p class="note">💡 سيتم توفير طرق الدفع المصرية قريبًا.</p>
 
     <button onclick="requestPaypalWithdraw()">طلب السحب</button>
-
     <p id="message" class="note"></p>
   </div>
 
@@ -95,6 +95,9 @@
     const auth = getAuth(app);
     const msg = document.getElementById("message");
 
+    const pointValueEGP = 0.08; // قيمة النقطة بالجنيه
+    const dollarRate = 50;      // سعر الدولار (تغييره حسب السوق)
+
     let user;
 
     setPersistence(auth, browserLocalPersistence).then(() => {
@@ -107,17 +110,28 @@
       });
     });
 
+    window.convertPoints = function () {
+      const points = parseFloat(document.getElementById("points").value) || 0;
+      const egp = points * pointValueEGP;
+      const usd = egp / dollarRate;
+      document.getElementById("egpValue").textContent = egp.toFixed(2);
+      document.getElementById("usdValue").textContent = usd.toFixed(2);
+    };
+
     window.requestPaypalWithdraw = async function () {
       const email = document.getElementById("paypalEmail").value.trim();
-      const amount = parseFloat(document.getElementById("amount").value.trim());
+      const points = parseFloat(document.getElementById("points").value.trim());
 
-      if (!email || isNaN(amount) || amount <= 0) {
+      if (!email || isNaN(points) || points <= 0) {
         msg.textContent = "❌ أدخل بيانات صحيحة.";
         return;
       }
 
-      if (amount > 10) {
-        msg.textContent = "❌ الحد الأقصى للسحب هو 10 دولار يوميًا.";
+      const egp = points * pointValueEGP;
+      const usd = egp / dollarRate;
+
+      if (usd > 10) {
+        msg.textContent = "❌ الحد الأقصى للسحب هو ما يعادل 10 دولار.";
         return;
       }
 
@@ -126,7 +140,9 @@
           uid: user.uid,
           email: user.email,
           paypal: email,
-          amount: amount.toFixed(2),
+          points: points,
+          egpAmount: egp.toFixed(2),
+          usdAmount: usd.toFixed(2),
           timestamp: serverTimestamp()
         });
 
@@ -142,4 +158,4 @@
     };
   </script>
 </body>
-</html>
+      </html>
