@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>مهام CPA | Am Rewards</title>
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: #fdfdfd;
+      padding: 20px;
+      direction: rtl;
+    }
+    h2 {
+      text-align: center;
+      color: #1e88e5;
+    }
+    .offer {
+      background: #fff;
+      margin: 15px auto;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      max-width: 600px;
+      border-right: 5px solid #1e88e5;
+    }
+    .offer h3 {
+      margin: 0;
+      color: #1e88e5;
+    }
+    .offer p {
+      margin: 10px 0;
+      font-size: 16px;
+    }
+    .btn {
+      display: inline-block;
+      background: #1e88e5;
+      color: #fff;
+      padding: 10px 15px;
+      border-radius: 8px;
+      text-decoration: none;
+      margin-top: 10px;
+    }
+    .btn:hover {
+      background: #1565c0;
+    }
+    .done {
+      background: #43a047 !important;
+    }
+  </style>
+</head>
+<body>
+  <h2>💼 عروض CPA اليومية</h2>
+  <div id="offersContainer"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let currentUser;
+    const offers = [
+      {
+        title: "🧪 اختبار منتج مجاني",
+        desc: "قم بالتسجيل باستخدام بريدك الإلكتروني لتجربة منتج جديد مجانًا",
+        url: "https://example-cpa.com/offer1",
+        points: 8
+      },
+      {
+        title: "📲 تطبيق جديد لتعديل الصور",
+        desc: "ثبّت التطبيق وسجل الدخول للحصول على النقاط",
+        url: "https://example-cpa.com/offer2",
+        points: 8
+      },
+      {
+        title: "🎁 احصل على كوبون خصم",
+        desc: "أدخل بريدك الإلكتروني لتحصل على كوبون 50%",
+        url: "https://example-cpa.com/offer3",
+        points: 8
+      }
+    ];
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        currentUser = user;
+        showOffers();
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    function showOffers() {
+      const container = document.getElementById("offersContainer");
+      offers.forEach((offer, i) => {
+        const div = document.createElement("div");
+        div.className = "offer";
+        div.innerHTML = `
+          <h3>${offer.title}</h3>
+          <p>${offer.desc}</p>
+          <a href="${offer.url}" target="_blank" class="btn">🔗 تنفيذ العرض</a>
+          <button class="btn" id="btn-${i}">✅ أتممت العرض</button>
+        `;
+        container.appendChild(div);
+
+        document.getElementById(`btn-${i}`).addEventListener("click", async () => {
+          await rewardUser(offer.points);
+          document.getElementById(`btn-${i}`).textContent = "✅ تم إضافة النقاط";
+          document.getElementById(`btn-${i}`).classList.add("done");
+          document.getElementById(`btn-${i}`).disabled = true;
+        });
+      });
+    }
+
+    async function rewardUser(points) {
+      if (!currentUser) return;
+      const ref = doc(db, "users", currentUser.uid);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const current = snap.data().points || 0;
+        await updateDoc(ref, { points: current + points });
+      }
+    }
+  </script>
+</body>
+</html>
