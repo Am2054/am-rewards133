@@ -10,7 +10,6 @@
       background-color: #f3f9ff;
       margin: 0;
       padding: 20px;
-      direction: rtl;
     }
     h2 {
       color: #007bff;
@@ -36,55 +35,42 @@
       text-decoration: none;
       font-weight: bold;
     }
+    .points {
+      color: green;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
   <h2>تثبيت التطبيقات - احصل على النقاط</h2>
-  <div id="appTasksContainer">جاري تحميل المهام...</div>
+  <div id="appsContainer">جاري تحميل التطبيقات...</div>
 
-  <!-- Firebase SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    const container = document.getElementById("appTasksContainer");
-    container.innerHTML = "";
-
-    async function loadTasks() {
+  <script>
+    async function loadApps() {
       try {
-        const snapshot = await getDocs(collection(db, "dailyTasks"));
-        if (snapshot.empty) {
-          container.innerHTML = "<p style='text-align:center;'>لا توجد مهام حالياً. يرجى المحاولة لاحقاً.</p>";
-          return;
-        }
+        const response = await fetch("appinstall-data.json");
+        const apps = await response.json();
 
-        snapshot.forEach((doc) => {
-          const task = doc.data();
+        const container = document.getElementById("appsContainer");
+        container.innerHTML = "";
+
+        apps.forEach(app => {
           const div = document.createElement("div");
           div.className = "app-task";
           div.innerHTML = `
-            <h4>${task.title}</h4>
-            <p>${task.description}</p>
-            <a href="${task.link}" target="_blank" class="btn-install">تثبيت الآن</a>
+            <h4>📱 ${app.title}</h4>
+            <p>${app.description}</p>
+            <p class="points">💰 ${app.points} نقاط</p>
+            <a href="${app.link}" target="_blank" class="btn-install">تثبيت الآن</a>
           `;
           container.appendChild(div);
         });
-      } catch (error) {
-        container.innerHTML = "<p style='text-align:center;color:red;'>حدث خطأ أثناء تحميل المهام.</p>";
-        console.error("Firestore error:", error);
+      } catch (err) {
+        document.getElementById("appsContainer").textContent = "حدث خطأ أثناء تحميل التطبيقات.";
       }
     }
 
-    loadTasks();
+    loadApps();
   </script>
 </body>
 </html>
