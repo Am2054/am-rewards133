@@ -1,4 +1,3 @@
-<!-- login.html -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -44,22 +43,53 @@
       margin-top: 10px;
     }
     .hidden { display: none; }
+    .password-toggle {
+      position: relative;
+    }
+    .password-toggle input {
+      padding-right: 40px;
+    }
+    .show-btn {
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      font-size: 1.1rem;
+      cursor: pointer;
+      color: #777;
+    }
   </style>
 </head>
 <body>
   <div class="form-box">
     <h2 id="form-title">تسجيل الدخول إلى Am Rewards</h2>
+
+    <!-- ✅ login form -->
     <div id="login-form">
       <input type="email" id="login-email" placeholder="البريد الإلكتروني" />
-      <input type="password" id="login-password" placeholder="كلمة المرور" />
-      <button class="login-btn" onclick="login()">تسجيل الدخول</button>
+      <div class="password-toggle">
+        <input type="password" id="login-password" placeholder="كلمة المرور" />
+        <button class="show-btn" onclick="togglePassword('login-password')">👁️</button>
+      </div>
+      <button class="login-btn" id="login-btn" onclick="login()">تسجيل الدخول</button>
     </div>
+
+    <!-- ✅ signup form -->
     <div id="signup-form" class="hidden">
       <input type="email" id="signup-email" placeholder="البريد الإلكتروني" />
-      <input type="password" id="signup-password" placeholder="كلمة المرور" />
-      <input type="password" id="signup-confirm" placeholder="تأكيد كلمة المرور" />
-      <button class="signup-btn" onclick="signup()">إنشاء الحساب</button>
+      <div class="password-toggle">
+        <input type="password" id="signup-password" placeholder="كلمة المرور" />
+        <button class="show-btn" onclick="togglePassword('signup-password')">👁️</button>
+      </div>
+      <div class="password-toggle">
+        <input type="password" id="signup-confirm" placeholder="تأكيد كلمة المرور" />
+        <button class="show-btn" onclick="togglePassword('signup-confirm')">👁️</button>
+      </div>
+      <button class="signup-btn" id="signup-btn" onclick="signup()">إنشاء الحساب</button>
     </div>
+
     <button class="switcher" onclick="toggleMode()">أو أنشئ حساب جديد</button>
   </div>
 
@@ -94,50 +124,91 @@
       document.querySelector(".switcher").textContent = isLogin ? "أو أنشئ حساب جديد" : "أو سجّل الدخول";
     };
 
-    // ✅ تعديل تسجيل الدخول
+    window.togglePassword = function (id) {
+      const input = document.getElementById(id);
+      input.type = input.type === "password" ? "text" : "password";
+    };
+
     window.login = async function () {
       const email = document.getElementById("login-email").value.trim();
       const password = document.getElementById("login-password").value.trim();
+      const btn = document.getElementById("login-btn");
+
       if (!email || !password) return alert("يرجى إدخال البريد وكلمة المرور");
 
-      // ✅ دخول خاص بصاحب الموقع
+      // دخول مسؤول الموقع
       if (email === "owner@am.com" && password === "AmOwner@2025") {
         window.location.href = "admin.html";
         return;
       }
 
-      // ✅ دخول مستخدم عادي
       try {
+        btn.textContent = "جاري الدخول...";
+        btn.disabled = true;
         await setPersistence(auth, browserLocalPersistence);
         await signInWithEmailAndPassword(auth, email, password);
         window.location.href = "dashboard.html";
       } catch (error) {
-        alert("فشل تسجيل الدخول: " + error.message);
+        btn.textContent = "تسجيل الدخول";
+        btn.disabled = false;
+
+        if (error.code === "auth/user-not-found") {
+          alert("الحساب غير موجود. يمكنك إنشاء حساب جديد.");
+        } else if (error.code === "auth/wrong-password") {
+          alert("كلمة المرور غير صحيحة.");
+        } else {
+          alert("خطأ: " + error.message);
+        }
       }
     };
 
-    // ✅ إنشاء حساب جديد
     window.signup = async function () {
       const email = document.getElementById("signup-email").value.trim();
       const password = document.getElementById("signup-password").value.trim();
       const confirm = document.getElementById("signup-confirm").value.trim();
+      const btn = document.getElementById("signup-btn");
 
       if (!email || !password || !confirm) return alert("يرجى تعبئة جميع الحقول");
       if (password !== confirm) return alert("كلمة المرور وتأكيدها غير متطابقين");
 
+      // فحص تشابه الإيميل والباسورد أو احتواءه على كلمات محظورة
+      const bannedWords = ["admin", "owner", "test", "fake", "bot"];
+      if (bannedWords.some(word => email.toLowerCase().includes(word))) {
+        return alert("لا يمكنك استخدام هذا البريد. اختر بريدًا حقيقيًا.");
+      }
+
+      const emailPart = email.split("@")[0];
+      if (password.toLowerCase().includes(emailPart.toLowerCase())) {
+        return alert("كلمة المرور لا يجب أن تكون مشابهة للبريد الإلكتروني.");
+      }
+
       try {
+        btn.textContent = "جاري التسجيل...";
+        btn.disabled = true;
+
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const uid = userCredential.user.uid;
+
         await setDoc(doc(db, "users", uid), {
           points: 0,
           withdrawn: 0
         });
+
         alert("✅ تم إنشاء الحساب بنجاح!");
         window.location.href = "dashboard.html";
       } catch (error) {
-        alert("خطأ أثناء إنشاء الحساب: " + error.message);
+        btn.textContent = "إنشاء الحساب";
+        btn.disabled = false;
+
+        if (error.code === "auth/email-already-in-use") {
+          alert("هذا البريد مستخدم بالفعل.");
+        } else if (error.code === "auth/weak-password") {
+          alert("كلمة المرور ضعيفة. يجب أن تتكون من 6 أحرف على الأقل.");
+        } else {
+          alert("خطأ: " + error.message);
+        }
       }
     };
   </script>
 </body>
-  </html>
+      </html>
