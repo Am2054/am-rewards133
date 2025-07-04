@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>متابعة YouTube / TikTok | Am Rewards</title>
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: #fff3cd;
+      margin: 0;
+      padding: 20px;
+      direction: rtl;
+    }
+    h2 {
+      text-align: center;
+      color: #856404;
+    }
+    .task {
+      background: #fff;
+      border: 2px solid #ffeeba;
+      margin: 15px auto;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      max-width: 600px;
+    }
+    .task h3 {
+      margin: 0;
+      color: #856404;
+    }
+    .task p {
+      margin: 10px 0;
+      font-size: 16px;
+    }
+    .btn {
+      display: inline-block;
+      background: #ffc107;
+      color: #000;
+      padding: 10px 16px;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+    .btn:hover {
+      background: #e0a800;
+    }
+    .done {
+      background-color: #28a745 !important;
+      color: white !important;
+    }
+  </style>
+</head>
+<body>
+  <h2>📺 مهام YouTube و TikTok</h2>
+  <div id="ytTasks"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let currentUser;
+
+    const tasks = [
+      {
+        title: "اشترك في قناة YouTube",
+        desc: "ادخل واشترك في القناة الرسمية لـ Am Rewards.",
+        url: "https://youtube.com/@example",
+        points: 3
+      },
+      {
+        title: "تابع حساب TikTok",
+        desc: "تابع حساب Am Rewards على TikTok الآن!",
+        url: "https://tiktok.com/@example",
+        points: 3
+      },
+      {
+        title: "شاهد هذا الفيديو",
+        desc: "شاهد فيديو قصير حتى النهاية.",
+        url: "https://www.youtube.com/watch?v=example",
+        points: 3
+      }
+    ];
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        currentUser = user;
+        showTasks();
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    function showTasks() {
+      const container = document.getElementById("ytTasks");
+      tasks.forEach((task, i) => {
+        const div = document.createElement("div");
+        div.className = "task";
+        div.innerHTML = `
+          <h3>${task.title}</h3>
+          <p>${task.desc}</p>
+          <a href="${task.url}" class="btn" target="_blank">تنفيذ</a>
+          <button class="btn" id="done-${i}">✅ أتممت المهمة</button>
+        `;
+        container.appendChild(div);
+
+        document.getElementById(`done-${i}`).addEventListener("click", async () => {
+          await rewardUser(task.points);
+          const btn = document.getElementById(`done-${i}`);
+          btn.textContent = "تمت إضافة النقاط ✅";
+          btn.classList.add("done");
+          btn.disabled = true;
+        });
+      });
+    }
+
+    async function rewardUser(points) {
+      if (!currentUser) return;
+      const ref = doc(db, "users", currentUser.uid);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const current = snap.data().points || 0;
+        await updateDoc(ref, { points: current + points });
+      }
+    }
+  </script>
+</body>
+</html>
