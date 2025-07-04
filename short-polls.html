@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>استطلاعات قصيرة | Am Rewards</title>
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+      direction: rtl;
+    }
+    h2 {
+      text-align: center;
+      color: #444;
+    }
+    .poll {
+      background: #fff;
+      border-right: 5px solid #e83e8c;
+      padding: 15px;
+      margin: 15px auto;
+      border-radius: 12px;
+      max-width: 600px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+    }
+    .poll h3 {
+      margin: 0 0 10px;
+      color: #e83e8c;
+    }
+    .poll label {
+      display: block;
+      margin: 8px 0;
+      cursor: pointer;
+    }
+    .poll input[type="radio"] {
+      margin-left: 5px;
+    }
+    .btn {
+      display: inline-block;
+      background: #e83e8c;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    .btn:hover {
+      background: #b82b62;
+    }
+    .done {
+      background-color: #28a745 !important;
+    }
+  </style>
+</head>
+<body>
+  <h2>📊 استطلاعات قصيرة - اربح النقاط بسرعة</h2>
+  <div id="pollList"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let currentUser;
+
+    const polls = [
+      {
+        question: "ما نوع المحتوى المفضل لديك؟",
+        options: ["تعليمي", "ترفيهي", "رياضي", "ألعاب"],
+        points: 4
+      },
+      {
+        question: "كم ساعة تستخدم فيها الإنترنت يوميًا؟",
+        options: ["أقل من ساعة", "1-3 ساعات", "4-6 ساعات", "أكثر من 6 ساعات"],
+        points: 4
+      }
+    ];
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        currentUser = user;
+        renderPolls();
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    function renderPolls() {
+      const container = document.getElementById("pollList");
+      polls.forEach((poll, index) => {
+        const div = document.createElement("div");
+        div.className = "poll";
+
+        let optionsHTML = "";
+        poll.options.forEach((option, i) => {
+          optionsHTML += `<label><input type="radio" name="q${index}" value="${option}"> ${option}</label>`;
+        });
+
+        div.innerHTML = `
+          <h3>${poll.question}</h3>
+          ${optionsHTML}
+          <button class="btn" id="btn-${index}">إرسال +${poll.points} نقطة</button>
+        `;
+        container.appendChild(div);
+
+        document.getElementById(`btn-${index}`).addEventListener("click", async () => {
+          await rewardUser(poll.points);
+          document.getElementById(`btn-${index}`).textContent = "✅ تم إرسال الإجابة";
+          document.getElementById(`btn-${index}`).classList.add("done");
+          document.getElementById(`btn-${index}`).disabled = true;
+        });
+      });
+    }
+
+    async function rewardUser(points) {
+      if (!currentUser) return;
+      const ref = doc(db, "users", currentUser.uid);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const current = snap.data().points || 0;
+        await updateDoc(ref, { points: current + points });
+      }
+    }
+  </script>
+</body>
+</html>
