@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="ar" dir="rtl">
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <title>مهمة الروابط المختصرة | Am Rewards</title>
@@ -9,14 +10,11 @@
       background: #f1fdf6;
       margin: 0;
       padding: 20px;
+      direction: rtl;
     }
     h2 {
       color: #28a745;
       text-align: center;
-    }
-    .stats {
-      text-align: center;
-      margin-bottom: 20px;
     }
     .link-box {
       background: white;
@@ -32,96 +30,60 @@
       text-decoration: none;
       font-weight: bold;
     }
+    .counter {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 18px;
+      color: #555;
+    }
   </style>
 </head>
 <body>
   <h2>مهمة الروابط المختصرة</h2>
-  <div class="stats">
-    <p>عدد الروابط المنفذة: <span id="doneCount">0</span></p>
-    <p>عدد الروابط المتبقية: <span id="remainingCount">0</span></p>
-    <p>النقاط المكتسبة: <span id="earnedPoints">0</span> نقطة</p>
-  </div>
-  <div id="linksContainer"></div>  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-    import {
-      getAuth,
-      onAuthStateChanged
-    } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-    import {
-      getFirestore,
-      doc,
-      getDoc,
-      updateDoc,
-      setDoc
-    } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+  <div class="counter" id="status">جاري تحميل الروابط...</div>
+  <div id="links-container"></div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards"
-    };
+  <script>
+    const userId = localStorage.getItem("userId") || "guest_" + Math.floor(Math.random() * 1000000);
+    const today = new Date().toISOString().slice(0, 10);
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    // حفظ الروابط التي تمت زيارتها اليوم
+    const userProgressKey = `shortlinks_progress_${userId}_${today}`;
+    let completedLinks = JSON.parse(localStorage.getItem(userProgressKey)) || [];
 
-    const shortLinks = Array.from({ length: 100 }, (_, i) => ({
-      id: `link${i + 1}`,
-      url: `https://link-target.net/your-link-${i + 1}`,
-      points: 7.15
-    }));
+    fetch("shortlinks-data.json")
+      .then(res => res.json())
+      .then(data => {
+        const container = document.getElementById("links-container");
+        const status = document.getElementById("status");
 
-    let userId = null;
-    let completed = [];
+        const availableLinks = data.filter((_, i) => !completedLinks.includes(i));
 
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) return alert('يرجى تسجيل الدخول أولاً.');
-      userId = user.uid;
-      const userRef = doc(db, 'users', userId);
-      const userSnap = await getDoc(userRef);
-      if (!userSnap.exists()) {
-        await setDoc(userRef, { points: 0, shortlinks: [] });
+        status.textContent = `روابط مكتملة: ${completedLinks.length} / ${data.length}`;
+
+        if (availableLinks.length === 0) {
+          container.innerHTML = "<p style='text-align:center;'>✅ لقد أكملت جميع الروابط المختصرة اليوم!</p>";
+          return;
+        }
+
+        availableLinks.forEach((item, index) => {
+          const globalIndex = data.indexOf(item);
+          const div = document.createElement("div");
+          div.className = "link-box";
+          div.innerHTML = `
+            <p>رابط رقم ${globalIndex + 1}</p>
+            <a href="${item.link}" target="_blank" onclick="markCompleted(${globalIndex})">افتح الرابط</a>
+          `;
+          container.appendChild(div);
+        });
+      });
+
+    function markCompleted(index) {
+      if (!completedLinks.includes(index)) {
+        completedLinks.push(index);
+        localStorage.setItem(userProgressKey, JSON.stringify(completedLinks));
       }
-
-      completed = userSnap.data().shortlinks || [];
-      renderLinks();
-    });
-
-    async function handleClick(link) {
-      if (completed.includes(link.id)) return;
-
-      completed.push(link.id);
-      const userRef = doc(db, 'users', userId);
-      const userSnap = await getDoc(userRef);
-      const oldPoints = userSnap.data().points || 0;
-      await updateDoc(userRef, {
-        points: oldPoints + link.points,
-        shortlinks: completed
-      });
-      renderLinks();
     }
-
-    function renderLinks() {
-      const container = document.getElementById('linksContainer');
-      container.innerHTML = '';
-
-      shortLinks.forEach(link => {
-        const div = document.createElement('div');
-        div.className = 'link-box';
-        div.innerHTML = completed.includes(link.id)
-          ? `<p>✅ تم فتح الرابط</p>`
-          : `<p>رابط ${link.id}</p><a href="${link.url}" target="_blank" onclick="handleLink('${link.id}')">افتح الرابط</a>`;
-        container.appendChild(div);
-      });
-
-      document.getElementById('doneCount').textContent = completed.length;
-      document.getElementById('remainingCount').textContent = shortLinks.length - completed.length;
-      document.getElementById('earnedPoints').textContent = (completed.length * 7.15).toFixed(2);
-    }
-
-    window.handleLink = async function (id) {
-      const link = shortLinks.find(l => l.id === id);
-      handleClick(link);
-    }
-  </script></body>
+  </script>
+</body>
 </html>
