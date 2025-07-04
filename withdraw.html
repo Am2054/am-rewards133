@@ -14,6 +14,8 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      flex-direction: column;
+      padding: 20px;
     }
     .container {
       background: #fff;
@@ -21,12 +23,14 @@
       border-radius: 20px;
       border: 3px solid #0070ba;
       box-shadow: 0 0 15px rgba(0,0,0,0.1);
-      width: 90%;
+      width: 100%;
       max-width: 450px;
       text-align: center;
+      margin-bottom: 30px;
     }
     h2 {
       color: #0070ba;
+      margin-bottom: 15px;
     }
     p {
       font-size: 18px;
@@ -39,6 +43,7 @@
       border-radius: 12px;
       border: 1px solid #ccc;
       font-size: 16px;
+      box-sizing: border-box;
     }
     button {
       background-color: #0070ba;
@@ -54,44 +59,101 @@
     .note {
       font-size: 14px;
       color: red;
+      margin-top: 5px;
     }
     .success {
       color: green;
     }
-    .result-box {
-      background-color: #f3f3f3;
-      border-radius: 10px;
-      padding: 10px;
-      margin-top: 10px;
+    label {
+      font-weight: bold;
+      display: block;
+      text-align: right;
+      margin-top: 15px;
+    }
+
+    /* Modal styles */
+    .modal {
+      display: none; /* Hidden by default */
+      position: fixed; 
+      z-index: 999;
+      padding-top: 100px; 
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%; 
+      overflow: auto; 
+      background-color: rgba(0,0,0,0.5);
+      direction: rtl;
+    }
+    .modal-content {
+      background-color: #fff;
+      margin: auto;
+      padding: 20px;
+      border-radius: 15px;
+      max-width: 400px;
+      text-align: center;
+      position: relative;
+    }
+    .close-btn {
+      position: absolute;
+      right: 15px;
+      top: 10px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #0070ba;
+      cursor: pointer;
+    }
+    .modal-content h3 {
+      margin-top: 0;
+      color: #0070ba;
+    }
+    .modal-content p {
+      font-size: 18px;
+      margin: 12px 0;
     }
   </style>
 </head>
 <body>
+
   <div class="container">
+    <h2>تحويل النقاط إلى جنيه / دولار</h2>
+
+    <label for="pointsToConvert">عدد النقاط:</label>
+    <input type="number" id="pointsToConvert" placeholder="مثال: 1250" min="0" oninput="updateConvertedValues()">
+
+    <p><strong>ما يعادل:</strong> <span id="convertedEGP">0.00</span> جنيه</p>
+    <p><strong>ما يعادل:</strong> <span id="convertedUSD">0.00</span> دولار</p>
+
+    <hr style="margin: 25px 0;">
+
     <h2>طلب سحب الأرباح عبر PayPal</h2>
 
-    <input type="email" id="paypalEmail" placeholder="أدخل بريد PayPal الخاص بك" />
+    <label for="paypalEmail">أدخل بريد PayPal الخاص بك:</label>
+    <input type="email" id="paypalEmail" placeholder="example@example.com" oninput="updateModalData()">
 
-    <input type="number" id="pointsInput" placeholder="أدخل عدد النقاط" />
-    <button onclick="convertPoints()">🔁 تحويل النقاط</button>
+    <p id="userBalance" style="font-weight: bold; color: #0070ba; margin-top: 15px;">رصيدي: 0.00 جنيه / 0.00 دولار</p>
 
-    <div class="result-box" id="conversionResult" style="display:none;">
-      <p><strong>✅ تعادل:</strong></p>
-      <p><span id="egpValue">0</span> جنيه مصري</p>
-      <p><span id="usdValue">0</span> دولار أمريكي</p>
-    </div>
+    <button id="requestWithdrawBtn">طلب السحب</button>
 
-    <p class="note">🚨 سيتم مراجعة طلبك خلال ساعة.</p>
-    <p class="note">💡 سيتم توفير طرق الدفع المصرية قريبًا.</p>
-
-    <button onclick="requestPaypalWithdraw()">طلب السحب</button>
     <p id="message" class="note"></p>
+  </div>
+
+  <!-- Modal لتأكيد السحب -->
+  <div id="withdrawModal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn" id="closeWithdrawModal">&times;</span>
+      <h3>تأكيد طلب السحب</h3>
+      <p id="modalUserBalance"><strong>رصيدي:</strong> ...</p>
+      <p>معرف PayPal (البريد الإلكتروني): <strong id="confirmPaypalEmail"></strong></p>
+      <p>قيمة السحب بالدولار: <strong id="confirmWithdrawAmount"></strong> $</p>
+      <button id="confirmWithdrawBtn">تأكيد</button>
+    </div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
-      getFirestore, collection, addDoc, serverTimestamp
+      getFirestore, doc, getDoc, addDoc, collection, serverTimestamp, updateDoc
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import {
       getAuth, onAuthStateChanged, setPersistence, browserLocalPersistence
@@ -106,78 +168,78 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
+
+    const pointValueEGP = 0.08; // قيمة النقطة بالجنيه
+    let dollarRate = 30.9; // سعر الدولار (يمكن تعديله حسب الحاجة)
+    let userPoints = 0;
+
+    const pointsInput = document.getElementById("pointsToConvert");
+    const convertedEGP = document.getElementById("convertedEGP");
+    const convertedUSD = document.getElementById("convertedUSD");
+    const paypalEmailInput = document.getElementById("paypalEmail");
+    const userBalanceText = document.getElementById("userBalance");
+
     const msg = document.getElementById("message");
 
-    const pointValueEGP = 0.08;  // قيمة النقطة بالجنيه
-    const dollarRate = 50;       // سعر صرف الدولار
+    // عناصر المودال
+    const withdrawModal = document.getElementById("withdrawModal");
+    const closeWithdrawModal = document.getElementById("closeWithdrawModal");
+    const confirmPaypalEmail = document.getElementById("confirmPaypalEmail");
+    const confirmWithdrawAmount = document.getElementById("confirmWithdrawAmount");
+    const modalUserBalance = document.getElementById("modalUserBalance");
+    const requestWithdrawBtn = document.getElementById("requestWithdrawBtn");
+    const confirmWithdrawBtn = document.getElementById("confirmWithdrawBtn");
 
-    let user;
-
+    // تحميل بيانات المستخدم ونقاطه
     setPersistence(auth, browserLocalPersistence).then(() => {
-      onAuthStateChanged(auth, (u) => {
-        if (u) {
-          user = u;
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.exists()) {
+            userPoints = userDoc.data().points || 0;
+            updateUserBalanceDisplay();
+          } else {
+            userPoints = 0;
+            updateUserBalanceDisplay();
+          }
         } else {
           window.location.href = "login.html";
         }
       });
     });
 
-    window.convertPoints = function () {
-      const points = parseFloat(document.getElementById("pointsInput").value.trim());
-      if (isNaN(points) || points <= 0) {
-        document.getElementById("conversionResult").style.display = "none";
-        msg.textContent = "❌ أدخل عدد نقاط صحيح.";
-        return;
-      }
-
-      const egp = points * pointValueEGP;
+    function updateUserBalanceDisplay() {
+      const egp = userPoints * pointValueEGP;
       const usd = egp / dollarRate;
+      userBalanceText.textContent = `رصيدي: ${egp.toFixed(2)} جنيه / ${usd.toFixed(2)} دولار`;
+    }
 
-      document.getElementById("egpValue").textContent = egp.toFixed(2);
-      document.getElementById("usdValue").textContent = usd.toFixed(2);
-      document.getElementById("conversionResult").style.display = "block";
-      msg.textContent = "";
-    };
-
-    window.requestPaypalWithdraw = async function () {
-      const email = document.getElementById("paypalEmail").value.trim();
-      const points = parseFloat(document.getElementById("pointsInput").value.trim());
-
-      if (!email || isNaN(points) || points <= 0) {
-        msg.textContent = "❌ أدخل بيانات صحيحة.";
-        return;
-      }
-
-      const egp = points * pointValueEGP;
+    // تحديث القيم المحولة عند تغيير النقاط
+    function updateConvertedValues() {
+      const pts = parseFloat(pointsInput.value) || 0;
+      const egp = pts * pointValueEGP;
       const usd = egp / dollarRate;
+      convertedEGP.textContent = egp.toFixed(2);
+      convertedUSD.textContent = usd.toFixed(2);
+    }
 
-      if (usd > 10) {
-        msg.textContent = "❌ الحد الأقصى للسحب هو 10 دولار.";
+    // تحديث بيانات المودال عند تغيير البريد أو النقاط
+    function updateModalData() {
+      // لا حاجة لتحديث في الوقت الحالي، سيتم التحديث عند الضغط على الزر
+    }
+
+    // عرض نافذة التأكيد مع البيانات
+    requestWithdrawBtn.onclick = () => {
+      const email = paypalEmailInput.value.trim();
+      const pts = parseFloat(pointsInput.value);
+
+      if (!email) {
+        msg.textContent = "❌ أدخل بريد PayPal صحيح.";
+        return;
+      }
+      if (isNaN(pts) || pts <= 0) {
+        msg.textContent = "❌ أدخل عدد نقاط صحيح للتحويل.";
         return;
       }
 
-      try {
-        await addDoc(collection(db, "paypalWithdrawals"), {
-          uid: user.uid,
-          email: user.email,
-          paypal: email,
-          points: points,
-          egpAmount: egp.toFixed(2),
-          usdAmount: usd.toFixed(2),
-          timestamp: serverTimestamp()
-        });
-
-        msg.textContent = "✅ تم إرسال طلبك بنجاح وسيتم مراجعته خلال ساعة.";
-        msg.classList.add("success");
-
-        setTimeout(() => {
-          window.location.href = "paypal-success.html";
-        }, 1500);
-      } catch (e) {
-        msg.textContent = "❌ حدث خطأ أثناء إرسال الطلب.";
-      }
-    };
-  </script>
-</body>
-</html>
+      const egp = pts
