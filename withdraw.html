@@ -79,7 +79,10 @@
 
     <input type="text" id="account" placeholder="رقم الهاتف">
     <input type="number" id="amount" placeholder="المبلغ بالجنيه">
-    <p class="note">🚨 أقصى مبلغ للسحب 100 جنيه يوميًا (سيتم زيادته قريبًا).</p>
+    <p class="note">
+      🚨 أقصى مبلغ للسحب <strong>100 جنيه</strong> يوميًا (3 مرات كحد أقصى).  
+      يتم خصم <strong>10%</strong> رسوم تحويل إذا كان المبلغ أكثر من 10 جنيه.
+    </p>
 
     <button onclick="requestWithdraw()">طلب السحب</button>
     <p class="note" id="message"></p>
@@ -104,19 +107,24 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
-
-    let user, userData;
     const pointValue = 0.07;
     const msg = document.getElementById("message");
+    let user, userData;
+
+    const today = new Date().toISOString().split("T")[0];
+    let recordRef;
 
     setPersistence(auth, browserLocalPersistence).then(() => {
       onAuthStateChanged(auth, async (u) => {
         if (u) {
           user = u;
+          recordRef = doc(db, "withdrawRecords", user.uid);
           const docSnap = await getDoc(doc(db, "users", user.uid));
           if (docSnap.exists()) {
             userData = docSnap.data();
             document.getElementById("balance").textContent = (userData.points * pointValue).toFixed(2);
+          } else {
+            msg.textContent = "تعذر تحميل بيانات الحساب.";
           }
         } else {
           window.location.href = "login.html";
@@ -154,30 +162,61 @@
         return;
       }
 
-      if (amount > 100) {
-        msg.textContent = "❌ لا يمكنك سحب أكثر من 100 جنيه يوميًا.";
+      const recordSnap = await getDoc(recordRef);
+      let totalToday = 0;
+      let countToday = 0;
+
+      if (recordSnap.exists() && recordSnap.data()[today]) {
+        totalToday = recordSnap.data()[today].total || 0;
+        countToday = recordSnap.data()[today].count || 0;
+      }
+
+      if (countToday >= 3 || (totalToday + amount) > 100) {
+        msg.textContent = "❌ لا يمكنك إجراء أكثر من 3 سحوبات أو تجاوز 100 جنيه يوميًا.";
         return;
       }
 
       const userBalance = userData.points * pointValue;
-      if (userBalance < amount) {
-        msg.textContent = "❌ رصيدك لا يكفي.";
+      let deducted = amount;
+
+      if (amount > 10) {
+        deducted = amount * 1.1;
+      }
+
+      if (userBalance < deducted) {
+        msg.textContent = `❌ رصيدك (${userBalance.toFixed(2)} جنيه) لا يكفي بعد احتساب رسوم التحويل (${deducted.toFixed(2)} جنيه).`;
         return;
       }
 
-      const deductedPoints = amount / pointValue;
-      const newPoints = userData.points - deductedPoints;
+      const newPoints = userData.points - (deducted / pointValue);
 
       await updateDoc(doc(db, "users", user.uid), { points: newPoints });
+
       await addDoc(collection(db, "withdrawals"), {
         uid: user.uid,
         email: user.email,
-        method, account, amount,
+        method, account,
+        amount: amount.toFixed(2),
+        deducted: deducted.toFixed(2),
         timestamp: serverTimestamp()
       });
 
+      await updateDoc(recordRef, {
+        [today]: {
+          total: totalToday + amount,
+          count: countToday + 1
+        }
+      }).catch(async () => {
+        await setDoc(recordRef, {
+          [today]: {
+            total: amount,
+            count: 1
+          }
+        });
+      });
+
       msg.classList.add("success");
-      msg.textContent = `✅ تم إرسال طلب سحب بقيمة ${amount} جنيه عبر ${method}`;
+      msg.textContent = `✅ تم إرسال طلب سحب بقيمة ${amount} جنيه (خصم ${deducted.toFixed(2)} جنيه) عبر ${method}`;
     };
   </script>
 </body>
