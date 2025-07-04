@@ -1,4 +1,3 @@
-<!-- appinstall.html -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -41,18 +40,51 @@
 </head>
 <body>
   <h2>تثبيت التطبيقات - احصل على النقاط</h2>
+  <div id="appTasksContainer">جاري تحميل المهام...</div>
 
-  <div class="app-task">
-    <h4>📱 تطبيق مميز: Chat AI</h4>
-    <p>قم بتثبيت التطبيق واستخدمه لمدة دقيقة واحدة لتحصل على <strong>7 نقاط</strong></p>
-    <a href="https://play.google.com/store/apps/details?id=com.example.chatapp" target="_blank" class="btn-install">تثبيت الآن</a>
-  </div>
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  <div class="app-task">
-    <h4>📱 تطبيق آخر: VPN Secure</h4>
-    <p>قم بتثبيت التطبيق واحصل على <strong>7 نقاط</strong></p>
-    <a href="https://play.google.com/store/apps/details?id=com.example.vpn" target="_blank" class="btn-install">تثبيت الآن</a>
-  </div>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards"
+    };
 
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const container = document.getElementById("appTasksContainer");
+    container.innerHTML = "";
+
+    async function loadTasks() {
+      try {
+        const snapshot = await getDocs(collection(db, "dailyTasks"));
+        if (snapshot.empty) {
+          container.innerHTML = "<p style='text-align:center;'>لا توجد مهام حالياً. يرجى المحاولة لاحقاً.</p>";
+          return;
+        }
+
+        snapshot.forEach((doc) => {
+          const task = doc.data();
+          const div = document.createElement("div");
+          div.className = "app-task";
+          div.innerHTML = `
+            <h4>${task.title}</h4>
+            <p>${task.description}</p>
+            <a href="${task.link}" target="_blank" class="btn-install">تثبيت الآن</a>
+          `;
+          container.appendChild(div);
+        });
+      } catch (error) {
+        container.innerHTML = "<p style='text-align:center;color:red;'>حدث خطأ أثناء تحميل المهام.</p>";
+        console.error("Firestore error:", error);
+      }
+    }
+
+    loadTasks();
+  </script>
 </body>
 </html>
