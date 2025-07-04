@@ -1,48 +1,0 @@
-<!DOCTYPE html>
-<html lang="ar">
-<head>
-  <meta charset="UTF-8">
-  <title>استكشاف مواقع - Am Rewards</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-</head>
-<body class="bg-gray-100 px-4 py-6 text-right">
-
-  <div class="max-w-xl mx-auto bg-white p-6 rounded-xl shadow">
-    <h2 class="text-xl font-bold mb-4">🌐 تصفّح مواقع واحصل على نقاط</h2>
-
-    <div class="space-y-4">
-      <div class="p-4 border rounded">
-        <p class="font-semibold">موقع تسوّق</p>
-        <a href="https://www.noon.com/" target="_blank" class="text-blue-500 underline">زيارة الموقع</a>
-        <button onclick="completeTask('explore_noon')" class="mt-2 bg-green-500 text-white px-3 py-1 rounded">زرته</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const firebaseConfig = {
-      // firebaseConfig هنا
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const auth = firebase.auth();
-
-    function completeTask(taskId) {
-      auth.onAuthStateChanged(user => {
-        if (user) {
-          const userRef = db.collection("users").doc(user.uid);
-          userRef.update({
-            points: firebase.firestore.FieldValue.increment(15),
-            [`tasks.${taskId}`]: true
-          }).then(() => {
-            alert("✅ تم احتساب 15 نقطة");
-          });
-        }
-      });
-    }
-  </script>
-</body>
-</html>

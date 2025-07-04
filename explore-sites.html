@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>استكشاف مواقع | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: #e8f5e9;
+      margin: 0;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+      color: #2e7d32;
+    }
+    .site {
+      background: #fff;
+      border: 2px solid #a5d6a7;
+      margin: 15px auto;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      max-width: 600px;
+    }
+    .site h3 {
+      margin: 0;
+      color: #2e7d32;
+    }
+    .site p {
+      margin: 10px 0;
+    }
+    .btn {
+      display: inline-block;
+      background: #43a047;
+      color: #fff;
+      padding: 10px 16px;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+    .btn:hover {
+      background: #2e7d32;
+    }
+    .done {
+      background-color: #28a745 !important;
+      color: white !important;
+    }
+  </style>
+</head>
+<body>
+  <h2>🌐 استكشاف مواقع</h2>
+  <div id="siteTasks"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let currentUser;
+
+    const sites = [
+      {
+        title: "موقع أخبار تقنية",
+        desc: "اقرأ مقالة عن الذكاء الاصطناعي.",
+        url: "https://techcrunch.com/",
+        points: 3
+      },
+      {
+        title: "موقع ثقافي",
+        desc: "استعرض موضوع ثقافي جديد.",
+        url: "https://www.britannica.com/",
+        points: 3
+      }
+    ];
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        currentUser = user;
+        showSites();
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    function showSites() {
+      const container = document.getElementById("siteTasks");
+      sites.forEach((site, i) => {
+        const div = document.createElement("div");
+        div.className = "site";
+        div.innerHTML = `
+          <h3>${site.title}</h3>
+          <p>${site.desc}</p>
+          <a href="${site.url}" class="btn" target="_blank">استكشاف</a>
+          <button class="btn" id="done-${i}">✅ تمت الزيارة</button>
+        `;
+        container.appendChild(div);
+
+        document.getElementById(`done-${i}`).addEventListener("click", async () => {
+          await rewardUser(site.points);
+          const btn = document.getElementById(`done-${i}`);
+          btn.textContent = "تمت إضافة النقاط ✅";
+          btn.classList.add("done");
+          btn.disabled = true;
+        });
+      });
+    }
+
+    async function rewardUser(points) {
+      if (!currentUser) return;
+      const ref = doc(db, "users", currentUser.uid);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const current = snap.data().points || 0;
+        await updateDoc(ref, { points: current + points });
+      }
+    }
+  </script>
+</body>
+</html>
