@@ -85,6 +85,7 @@
     <!-- الأزرار -->
     <button class="button" onclick="toggleWithdraw()" id="withdrawBtn">⏸️ جار التحقق...</button>
     <button class="button green" onclick="window.location.href='admin-withdraw.html'">💰 سحب أرباحي</button>
+    <button class="button" style="background-color:#ffc107" onclick="processPendingWithdrawals()">📤 إرسال السحب المعلّق <span id="pendingCount">(0)</span></button>
 
     <!-- قائمة المستخدمين المميزين -->
     <div class="vip-list">
@@ -169,8 +170,38 @@
       }
     }
 
+    // ✅ عدّاد السحوبات المعلقة
+    async function countPendingWithdrawals() {
+      const snap = await getDocs(collection(db, "withdrawRequests"));
+      let pending = 0;
+      snap.forEach(doc => {
+        const data = doc.data();
+        if (data.status === "pending") pending++;
+      });
+      document.getElementById("pendingCount").textContent = `(${pending})`;
+    }
+
+    // ✅ إرسال السحب المعلق (تحديث الحالة إلى paid)
+    async function processPendingWithdrawals() {
+      const snap = await getDocs(collection(db, "withdrawRequests"));
+      let sent = 0;
+      for (const docSnap of snap.docs) {
+        const data = docSnap.data();
+        if (data.status === "pending") {
+          await updateDoc(doc(db, "withdrawRequests", docSnap.id), {
+            status: "paid",
+            paidAt: new Date()
+          });
+          sent++;
+        }
+      }
+      alert(sent ? `✅ تم إرسال ${sent} عملية سحب.` : "❌ لا يوجد سحوبات معلّقة.");
+      countPendingWithdrawals();
+    }
+
     loadStats();
     checkWithdrawStatus();
+    countPendingWithdrawals();
   </script>
 </body>
-</html>
+  </html>
