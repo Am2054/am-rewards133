@@ -8,7 +8,7 @@
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
-      background: linear-gradient(to bottom right, #e0f7fa, #ffffff);
+      background: linear-gradient(to bottom right, #e0ffe9, #ffffff);
       min-height: 100vh;
       margin: 0;
       display: flex;
@@ -19,14 +19,19 @@
       background: #fff;
       padding: 30px;
       border-radius: 20px;
-      border: 3px solid #007bff;
+      border: 3px solid #0070ba;
       box-shadow: 0 0 15px rgba(0,0,0,0.1);
       width: 90%;
       max-width: 450px;
       text-align: center;
     }
-    h2 { color: #007bff; }
-    p { font-size: 18px; margin: 10px 0; }
+    h2 {
+      color: #0070ba;
+    }
+    p {
+      font-size: 18px;
+      margin: 10px 0;
+    }
     input, button {
       width: 100%;
       padding: 14px;
@@ -36,28 +41,38 @@
       font-size: 16px;
     }
     button {
-      background-color: #007bff;
+      background-color: #0070ba;
       color: white;
       font-weight: bold;
       border: none;
       cursor: pointer;
+      transition: 0.3s;
     }
     button:hover {
-      background-color: #0056b3;
+      background-color: #005ea6;
     }
-    .note { font-size: 14px; color: #ff0000; }
-    .success { color: green; }
+    .note {
+      font-size: 14px;
+      color: red;
+    }
+    .success {
+      color: green;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h2>طلب سحب الأرباح عبر PayPal</h2>
-    <input type="email" id="paypalEmail" placeholder="بريد PayPal">
-    <input type="number" id="amount" placeholder="المبلغ بالدولار (الحد الأقصى 10$)">
-    <p class="note">🚫 سيتم رفض أي طلب يتجاوز 10 دولار في اليوم.</p>
-    <p class="note">💡 سيتم توفير طرق الدفع المصرية خلال أسبوع.</p>
+
+    <input type="email" id="paypalEmail" placeholder="أدخل بريد PayPal الخاص بك" />
+    <input type="number" id="amount" placeholder="المبلغ بالدولار (حد أقصى 10$)" />
+
+    <p class="note">🚨 سيتم مراجعة طلبك خلال ساعة.</p>
+    <p class="note">💡 سيتم توفير طرق الدفع المصرية قريبًا.</p>
+
     <button onclick="requestPaypalWithdraw()">طلب السحب</button>
-    <p class="note" id="message"></p>
+
+    <p id="message" class="note"></p>
   </div>
 
   <script type="module">
@@ -66,7 +81,7 @@
       getFirestore, collection, addDoc, serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import {
-      getAuth, onAuthStateChanged
+      getAuth, onAuthStateChanged, setPersistence, browserLocalPersistence
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const firebaseConfig = {
@@ -78,36 +93,52 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
-    let currentUser;
+    const msg = document.getElementById("message");
 
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        currentUser = user;
-      } else {
-        window.location.href = "login.html";
-      }
+    let user;
+
+    setPersistence(auth, browserLocalPersistence).then(() => {
+      onAuthStateChanged(auth, (u) => {
+        if (u) {
+          user = u;
+        } else {
+          window.location.href = "login.html";
+        }
+      });
     });
 
     window.requestPaypalWithdraw = async function () {
       const email = document.getElementById("paypalEmail").value.trim();
       const amount = parseFloat(document.getElementById("amount").value.trim());
-      const msg = document.getElementById("message");
 
-      if (!email || isNaN(amount) || amount <= 0 || amount > 10) {
-        msg.textContent = "❌ يرجى إدخال بريد PayPal صحيح ومبلغ بين 1 و 10 دولار.";
+      if (!email || isNaN(amount) || amount <= 0) {
+        msg.textContent = "❌ أدخل بيانات صحيحة.";
         return;
       }
 
-      await addDoc(collection(db, "paypalWithdrawals"), {
-        uid: currentUser.uid,
-        paypalEmail: email,
-        amount: amount,
-        email: currentUser.email,
-        timestamp: serverTimestamp()
-      });
+      if (amount > 10) {
+        msg.textContent = "❌ الحد الأقصى للسحب هو 10 دولار يوميًا.";
+        return;
+      }
 
-      msg.textContent = "✅ تم إرسال طلبك بنجاح وسيتم مراجعته خلال 24 ساعة.";
-      msg.classList.add("success");
+      try {
+        await addDoc(collection(db, "paypalWithdrawals"), {
+          uid: user.uid,
+          email: user.email,
+          paypal: email,
+          amount: amount.toFixed(2),
+          timestamp: serverTimestamp()
+        });
+
+        msg.textContent = "✅ تم إرسال طلبك بنجاح وسيتم مراجعته خلال ساعة.";
+        msg.classList.add("success");
+
+        setTimeout(() => {
+          window.location.href = "paypal-success.html";
+        }, 1500);
+      } catch (e) {
+        msg.textContent = "❌ حدث خطأ أثناء إرسال الطلب.";
+      }
     };
   </script>
 </body>
