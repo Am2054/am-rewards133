@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>مهام أدوات AI | Am Rewards</title>
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: #f3f0ff;
+      margin: 0;
+      padding: 20px;
+      direction: rtl;
+    }
+    h2 {
+      text-align: center;
+      color: #6f42c1;
+    }
+    .task {
+      background: #fff;
+      border: 2px solid #d6c7f7;
+      margin: 15px auto;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      max-width: 600px;
+    }
+    .task h3 {
+      margin: 0;
+      color: #6f42c1;
+    }
+    .task p {
+      margin: 10px 0;
+      font-size: 16px;
+    }
+    .btn {
+      display: inline-block;
+      background: #6f42c1;
+      color: #fff;
+      padding: 10px 16px;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      margin-top: 8px;
+    }
+    .btn:hover {
+      background: #4e2a8c;
+    }
+    .done {
+      background-color: #28a745 !important;
+      color: white !important;
+    }
+  </style>
+</head>
+<body>
+  <h2>🤖 مهام تجربة أدوات الذكاء الاصطناعي</h2>
+  <div id="aiTasks"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let currentUser;
+
+    const tasks = [
+      {
+        title: "جرب ChatGPT",
+        desc: "افتح أداة ChatGPT واسأل سؤالًا عن أي موضوع.",
+        url: "https://chat.openai.com/",
+        points: 3
+      },
+      {
+        title: "جرب أداة توليد صور AI",
+        desc: "جرب أداة توليد صور بالذكاء الاصطناعي.",
+        url: "https://www.craiyon.com/",
+        points: 3
+      },
+      {
+        title: "استخدم AI لترجمة نص",
+        desc: "استخدم AI لترجمة جملة من اللغة العربية إلى الإنجليزية.",
+        url: "https://translate.google.com/",
+        points: 3
+      }
+    ];
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        currentUser = user;
+        showTasks();
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    function showTasks() {
+      const container = document.getElementById("aiTasks");
+      tasks.forEach((task, i) => {
+        const div = document.createElement("div");
+        div.className = "task";
+        div.innerHTML = `
+          <h3>${task.title}</h3>
+          <p>${task.desc}</p>
+          <a href="${task.url}" class="btn" target="_blank">تنفيذ</a>
+          <button class="btn" id="done-${i}">✅ أتممت المهمة</button>
+        `;
+        container.appendChild(div);
+
+        document.getElementById(`done-${i}`).addEventListener("click", async () => {
+          await rewardUser(task.points);
+          const btn = document.getElementById(`done-${i}`);
+          btn.textContent = "تمت إضافة النقاط ✅";
+          btn.classList.add("done");
+          btn.disabled = true;
+        });
+      });
+    }
+
+    async function rewardUser(points) {
+      if (!currentUser) return;
+      const ref = doc(db, "users", currentUser.uid);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const current = snap.data().points || 0;
+        await updateDoc(ref, { points: current + points });
+      }
+    }
+  </script>
+</body>
+</html>
