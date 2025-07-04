@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>تسجيل الدخول / إنشاء حساب - Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: #f0f8ff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .form-box {
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+    h2 { text-align: center; color: #023047; }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border-radius: 10px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+    }
+    .login-btn { background-color: #219ebc; color: white; }
+    .signup-btn { background-color: #fb8500; color: white; }
+    .switcher {
+      background: none;
+      border: none;
+      color: #666;
+      text-decoration: underline;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="form-box">
+    <h2 id="form-title">تسجيل الدخول إلى Am Rewards</h2>
+
+    <!-- ✅ login form -->
+    <div id="login-form">
+      <input type="email" id="login-email" placeholder="البريد الإلكتروني" />
+      <input type="password" id="login-password" placeholder="كلمة المرور" />
+      <button class="login-btn" id="login-btn" onclick="login()">تسجيل الدخول</button>
+    </div>
+
+    <!-- ✅ signup form -->
+    <div id="signup-form" class="hidden">
+      <input type="email" id="signup-email" placeholder="البريد الإلكتروني" />
+      <input type="password" id="signup-password" placeholder="كلمة المرور" />
+      <input type="password" id="signup-confirm" placeholder="تأكيد كلمة المرور" />
+      <button class="signup-btn" id="signup-btn" onclick="signup()">إنشاء الحساب</button>
+    </div>
+
+    <button class="switcher" onclick="toggleMode()">أو أنشئ حساب جديد</button>
+  </div>
+
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getAuth,
+      setPersistence,
+      browserLocalPersistence,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let isLogin = true;
+    window.toggleMode = function () {
+      isLogin = !isLogin;
+      document.getElementById("login-form").classList.toggle("hidden", !isLogin);
+      document.getElementById("signup-form").classList.toggle("hidden", isLogin);
+      document.getElementById("form-title").textContent = isLogin ? "تسجيل الدخول إلى Am Rewards" : "إنشاء حساب جديد في Am Rewards";
+      document.querySelector(".switcher").textContent = isLogin ? "أو أنشئ حساب جديد" : "أو سجّل الدخول";
+    };
+
+    window.login = async function () {
+      const email = document.getElementById("login-email").value.trim();
+      const password = document.getElementById("login-password").value.trim();
+      const btn = document.getElementById("login-btn");
+
+      if (!email || !password) return alert("يرجى إدخال البريد وكلمة المرور");
+
+      // مسؤول الموقع
+      if (email === "owner@am.com" && password === "AmOwner@2025") {
+        window.location.href = "admin.html";
+        return;
+      }
+
+      try {
+        btn.textContent = "جاري الدخول...";
+        btn.disabled = true;
+        await setPersistence(auth, browserLocalPersistence);
+        await signInWithEmailAndPassword(auth, email, password);
+        window.location.href = "dashboard.html";
+      } catch (error) {
+        btn.textContent = "تسجيل الدخول";
+        btn.disabled = false;
+        if (error.code === "auth/user-not-found") {
+          alert("الحساب غير موجود.");
+        } else if (error.code === "auth/wrong-password") {
+          alert("كلمة المرور غير صحيحة.");
+        } else {
+          alert("خطأ: " + error.message);
+        }
+      }
+    };
+
+    window.signup = async function () {
+      const email = document.getElementById("signup-email").value.trim();
+      const password = document.getElementById("signup-password").value.trim();
+      const confirm = document.getElementById("signup-confirm").value.trim();
+      const btn = document.getElementById("signup-btn");
+
+      if (!email || !password || !confirm) return alert("يرجى تعبئة جميع الحقول");
+      if (password !== confirm) return alert("كلمة المرور وتأكيدها غير متطابقين");
+
+      const bannedWords = ["admin", "owner", "test", "fake", "bot"];
+      if (bannedWords.some(word => email.toLowerCase().includes(word))) {
+        return alert("لا يمكنك استخدام هذا البريد.");
+      }
+
+      const emailPart = email.split("@")[0];
+      if (password.toLowerCase().includes(emailPart.toLowerCase())) {
+        return alert("كلمة المرور لا يجب أن تحتوي على جزء من البريد.");
+      }
+
+      try {
+        btn.textContent = "جاري التسجيل...";
+        btn.disabled = true;
+
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const uid = userCredential.user.uid;
+
+        await setDoc(doc(db, "users", uid), {
+          points: 0,
+          withdrawn: 0
+        });
+
+        alert("✅ تم إنشاء الحساب بنجاح!");
+        window.location.href = "dashboard.html";
+      } catch (error) {
+        btn.textContent = "إنشاء الحساب";
+        btn.disabled = false;
+        if (error.code === "auth/email-already-in-use") {
+          alert("هذا البريد مستخدم بالفعل.");
+        } else if (error.code === "auth/weak-password") {
+          alert("كلمة المرور ضعيفة.");
+        } else {
+          alert("خطأ: " + error.message);
+        }
+      }
+    };
+  </script>
+</body>
+    </html>
