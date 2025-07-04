@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>الإحالات | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: linear-gradient(to bottom right, #fffde7, #f0f4c3);
+      margin: 0;
+      padding: 30px;
+      direction: rtl;
+      color: #333;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background-color: #ffffff;
+      border-radius: 16px;
+      padding: 25px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h2 {
+      color: #8bc34a;
+      margin-bottom: 20px;
+    }
+    .info-box {
+      background-color: #f1f8e9;
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-size: 18px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #8bc34a;
+      border: none;
+      color: white;
+      font-size: 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .stat {
+      margin: 10px 0;
+      font-size: 17px;
+    }
+    .note {
+      font-size: 14px;
+      color: #777;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>نظام الإحالات</h2>
+    
+    <div class="info-box">
+      <p>قم بدعوة أصدقائك واربح <strong>50 نقطة</strong> عن كل شخص يسجل ويبدأ المهام!</p>
+    </div>
+
+    <label for="refLink"><strong>رابط الإحالة الخاص بك:</strong></label>
+    <input type="text" id="refLink" readonly>
+    <button onclick="copyReferral()">📋 نسخ الرابط</button>
+
+    <div class="stat">
+      عدد الإحالات: <strong id="ref-count">0</strong>
+    </div>
+    <div class="stat">
+      النقاط المكتسبة: <strong id="ref-points">0</strong> نقطة
+    </div>
+
+    <p class="note">يتم احتساب الإحالة فقط عند تسجيل المستخدم عبر الرابط وتنفيذ أول مهمة.</p>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const uid = user.uid;
+        const referralLink = `${window.location.origin}/index.html?ref=${uid}`;
+        document.getElementById("refLink").value = referralLink;
+
+        const userDoc = await getDoc(doc(db, "users", uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          document.getElementById("ref-count").textContent = data.referralsCount || 0;
+          document.getElementById("ref-points").textContent = data.referralPoints || 0;
+        }
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    window.copyReferral = function () {
+      const input = document.getElementById("refLink");
+      input.select();
+      input.setSelectionRange(0, 99999);
+      document.execCommand("copy");
+      alert("✅ تم نسخ رابط الإحالة!");
+    }
+  </script>
+</body>
+</html>
