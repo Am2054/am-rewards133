@@ -61,23 +61,10 @@
       text-decoration: none;
       font-size: 17px;
     }
-    .links a.referral {
-      background-color: #ffd54f;
-      color: #5d4037;
-    }
-    .links a.about {
-      background-color: #ce93d8;
-      color: #4a148c;
-    }
-    .links a.terms {
-      background-color: #b0bec5;
-      color: #263238;
-    }
-    .links a.contact {
-      background-color: #ff7043;
-      color: white;
-      font-weight: 700;
-    }
+    .links a.referral { background-color: #ffd54f; color: #5d4037; }
+    .links a.about    { background-color: #ce93d8; color: #4a148c; }
+    .links a.terms    { background-color: #b0bec5; color: #263238; }
+    .links a.contact  { background-color: #ff7043; color: white; font-weight: 700; }
     button.logout {
       margin-top: 20px;
       background-color: #d32f2f;
@@ -88,12 +75,18 @@
       border-radius: 10px;
       cursor: pointer;
     }
+    #egp-rate {
+      margin-top: 10px;
+      font-size: 16px;
+      color: #d1ffd1;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="heart">❤️</div>
     <h1>مرحبًا، <span id="user-email">...</span></h1>
+    <div id="egp-rate">جارٍ جلب سعر الدولار...</div>
     <div class="info">
       <p>إجمالي النقاط: <strong id="total-points">0</strong> نقطة</p>
       <p>ما يعادل: <strong id="total-egp">0</strong> جنيه مصري</p>
@@ -125,29 +118,51 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        document.getElementById("user-email").textContent = user.email;
+    let dollarRate = 50; // fallback
 
-        const userDoc = db.collection("users").doc(user.uid);
-        userDoc.get().then(doc => {
-          if (doc.exists) {
-            const data = doc.data();
-            const totalPoints = data.points || 0;
-            const withdrawnEGP = data.withdrawn || 0;
-            const totalEGP = (totalPoints * 0.08).toFixed(2);
-            const currentEGP = (totalEGP - withdrawnEGP).toFixed(2);
-
-            document.getElementById("total-points").textContent = totalPoints;
-            document.getElementById("total-egp").textContent = totalEGP;
-            document.getElementById("withdrawn-egp").textContent = withdrawnEGP.toFixed(2);
-            document.getElementById("current-egp").textContent = currentEGP;
-          }
-        });
-      } else {
-        window.location.href = "index.html";
+    async function getDollarRate() {
+      try {
+        const res = await fetch("https://api.exchangerate-api.com/v4/latest/USD");
+        const data = await res.json();
+        return data.rates.EGP || 50;
+      } catch (e) {
+        console.warn("فشل جلب السعر الحقيقي، سيتم استخدام سعر افتراضي");
+        return 50;
       }
+    }
+
+    async function updateBalance() {
+      dollarRate = await getDollarRate();
+      document.getElementById("egp-rate").textContent = `1 دولار = ${dollarRate.toFixed(2)} جنيه`;
+
+      const user = auth.currentUser;
+      if (!user) return window.location.href = "index.html";
+
+      document.getElementById("user-email").textContent = user.email;
+
+      const userDoc = await db.collection("users").doc(user.uid).get();
+      const data = userDoc.data();
+
+      const totalPoints = data.points || 0;
+      const withdrawnUSD = data.withdrawn || 0;
+
+      const totalUSD = totalPoints * 0.005;
+      const totalEGP = totalUSD * dollarRate;
+      const withdrawnEGP = withdrawnUSD * dollarRate;
+      const currentEGP = totalEGP - withdrawnEGP;
+
+      document.getElementById("total-points").textContent = totalPoints;
+      document.getElementById("total-egp").textContent = totalEGP.toFixed(2);
+      document.getElementById("withdrawn-egp").textContent = withdrawnEGP.toFixed(2);
+      document.getElementById("current-egp").textContent = currentEGP.toFixed(2);
+    }
+
+    auth.onAuthStateChanged(user => {
+      if (user) updateBalance();
+      else window.location.href = "index.html";
     });
+
+    setInterval(updateBalance, 60000); // تحديث كل دقيقة
 
     function logout() {
       auth.signOut().then(() => {
@@ -156,4 +171,4 @@
     }
   </script>
 </body>
-</html>
+  </html>
