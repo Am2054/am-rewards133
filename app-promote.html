@@ -1,78 +1,152 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>ترويج التطبيقات الحديثة | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>تثبيت التطبيقات | Am Rewards</title>
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
-      background: linear-gradient(to bottom, #e8f5e9, #ffffff);
+      background: #f0f8ff;
       margin: 0;
       padding: 20px;
+      direction: rtl;
     }
     h2 {
       text-align: center;
-      color: #2e7d32;
-      margin-bottom: 20px;
+      color: #007bff;
     }
-    .app-card {
-      background: white;
+    .app {
+      background: #fff;
+      margin: 15px auto;
       padding: 15px;
       border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      margin-bottom: 15px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      max-width: 600px;
+      border-right: 5px solid #007bff;
     }
-    .app-info {
-      flex: 1;
+    .app h3 {
+      margin-top: 0;
+      color: #007bff;
     }
-    .app-info h3 {
-      margin: 0 0 5px;
-      font-size: 18px;
+    .app p {
+      margin: 10px 0;
+      font-size: 16px;
     }
-    .app-info p {
-      margin: 0;
-      color: #555;
-    }
-    .download-btn {
-      background: #43a047;
-      color: white;
-      padding: 10px 15px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
+    .btn {
+      display: inline-block;
+      background: #007bff;
+      color: #fff;
+      padding: 10px 18px;
+      text-decoration: none;
+      border-radius: 8px;
       font-weight: bold;
+      margin-top: 10px;
+    }
+    .btn:hover {
+      background: #0056b3;
+    }
+    .done {
+      background-color: #28a745 !important;
     }
   </style>
 </head>
 <body>
+  <h2>🧩 مهام تثبيت التطبيقات</h2>
 
-<h2>تطبيقات مميزة - اكسب النقاط بسهولة</h2>
+  <div id="appList"></div>
 
-<div class="app-card">
-  <div class="app-info">
-    <h3>تطبيق ChatAI العربي</h3>
-    <p>احصل على 10 نقاط عند التثبيت وفتح التطبيق لأول مرة</p>
-  </div>
-  <a href="https://play.google.com/store/apps/details?id=com.example.chatai" target="_blank">
-    <button class="download-btn">تثبيت الآن</button>
-  </a>
-</div>
+  <!-- Firebase & تنفيذ المهام -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-<div class="app-card">
-  <div class="app-info">
-    <h3>لعبة تحدي الذكاء 2025</h3>
-    <p>اكسب 12 نقطة عند تحميل اللعبة وتشغيلها</p>
-  </div>
-  <a href="https://play.google.com/store/apps/details?id=com.example.smartgame" target="_blank">
-    <button class="download-btn">حمل اللعبة</button>
-  </a>
-</div>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+    };
 
-<!-- أضف المزيد من التطبيقات هنا -->
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
 
+    let currentUser;
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        currentUser = user;
+        loadApps();
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    const apps = [
+      {
+        name: "تطبيق نتائج كرة القدم",
+        desc: "ثبّت التطبيق وابقَ على اطلاع بجميع المباريات.",
+        url: "https://play.google.com/store/apps/details?id=example1",
+        points: 7
+      },
+      {
+        name: "تطبيق التسوق الذكي",
+        desc: "احصل على خصومات حصرية عند استخدام التطبيق.",
+        url: "https://play.google.com/store/apps/details?id=example2",
+        points: 7
+      },
+      {
+        name: "تطبيق تعلم الإنجليزية",
+        desc: "ابدأ تعلم اللغة الإنجليزية بأسلوب تفاعلي.",
+        url: "https://play.google.com/store/apps/details?id=example3",
+        points: 7
+      },
+      {
+        name: "تطبيق تعديل الصور",
+        desc: "أضف فلاتر وتأثيرات رائعة لصورك.",
+        url: "https://play.google.com/store/apps/details?id=example4",
+        points: 7
+      },
+      {
+        name: "تطبيق الصحة والرياضة",
+        desc: "تابع نشاطك الصحي اليومي وخطط التمارين.",
+        url: "https://play.google.com/store/apps/details?id=example5",
+        points: 7
+      }
+    ];
+
+    function loadApps() {
+      const container = document.getElementById("appList");
+      apps.forEach((app, index) => {
+        const div = document.createElement("div");
+        div.className = "app";
+        div.innerHTML = `
+          <h3>${app.name}</h3>
+          <p>${app.desc}</p>
+          <a href="${app.url}" target="_blank" class="btn" id="btn-${index}">تثبيت +${app.points} نقطة</a>
+        `;
+        container.appendChild(div);
+
+        const btn = div.querySelector(`#btn-${index}`);
+        btn.addEventListener("click", async () => {
+          btn.textContent = "✅ تم التثبيت";
+          btn.classList.add("done");
+          btn.disabled = true;
+          await rewardUser(app.points);
+        });
+      });
+    }
+
+    async function rewardUser(points) {
+      if (!currentUser) return;
+      const ref = doc(db, "users", currentUser.uid);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const current = snap.data().points || 0;
+        await updateDoc(ref, { points: current + points });
+      }
+    }
+  </script>
 </body>
-  </html>
+</html>
