@@ -1,94 +1,143 @@
+<!-- login.html -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>تسجيل الدخول | Am Rewards</title>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+  <meta charset="UTF-8" />
+  <title>تسجيل الدخول / إنشاء حساب - Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
     body {
-      font-family: 'Tajawal', sans-serif;
-      background: linear-gradient(to bottom right, #e6f2ff, #f8f9fa);
+      font-family: 'Cairo', sans-serif;
+      background: #f0f8ff;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
+      margin: 0;
     }
-    .login-box {
-      background-color: white;
+    .form-box {
+      background: white;
       padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 15px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
       width: 100%;
       max-width: 400px;
     }
-    h2 {
-      text-align: center;
-      color: #004085;
-    }
-    input {
+    h2 { text-align: center; color: #023047; }
+    input, button {
       width: 100%;
       padding: 12px;
-      margin: 10px 0;
+      margin-bottom: 15px;
+      border-radius: 10px;
+      font-size: 1rem;
       border: 1px solid #ccc;
-      border-radius: 6px;
     }
-    button {
-      width: 100%;
-      padding: 12px;
-      background-color: #007bff;
+    .login-btn { background-color: #219ebc; color: white; }
+    .signup-btn { background-color: #fb8500; color: white; }
+    .switcher {
+      background: none;
       border: none;
-      color: white;
-      font-weight: bold;
-      border-radius: 6px;
+      color: #666;
+      text-decoration: underline;
       cursor: pointer;
+      margin-top: 10px;
     }
-    button:hover {
-      background-color: #0056b3;
-    }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
-  <div class="login-box">
-    <h2>تسجيل الدخول إلى Am Rewards</h2>
-    <input type="email" id="email" placeholder="البريد الإلكتروني">
-    <input type="password" id="password" placeholder="كلمة المرور">
-    <button id="loginBtn">دخول</button>
+  <div class="form-box">
+    <h2 id="form-title">تسجيل الدخول إلى Am Rewards</h2>
+    <div id="login-form">
+      <input type="email" id="login-email" placeholder="البريد الإلكتروني" />
+      <input type="password" id="login-password" placeholder="كلمة المرور" />
+      <button class="login-btn" onclick="login()">تسجيل الدخول</button>
+    </div>
+    <div id="signup-form" class="hidden">
+      <input type="email" id="signup-email" placeholder="البريد الإلكتروني" />
+      <input type="password" id="signup-password" placeholder="كلمة المرور" />
+      <input type="password" id="signup-confirm" placeholder="تأكيد كلمة المرور" />
+      <button class="signup-btn" onclick="signup()">إنشاء الحساب</button>
+    </div>
+    <button class="switcher" onclick="toggleMode()">أو أنشئ حساب جديد</button>
   </div>
 
-  <script>
-    // 🔧 إعداد Firebase
+  <!-- Firebase v10 -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getAuth,
+      setPersistence,
+      browserLocalPersistence,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
-      storageBucket: "am--rewards.firebasestorage.app",
-      messagingSenderId: "744783579735",
-      appId: "1:744783579735:web:45e00de9998893bbc9b112",
-      measurementId: "G-CV3GLT2TTJ"
     };
-    firebase.initializeApp(firebaseConfig);
 
-    // 🔐 تسجيل الدخول
-    document.getElementById("loginBtn").addEventListener("click", function () {
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value.trim();
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-      // ✅ دخول صاحب الموقع السري (مخفي)
+    let isLogin = true;
+    window.toggleMode = function () {
+      isLogin = !isLogin;
+      document.getElementById("login-form").classList.toggle("hidden", !isLogin);
+      document.getElementById("signup-form").classList.toggle("hidden", isLogin);
+      document.getElementById("form-title").textContent = isLogin ? "تسجيل الدخول إلى Am Rewards" : "إنشاء حساب جديد في Am Rewards";
+      document.querySelector(".switcher").textContent = isLogin ? "أو أنشئ حساب جديد" : "أو سجّل الدخول";
+    };
+
+    // ✅ تعديل تسجيل الدخول
+    window.login = async function () {
+      const email = document.getElementById("login-email").value.trim();
+      const password = document.getElementById("login-password").value.trim();
+      if (!email || !password) return alert("يرجى إدخال البريد وكلمة المرور");
+
+      // ✅ دخول خاص بصاحب الموقع
       if (email === "owner@am.com" && password === "AmOwner@2025") {
         window.location.href = "admin.html";
         return;
       }
 
-      // ✅ دخول المستخدم العادي
-      firebase.auth().signInWithEmailAndPassword(email, password)
-        .then(() => {
-          window.location.href = "dashboard.html";
-        })
-        .catch(() => {
-          alert("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+      // ✅ دخول مستخدم عادي
+      try {
+        await setPersistence(auth, browserLocalPersistence);
+        await signInWithEmailAndPassword(auth, email, password);
+        window.location.href = "dashboard.html";
+      } catch (error) {
+        alert("فشل تسجيل الدخول: " + error.message);
+      }
+    };
+
+    // ✅ إنشاء حساب جديد
+    window.signup = async function () {
+      const email = document.getElementById("signup-email").value.trim();
+      const password = document.getElementById("signup-password").value.trim();
+      const confirm = document.getElementById("signup-confirm").value.trim();
+
+      if (!email || !password || !confirm) return alert("يرجى تعبئة جميع الحقول");
+      if (password !== confirm) return alert("كلمة المرور وتأكيدها غير متطابقين");
+
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const uid = userCredential.user.uid;
+        await setDoc(doc(db, "users", uid), {
+          points: 0,
+          withdrawn: 0
         });
-    });
+        alert("✅ تم إنشاء الحساب بنجاح!");
+        window.location.href = "dashboard.html";
+      } catch (error) {
+        alert("خطأ أثناء إنشاء الحساب: " + error.message);
+      }
+    };
   </script>
 </body>
-</html>
+  </html>
