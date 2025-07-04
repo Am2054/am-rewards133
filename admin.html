@@ -1,3 +1,4 @@
+<!-- 🔒 admin.html -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -12,7 +13,7 @@
       padding: 20px;
     }
     .container {
-      max-width: 800px;
+      max-width: 900px;
       margin: auto;
       background: white;
       padding: 30px;
@@ -24,10 +25,10 @@
       color: #007bff;
     }
     .stat-box {
-      margin-top: 20px;
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 20px;
+      margin-top: 20px;
     }
     .card {
       background: #f0f8ff;
@@ -36,48 +37,67 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.05);
       text-align: center;
     }
-    .card h2 {
-      margin: 0;
-      font-size: 2rem;
-      color: #333;
+    .card h2 { margin: 0; font-size: 2rem; color: #333; }
+    .card p { margin: 10px 0 0; color: #555; }
+
+    .button {
+      margin: 20px 0;
+      padding: 12px 20px;
+      background-color: #dc3545;
+      border: none;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
     }
-    .card p {
-      margin: 10px 0 0;
-      color: #555;
+    .vip-list {
+      margin-top: 30px;
+    }
+    .vip-list h3 { color: #333; margin-bottom: 10px; }
+    .vip-list ul { list-style: none; padding: 0; }
+    .vip-list li {
+      background: #e9ecef;
+      padding: 8px;
+      margin-bottom: 6px;
+      border-radius: 6px;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>لوحة تحكم صاحب الموقع</h1>
+
+    <!-- الإحصائيات -->
     <div class="stat-box">
-      <div class="card">
-        <h2 id="userCount">0</h2>
-        <p>عدد المستخدمين</p>
-      </div>
-      <div class="card">
-        <h2 id="taskCount">0</h2>
-        <p>عدد المهام المنفذة</p>
-      </div>
-      <div class="card">
-        <h2 id="withdrawTotal">0 EGP</h2>
-        <p>إجمالي السحب اليومي</p>
-      </div>
-      <div class="card">
-        <h2 id="siteProfit">0 EGP</h2>
-        <p>أرباحك (بعد الخصم)</p>
-      </div>
-      <div class="card">
-        <h2 id="discountEarnings">0 EGP</h2>
-        <p>أرباح الخصم 10%</p>
-      </div>
+      <div class="card"><h2 id="userCount">0</h2><p>عدد المستخدمين</p></div>
+      <div class="card"><h2 id="taskCount">0</h2><p>عدد المهام المنفذة</p></div>
+      <div class="card"><h2 id="withdrawTotal">0 EGP</h2><p>إجمالي السحب</p></div>
+      <div class="card"><h2 id="siteProfit">0 EGP</h2><p>أرباحك (بعد الخصم)</p></div>
+      <div class="card"><h2 id="discountEarnings">0 EGP</h2><p>أرباح الخصم 10%</p></div>
+    </div>
+
+    <!-- زر إيقاف السحب -->
+    <button class="button" onclick="toggleWithdraw()" id="withdrawBtn">⏸️ جار التحقق...</button>
+
+    <!-- قائمة المستخدمين المميزين -->
+    <div class="vip-list">
+      <h3>👑 المستخدمين المميزين (VIP)</h3>
+      <ul id="vipUsers"></ul>
     </div>
   </div>
 
-  <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getFirestore,
+      collection,
+      doc,
+      getDocs,
+      getDoc,
+      setDoc,
+      updateDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -93,25 +113,58 @@
       let totalUsers = 0;
       let totalWithdrawn = 0;
       let totalPoints = 0;
+      let vipList = [];
 
       usersSnap.forEach(doc => {
         const data = doc.data();
         totalUsers++;
         totalPoints += data.points || 0;
         totalWithdrawn += data.withdrawn || 0;
+        if (data.vip === true) vipList.push(doc.id);
       });
 
       const discount = totalWithdrawn * 0.10;
-      const siteProfit = (totalPoints * 0.08 * 1.5) - (totalWithdrawn); // 150% ربح تقريبي
+      const siteProfit = (totalPoints * 0.08 * 1.5) - totalWithdrawn;
 
       document.getElementById("userCount").textContent = totalUsers;
-      document.getElementById("taskCount").textContent = Math.round(totalPoints / 5); // تقدير عدد المهام
+      document.getElementById("taskCount").textContent = Math.round(totalPoints / 5);
       document.getElementById("withdrawTotal").textContent = `${totalWithdrawn.toFixed(2)} EGP`;
       document.getElementById("siteProfit").textContent = `${siteProfit.toFixed(2)} EGP`;
       document.getElementById("discountEarnings").textContent = `${discount.toFixed(2)} EGP`;
+
+      const vipListEl = document.getElementById("vipUsers");
+      vipList.forEach(uid => {
+        const li = document.createElement("li");
+        li.textContent = `معرف المستخدم: ${uid}`;
+        vipListEl.appendChild(li);
+      });
+    }
+
+    async function checkWithdrawStatus() {
+      const ref = doc(db, "settings", "withdrawal");
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const status = snap.data().enabled;
+        document.getElementById("withdrawBtn").textContent = status ? "⛔ إيقاف السحب مؤقتًا" : "✅ تفعيل السحب";
+        document.getElementById("withdrawBtn").style.backgroundColor = status ? "#dc3545" : "#28a745";
+      } else {
+        await setDoc(ref, { enabled: true });
+        document.getElementById("withdrawBtn").textContent = "⛔ إيقاف السحب مؤقتًا";
+      }
+    }
+
+    async function toggleWithdraw() {
+      const ref = doc(db, "settings", "withdrawal");
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const current = snap.data().enabled;
+        await updateDoc(ref, { enabled: !current });
+        checkWithdrawStatus();
+      }
     }
 
     loadStats();
+    checkWithdrawStatus();
   </script>
 </body>
 </html>
