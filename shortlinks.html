@@ -49,6 +49,19 @@
       margin-inline: auto;
       border: 1px solid #ffeeba;
     }
+    .back-button {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .back-button a button {
+      background-color: #28a745;
+      padding: 10px 20px;
+      border: none;
+      color: white;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
   </style>
 
   <!-- Firebase SDK -->
@@ -70,6 +83,12 @@
   <div class="counter" id="status">جاري تحميل الروابط...</div>
   <div id="links-container"></div>
 
+  <div class="back-button">
+    <a href="dashboard.html">
+      <button>🔙 العودة إلى الصفحة الرئيسية</button>
+    </a>
+  </div>
+
   <script>
     const userId = localStorage.getItem("userId") || "guest_" + Math.floor(Math.random() * 1000000);
     localStorage.setItem("userId", userId);
@@ -88,7 +107,10 @@
       const points = 10;
       db.collection("users").doc(userId).set({
         points: firebase.firestore.FieldValue.increment(points)
-      }, { merge: true }).then(updateUserPoints);
+      }, { merge: true }).then(() => {
+        updateUserPoints(); // تحديث فوري
+        setTimeout(() => updateUserPoints(), 1000); // تحديث إضافي بعد ثانية
+      });
     }
 
     function updateUserPoints() {
