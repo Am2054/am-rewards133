@@ -1,80 +1,157 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>تنفيذ المهمة | Am Rewards</title>
+  <meta charset="UTF-8" />
+  <title>لوحة التحكم | Am Rewards</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
-      font-family: 'Tajawal', sans-serif;
-      background-color: #fff;
-      text-align: center;
-      padding: 40px;
+      margin: 0;
+      font-family: 'Cairo', sans-serif;
+      background: linear-gradient(to bottom right, #4caf50, #1b5e20);
+      color: white;
+      direction: rtl;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      padding: 20px;
     }
-    h2 { color: #28a745; }
-    #timer {
-      font-size: 24px;
-      color: #333;
-      margin: 20px 0;
+    .container {
+      background-color: rgba(0, 0, 0, 0.4);
+      padding: 40px 30px;
+      border-radius: 20px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+    .heart {
+      font-size: 40px;
+      color: #ffcccb;
+      animation: beat 1s infinite alternate;
+    }
+    @keyframes beat {
+      to { transform: scale(1.1); }
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+    .info {
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 12px;
+      margin: 15px 0;
+      font-size: 18px;
+      line-height: 1.8;
+    }
+    .info strong {
+      color: #a5d6a7;
+      font-size: 20px;
+    }
+    .links a {
+      display: block;
+      background-color: #81c784;
+      color: #1b5e20;
+      font-weight: 700;
+      margin: 10px 0;
+      padding: 12px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-size: 17px;
+    }
+    .links a.referral { background-color: #ffd54f; color: #5d4037; }
+    .links a.about    { background-color: #ce93d8; color: #4a148c; }
+    .links a.terms    { background-color: #b0bec5; color: #263238; }
+    .links a.contact  { background-color: #ff7043; color: white; font-weight: 700; }
+    button.logout {
+      margin-top: 20px;
+      background-color: #d32f2f;
+      border: none;
+      color: white;
+      font-size: 16px;
+      padding: 12px 25px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    #egp-rate {
+      margin-top: 10px;
+      font-size: 16px;
+      color: #d1ffd1;
     }
   </style>
+</head>
+<body>
+  <div class="container">
+    <div class="heart">❤️</div>
+    <h1>مرحبًا، <span id="user-email">...</span></h1>
+    <div id="egp-rate">جارٍ حساب الأرباح...</div>
+    <div class="info">
+      <p>إجمالي النقاط: <strong id="total-points">0</strong> نقطة</p>
+      <p>ما يعادل: <strong id="total-egp">0</strong> جنيه مصري</p>
+      <p>الرصيد المسحوب: <strong id="withdrawn-egp">0</strong> جنيه</p>
+      <p>الرصيد الحالي: <strong id="current-egp">0</strong> جنيه</p>
+    </div>
+    <div class="links">
+      <a href="tasks.html">📝 المهام</a>
+      <a href="withdraw.html">💸 طلب سحب الأرباح</a>
+      <a href="referrals.html" class="referral">👥 الإحالات</a>
+      <a href="about.html" class="about">ℹ️ من نحن</a>
+      <a href="terms.html" class="terms">📜 سياسة الاستخدام</a>
+      <a href="contact.html" class="contact">📞 تواصل معنا</a>
+    </div>
+    <button class="logout" onclick="logout()">تسجيل خروج</button>
+  </div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
-      storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "744783579735",
-      appId: "1:744783579735:web:45e00de9998893bbc9b112",
     };
+
     firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
     const db = firebase.firestore();
-  </script>
-</head>
-<body>
-  <h2>انتظر لإتمام المهمة</h2>
-  <div id="timer">الرجوع خلال 20 ثانية...</div>
+    const POINT_VALUE_EGP = 0.07; // ← سعر النقطة الجديد
 
-  <script>
-    const link = localStorage.getItem("redirect_link");
-    const index = parseInt(localStorage.getItem("redirect_index"));
-    const userId = localStorage.getItem("userId");
-    const points = 10;
-    let seconds = 20;
+    async function updateBalance() {
+      const user = auth.currentUser;
+      if (!user) return window.location.href = "index.html";
 
-    const timerEl = document.getElementById("timer");
-    window.open(link, "_blank");
+      document.getElementById("user-email").textContent = user.email;
 
-    const countdown = setInterval(() => {
-      seconds--;
-      timerEl.textContent = `الرجوع خلال ${seconds} ثانية...`;
+      const userDoc = await db.collection("users").doc(user.uid).get();
+      const data = userDoc.data();
 
-      if (seconds <= 0) {
-        clearInterval(countdown);
+      const totalPoints = data.points || 0;
+      const withdrawnPoints = data.withdrawnPoints || 0;
 
-        localStorage.setItem("justCompletedLink", index);
+      const totalEGP = totalPoints * POINT_VALUE_EGP;
+      const withdrawnEGP = withdrawnPoints * POINT_VALUE_EGP;
+      const currentEGP = totalEGP - withdrawnEGP;
 
-        // ✅ احتساب النقاط
-        db.collection("users").doc(userId).set({
-          points: firebase.firestore.FieldValue.increment(points)
-        }, { merge: true }).then(() => {
-          alert("✅ تم احتساب المهمة بنجاح!");
+      document.getElementById("total-points").textContent = totalPoints;
+      document.getElementById("total-egp").textContent = totalEGP.toFixed(2);
+      document.getElementById("withdrawn-egp").textContent = withdrawnEGP.toFixed(2);
+      document.getElementById("current-egp").textContent = currentEGP.toFixed(2);
+    }
 
-          if (window.opener) {
-            window.opener.location.reload();
-          }
+    auth.onAuthStateChanged(user => {
+      if (user) updateBalance();
+      else window.location.href = "index.html";
+    });
 
-          window.close();
-        }).catch(err => {
-          alert("❌ فشل تسجيل المهمة");
-          console.error(err);
-          window.close();
-        });
-      }
-    }, 1000);
+    function logout() {
+      auth.signOut().then(() => {
+        window.location.href = "index.html";
+      });
+    }
   </script>
 </body>
-</html>
+  </html>
