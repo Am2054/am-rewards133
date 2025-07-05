@@ -11,14 +11,27 @@
       text-align: center;
       padding: 40px;
     }
-    h2 { color: #28a745; }
+    h2 {
+      color: #28a745;
+    }
     #timer {
       font-size: 24px;
       color: #333;
       margin: 20px 0;
     }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
   </style>
 
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
   <script>
@@ -26,9 +39,6 @@
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
-      storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "744783579735",
-      appId: "1:744783579735:web:45e00de9998893bbc9b112",
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
@@ -37,6 +47,7 @@
 <body>
   <h2>انتظر لإتمام المهمة</h2>
   <div id="timer">الرجوع خلال 20 ثانية...</div>
+  <button onclick="goBack()">↩️ الرجوع للموقع</button>
 
   <script>
     const link = localStorage.getItem("redirect_link");
@@ -44,37 +55,35 @@
     const userId = localStorage.getItem("userId");
     const points = 10;
     let seconds = 20;
+    let completed = false;
 
-    const timerEl = document.getElementById("timer");
     window.open(link, "_blank");
+
+    const timer = document.getElementById("timer");
 
     const countdown = setInterval(() => {
       seconds--;
-      timerEl.textContent = `الرجوع خلال ${seconds} ثانية...`;
+      timer.textContent = `الرجوع خلال ${seconds} ثانية...`;
 
       if (seconds <= 0) {
         clearInterval(countdown);
-
+        completed = true;
+        timer.textContent = "✅ تمت المهمة بنجاح!";
         localStorage.setItem("justCompletedLink", index);
 
-        // ✅ احتساب النقاط
         db.collection("users").doc(userId).set({
           points: firebase.firestore.FieldValue.increment(points)
-        }, { merge: true }).then(() => {
-          alert("✅ تم احتساب المهمة بنجاح!");
-
-          if (window.opener) {
-            window.opener.location.reload();
-          }
-
-          window.close();
-        }).catch(err => {
-          alert("❌ فشل تسجيل المهمة");
-          console.error(err);
-          window.close();
-        });
+        }, { merge: true });
       }
     }, 1000);
+
+    function goBack() {
+      if (!completed) {
+        alert("❌ فشلت المهمة، الرجاء الانتظار حتى انتهاء العد التنازلي.");
+      } else {
+        window.location.href = "shortlinks.html";
+      }
+    }
   </script>
 </body>
 </html>
