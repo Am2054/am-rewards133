@@ -25,16 +25,26 @@
       border-radius: 12px;
       text-align: center;
     }
-    .link-box a {
-      color: #007bff;
+    .countdown {
+      font-weight: bold;
+      color: #ff5722;
+      margin: 10px 0;
+    }
+    .visit-btn {
+      display: inline-block;
+      padding: 10px 15px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
       text-decoration: none;
       font-weight: bold;
+      cursor: not-allowed;
+      opacity: 0.6;
     }
-    .counter {
-      text-align: center;
-      margin-bottom: 20px;
-      font-size: 18px;
-      color: #555;
+    .visit-btn.active {
+      cursor: pointer;
+      opacity: 1;
     }
   </style>
 </head>
@@ -56,6 +66,7 @@
         const status = document.getElementById("status");
 
         const availableLinks = data.filter((_, i) => !completedLinks.includes(i));
+
         status.textContent = `روابط مكتملة: ${completedLinks.length} / ${data.length}`;
 
         if (availableLinks.length === 0) {
@@ -67,11 +78,41 @@
           const globalIndex = data.indexOf(item);
           const div = document.createElement("div");
           div.className = "link-box";
-          div.innerHTML = `
-            <p>${item.title}</p>
-            <a href="${item.url}" target="_blank" onclick="markCompleted(${globalIndex})">افتح الرابط</a>
-          `;
+
+          const countdown = document.createElement("div");
+          countdown.className = "countdown";
+          countdown.textContent = "انتظر 10 ثوانٍ...";
+
+          const button = document.createElement("a");
+          button.className = "visit-btn";
+          button.textContent = "فتح الرابط";
+          button.href = item.url;
+          button.target = "_blank";
+
+          button.addEventListener("click", function () {
+            if (!button.classList.contains("active")) {
+              alert("يجب الانتظار حتى ينتهي المؤقت");
+              return false;
+            }
+            markCompleted(globalIndex);
+          });
+
+          div.innerHTML = `<p>${item.title}</p>`;
+          div.appendChild(countdown);
+          div.appendChild(button);
           container.appendChild(div);
+
+          let seconds = 10;
+          const timer = setInterval(() => {
+            seconds--;
+            countdown.textContent = `انتظر ${seconds} ثانية...`;
+            if (seconds <= 0) {
+              clearInterval(timer);
+              countdown.textContent = "✅ جاهز للفتح!";
+              button.classList.add("active");
+              button.style.cursor = "pointer";
+            }
+          }, 1000);
         });
       });
 
@@ -79,6 +120,7 @@
       if (!completedLinks.includes(index)) {
         completedLinks.push(index);
         localStorage.setItem(userProgressKey, JSON.stringify(completedLinks));
+        location.reload(); // إعادة تحميل الصفحة لتحديث العداد
       }
     }
   </script>
