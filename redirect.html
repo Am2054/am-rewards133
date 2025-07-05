@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>جاري تنفيذ المهمة</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: #fff;
+      text-align: center;
+      padding: 40px;
+      direction: rtl;
+    }
+    #timer {
+      font-size: 22px;
+      margin: 20px 0;
+      color: #28a745;
+    }
+    .done {
+      font-size: 20px;
+      color: #007bff;
+      margin-top: 20px;
+    }
+    .back-btn {
+      padding: 10px 20px;
+      margin-top: 20px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h2>👀 انتظر حتى يتم تنفيذ المهمة</h2>
+  <div id="timer">جارٍ العد التنازلي: 20 ثانية</div>
+  <div id="result"></div>
+
+  <script>
+    const link = localStorage.getItem("redirect_link");
+    const index = localStorage.getItem("redirect_index");
+
+    window.open(link, "_blank");
+
+    let seconds = 20;
+    const timerDiv = document.getElementById("timer");
+
+    const interval = setInterval(() => {
+      seconds--;
+      timerDiv.textContent = `جارٍ العد التنازلي: ${seconds} ثانية`;
+      if (seconds <= 0) {
+        clearInterval(interval);
+        timerDiv.textContent = "";
+        document.getElementById("result").innerHTML = `
+          <div class="done">✅ تم تنفيذ المهمة بنجاح</div>
+          <button class="back-btn" onclick="finishTask()">عودة إلى الموقع</button>
+        `;
+      }
+    }, 1000);
+
+    function finishTask() {
+      const userId = localStorage.getItem("userId") || "guest";
+      const today = new Date().toISOString().slice(0, 10);
+      const key = `shortlinks_progress_${userId}_${today}`;
+      let completed = JSON.parse(localStorage.getItem(key)) || [];
+
+      if (!completed.includes(parseInt(index))) {
+        completed.push(parseInt(index));
+        localStorage.setItem(key, JSON.stringify(completed));
+      }
+
+      window.close();
+    }
+  </script>
+</body>
+</html>
