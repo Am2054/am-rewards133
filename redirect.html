@@ -11,29 +11,15 @@
       text-align: center;
       padding: 40px;
     }
-    h2 {
-      color: #28a745;
-    }
+    h2 { color: #28a745; }
     #timer {
       font-size: 24px;
       color: #333;
       margin: 20px 0;
     }
-    #returnBtn {
-      display: none;
-      padding: 10px 20px;
-      background-color: #28a745;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-    }
   </style>
 
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
   <script>
     const firebaseConfig = {
@@ -43,16 +29,14 @@
       storageBucket: "am--rewards.appspot.com",
       messagingSenderId: "744783579735",
       appId: "1:744783579735:web:45e00de9998893bbc9b112",
-      measurementId: "G-CV3GLT2TTJ"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
   </script>
 </head>
 <body>
-  <h2>انتظر قليلاً لإتمام المهمة</h2>
+  <h2>انتظر لإتمام المهمة</h2>
   <div id="timer">الرجوع خلال 20 ثانية...</div>
-  <button id="returnBtn" onclick="goBack()">العودة إلى صفحة المهام</button>
 
   <script>
     const link = localStorage.getItem("redirect_link");
@@ -62,8 +46,6 @@
     let seconds = 20;
 
     const timerEl = document.getElementById("timer");
-    const returnBtn = document.getElementById("returnBtn");
-
     window.open(link, "_blank");
 
     const countdown = setInterval(() => {
@@ -73,25 +55,26 @@
       if (seconds <= 0) {
         clearInterval(countdown);
 
-        // إخفاء المؤقت وظهور زر العودة
-        timerEl.style.display = "none";
-        returnBtn.style.display = "inline-block";
+        localStorage.setItem("justCompletedLink", index);
 
-        // تسجيل النقاط في Firestore
+        // ✅ احتساب النقاط
         db.collection("users").doc(userId).set({
           points: firebase.firestore.FieldValue.increment(points)
         }, { merge: true }).then(() => {
-          localStorage.setItem("justCompletedLink", index);
+          alert("✅ تم احتساب المهمة بنجاح!");
+
+          if (window.opener) {
+            window.opener.location.reload();
+          }
+
+          window.close();
         }).catch(err => {
           alert("❌ فشل تسجيل المهمة");
           console.error(err);
+          window.close();
         });
       }
     }, 1000);
-
-    function goBack() {
-      window.location.href = "shortlinks.html";
-    }
   </script>
 </body>
 </html>
