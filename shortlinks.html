@@ -41,6 +41,24 @@
       color: #555;
     }
   </style>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.appspot.com",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112",
+      measurementId: "G-CV3GLT2TTJ"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
 </head>
 <body>
   <h2>مهمة الروابط المختصرة</h2>
@@ -49,9 +67,18 @@
 
   <script>
     const userId = localStorage.getItem("userId") || "guest_" + Math.floor(Math.random() * 1000000);
+    localStorage.setItem("userId", userId);
+
     const today = new Date().toISOString().slice(0, 10);
     const userProgressKey = `shortlinks_progress_${userId}_${today}`;
     let completedLinks = JSON.parse(localStorage.getItem(userProgressKey)) || [];
+
+    const justCompleted = localStorage.getItem("justCompletedLink");
+    if (justCompleted !== null && !completedLinks.includes(+justCompleted)) {
+      completedLinks.push(+justCompleted);
+      localStorage.setItem(userProgressKey, JSON.stringify(completedLinks));
+      localStorage.removeItem("justCompletedLink");
+    }
 
     fetch("shortlinks-data.json")
       .then(res => res.json())
@@ -60,7 +87,6 @@
         const status = document.getElementById("status");
 
         const availableLinks = data.filter((_, i) => !completedLinks.includes(i));
-
         status.textContent = `روابط مكتملة: ${completedLinks.length} / ${data.length}`;
 
         if (availableLinks.length === 0) {
@@ -73,15 +99,15 @@
           const div = document.createElement("div");
           div.className = "link-box";
           div.innerHTML = `
-            <p>رابط رقم ${globalIndex + 1}</p>
-            <button onclick="startRedirect(${globalIndex}, '${item.link}')">افتح الرابط</button>
+            <p>${item.title}</p>
+            <button onclick="startRedirect(${globalIndex}, '${item.url}')">افتح الرابط</button>
           `;
           container.appendChild(div);
         });
       });
 
-    function startRedirect(index, link) {
-      localStorage.setItem("redirect_link", link);
+    function startRedirect(index, url) {
+      localStorage.setItem("redirect_link", url);
       localStorage.setItem("redirect_index", index);
       window.open("redirect.html", "_blank");
     }
