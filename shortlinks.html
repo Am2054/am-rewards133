@@ -33,9 +33,21 @@
     }
     .counter {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
       font-size: 18px;
       color: #555;
+    }
+    #user-points {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 18px;
+      color: #333;
+      background: #fff3cd;
+      padding: 10px;
+      border-radius: 10px;
+      max-width: 300px;
+      margin-inline: auto;
+      border: 1px solid #ffeeba;
     }
   </style>
 
@@ -54,12 +66,14 @@
 </head>
 <body>
   <h2>مهمة الروابط المختصرة</h2>
+  <div id="user-points">نقاطي: ...</div>
   <div class="counter" id="status">جاري تحميل الروابط...</div>
   <div id="links-container"></div>
 
   <script>
     const userId = localStorage.getItem("userId") || "guest_" + Math.floor(Math.random() * 1000000);
     localStorage.setItem("userId", userId);
+
     const today = new Date().toISOString().slice(0, 10);
     const userProgressKey = `shortlinks_progress_${userId}_${today}`;
     let completedLinks = JSON.parse(localStorage.getItem(userProgressKey)) || [];
@@ -70,11 +84,19 @@
       localStorage.setItem(userProgressKey, JSON.stringify(completedLinks));
       localStorage.removeItem("justCompletedLink");
 
-      // ✅ خصم النقاط في Firebase
+      // ✅ تسجيل النقاط في Firebase
       const points = 10;
       db.collection("users").doc(userId).set({
         points: firebase.firestore.FieldValue.increment(points)
-      }, { merge: true });
+      }, { merge: true }).then(updateUserPoints);
+    }
+
+    function updateUserPoints() {
+      db.collection("users").doc(userId).get().then(doc => {
+        const data = doc.data();
+        const points = data?.points || 0;
+        document.getElementById("user-points").textContent = `نقاطي: ${points} 🪙`;
+      });
     }
 
     fetch("shortlinks-data.json")
@@ -109,6 +131,9 @@
       localStorage.setItem("redirect_index", index);
       window.open("redirect.html", "_blank");
     }
+
+    // أول تحميل
+    updateUserPoints();
   </script>
 </body>
 </html>
