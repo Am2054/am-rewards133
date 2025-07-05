@@ -118,11 +118,26 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
-    const POINT_VALUE_EGP = 0.07; // ← سعر النقطة الجديد
+    const POINT_VALUE_EGP = 0.07;
+
+    let exchangeRate = 50;
+
+    async function fetchDollarRate() {
+      try {
+        const res = await fetch("https://api.exchangerate-api.com/v4/latest/USD");
+        const data = await res.json();
+        exchangeRate = data.rates.EGP || 50;
+        document.getElementById("egp-rate").textContent = `💱 1 دولار = ${exchangeRate.toFixed(2)} جنيه مصري`;
+      } catch (e) {
+        document.getElementById("egp-rate").textContent = "⚠️ فشل جلب سعر الدولار";
+      }
+    }
 
     async function updateBalance() {
       const user = auth.currentUser;
       if (!user) return window.location.href = "index.html";
+
+      await fetchDollarRate();
 
       document.getElementById("user-email").textContent = user.email;
 
@@ -152,6 +167,8 @@
         window.location.href = "index.html";
       });
     }
+
+    setInterval(fetchDollarRate, 60000); // تحديث سعر الدولار كل دقيقة
   </script>
 </body>
   </html>
