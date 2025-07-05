@@ -4,8 +4,6 @@
   <meta charset="UTF-8" />
   <title>مهمة الروابط المختصرة | Am Rewards</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
@@ -46,50 +44,36 @@
   <div id="links-container"></div>
 
   <script>
-    // Firebase Config
-    const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards",
-      storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "744783579735",
-      appId: "1:744783579735:web:45e00de9998893bbc9b112",
-      measurementId: "G-CV3GLT2TTJ"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-
     const userId = localStorage.getItem("userId") || "guest_" + Math.floor(Math.random() * 1000000);
     const today = new Date().toISOString().slice(0, 10);
     const userProgressKey = `shortlinks_progress_${userId}_${today}`;
     let completedLinks = JSON.parse(localStorage.getItem(userProgressKey)) || [];
 
-    const container = document.getElementById("links-container");
-    const status = document.getElementById("status");
+    fetch("shortlink-data.json")
+      .then(res => res.json())
+      .then(data => {
+        const container = document.getElementById("links-container");
+        const status = document.getElementById("status");
 
-    db.collection("shortlinks").get().then(snapshot => {
-      const data = snapshot.docs.map(doc => doc.data());
-      const availableLinks = data.filter((_, i) => !completedLinks.includes(i));
+        const availableLinks = data.filter((_, i) => !completedLinks.includes(i));
+        status.textContent = `روابط مكتملة: ${completedLinks.length} / ${data.length}`;
 
-      status.textContent = `روابط مكتملة: ${completedLinks.length} / ${data.length}`;
+        if (availableLinks.length === 0) {
+          container.innerHTML = "<p style='text-align:center;'>✅ لقد أكملت جميع الروابط المختصرة اليوم!</p>";
+          return;
+        }
 
-      if (availableLinks.length === 0) {
-        container.innerHTML = "<p style='text-align:center;'>✅ لقد أكملت جميع الروابط المختصرة اليوم!</p>";
-        return;
-      }
-
-      availableLinks.forEach((item, index) => {
-        const globalIndex = data.indexOf(item);
-        const div = document.createElement("div");
-        div.className = "link-box";
-        div.innerHTML = `
-          <p>رابط رقم ${globalIndex + 1}</p>
-          <a href="${item.url}" target="_blank" onclick="markCompleted(${globalIndex})">افتح الرابط</a>
-        `;
-        container.appendChild(div);
+        availableLinks.forEach((item, index) => {
+          const globalIndex = data.indexOf(item);
+          const div = document.createElement("div");
+          div.className = "link-box";
+          div.innerHTML = `
+            <p>${item.title}</p>
+            <a href="${item.url}" target="_blank" onclick="markCompleted(${globalIndex})">افتح الرابط</a>
+          `;
+          container.appendChild(div);
+        });
       });
-    });
 
     function markCompleted(index) {
       if (!completedLinks.includes(index)) {
