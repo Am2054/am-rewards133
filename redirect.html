@@ -2,78 +2,79 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>جاري تنفيذ المهمة</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>تنفيذ المهمة | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
-      background: #fff;
+      background-color: #fff;
       text-align: center;
       padding: 40px;
-      direction: rtl;
     }
-    #timer {
-      font-size: 22px;
-      margin: 20px 0;
+    h2 {
       color: #28a745;
     }
-    .done {
-      font-size: 20px;
-      color: #007bff;
-      margin-top: 20px;
-    }
-    .back-btn {
-      padding: 10px 20px;
-      margin-top: 20px;
-      background-color: #28a745;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-weight: bold;
-      cursor: pointer;
+    #timer {
+      font-size: 24px;
+      color: #333;
+      margin: 20px 0;
     }
   </style>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.appspot.com",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112",
+      measurementId: "G-CV3GLT2TTJ"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
 </head>
 <body>
-  <h2>👀 انتظر حتى يتم تنفيذ المهمة</h2>
-  <div id="timer">جارٍ العد التنازلي: 20 ثانية</div>
-  <div id="result"></div>
+  <h2>انتظر قليلاً لإتمام المهمة</h2>
+  <div id="timer">الرجوع خلال 20 ثانية...</div>
 
   <script>
     const link = localStorage.getItem("redirect_link");
-    const index = localStorage.getItem("redirect_index");
+    const index = parseInt(localStorage.getItem("redirect_index"));
+    const userId = localStorage.getItem("userId");
+    const points = 10;
+    let seconds = 20;
+
+    const timerEl = document.getElementById("timer");
 
     window.open(link, "_blank");
 
-    let seconds = 20;
-    const timerDiv = document.getElementById("timer");
-
-    const interval = setInterval(() => {
+    const countdown = setInterval(() => {
       seconds--;
-      timerDiv.textContent = `جارٍ العد التنازلي: ${seconds} ثانية`;
+      timerEl.textContent = `الرجوع خلال ${seconds} ثانية...`;
+
       if (seconds <= 0) {
-        clearInterval(interval);
-        timerDiv.textContent = "";
-        document.getElementById("result").innerHTML = `
-          <div class="done">✅ تم تنفيذ المهمة بنجاح</div>
-          <button class="back-btn" onclick="finishTask()">عودة إلى الموقع</button>
-        `;
+        clearInterval(countdown);
+
+        localStorage.setItem("justCompletedLink", index);
+
+        db.collection("users").doc(userId).set({
+          points: firebase.firestore.FieldValue.increment(points)
+        }, { merge: true }).then(() => {
+          alert("✅ تم احتساب المهمة بنجاح!");
+          window.close();
+        }).catch(err => {
+          alert("❌ فشل تسجيل المهمة");
+          console.error(err);
+          window.close();
+        });
       }
     }, 1000);
-
-    function finishTask() {
-      const userId = localStorage.getItem("userId") || "guest";
-      const today = new Date().toISOString().slice(0, 10);
-      const key = `shortlinks_progress_${userId}_${today}`;
-      let completed = JSON.parse(localStorage.getItem(key)) || [];
-
-      if (!completed.includes(parseInt(index))) {
-        completed.push(parseInt(index));
-        localStorage.setItem(key, JSON.stringify(completed));
-      }
-
-      window.close();
-    }
   </script>
 </body>
 </html>
