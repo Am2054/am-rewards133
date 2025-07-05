@@ -39,12 +39,13 @@
       border-radius: 8px;
       text-decoration: none;
       font-weight: bold;
-      cursor: not-allowed;
+      pointer-events: none;
       opacity: 0.6;
     }
     .visit-btn.active {
-      cursor: pointer;
+      pointer-events: auto;
       opacity: 1;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -66,7 +67,6 @@
         const status = document.getElementById("status");
 
         const availableLinks = data.filter((_, i) => !completedLinks.includes(i));
-
         status.textContent = `روابط مكتملة: ${completedLinks.length} / ${data.length}`;
 
         if (availableLinks.length === 0) {
@@ -89,19 +89,23 @@
           button.href = item.url;
           button.target = "_blank";
 
-          button.addEventListener("click", function () {
+          // رابط لا يعمل حتى يصبح نشط
+          button.addEventListener("click", function (e) {
             if (!button.classList.contains("active")) {
-              alert("يجب الانتظار حتى ينتهي المؤقت");
+              e.preventDefault();
+              alert("⏳ يرجى الانتظار حتى انتهاء المؤقت.");
               return false;
+            } else {
+              markCompleted(globalIndex);
             }
-            markCompleted(globalIndex);
           });
 
-          div.innerHTML = `<p>${item.title}</p>`;
+          div.innerHTML = `<p>${item.title || "رابط رقم " + (globalIndex + 1)}</p>`;
           div.appendChild(countdown);
           div.appendChild(button);
           container.appendChild(div);
 
+          // العد التنازلي
           let seconds = 10;
           const timer = setInterval(() => {
             seconds--;
@@ -110,7 +114,6 @@
               clearInterval(timer);
               countdown.textContent = "✅ جاهز للفتح!";
               button.classList.add("active");
-              button.style.cursor = "pointer";
             }
           }, 1000);
         });
@@ -120,7 +123,7 @@
       if (!completedLinks.includes(index)) {
         completedLinks.push(index);
         localStorage.setItem(userProgressKey, JSON.stringify(completedLinks));
-        location.reload(); // إعادة تحميل الصفحة لتحديث العداد
+        // يمكنك أيضًا تحديث Firebase هنا إن أردت
       }
     }
   </script>
