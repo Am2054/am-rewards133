@@ -38,6 +38,19 @@
       color: #555;
     }
   </style>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
 </head>
 <body>
   <h2>مهمة الروابط المختصرة</h2>
@@ -47,7 +60,6 @@
   <script>
     const userId = localStorage.getItem("userId") || "guest_" + Math.floor(Math.random() * 1000000);
     localStorage.setItem("userId", userId);
-
     const today = new Date().toISOString().slice(0, 10);
     const userProgressKey = `shortlinks_progress_${userId}_${today}`;
     let completedLinks = JSON.parse(localStorage.getItem(userProgressKey)) || [];
@@ -57,6 +69,12 @@
       completedLinks.push(+justCompleted);
       localStorage.setItem(userProgressKey, JSON.stringify(completedLinks));
       localStorage.removeItem("justCompletedLink");
+
+      // ✅ خصم النقاط في Firebase
+      const points = 10;
+      db.collection("users").doc(userId).set({
+        points: firebase.firestore.FieldValue.increment(points)
+      }, { merge: true });
     }
 
     fetch("shortlinks-data.json")
@@ -79,6 +97,7 @@
           div.className = "link-box";
           div.innerHTML = `
             <p>${item.title}</p>
+            <p>🪙 هذه المهمة تمنحك <strong>10</strong> نقاط</p>
             <button onclick="startRedirect(${globalIndex}, '${item.url}')">افتح الرابط</button>
           `;
           container.appendChild(div);
