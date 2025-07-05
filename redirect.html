@@ -2,98 +2,63 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>تنفيذ المهمة | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>فتح الرابط | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
-      background-color: #fff;
+      background: #fff;
       text-align: center;
       padding: 40px;
-    }
-    h2 {
-      color: #28a745;
-    }
-    #timer {
-      font-size: 24px;
       color: #333;
-      margin: 20px 0;
+    }
+    #countdown {
+      font-size: 32px;
+      color: #28a745;
+      margin-bottom: 20px;
     }
     button {
-      margin-top: 20px;
-      padding: 10px 20px;
-      background-color: #28a745;
+      padding: 12px 25px;
+      background: #007bff;
       color: white;
       border: none;
       border-radius: 8px;
       font-size: 16px;
       cursor: pointer;
     }
-    #message {
-      margin-top: 15px;
-      color: #dc3545;
-      font-weight: bold;
-    }
   </style>
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards",
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-  </script>
 </head>
 <body>
-  <h2>انتظر لإتمام المهمة</h2>
-  <div id="timer">الرجوع خلال 20 ثانية...</div>
-  <button onclick="goBack()">↩️ الرجوع للموقع</button>
-  <div id="message"></div>
+  <h2>🔗 الرجاء الانتظار حتى يكتمل العداد</h2>
+  <div id="countdown">10</div>
+  <div id="open-link" style="display:none;">
+    <button onclick="openLink()">اضغط هنا لإتمام المهمة</button>
+  </div>
 
   <script>
-    const link = localStorage.getItem("redirect_link");
-    const index = parseInt(localStorage.getItem("redirect_index"));
-    const userId = localStorage.getItem("userId");
-    const points = 10;
-    let seconds = 20;
-    let missionCompleted = false;
+    const redirectLink = localStorage.getItem("redirect_link");
+    const redirectIndex = localStorage.getItem("redirect_index");
 
-    const timer = document.getElementById("timer");
-    const message = document.getElementById("message");
+    let counter = 10;
+    const countdownEl = document.getElementById("countdown");
+    const openLinkBtn = document.getElementById("open-link");
 
-    // فتح الرابط
-    if (link) window.open(link, "_blank");
-
-    const countdown = setInterval(() => {
-      seconds--;
-      timer.textContent = `الرجوع خلال ${seconds} ثانية...`;
-
-      if (seconds <= 0) {
-        clearInterval(countdown);
-        missionCompleted = true;
-        localStorage.setItem("justCompletedLink", index);
-        timer.textContent = "✅ تمت المهمة بنجاح!";
-
-        // تحديث النقاط في Firebase
-        if (userId) {
-          db.collection("users").doc(userId).set({
-            points: firebase.firestore.FieldValue.increment(points)
-          }, { merge: true });
-        }
+    const timer = setInterval(() => {
+      counter--;
+      countdownEl.textContent = counter;
+      if (counter <= 0) {
+        clearInterval(timer);
+        countdownEl.style.display = 'none';
+        openLinkBtn.style.display = 'block';
       }
     }, 1000);
 
-    function goBack() {
-      if (!missionCompleted) {
-        message.textContent = "⛔ لم تكمل المهمة بعد، انتظر حتى انتهاء المؤقت!";
-        return;
+    function openLink() {
+      if (redirectIndex !== null) {
+        localStorage.setItem("justCompletedLink", redirectIndex);
       }
-      window.location.href = "shortlinks.html";
+      window.open(redirectLink, "_blank");
+      window.close(); // يغلق النافذة تلقائيًا بعد الضغط
     }
   </script>
 </body>
