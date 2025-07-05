@@ -98,19 +98,21 @@
     let completedLinks = JSON.parse(localStorage.getItem(userProgressKey)) || [];
 
     const justCompleted = localStorage.getItem("justCompletedLink");
-    if (justCompleted !== null && !completedLinks.includes(+justCompleted)) {
-      completedLinks.push(+justCompleted);
-      localStorage.setItem(userProgressKey, JSON.stringify(completedLinks));
-      localStorage.removeItem("justCompletedLink");
-
-      // ✅ تسجيل النقاط في Firebase
-      const points = 10;
-      db.collection("users").doc(userId).set({
-        points: firebase.firestore.FieldValue.increment(points)
-      }, { merge: true }).then(() => {
-        updateUserPoints(); // تحديث فوري
-        setTimeout(() => updateUserPoints(), 1000); // تحديث إضافي بعد ثانية
-      });
+    if (justCompleted !== null) {
+      const completedIndex = parseInt(justCompleted);
+      if (!completedLinks.includes(completedIndex)) {
+        completedLinks.push(completedIndex);
+        localStorage.setItem(userProgressKey, JSON.stringify(completedLinks));
+        db.collection("users").doc(userId).set({
+          points: firebase.firestore.FieldValue.increment(10)
+        }, { merge: true }).then(() => {
+          updateUserPoints();
+          localStorage.removeItem("justCompletedLink");
+        });
+      } else {
+        localStorage.removeItem("justCompletedLink");
+        updateUserPoints();
+      }
     }
 
     function updateUserPoints() {
@@ -154,7 +156,6 @@
       window.open("redirect.html", "_blank");
     }
 
-    // أول تحميل
     updateUserPoints();
   </script>
 </body>
