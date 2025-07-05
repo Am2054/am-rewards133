@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="ar" dir="rtl">
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <title>تنفيذ المهمة | Am Rewards</title>
@@ -28,7 +29,17 @@
       font-size: 16px;
       cursor: pointer;
     }
-  </style>  <!-- Firebase -->  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>  <script>
+    #message {
+      margin-top: 15px;
+      color: #dc3545;
+      font-weight: bold;
+    }
+  </style>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
@@ -36,50 +47,54 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    const auth = firebase.auth();
-  </script></head>
+  </script>
+</head>
 <body>
   <h2>انتظر لإتمام المهمة</h2>
   <div id="timer">الرجوع خلال 20 ثانية...</div>
-  <button onclick="goBack()">↩️ الرجوع للموقع</button>  <script>
+  <button onclick="goBack()">↩️ الرجوع للموقع</button>
+  <div id="message"></div>
+
+  <script>
     const link = localStorage.getItem("redirect_link");
     const index = parseInt(localStorage.getItem("redirect_index"));
+    const userId = localStorage.getItem("userId");
     const points = 10;
     let seconds = 20;
-    let taskCompleted = false;
-
-    window.open(link, "_blank");
+    let missionCompleted = false;
 
     const timer = document.getElementById("timer");
+    const message = document.getElementById("message");
+
+    // فتح الرابط
+    if (link) window.open(link, "_blank");
+
     const countdown = setInterval(() => {
       seconds--;
       timer.textContent = `الرجوع خلال ${seconds} ثانية...`;
 
       if (seconds <= 0) {
         clearInterval(countdown);
-        auth.onAuthStateChanged(user => {
-          if (!user) return alert("❌ يجب تسجيل الدخول أولاً");
+        missionCompleted = true;
+        localStorage.setItem("justCompletedLink", index);
+        timer.textContent = "✅ تمت المهمة بنجاح!";
 
-          db.collection("users").doc(user.uid).set({
+        // تحديث النقاط في Firebase
+        if (userId) {
+          db.collection("users").doc(userId).set({
             points: firebase.firestore.FieldValue.increment(points)
-          }, { merge: true }).then(() => {
-            localStorage.setItem("justCompletedLink", index);
-            timer.textContent = "✅ تمت المهمة بنجاح!";
-            taskCompleted = true;
-          }).catch(err => {
-            console.error("خطأ في تسجيل النقاط:", err);
-            alert("❌ فشل تسجيل المهمة");
-          });
-        });
+          }, { merge: true });
+        }
       }
     }, 1000);
 
     function goBack() {
-      if (!taskCompleted) {
-        alert("❌ لم تكتمل المهمة بعد. الرجاء الانتظار حتى انتهاء الوقت.");
-      } else {
-        window.location.href = "shortlinks.html";
+      if (!missionCompleted) {
+        message.textContent = "⛔ لم تكمل المهمة بعد، انتظر حتى انتهاء المؤقت!";
+        return;
       }
+      window.location.href = "shortlinks.html";
     }
-  </script></body>
+  </script>
+</body>
 </html>
