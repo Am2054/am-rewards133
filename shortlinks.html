@@ -25,27 +25,20 @@
       border-radius: 12px;
       text-align: center;
     }
-    .countdown {
-      font-weight: bold;
-      color: #ff5722;
-      margin: 10px 0;
-    }
-    .visit-btn {
-      display: inline-block;
-      padding: 10px 15px;
+    .link-box button {
       background-color: #007bff;
       color: white;
+      padding: 10px 16px;
       border: none;
       border-radius: 8px;
-      text-decoration: none;
-      font-weight: bold;
-      pointer-events: none;
-      opacity: 0.6;
-    }
-    .visit-btn.active {
-      pointer-events: auto;
-      opacity: 1;
       cursor: pointer;
+      font-weight: bold;
+    }
+    .counter {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 18px;
+      color: #555;
     }
   </style>
 </head>
@@ -60,13 +53,14 @@
     const userProgressKey = `shortlinks_progress_${userId}_${today}`;
     let completedLinks = JSON.parse(localStorage.getItem(userProgressKey)) || [];
 
-    fetch("shortlink-data.json")
+    fetch("shortlinks-data.json")
       .then(res => res.json())
       .then(data => {
         const container = document.getElementById("links-container");
         const status = document.getElementById("status");
 
         const availableLinks = data.filter((_, i) => !completedLinks.includes(i));
+
         status.textContent = `روابط مكتملة: ${completedLinks.length} / ${data.length}`;
 
         if (availableLinks.length === 0) {
@@ -78,53 +72,18 @@
           const globalIndex = data.indexOf(item);
           const div = document.createElement("div");
           div.className = "link-box";
-
-          const countdown = document.createElement("div");
-          countdown.className = "countdown";
-          countdown.textContent = "انتظر 10 ثوانٍ...";
-
-          const button = document.createElement("a");
-          button.className = "visit-btn";
-          button.textContent = "فتح الرابط";
-          button.href = item.url;
-          button.target = "_blank";
-
-          // رابط لا يعمل حتى يصبح نشط
-          button.addEventListener("click", function (e) {
-            if (!button.classList.contains("active")) {
-              e.preventDefault();
-              alert("⏳ يرجى الانتظار حتى انتهاء المؤقت.");
-              return false;
-            } else {
-              markCompleted(globalIndex);
-            }
-          });
-
-          div.innerHTML = `<p>${item.title || "رابط رقم " + (globalIndex + 1)}</p>`;
-          div.appendChild(countdown);
-          div.appendChild(button);
+          div.innerHTML = `
+            <p>رابط رقم ${globalIndex + 1}</p>
+            <button onclick="startRedirect(${globalIndex}, '${item.link}')">افتح الرابط</button>
+          `;
           container.appendChild(div);
-
-          // العد التنازلي
-          let seconds = 10;
-          const timer = setInterval(() => {
-            seconds--;
-            countdown.textContent = `انتظر ${seconds} ثانية...`;
-            if (seconds <= 0) {
-              clearInterval(timer);
-              countdown.textContent = "✅ جاهز للفتح!";
-              button.classList.add("active");
-            }
-          }, 1000);
         });
       });
 
-    function markCompleted(index) {
-      if (!completedLinks.includes(index)) {
-        completedLinks.push(index);
-        localStorage.setItem(userProgressKey, JSON.stringify(completedLinks));
-        // يمكنك أيضًا تحديث Firebase هنا إن أردت
-      }
+    function startRedirect(index, link) {
+      localStorage.setItem("redirect_link", link);
+      localStorage.setItem("redirect_index", index);
+      window.open("redirect.html", "_blank");
     }
   </script>
 </body>
