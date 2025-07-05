@@ -26,51 +26,161 @@
     .app-task h4 {
       margin: 0 0 10px;
     }
-    .btn-install {
+    .btn-install, .btn-confirm {
       display: inline-block;
       background-color: #007bff;
       color: white;
-      padding: 10px 18px;
+      padding: 10px 16px;
       border-radius: 8px;
       text-decoration: none;
       font-weight: bold;
+      margin: 5px;
+    }
+    .btn-confirm {
+      background-color: #28a745;
     }
     .points {
       color: green;
       font-weight: bold;
     }
+    .done-label {
+      color: #28a745;
+      font-weight: bold;
+      margin-top: 10px;
+      display: inline-block;
+    }
+    .success-message {
+      background-color: #d4edda;
+      color: #155724;
+      padding: 10px 15px;
+      border-radius: 10px;
+      margin-top: 10px;
+      font-weight: bold;
+      text-align: center;
+    }
+    .back-btn {
+      display: block;
+      width: fit-content;
+      margin: 30px auto 0;
+      background-color: #28a745;
+      color: white;
+      padding: 12px 25px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: bold;
+    }
   </style>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
 </head>
 <body>
-  <h2>تثبيت التطبيقات - احصل على النقاط</h2>
+  <h2>📲 تثبيت التطبيقات - احصل على النقاط</h2>
   <div id="appsContainer">جاري تحميل التطبيقات...</div>
+  <a href="dashboard.html" class="back-btn">🔙 العودة إلى لوحة التحكم</a>
 
   <script>
-    async function loadApps() {
-      try {
-        const response = await fetch("appinstall-data.json");
-        const apps = await response.json();
+    const userId = localStorage.getItem("userId") || "guest_" + Math.floor(Math.random() * 1000000);
+    localStorage.setItem("userId", userId);
 
-        const container = document.getElementById("appsContainer");
-        container.innerHTML = "";
+    const today = new Date().toISOString().slice(0, 10);
+    const progressKey = `installed_apps_${userId}_${today}`;
+    let completed = JSON.parse(localStorage.getItem(progressKey)) || [];
 
-        apps.forEach(app => {
-          const div = document.createElement("div");
-          div.className = "app-task";
-          div.innerHTML = `
-            <h4>📱 ${app.title}</h4>
-            <p>${app.description}</p>
-            <p class="points">💰 ${app.points} نقاط</p>
-            <a href="${app.link}" target="_blank" class="btn-install">تثبيت الآن</a>
-          `;
-          container.appendChild(div);
-        });
-      } catch (err) {
-        document.getElementById("appsContainer").textContent = "حدث خطأ أثناء تحميل التطبيقات.";
+    const apps = [
+      {
+        title: "ClipClaps",
+        description: "اربح المال من مشاهدة الفيديوهات والمكافآت اليومية.",
+        link: "https://play.google.com/store/apps/details?id=com.sanhe.clipclaps",
+        points: 30
+      },
+      {
+        title: "CashZine",
+        description: "تطبيق لربح المال من قراءة الأخبار والدعوات.",
+        link: "https://play.google.com/store/apps/details?id=com.jifen.qukan",
+        points: 30
       }
+    ];
+
+    function saveProgress() {
+      localStorage.setItem(progressKey, JSON.stringify(completed));
     }
 
-    loadApps();
+    function confirmInstall(index, points, buttonDiv) {
+      if (completed.includes(index)) return;
+
+      completed.push(index);
+      saveProgress();
+
+      db.collection("users").doc(userId).set({
+        points: firebase.firestore.FieldValue.increment(points)
+      }, { merge: true }).then(() => {
+        buttonDiv.innerHTML = `
+          <span class="done-label">✅ تمت المهمة</span>
+          <div class="success-message">🎉 تم تثبيت التطبيق وتمت إضافة النقاط بنجاح!</div>
+        `;
+      });
+    }
+
+    function startTimer(index, points) {
+      const confirmBtn = document.getElementById(`confirm-btn-${index}`);
+      const timer = document.getElementById(`timer-${index}`);
+      let seconds = 30;
+
+      const countdown = setInterval(() => {
+        seconds--;
+        timer.textContent = `⏳ انتظر ${seconds} ثانية...`;
+        if (seconds <= 0) {
+          clearInterval(countdown);
+          timer.remove();
+          confirmBtn.style.display = "inline-block";
+        }
+      }, 1000);
+    }
+
+    function renderApps() {
+      const container = document.getElementById("appsContainer");
+      container.innerHTML = "";
+
+      apps.forEach((app, index) => {
+        const div = document.createElement("div");
+        div.className = "app-task";
+
+        const buttonDiv = document.createElement("div");
+        const confirmId = `confirm-btn-${index}`;
+        const timerId = `timer-${index}`;
+
+        if (completed.includes(index)) {
+          buttonDiv.innerHTML = `<span class="done-label">✅ تمت المهمة</span>`;
+        } else {
+          buttonDiv.innerHTML = `
+            <a href="${app.link}" target="_blank" class="btn-install" onclick="startTimer(${index}, ${app.points})">تثبيت الآن</a>
+            <div id="${timerId}" style="margin-top:10px;color:#555;">⏳ انتظر 30 ثانية...</div>
+            <button id="${confirmId}" class="btn-confirm" style="display:none;" onclick="confirmInstall(${index}, ${app.points}, this.parentElement)">تم التثبيت</button>
+          `;
+        }
+
+        div.innerHTML = `
+          <h4>📱 ${app.title}</h4>
+          <p>${app.description}</p>
+          <p class="points">💰 ${app.points} نقاط</p>
+        `;
+        div.appendChild(buttonDiv);
+        container.appendChild(div);
+      });
+    }
+
+    renderApps();
   </script>
 </body>
 </html>
