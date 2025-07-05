@@ -1,81 +1,179 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>لوحة التحكم | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
-      font-family: 'Tajawal', sans-serif;
-      background-color: #f0f8ff;
       margin: 0;
-      padding: 20px;
+      font-family: 'Cairo', sans-serif;
+      background: linear-gradient(to bottom right, #4caf50, #1b5e20);
+      color: white;
       direction: rtl;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      background-color: rgba(0, 0, 0, 0.4);
+      padding: 40px 30px;
+      border-radius: 20px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+    .heart {
+      font-size: 40px;
+      color: #ffcccb;
+      animation: beat 1s infinite alternate;
+    }
+    @keyframes beat {
+      to { transform: scale(1.1); }
     }
     h1 {
-      color: #007bff;
-      text-align: center;
+      font-size: 28px;
+      margin-bottom: 10px;
     }
-    #user-points {
-      text-align: center;
+    .info {
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 12px;
+      margin: 15px 0;
+      font-size: 18px;
+      line-height: 1.8;
+    }
+    .info strong {
+      color: #a5d6a7;
       font-size: 20px;
-      color: #333;
-      background: #e2ffe8;
+    }
+    .links a {
+      display: block;
+      background-color: #81c784;
+      color: #1b5e20;
+      font-weight: 700;
+      margin: 10px 0;
       padding: 12px;
-      margin: 20px auto;
       border-radius: 10px;
-      border: 1px solid #28a745;
-      max-width: 300px;
+      text-decoration: none;
+      font-size: 17px;
+    }
+    .links a.referral { background-color: #ffd54f; color: #5d4037; }
+    .links a.about    { background-color: #ce93d8; color: #4a148c; }
+    .links a.terms    { background-color: #b0bec5; color: #263238; }
+    .links a.contact  { background-color: #ff7043; color: white; font-weight: 700; }
+    button.logout {
+      margin-top: 20px;
+      background-color: #d32f2f;
+      border: none;
+      color: white;
+      font-size: 16px;
+      padding: 12px 25px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    #egp-rate {
+      margin-top: 10px;
+      font-size: 16px;
+      color: #d1ffd1;
     }
   </style>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
 </head>
 <body>
+  <div class="container">
+    <div class="heart">❤️</div>
+    <h1>مرحبًا، <span id="user-email">...</span></h1>
+    <div id="egp-rate">جارٍ حساب الأرباح...</div>
+    <div class="info">
+      <p>إجمالي النقاط: <strong id="total-points">0</strong> نقطة</p>
+      <p>ما يعادل: <strong id="total-egp">0</strong> جنيه مصري</p>
+      <p>الرصيد المسحوب: <strong id="withdrawn-egp">0</strong> جنيه</p>
+      <p>الرصيد الحالي: <strong id="current-egp">0</strong> جنيه</p>
+    </div>
+    <div class="links">
+      <a href="tasks.html">📝 المهام</a>
+      <a href="withdraw.html">💸 طلب سحب الأرباح</a>
+      <a href="referrals.html" class="referral">👥 الإحالات</a>
+      <a href="about.html" class="about">ℹ️ من نحن</a>
+      <a href="terms.html" class="terms">📜 سياسة الاستخدام</a>
+      <a href="contact.html" class="contact">📞 تواصل معنا</a>
+    </div>
+    <button class="logout" onclick="logout()">تسجيل خروج</button>
+  </div>
 
-  <h1>👋 مرحبًا بك في لوحة التحكم</h1>
-  <div id="user-points">جارٍ تحميل نقاطك...</div>
-
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script>
-    // إعداد Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards"
+      projectId: "am--rewards",
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
 
-    // ✅ توليد userId تلقائيًا إذا لم يكن موجودًا
-    if (!localStorage.getItem("userId")) {
-      localStorage.setItem("userId", "guest_" + Math.floor(Math.random() * 1000000));
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const POINT_VALUE_EGP = 0.07;
+    let exchangeRate = 50;
+
+    async function fetchDollarRate() {
+      try {
+        const res = await fetch("https://api.exchangerate-api.com/v4/latest/USD");
+        const data = await res.json();
+        exchangeRate = data.rates.EGP || 50;
+        document.getElementById("egp-rate").textContent = `💱 1 دولار = ${exchangeRate.toFixed(2)} جنيه مصري`;
+      } catch (e) {
+        document.getElementById("egp-rate").textContent = "⚠️ فشل جلب سعر الدولار";
+      }
     }
 
-    // الحصول على userId من التخزين المحلي
-    const userId = localStorage.getItem("userId");
+    async function updateBalance() {
+      let uid = null;
 
-    // دالة تحديث النقاط
-    function updateUserPoints() {
-      if (!userId) {
-        document.getElementById("user-points").textContent = "⚠️ لم يتم تسجيل الدخول.";
-        return;
+      if (auth.currentUser) {
+        uid = auth.currentUser.uid;
+        document.getElementById("user-email").textContent = auth.currentUser.email;
+      } else {
+        uid = localStorage.getItem("userId");
+        document.getElementById("user-email").textContent = uid || "زائر";
       }
 
-      db.collection("users").doc(userId).get().then(doc => {
-        const data = doc.data();
-        const points = data?.points || 0;
-        document.getElementById("user-points").textContent = `نقاطك الحالية: ${points} 🪙`;
-      }).catch(error => {
-        console.error("حدث خطأ أثناء جلب النقاط:", error);
-        document.getElementById("user-points").textContent = "❌ تعذر تحميل النقاط.";
+      if (!uid) return;
+
+      await fetchDollarRate();
+
+      const userDoc = await db.collection("users").doc(uid).get();
+      const data = userDoc.data() || {};
+
+      const totalPoints = data.points || 0;
+      const withdrawnPoints = data.withdrawnPoints || 0;
+
+      const totalEGP = totalPoints * POINT_VALUE_EGP;
+      const withdrawnEGP = withdrawnPoints * POINT_VALUE_EGP;
+      const currentEGP = totalEGP - withdrawnEGP;
+
+      document.getElementById("total-points").textContent = totalPoints;
+      document.getElementById("total-egp").textContent = totalEGP.toFixed(2);
+      document.getElementById("withdrawn-egp").textContent = withdrawnEGP.toFixed(2);
+      document.getElementById("current-egp").textContent = currentEGP.toFixed(2);
+    }
+
+    auth.onAuthStateChanged(() => {
+      updateBalance();
+    });
+
+    function logout() {
+      auth.signOut().then(() => {
+        window.location.href = "index.html";
       });
     }
 
-    // تنفيذ التحديث عند تحميل الصفحة
-    updateUserPoints();
+    setInterval(fetchDollarRate, 60000); // تحديث سعر الدولار كل دقيقة
   </script>
-
 </body>
-</html>
+  </html>
