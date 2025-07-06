@@ -71,9 +71,11 @@
     }
   </style>
 
-  <!-- Firebase -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -82,6 +84,7 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const auth = firebase.auth();
   </script>
 </head>
 <body>
@@ -90,12 +93,10 @@
   <a href="dashboard.html" class="back-btn">🔙 العودة إلى لوحة التحكم</a>
 
   <script>
-    const userId = localStorage.getItem("userId") || "guest_" + Math.floor(Math.random() * 1000000);
-    localStorage.setItem("userId", userId);
+    let userId = null;
 
     const today = new Date().toISOString().slice(0, 10);
-    const progressKey = `installed_apps_${userId}_${today}`;
-    let completed = JSON.parse(localStorage.getItem(progressKey)) || [];
+    let progressKey = "";
 
     const apps = [
       {
@@ -112,15 +113,15 @@
       }
     ];
 
-    function saveProgress() {
+    function saveProgress(completed) {
       localStorage.setItem(progressKey, JSON.stringify(completed));
     }
 
-    function confirmInstall(index, points, buttonDiv) {
+    function confirmInstall(index, points, buttonDiv, completed) {
       if (completed.includes(index)) return;
 
       completed.push(index);
-      saveProgress();
+      saveProgress(completed);
 
       db.collection("users").doc(userId).set({
         points: firebase.firestore.FieldValue.increment(points)
@@ -132,7 +133,7 @@
       });
     }
 
-    function startTimer(index, points) {
+    function startTimer(index, points, completed) {
       const confirmBtn = document.getElementById(`confirm-btn-${index}`);
       const timer = document.getElementById(`timer-${index}`);
       let seconds = 30;
@@ -148,7 +149,7 @@
       }, 1000);
     }
 
-    function renderApps() {
+    function renderApps(completed) {
       const container = document.getElementById("appsContainer");
       container.innerHTML = "";
 
@@ -164,9 +165,9 @@
           buttonDiv.innerHTML = `<span class="done-label">✅ تمت المهمة</span>`;
         } else {
           buttonDiv.innerHTML = `
-            <a href="${app.link}" target="_blank" class="btn-install" onclick="startTimer(${index}, ${app.points})">تثبيت الآن</a>
+            <a href="${app.link}" target="_blank" class="btn-install" onclick="startTimer(${index}, ${app.points}, completed)">تثبيت الآن</a>
             <div id="${timerId}" style="margin-top:10px;color:#555;">⏳ انتظر 30 ثانية...</div>
-            <button id="${confirmId}" class="btn-confirm" style="display:none;" onclick="confirmInstall(${index}, ${app.points}, this.parentElement)">تم التثبيت</button>
+            <button id="${confirmId}" class="btn-confirm" style="display:none;" onclick="confirmInstall(${index}, ${app.points}, this.parentElement, completed)">تم التثبيت</button>
           `;
         }
 
@@ -180,7 +181,18 @@
       });
     }
 
-    renderApps();
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        userId = user.uid;
+        localStorage.setItem("userId", userId);
+        progressKey = `installed_apps_${userId}_${today}`;
+        const completed = JSON.parse(localStorage.getItem(progressKey)) || [];
+        renderApps(completed);
+      } else {
+        alert("⚠️ يجب تسجيل الدخول أولاً.");
+        window.location.href = "index.html";
+      }
+    });
   </script>
 </body>
-</html>
+  </html>
