@@ -64,9 +64,10 @@
     }
   </style>
 
-  <!-- Firebase SDK -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -75,6 +76,7 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const auth = firebase.auth();
   </script>
 </head>
 <body>
@@ -87,74 +89,85 @@
   </div>
 
   <script>
-    const userId = localStorage.getItem("userId") || "guest_" + Math.floor(Math.random() * 1000000);
-    localStorage.setItem("userId", userId);
+    let userId = null;
 
-    const today = new Date().toISOString().slice(0, 10);
-    const userProgressKey = `shortlinks_progress_${userId}_${today}`;
-    let completedLinks = JSON.parse(localStorage.getItem(userProgressKey)) || [];
-
-    const justCompleted = localStorage.getItem("justCompletedLink");
-    if (justCompleted !== null) {
-      const completedIndex = parseInt(justCompleted);
-      if (!completedLinks.includes(completedIndex)) {
-        completedLinks.push(completedIndex);
-        localStorage.setItem(userProgressKey, JSON.stringify(completedLinks));
-        localStorage.removeItem("justCompletedLink");
-
-        db.collection("users").doc(userId).set({
-          points: firebase.firestore.FieldValue.increment(10)
-        }, { merge: true }).then(() => {
-          updateUserPoints();
-        });
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        userId = user.uid;
+        initShortLinks(); // تابع التنفيذ بعد التأكد من تسجيل الدخول
       } else {
-        localStorage.removeItem("justCompletedLink");
-        updateUserPoints();
+        alert("⚠️ يجب تسجيل الدخول أولاً.");
+        window.location.href = "index.html";
       }
-    }
+    });
 
-    function updateUserPoints() {
-      db.collection("users").doc(userId).get().then(doc => {
-        const data = doc.data();
-        const points = data?.points || 0;
-        document.getElementById("user-points").textContent = `نقاطي: ${points} 🪙`;
-      });
-    }
+    function initShortLinks() {
+      const today = new Date().toISOString().slice(0, 10);
+      const userProgressKey = `shortlinks_progress_${userId}_${today}`;
+      let completedLinks = JSON.parse(localStorage.getItem(userProgressKey)) || [];
 
-    fetch("shortlinks-data.json")
-      .then(res => res.json())
-      .then(data => {
-        const container = document.getElementById("links-container");
-        const status = document.getElementById("status");
+      const justCompleted = localStorage.getItem("justCompletedLink");
+      if (justCompleted !== null) {
+        const completedIndex = parseInt(justCompleted);
+        if (!completedLinks.includes(completedIndex)) {
+          completedLinks.push(completedIndex);
+          localStorage.setItem(userProgressKey, JSON.stringify(completedLinks));
+          localStorage.removeItem("justCompletedLink");
 
-        const availableLinks = data.filter((_, i) => !completedLinks.includes(i));
-        status.textContent = `روابط مكتملة: ${completedLinks.length} / ${data.length}`;
-
-        if (availableLinks.length === 0) {
-          container.innerHTML = "<p style='text-align:center;'>✅ لقد أكملت جميع الروابط المختصرة اليوم!</p>";
-          return;
+          db.collection("users").doc(userId).set({
+            points: firebase.firestore.FieldValue.increment(10)
+          }, { merge: true }).then(() => {
+            updateUserPoints();
+          });
+        } else {
+          localStorage.removeItem("justCompletedLink");
+          updateUserPoints();
         }
+      }
 
-        availableLinks.forEach((item, index) => {
-          const globalIndex = data.indexOf(item);
-          const div = document.createElement("div");
-          div.className = "link-box";
-          div.innerHTML = `
-            <p>${item.title}</p>
-            <p>🪙 هذه المهمة تمنحك <strong>10</strong> نقاط</p>
-            <button onclick="startRedirect(${globalIndex}, '${item.url}')">افتح الرابط</button>
-          `;
-          container.appendChild(div);
+      function updateUserPoints() {
+        db.collection("users").doc(userId).get().then(doc => {
+          const data = doc.data();
+          const points = data?.points || 0;
+          document.getElementById("user-points").textContent = `نقاطي: ${points} 🪙`;
         });
-      });
+      }
 
-    function startRedirect(index, url) {
-      localStorage.setItem("redirect_link", url);
-      localStorage.setItem("redirect_index", index);
-      window.location.href = "redirect.html";
+      fetch("shortlinks-data.json")
+        .then(res => res.json())
+        .then(data => {
+          const container = document.getElementById("links-container");
+          const status = document.getElementById("status");
+
+          const availableLinks = data.filter((_, i) => !completedLinks.includes(i));
+          status.textContent = `روابط مكتملة: ${completedLinks.length} / ${data.length}`;
+
+          if (availableLinks.length === 0) {
+            container.innerHTML = "<p style='text-align:center;'>✅ لقد أكملت جميع الروابط المختصرة اليوم!</p>";
+            return;
+          }
+
+          availableLinks.forEach((item, index) => {
+            const globalIndex = data.indexOf(item);
+            const div = document.createElement("div");
+            div.className = "link-box";
+            div.innerHTML = `
+              <p>${item.title}</p>
+              <p>🪙 هذه المهمة تمنحك <strong>10</strong> نقاط</p>
+              <button onclick="startRedirect(${globalIndex}, '${item.url}')">افتح الرابط</button>
+            `;
+            container.appendChild(div);
+          });
+        });
+
+      function startRedirect(index, url) {
+        localStorage.setItem("redirect_link", url);
+        localStorage.setItem("redirect_index", index);
+        window.location.href = "redirect.html";
+      }
+
+      updateUserPoints();
     }
-
-    updateUserPoints();
   </script>
 </body>
 </html>
