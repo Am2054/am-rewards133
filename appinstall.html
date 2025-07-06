@@ -75,7 +75,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
-
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -94,7 +93,6 @@
 
   <script>
     let userId = null;
-
     const today = new Date().toISOString().slice(0, 10);
     let progressKey = "";
 
@@ -109,6 +107,24 @@
         title: "CashZine",
         description: "تطبيق لربح المال من قراءة الأخبار والدعوات.",
         link: "https://play.google.com/store/apps/details?id=com.jifen.qukan",
+        points: 30
+      },
+      {
+        title: "Lucky Money",
+        description: "اربح المال من الألعاب اليومية وبطاقات الحظ.",
+        link: "https://play.google.com/store/apps/details?id=com.luckymoney.cash.earn.make.money",
+        points: 25
+      },
+      {
+        title: "Current Rewards",
+        description: "استمع للموسيقى واربح المال.",
+        link: "https://play.google.com/store/apps/details?id=io.current.music",
+        points: 25
+      },
+      {
+        title: "Make Money",
+        description: "أكمل الاستبيانات والمهام واربح النقود.",
+        link: "https://play.google.com/store/apps/details?id=com.makemoney.android",
         points: 30
       }
     ];
@@ -126,6 +142,11 @@
       db.collection("users").doc(userId).set({
         points: firebase.firestore.FieldValue.increment(points)
       }, { merge: true }).then(() => {
+        const todayKey = new Date().toISOString().slice(0, 10);
+        db.collection("users").doc(userId).collection("progress").doc(todayKey).set({
+          installedApps: firebase.firestore.FieldValue.arrayUnion(apps[index].title)
+        }, { merge: true });
+
         buttonDiv.innerHTML = `
           <span class="done-label">✅ تمت المهمة</span>
           <div class="success-message">🎉 تم تثبيت التطبيق وتمت إضافة النقاط بنجاح!</div>
@@ -195,4 +216,4 @@
     });
   </script>
 </body>
-  </html>
+</html>
