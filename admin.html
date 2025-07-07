@@ -1,5 +1,4 @@
-<!DOCTYPE html><html lang="ar" dir="rtl">
-<head>
+<!DOCTYPE html><html lang="ar" dir="rtl"><head>
   <meta charset="UTF-8">
   <title>لوحة تحكم صاحب الموقع | Am Rewards</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,21 +6,22 @@
   <style>
     body {
       font-family: 'Cairo', sans-serif;
-      background: #f9fbfd;
+      background: #121212;
+      color: #ffffff;
       margin: 0;
       padding: 20px;
     }
     .container {
       max-width: 1000px;
       margin: auto;
-      background: white;
+      background: #1e1e1e;
       padding: 30px;
       border-radius: 15px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.05);
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
     }
     h1, h2 {
       text-align: center;
-      color: #007bff;
+      color: #00d1ff;
     }
     .stat-box {
       display: grid;
@@ -30,61 +30,83 @@
       margin-top: 20px;
     }
     .card {
-      background: #f0f8ff;
+      background: #2a2a2a;
       padding: 20px;
       border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
       text-align: center;
     }
-    .card h2 { margin: 0; font-size: 2rem; color: #333; }
-    .card p { margin: 10px 0 0; color: #555; }.button {
-  margin: 20px 10px 0 0;
-  padding: 12px 20px;
-  background-color: #dc3545;
-  border: none;
-  color: white;
-  font-size: 16px;
-  font-weight: bold;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.button.green {
-  background-color: #28a745;
-}
-.button.yellow {
-  background-color: #ffc107;
-  color: black;
-}
-
-.vip-list, .achievements {
-  margin-top: 30px;
-}
-.vip-list h3, .achievements h3 { color: #333; margin-bottom: 10px; }
-.vip-list ul { list-style: none; padding: 0; }
-.vip-list li {
-  background: #e9ecef;
-  padding: 8px;
-  margin-bottom: 6px;
-  border-radius: 6px;
-}
-.achievements {
-  background: #fffbea;
-  border: 1px solid #ffecb5;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-}
-.achievement {
-  padding: 12px;
-  margin-bottom: 10px;
-  background: #fff3cd;
-  border-left: 5px solid #ffc107;
-  border-radius: 6px;
-  font-weight: bold;
-  color: #664d03;
-}
-
+    .card h2 { margin: 0; font-size: 2rem; color: #00ffae; }
+    .card p { margin: 10px 0 0; color: #ccc; }
+    .button {
+      margin: 20px 10px 0 0;
+      padding: 12px 20px;
+      background-color: #dc3545;
+      border: none;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .button.green {
+      background-color: #28a745;
+    }
+    .button.yellow {
+      background-color: #ffc107;
+      color: black;
+    }
+    .vip-list, .achievements {
+      margin-top: 30px;
+    }
+    .vip-list h3, .achievements h3 { color: #00ffff; margin-bottom: 10px; }
+    .vip-list ul { list-style: none; padding: 0; }
+    .vip-list li {
+      background: #2c2c2c;
+      padding: 8px;
+      margin-bottom: 6px;
+      border-radius: 6px;
+    }
+    .achievements {
+      background: #1a1a1a;
+      border: 1px solid #444;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    .achievement {
+      padding: 12px;
+      margin-bottom: 10px;
+      background: #333;
+      border-left: 5px solid #ffc107;
+      border-radius: 6px;
+      font-weight: bold;
+      color: #ffd700;
+    }
+    #proofReview {
+      margin-top: 40px;
+    }
+    .proof-card {
+      background: #222;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+    .proof-card img {
+      max-width: 100%;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+    .proof-actions button {
+      margin: 5px;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .approve { background: #28a745; color: #fff; }
+    .reject { background: #dc3545; color: #fff; }
   </style>
 </head>
 <body>
@@ -107,133 +129,65 @@
 <h2>🏆 إنجازات الموقع</h2>
 <div id="achievementsBox" class="achievements"></div>
 
-  </div>  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      doc,
-      getDocs,
-      getDoc,
-      setDoc,
-      updateDoc
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+<h2 id="proofReview">📝 مراجعة إثباتات تثبيت التطبيقات</h2>
+<div id="proofsContainer"></div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards",
+  </div>  <script type="module">
+    import { getStorage, ref, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+    import { getDocs, collection, deleteDoc, doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    const db = getFirestore();
+    const storage = getStorage();
+
+    async function loadProofs() {
+      const snap = await getDocs(collection(db, "install_proofs"));
+      const container = document.getElementById("proofsContainer");
+      container.innerHTML = "";
+      snap.forEach(async docSnap => {
+        const data = docSnap.data();
+        if (data.reviewed) return;
+        const url = await getDownloadURL(ref(storage, data.filePath));
+        const div = document.createElement("div");
+        div.className = "proof-card";
+        div.innerHTML = `
+          <img src="${url}" alt="proof" />
+          <p>📱 التطبيق: <strong>${data.appTitle}</strong></p>
+          <p>👤 المستخدم: ${data.userId}</p>
+          <div class="proof-actions">
+            <button class="approve" onclick="approveProof('${docSnap.id}', '${data.userId}', ${getPoints(data.appTitle)})">✅ قبول</button>
+            <button class="reject" onclick="rejectProof('${docSnap.id}')">❌ رفض</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    window.approveProof = async (id, userId, points) => {
+      await updateDoc(doc(db, "users", userId), {
+        points: increment(points || 30)
+      });
+      await updateDoc(doc(db, "install_proofs", id), {
+        reviewed: true
+      });
+      loadProofs();
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    window.rejectProof = async (id) => {
+      await deleteDoc(doc(db, "install_proofs", id));
+      loadProofs();
+    };
 
-    function showAchievements(userCount, taskCount, totalProfit) {
-      const achievements = [];
-      if (userCount >= 1000)
-        achievements.push("🎉 تم تجاوز 1000 مستخدم بنجاح!");
-      if (taskCount >= 300000)
-        achievements.push("🔥 أكثر من 300,000 مهمة منفذة!");
-      if (totalProfit >= 2000)
-        achievements.push("💰 صافي أرباحك تجاوز 2000 جنيه!");
-      if (taskCount >= 1000000)
-        achievements.push("🚀 إنجاز ضخم: مليون مهمة منفذة!");
-
-      const container = document.getElementById("achievementsBox");
-      if (achievements.length === 0) {
-        container.innerHTML = "<div class='achievement'>لا توجد إنجازات بعد... استمر في تطوير الموقع!</div>";
-      } else {
-        container.innerHTML = achievements.map(txt => `<div class="achievement">${txt}</div>`).join("");
-      }
+    function getPoints(appTitle) {
+      const map = {
+        "ClipClaps": 30,
+        "CashZine": 30,
+        "BuzzBreak": 25,
+        "Current Music": 35,
+        "Toloka": 40
+      };
+      return map[appTitle] || 30;
     }
 
-    async function loadStats() {
-      const usersSnap = await getDocs(collection(db, "users"));
-      let totalUsers = 0;
-      let totalWithdrawn = 0;
-      let totalPoints = 0;
-      let vipList = [];
-
-      usersSnap.forEach(doc => {
-        const data = doc.data();
-        totalUsers++;
-        totalPoints += data.points || 0;
-        totalWithdrawn += data.withdrawn || 0;
-        if (data.vip === true) vipList.push(doc.id);
-      });
-
-      const discount = totalWithdrawn * 0.10;
-      const siteProfit = (totalPoints * 0.07 * 1.5) - totalWithdrawn;
-
-      document.getElementById("userCount").textContent = totalUsers;
-      const totalTasks = Math.round(totalPoints / 5);
-      document.getElementById("taskCount").textContent = totalTasks;
-      document.getElementById("withdrawTotal").textContent = `${totalWithdrawn.toFixed(2)} EGP`;
-      document.getElementById("siteProfit").textContent = `${siteProfit.toFixed(2)} EGP`;
-      document.getElementById("discountEarnings").textContent = `${discount.toFixed(2)} EGP`;
-
-      const vipListEl = document.getElementById("vipUsers");
-      vipList.forEach(uid => {
-        const li = document.createElement("li");
-        li.textContent = `معرف المستخدم: ${uid}`;
-        vipListEl.appendChild(li);
-      });
-
-      showAchievements(totalUsers, totalTasks, siteProfit);
-    }
-
-    async function checkWithdrawStatus() {
-      const ref = doc(db, "settings", "withdrawal");
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
-        const status = snap.data().enabled;
-        document.getElementById("withdrawBtn").textContent = status ? "⛔ إيقاف السحب مؤقتًا" : "✅ تفعيل السحب";
-        document.getElementById("withdrawBtn").style.backgroundColor = status ? "#dc3545" : "#28a745";
-      } else {
-        await setDoc(ref, { enabled: true });
-        document.getElementById("withdrawBtn").textContent = "⛔ إيقاف السحب مؤقتًا";
-      }
-    }
-
-    async function toggleWithdraw() {
-      const ref = doc(db, "settings", "withdrawal");
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
-        const current = snap.data().enabled;
-        await updateDoc(ref, { enabled: !current });
-        checkWithdrawStatus();
-      }
-    }
-
-    async function countPendingWithdrawals() {
-      const snap = await getDocs(collection(db, "withdrawRequests"));
-      let pending = 0;
-      snap.forEach(doc => {
-        const data = doc.data();
-        if (data.status === "pending") pending++;
-      });
-      document.getElementById("pendingCount").textContent = `(${pending})`;
-    }
-
-    async function processPendingWithdrawals() {
-      const snap = await getDocs(collection(db, "withdrawRequests"));
-      let sent = 0;
-      for (const docSnap of snap.docs) {
-        const data = docSnap.data();
-        if (data.status === "pending") {
-          await updateDoc(doc(db, "withdrawRequests", docSnap.id), {
-            status: "paid",
-            paidAt: new Date()
-          });
-          sent++;
-        }
-      }
-      alert(sent ? `✅ تم إرسال ${sent} عملية سحب.` : "❌ لا يوجد سحوبات معلّقة.");
-      countPendingWithdrawals();
-    }
-
-    loadStats();
-    checkWithdrawStatus();
-    countPendingWithdrawals();
+    loadProofs();
   </script></body>
-  </html>
+</html>
