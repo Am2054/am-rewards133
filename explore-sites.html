@@ -39,6 +39,9 @@
       text-decoration: none;
       border-radius: 8px;
       font-weight: bold;
+      margin-top: 8px;
+      border: none;
+      cursor: pointer;
     }
     .btn:hover {
       background: #2e7d32;
@@ -50,7 +53,7 @@
   </style>
 </head>
 <body>
-  <h2>🌐 استكشاف مواقع</h2>
+  <h2>🌐 استكشاف مواقع - اجمع نقاطك بسهولة</h2>
   <div id="siteTasks"></div>
 
   <script type="module">
@@ -97,22 +100,28 @@
     function showSites() {
       const container = document.getElementById("siteTasks");
       sites.forEach((site, i) => {
+        const isDone = sessionStorage.getItem(`site_done_${i}`);
         const div = document.createElement("div");
         div.className = "site";
         div.innerHTML = `
           <h3>${site.title}</h3>
           <p>${site.desc}</p>
+          <p style="color:#555;">🔹 نقاط المهمة: <strong>${site.points}</strong> نقطة</p>
           <a href="${site.url}" class="btn" target="_blank">استكشاف</a>
-          <button class="btn" id="done-${i}">✅ تمت الزيارة</button>
+          <button class="btn ${isDone ? 'done' : ''}" id="done-${i}" ${isDone ? 'disabled' : ''}>
+            ${isDone ? '✅ تمت إضافة النقاط' : '✅ تمت الزيارة'}
+          </button>
         `;
         container.appendChild(div);
 
         document.getElementById(`done-${i}`).addEventListener("click", async () => {
+          if (sessionStorage.getItem(`site_done_${i}`)) return;
           await rewardUser(site.points);
           const btn = document.getElementById(`done-${i}`);
-          btn.textContent = "تمت إضافة النقاط ✅";
+          btn.textContent = "✅ تمت إضافة النقاط";
           btn.classList.add("done");
           btn.disabled = true;
+          sessionStorage.setItem(`site_done_${i}`, "true");
         });
       });
     }
