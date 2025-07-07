@@ -39,6 +39,9 @@
       text-decoration: none;
       border-radius: 8px;
       font-weight: bold;
+      margin-top: 8px;
+      border: none;
+      cursor: pointer;
     }
     .btn:hover {
       background: #c25b0a;
@@ -50,7 +53,7 @@
   </style>
 </head>
 <body>
-  <h2>🎮 ألعاب سريعة</h2>
+  <h2>🎮 ألعاب سريعة - اربح نقاط إضافية!</h2>
   <div id="gamesContainer"></div>
 
   <script type="module">
@@ -97,22 +100,28 @@
     function showGames() {
       const container = document.getElementById("gamesContainer");
       games.forEach((game, i) => {
+        const isDone = sessionStorage.getItem(`game_done_${i}`);
         const div = document.createElement("div");
         div.className = "game";
         div.innerHTML = `
           <h3>${game.title}</h3>
           <p>${game.desc}</p>
+          <p style="color:#555;">🔹 نقاط هذه اللعبة: <strong>${game.points}</strong> نقطة</p>
           <a href="${game.url}" class="btn" target="_blank">ابدأ اللعب</a>
-          <button class="btn" id="done-${i}">✅ أنهيت اللعبة</button>
+          <button class="btn ${isDone ? 'done' : ''}" id="done-${i}" ${isDone ? 'disabled' : ''}>
+            ${isDone ? '✅ تم احتساب النقاط' : '✅ أنهيت اللعبة'}
+          </button>
         `;
         container.appendChild(div);
 
         document.getElementById(`done-${i}`).addEventListener("click", async () => {
+          if (sessionStorage.getItem(`game_done_${i}`)) return;
           await rewardUser(game.points);
           const btn = document.getElementById(`done-${i}`);
-          btn.textContent = "تمت إضافة النقاط ✅";
+          btn.textContent = "✅ تم احتساب النقاط";
           btn.classList.add("done");
           btn.disabled = true;
+          sessionStorage.setItem(`game_done_${i}`, "true");
         });
       });
     }
