@@ -16,7 +16,9 @@
       align-items: center;
       height: 100vh;
       padding: 20px;
+      transition: background 0.4s ease, color 0.4s ease;
     }
+
     .container {
       background-color: rgba(0, 0, 0, 0.4);
       padding: 40px 30px;
@@ -26,18 +28,22 @@
       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
       text-align: center;
     }
+
     .heart {
       font-size: 40px;
       color: #ffcccb;
       animation: beat 1s infinite alternate;
     }
+
     @keyframes beat {
       to { transform: scale(1.1); }
     }
+
     h1 {
       font-size: 28px;
       margin-bottom: 10px;
     }
+
     .info {
       background-color: rgba(255, 255, 255, 0.1);
       padding: 15px;
@@ -46,10 +52,12 @@
       font-size: 18px;
       line-height: 1.8;
     }
+
     .info strong {
       color: #a5d6a7;
       font-size: 20px;
     }
+
     .links a {
       display: block;
       background-color: #81c784;
@@ -61,10 +69,12 @@
       text-decoration: none;
       font-size: 17px;
     }
+
     .links a.referral { background-color: #ffd54f; color: #5d4037; }
     .links a.about    { background-color: #ce93d8; color: #4a148c; }
     .links a.terms    { background-color: #b0bec5; color: #263238; }
     .links a.contact  { background-color: #ff7043; color: white; font-weight: 700; }
+
     button.logout {
       margin-top: 20px;
       background-color: #d32f2f;
@@ -75,24 +85,77 @@
       border-radius: 10px;
       cursor: pointer;
     }
+
     #egp-rate {
       margin-top: 10px;
       font-size: 16px;
       color: #d1ffd1;
     }
+
+    .mode-toggle {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: #222;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .quick-task {
+      background-color: #00bcd4;
+      color: white;
+      font-weight: bold;
+      padding: 12px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .dark-mode {
+      background: #121212;
+      color: #eee;
+    }
+
+    .dark-mode .container {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .dark-mode .links a {
+      background-color: #333;
+      color: #eee;
+    }
+
+    .dark-mode .links a.contact {
+      background-color: #e91e63;
+    }
+
+    .dark-mode .info strong {
+      color: #4caf50;
+    }
   </style>
 </head>
 <body>
+  <div class="mode-toggle" onclick="toggleDarkMode()">🌓 الوضع الليلي</div>
+
   <div class="container">
     <div class="heart">❤️</div>
     <h1>مرحبًا، <span id="user-email">...</span></h1>
     <div id="egp-rate">جارٍ حساب الأرباح...</div>
+
     <div class="info">
       <p>إجمالي النقاط: <strong id="total-points">0</strong> نقطة</p>
       <p>ما يعادل: <strong id="total-egp">0</strong> جنيه مصري</p>
       <p>الرصيد المسحوب: <strong id="withdrawn-egp">0</strong> جنيه</p>
       <p>الرصيد الحالي: <strong id="current-egp">0</strong> جنيه</p>
     </div>
+
+    <button class="quick-task" onclick="window.location.href='tasks.html'">🎯 نفذ مهمة الآن</button>
+
     <div class="links">
       <a href="tasks.html">📝 المهام</a>
       <a href="withdraw.html">💸 طلب سحب الأرباح</a>
@@ -101,6 +164,7 @@
       <a href="terms.html" class="terms">📜 سياسة الاستخدام</a>
       <a href="contact.html" class="contact">📞 تواصل معنا</a>
     </div>
+
     <button class="logout" onclick="logout()">تسجيل خروج</button>
   </div>
 
@@ -133,28 +197,19 @@
     }
 
     async function updateBalance() {
-      let uid = null;
-
-      // تأكيد إنشاء userId إذا غير موجود
-      if (!localStorage.getItem("userId")) {
-        localStorage.setItem("userId", "guest_" + Math.floor(Math.random() * 1000000));
+      const user = auth.currentUser;
+      if (!user) {
+        alert("يرجى تسجيل الدخول أولاً.");
+        window.location.href = "index.html";
+        return;
       }
 
-      // الحصول على UID
-      if (auth.currentUser) {
-        uid = auth.currentUser.uid;
-        document.getElementById("user-email").textContent = auth.currentUser.email;
-      } else {
-        uid = localStorage.getItem("userId");
-        document.getElementById("user-email").textContent = uid || "زائر";
-      }
-
-      if (!uid) return;
+      document.getElementById("user-email").textContent = user.email;
 
       await fetchDollarRate();
 
-      const userDoc = await db.collection("users").doc(uid).get();
-      const data = userDoc.data() || {};
+      const doc = await db.collection("users").doc(user.uid).get();
+      const data = doc.data() || {};
 
       const totalPoints = data.points || 0;
       const withdrawnPoints = data.withdrawnPoints || 0;
@@ -179,7 +234,11 @@
       });
     }
 
-    setInterval(fetchDollarRate, 60000); // تحديث سعر الدولار كل دقيقة
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+    }
+
+    setInterval(fetchDollarRate, 60000); // تحديث كل دقيقة
   </script>
 </body>
-</html>
+    </html>
