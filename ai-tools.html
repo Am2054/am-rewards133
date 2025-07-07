@@ -42,6 +42,8 @@
       border-radius: 8px;
       font-weight: bold;
       margin-top: 8px;
+      border: none;
+      cursor: pointer;
     }
     .btn:hover {
       background: #4e2a8c;
@@ -106,22 +108,28 @@
     function showTasks() {
       const container = document.getElementById("aiTasks");
       tasks.forEach((task, i) => {
+        const isDone = sessionStorage.getItem(`ai_done_${i}`);
         const div = document.createElement("div");
         div.className = "task";
         div.innerHTML = `
           <h3>${task.title}</h3>
           <p>${task.desc}</p>
+          <p style="color: #555;">🔹 نقاط هذه المهمة: <strong>${task.points}</strong> نقطة</p>
           <a href="${task.url}" class="btn" target="_blank">تنفيذ</a>
-          <button class="btn" id="done-${i}">✅ أتممت المهمة</button>
+          <button class="btn ${isDone ? 'done' : ''}" id="done-${i}" ${isDone ? 'disabled' : ''}>
+            ${isDone ? '✅ تمت الإضافة' : '✅ أتممت المهمة'}
+          </button>
         `;
         container.appendChild(div);
 
         document.getElementById(`done-${i}`).addEventListener("click", async () => {
+          if (sessionStorage.getItem(`ai_done_${i}`)) return;
           await rewardUser(task.points);
           const btn = document.getElementById(`done-${i}`);
-          btn.textContent = "تمت إضافة النقاط ✅";
+          btn.textContent = "✅ تمت الإضافة";
           btn.classList.add("done");
           btn.disabled = true;
+          sessionStorage.setItem(`ai_done_${i}`, "true");
         });
       });
     }
