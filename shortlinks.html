@@ -116,7 +116,14 @@
     function initShortLinks() {
       const today = new Date().toISOString().slice(0, 10);
       const userProgressKey = `shortlinks_progress_${userId}_${today}`;
-      let completedLinks = JSON.parse(localStorage.getItem(userProgressKey)) || [];
+
+      let completedLinks = [];
+      try {
+        const stored = JSON.parse(localStorage.getItem(userProgressKey));
+        if (Array.isArray(stored)) completedLinks = stored;
+      } catch (e) {
+        completedLinks = [];
+      }
 
       const justCompleted = localStorage.getItem("justCompletedLink");
       if (justCompleted !== null) {
