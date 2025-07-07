@@ -1,229 +1,164 @@
-<!-- 🔒 admin.html -->
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<!DOCTYPE html><html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>لوحة تحكم صاحب الموقع | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>لوحة تحكم احترافية | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
-      font-family: 'Cairo', sans-serif;
-      background: linear-gradient(to bottom right, #e0f7fa, #fce4ec);
+      font-family: 'Tajawal', sans-serif;
       margin: 0;
-      padding: 20px;
+      background: linear-gradient(to bottom left, #f0f4f8, #ffffff);
+      color: #333;
+    }
+    .navbar {
+      background-color: #007bff;
+      padding: 15px 30px;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
     .container {
-      max-width: 960px;
-      margin: auto;
-      background: white;
       padding: 30px;
-      border-radius: 15px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.05);
+      max-width: 1200px;
+      margin: auto;
     }
-    h1 {
-      text-align: center;
-      color: #007bff;
-    }
-    .stat-box {
+    .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 20px;
-      margin-top: 20px;
+      margin-bottom: 30px;
     }
     .card {
-      background: #f0f8ff;
+      background: white;
       padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.07);
       text-align: center;
     }
-    .card h2 { margin: 0; font-size: 2rem; color: #333; }
-    .card p { margin: 10px 0 0; color: #555; }
-
-    .button {
-      margin: 20px 10px 0 0;
+    .card h2 {
+      margin: 0;
+      font-size: 2rem;
+      color: #007bff;
+    }
+    .card p {
+      margin: 10px 0 0;
+      color: #555;
+    }
+    .actions {
+      margin-top: 30px;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    .actions button {
       padding: 12px 20px;
-      background-color: #dc3545;
-      border: none;
-      color: white;
-      font-size: 16px;
       font-weight: bold;
+      border: none;
       border-radius: 8px;
       cursor: pointer;
+      transition: background 0.3s ease;
     }
-
-    .button.green {
-      background-color: #28a745;
-    }
-
-    .vip-list {
-      margin-top: 30px;
-    }
-    .vip-list h3 { color: #333; margin-bottom: 10px; }
-    .vip-list ul { list-style: none; padding: 0; }
-    .vip-list li {
-      background: #e9ecef;
-      padding: 8px;
-      margin-bottom: 6px;
-      border-radius: 6px;
-    }
+    .green { background-color: #28a745; color: white; }
+    .red { background-color: #dc3545; color: white; }
+    .yellow { background-color: #ffc107; color: black; }
+    canvas { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>لوحة تحكم صاحب الموقع</h1>
-
-    <!-- الإحصائيات -->
-    <div class="stat-box">
+  <div class="navbar">🔐 لوحة تحكم Am Rewards</div>  <div class="container">
+    <div class="stats-grid">
       <div class="card"><h2 id="userCount">0</h2><p>عدد المستخدمين</p></div>
       <div class="card"><h2 id="taskCount">0</h2><p>عدد المهام المنفذة</p></div>
       <div class="card"><h2 id="withdrawTotal">0 EGP</h2><p>إجمالي السحب</p></div>
-      <div class="card"><h2 id="siteProfit">0 EGP</h2><p>أرباحك (بعد الخصم)</p></div>
-      <div class="card"><h2 id="discountEarnings">0 EGP</h2><p>أرباح الخصم 10%</p></div>
+      <div class="card"><h2 id="siteProfit">0 EGP</h2><p>صافي الربح</p></div>
+    </div><div class="actions">
+  <button class="red" onclick="toggleWithdraw()" id="withdrawBtn">⏳ جار التحميل...</button>
+  <button class="green" onclick="window.location.href='admin-withdraw.html'">💰 سحب أرباحي</button>
+  <button class="yellow" onclick="window.location.href='admin-zaki.html'">📨 لوحة الرسائل <span id="messageCount">(0)</span></button>
+</div>
 
-      <!-- إضافات جديدة -->
-      <div class="card"><h2 id="dailyTasksAll">0</h2><p>عدد المهام اليومية (الإجمالي)</p></div>
-      <div class="card"><h2 id="totalPointsGiven">0</h2><p>النقاط الموزعة</p></div>
-      <div class="card"><h2 id="totalPaidEGP">0 EGP</h2><p>المبالغ المدفوعة للمستخدمين</p></div>
-      <div class="card"><h2 id="totalEarnedEGP">0 EGP</h2><p>إجمالي أرباحك</p></div>
-      <div class="card"><h2 id="netProfit">0 EGP</h2><p>صافي ربح الموقع</p></div>
-    </div>
+<h3 style="margin-top: 40px; text-align:center; color:#333">📈 الأداء الأسبوعي</h3>
+<canvas id="statsChart" width="100%" height="300"></canvas>
 
-    <!-- الأزرار -->
-    <button class="button" onclick="toggleWithdraw()" id="withdrawBtn">⏸️ جار التحقق...</button>
-    <button class="button green" onclick="window.location.href='admin-withdraw.html'">💰 سحب أرباحي</button>
-    <button class="button" style="background-color:#ffc107" onclick="processPendingWithdrawals()">📤 إرسال السحب المعلّق <span id="pendingCount">(0)</span></button>
-
-    <!-- قائمة المستخدمين المميزين -->
-    <div class="vip-list">
-      <h3>👑 المستخدمين المميزين (VIP)</h3>
-      <ul id="vipUsers"></ul>
-    </div>
-  </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      doc,
-      getDocs,
-      getDoc,
-      setDoc,
-      updateDoc
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
+  </div>  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards",
+      projectId: "am--rewards"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
     async function loadStats() {
-      const POINT_VALUE = 0.07;
-      const PROFIT_MULTIPLIER = 1.5;
-      const TASKS_PER_USER = 310;
-
-      const usersSnap = await getDocs(collection(db, "users"));
+      const usersSnap = await db.collection("users").get();
       let totalUsers = 0;
       let totalWithdrawn = 0;
       let totalPoints = 0;
-      let vipList = [];
 
       usersSnap.forEach(doc => {
         const data = doc.data();
         totalUsers++;
         totalPoints += data.points || 0;
         totalWithdrawn += data.withdrawn || 0;
-        if (data.vip === true) vipList.push(doc.id);
       });
 
-      const discount = totalWithdrawn * 0.10;
-      const siteProfit = (totalPoints * POINT_VALUE * PROFIT_MULTIPLIER) - totalWithdrawn;
-
-      const totalTasks = totalUsers * TASKS_PER_USER;
-      const avgPointsPerUser = totalPoints / (totalUsers || 1);
-      const totalPointsGiven = totalTasks * (avgPointsPerUser / TASKS_PER_USER);
-      const totalPaid = totalPointsGiven * POINT_VALUE;
-      const totalEarned = totalPointsGiven * POINT_VALUE * PROFIT_MULTIPLIER;
-      const netProfit = totalEarned - totalPaid;
+      const siteProfit = (totalPoints * 0.07 * 1.5) - totalWithdrawn;
 
       document.getElementById("userCount").textContent = totalUsers;
       document.getElementById("taskCount").textContent = Math.round(totalPoints / 5);
-      document.getElementById("withdrawTotal").textContent = `${totalWithdrawn.toFixed(2)} EGP`;
-      document.getElementById("siteProfit").textContent = `${siteProfit.toFixed(2)} EGP`;
-      document.getElementById("discountEarnings").textContent = `${discount.toFixed(2)} EGP`;
-
-      document.getElementById("dailyTasksAll").textContent = totalTasks;
-      document.getElementById("totalPointsGiven").textContent = totalPointsGiven.toFixed(0);
-      document.getElementById("totalPaidEGP").textContent = `${totalPaid.toFixed(2)} EGP`;
-      document.getElementById("totalEarnedEGP").textContent = `${totalEarned.toFixed(2)} EGP`;
-      document.getElementById("netProfit").textContent = `${netProfit.toFixed(2)} EGP`;
-
-      const vipListEl = document.getElementById("vipUsers");
-      vipList.forEach(uid => {
-        const li = document.createElement("li");
-        li.textContent = `معرف المستخدم: ${uid}`;
-        vipListEl.appendChild(li);
-      });
-    }
-
-    async function checkWithdrawStatus() {
-      const ref = doc(db, "settings", "withdrawal");
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
-        const status = snap.data().enabled;
-        document.getElementById("withdrawBtn").textContent = status ? "⛔ إيقاف السحب مؤقتًا" : "✅ تفعيل السحب";
-        document.getElementById("withdrawBtn").style.backgroundColor = status ? "#dc3545" : "#28a745";
-      } else {
-        await setDoc(ref, { enabled: true });
-        document.getElementById("withdrawBtn").textContent = "⛔ إيقاف السحب مؤقتًا";
-      }
+      document.getElementById("withdrawTotal").textContent = totalWithdrawn.toFixed(2) + " EGP";
+      document.getElementById("siteProfit").textContent = siteProfit.toFixed(2) + " EGP";
     }
 
     async function toggleWithdraw() {
-      const ref = doc(db, "settings", "withdrawal");
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
-        const current = snap.data().enabled;
-        await updateDoc(ref, { enabled: !current });
-        checkWithdrawStatus();
+      const ref = db.collection("settings").doc("withdrawal");
+      const snap = await ref.get();
+      if (snap.exists) {
+        const enabled = snap.data().enabled;
+        await ref.update({ enabled: !enabled });
+        updateWithdrawBtn(!enabled);
       }
     }
 
-    async function countPendingWithdrawals() {
-      const snap = await getDocs(collection(db, "withdrawRequests"));
-      let pending = 0;
-      snap.forEach(doc => {
-        const data = doc.data();
-        if (data.status === "pending") pending++;
-      });
-      document.getElementById("pendingCount").textContent = `(${pending})`;
+    async function updateWithdrawBtn(current) {
+      const btn = document.getElementById("withdrawBtn");
+      btn.textContent = current ? "⛔ إيقاف السحب مؤقتًا" : "✅ تفعيل السحب";
+      btn.className = current ? "red" : "green";
     }
 
-    async function processPendingWithdrawals() {
-      const snap = await getDocs(collection(db, "withdrawRequests"));
-      let sent = 0;
-      for (const docSnap of snap.docs) {
-        const data = docSnap.data();
-        if (data.status === "pending") {
-          await updateDoc(doc(db, "withdrawRequests", docSnap.id), {
-            status: "paid",
-            paidAt: new Date()
-          });
-          sent++;
+    async function updateMessageCount() {
+      const msgs = await db.collection("contactMessages").get();
+      document.getElementById("messageCount").textContent = `(${msgs.size})`;
+    }
+
+    function renderChart() {
+      const ctx = document.getElementById("statsChart").getContext("2d");
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'],
+          datasets: [{
+            label: 'نقاط المستخدمين',
+            data: [9000, 11000, 8500, 12500, 13800, 11900, 10200],
+            fill: true,
+            backgroundColor: 'rgba(0,123,255,0.2)',
+            borderColor: '#007bff',
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } }
         }
-      }
-      alert(sent ? `✅ تم إرسال ${sent} عملية سحب.` : "❌ لا يوجد سحوبات معلّقة.");
-      countPendingWithdrawals();
+      });
     }
 
     loadStats();
-    checkWithdrawStatus();
-    countPendingWithdrawals();
-  </script>
-</body>
-  </html>
+    updateMessageCount();
+    renderChart();
+  </script></body>
+</html>
