@@ -8,13 +8,13 @@
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
-      background: #f0f9ff;
-      padding: 20px;
+      background: #eef6ff;
       margin: 0;
+      padding: 20px;
     }
     h2 {
       text-align: center;
-      color: #007bff;
+      color: #0d6efd;
     }
     #user-points {
       text-align: center;
@@ -22,20 +22,19 @@
       background: #fff3cd;
       padding: 10px;
       border-radius: 10px;
-      margin-bottom: 20px;
       border: 1px solid #ffeeba;
-      max-width: 300px;
-      margin: auto;
+      margin: 20px auto;
+      max-width: 320px;
     }
     .app-task {
-      background: white;
-      padding: 15px;
+      background: #fff;
       border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      padding: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
       margin: 20px auto;
-      max-width: 480px;
+      max-width: 500px;
     }
-    .btn-install, .btn-upload {
+    .btn-install, .btn-upload, .nav-btn {
       display: inline-block;
       margin-top: 10px;
       padding: 10px 16px;
@@ -46,12 +45,17 @@
       cursor: pointer;
     }
     .btn-install {
-      background-color: #007bff;
+      background: #0d6efd;
       color: white;
     }
     .btn-upload {
-      background-color: #28a745;
+      background: #198754;
       color: white;
+    }
+    .nav-btn {
+      background: #6c757d;
+      color: white;
+      margin: 10px 5px;
     }
     .status {
       margin-top: 10px;
@@ -61,9 +65,13 @@
     input[type="file"] {
       margin-top: 10px;
     }
+    #navigation {
+      text-align: center;
+      margin-top: 30px;
+    }
   </style>
 
-  <!-- Firebase SDK -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
@@ -87,6 +95,11 @@
   <div id="user-points">جارٍ تحميل النقاط...</div>
   <div id="tasks">جارٍ تحميل التطبيقات...</div>
 
+  <div id="navigation">
+    <button class="nav-btn" onclick="location.href='tasks.html'">🔙 الرجوع إلى صفحة المهام</button>
+    <button class="nav-btn" onclick="location.href='dashboard.html'">🏠 الصفحة الرئيسية</button>
+  </div>
+
   <script>
     const apps = [
       {
@@ -96,25 +109,23 @@
         points: 30
       },
       {
-        title: "CashZine",
-        description: "ربح من قراءة الأخبار والدعوات.",
-        link: "https://play.google.com/store/apps/details?id=com.jifen.qukan",
-        points: 25
-      },
-      {
         title: "BuzzBreak",
         description: "تابع الأخبار واربح مقابل الوقت.",
         link: "https://play.google.com/store/apps/details?id=com.buzzbreak.reward.news",
-        points: 20
+        points: 25
+      },
+      {
+        title: "Toloka",
+        description: "مهام سهلة واربح مقابل إنجازها.",
+        link: "https://play.google.com/store/apps/details?id=com.yandex.toloka.app",
+        points: 40
       }
     ];
 
     const uploadedApps = [];
 
-    function checkUploads(userId) {
-      return db.collection("install_proofs")
-        .where("userId", "==", userId)
-        .get()
+    function checkUploaded(userId) {
+      return db.collection("install_proofs").where("userId", "==", userId).get()
         .then(snapshot => {
           snapshot.forEach(doc => {
             uploadedApps.push(doc.data().appTitle);
@@ -122,13 +133,14 @@
         });
     }
 
-    function showApps(userId, userPoints) {
-      const taskContainer = document.getElementById("tasks");
-      document.getElementById("user-points").textContent = `نقاطي: ${userPoints} 🪙`;
+    function displayTasks(userId, currentPoints) {
+      const container = document.getElementById("tasks");
+      document.getElementById("user-points").textContent = `نقاطي: ${currentPoints} 🪙`;
+      container.innerHTML = "";
 
       apps.forEach((app, index) => {
-        const uploaded = uploadedApps.includes(app.title);
-        const disabled = uploaded ? "disabled" : "";
+        const already = uploadedApps.includes(app.title);
+        const disabled = already ? "disabled" : "";
         const div = document.createElement("div");
         div.className = "app-task";
         div.innerHTML = `
@@ -137,24 +149,12 @@
           <p>🎁 <strong>${app.points}</strong> نقطة</p>
           <a href="${app.link}" target="_blank" class="btn-install">🔗 تثبيت التطبيق</a><br>
           <input type="file" accept="image/*" id="file-${index}" ${disabled}>
-          <button class="btn-upload" onclick="uploadProof(${index}, '${app.title}', '${userId}', ${app.points})" ${disabled}>📤 إثبات التثبيت</button>
-          <div class="status" id="status-${index}">${uploaded ? "✅ تم الرفع مسبقًا" : ""}</div>
+          <button class="btn-upload" onclick="uploadProof(${index}, '${app.title}', '${userId}', ${app.points})" ${disabled}>📤 رفع إثبات التثبيت</button>
+          <div class="status" id="status-${index}">${already ? "✅ تم رفع الإثبات" : ""}</div>
         `;
-        taskContainer.appendChild(div);
+        container.appendChild(div);
       });
     }
-
-    auth.onAuthStateChanged(user => {
-      if (!user) return (location.href = 'login.html');
-      const userId = user.uid;
-
-      db.collection("users").doc(userId).get().then(doc => {
-        const userPoints = doc.exists ? (doc.data().points || 0) : 0;
-        checkUploads(userId).then(() => {
-          showApps(userId, userPoints);
-        });
-      });
-    });
 
     function uploadProof(index, appTitle, userId, points) {
       const fileInput = document.getElementById(`file-${index}`);
@@ -163,7 +163,7 @@
 
       if (!file) return alert("يرجى اختيار لقطة شاشة لإثبات التثبيت");
       if (!file.type.startsWith("image/")) {
-        status.textContent = "❌ الملف المرفوع ليس صورة";
+        status.textContent = "❌ الملف ليس صورة صالحة";
         return;
       }
 
@@ -171,7 +171,6 @@
       const uploadTask = storage.ref(filePath).put(file);
 
       status.textContent = "📤 جاري الرفع...";
-
       uploadTask.then(() => {
         return db.collection("install_proofs").add({
           userId,
@@ -182,24 +181,34 @@
           reviewed: false
         });
       }).then(() => {
-        // تحديث النقاط
         return db.collection("users").doc(userId).update({
           points: firebase.firestore.FieldValue.increment(points)
         });
       }).then(() => {
-        status.textContent = "✅ تم إرسال الإثبات! سيتم مراجعته يدويًا.";
+        status.textContent = "✅ تم إرسال الإثبات وسيتم مراجعته";
         fileInput.disabled = true;
-        document.querySelector(`#file-${index}`).disabled = true;
-        document.querySelector(`#status-${index}`).style.color = "green";
+        uploadedApps.push(appTitle);
 
-        // تحديث النقاط في الأعلى
-        const pointsBox = document.getElementById("user-points");
-        const current = parseInt(pointsBox.textContent.match(/\d+/)[0]);
-        pointsBox.textContent = `نقاطي: ${current + points} 🪙`;
+        // تحديث النقاط
+        const box = document.getElementById("user-points");
+        const current = parseInt(box.textContent.match(/\d+/)[0]);
+        box.textContent = `نقاطي: ${current + points} 🪙`;
       }).catch(() => {
-        status.textContent = "❌ حدث خطأ أثناء رفع الصورة";
+        status.textContent = "❌ فشل في رفع الصورة. حاول مجددًا";
       });
     }
+
+    auth.onAuthStateChanged(user => {
+      if (!user) return location.href = 'login.html';
+      const uid = user.uid;
+
+      db.collection("users").doc(uid).get().then(doc => {
+        const points = doc.exists ? (doc.data().points || 0) : 0;
+        checkUploaded(uid).then(() => {
+          displayTasks(uid, points);
+        });
+      });
+    });
   </script>
 </body>
-</html>
+  </html>
