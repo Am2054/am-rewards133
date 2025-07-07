@@ -1,9 +1,8 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<!DOCTYPE html><html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>طلبات سحب الأرباح (PayPal)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>طلبات سحب الأرباح (PayPal)</title>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">
   <style>
     body {
@@ -12,23 +11,30 @@
       padding: 20px;
     }
     .box {
-      max-width: 700px;
+      max-width: 800px;
       margin: auto;
       background: white;
       border-radius: 15px;
       padding: 30px;
       box-shadow: 0 0 15px rgba(0,0,0,0.1);
     }
-    h2 {
+    h2, h3 {
       text-align: center;
       color: #007bff;
       margin-bottom: 20px;
     }
-    .request {
+    .summary {
       background: #e7f3ff;
       padding: 15px;
       border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .request {
+      background: #fefefe;
+      padding: 15px;
+      border-radius: 10px;
       margin-bottom: 15px;
+      border: 1px solid #d4e3f0;
     }
     .request p {
       margin: 5px 0;
@@ -55,10 +61,12 @@
 <body>
   <div class="box">
     <h2>طلبات سحب PayPal</h2>
+    <div class="summary">
+      <p>💵 <strong>الإجمالي المحول:</strong> <span id="doneTotal">0</span> دولار</p>
+      <p>⏳ <strong>الإجمالي قيد الانتظار:</strong> <span id="pendingTotal">0</span> دولار</p>
+    </div>
     <div id="requestsList">جاري التحميل...</div>
-  </div>
-
-  <script type="module">
+  </div>  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
       getFirestore, collection, query, orderBy, getDocs, updateDoc, doc
@@ -78,6 +86,8 @@
     const auth = getAuth(app);
     const adminEmail = "amirfg992005@gmail.com";
     const requestsList = document.getElementById("requestsList");
+    const pendingTotalEl = document.getElementById("pendingTotal");
+    const doneTotalEl = document.getElementById("doneTotal");
 
     onAuthStateChanged(auth, async (user) => {
       if (!user || user.email !== adminEmail) {
@@ -96,6 +106,9 @@
       const snapshot = await getDocs(q);
       requestsList.innerHTML = "";
 
+      let pendingTotal = 0;
+      let doneTotal = 0;
+
       if (snapshot.empty) {
         requestsList.innerHTML = "<p>لا توجد طلبات حتى الآن.</p>";
         return;
@@ -108,22 +121,32 @@
         div.className = "request";
         const time = data.requestedAt?.toDate().toLocaleString("ar-EG") || "غير معروف";
 
+        if (data.status === "pending") pendingTotal += Number(data.amount);
+        if (data.status === "done") doneTotal += Number(data.amount);
+
         div.innerHTML = `
           <p>📧 الإيميل: <strong>${data.email}</strong></p>
           <p>💵 المبلغ: <strong>${data.amount}$</strong></p>
           <p>⏰ التاريخ: ${time}</p>
           <p>🔄 الحالة: <span id="status-${id}">${data.status === "done" ? "<span class='done'>تم التحويل</span>" : "قيد المراجعة"}</span></p>
-          ${data.status === "pending" ? `<button class="btn" onclick="markAsDone('${id}')">✅ تم التحويل</button>` : ""}
+          ${data.status === "pending" ? `<button class="btn" onclick="markAsDone('${id}', ${data.amount})">✅ تم التحويل</button>` : ""}
         `;
         requestsList.appendChild(div);
       });
+
+      pendingTotalEl.textContent = pendingTotal.toFixed(2);
+      doneTotalEl.textContent = doneTotal.toFixed(2);
     }
 
-    window.markAsDone = async function (id) {
-      await updateDoc(doc(db, "adminWithdrawals", id), { status: "done" });
-      document.getElementById(`status-${id}`).innerHTML = "<span class='done'>تم التحويل</span>";
-      loadRequests();
+    window.markAsDone = async function (id, amount) {
+      if (!confirm("هل أنت متأكد أنك قمت بتحويل هذا الطلب؟")) return;
+
+      await updateDoc(doc(db, "adminWithdrawals", id), {
+        status: "done",
+        paidAt: new Date()
+      });
+      alert("✅ تم تحديث الحالة إلى تم التحويل.");
+      await loadRequests();
     };
-  </script>
-</body>
+  </script></body>
 </html>
