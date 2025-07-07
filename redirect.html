@@ -1,60 +1,89 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>جاري تنفيذ المهمة...</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>جارٍ فتح المهمة | Am Rewards</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
-      background: #f8f9fa;
+      background: linear-gradient(to bottom right, #e0f7fa, #ffffff);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      padding: 20px;
       text-align: center;
-      padding: 50px;
     }
-    #timer {
-      font-size: 36px;
+    h2 {
+      color: #007bff;
+    }
+    .timer {
+      font-size: 26px;
+      font-weight: bold;
       color: #28a745;
-      margin-bottom: 20px;
+      margin-top: 10px;
     }
-    button {
-      padding: 12px 25px;
-      background: #007bff;
+    .button {
+      margin-top: 30px;
+      padding: 12px 24px;
+      font-size: 16px;
+      background-color: #28a745;
       color: white;
       border: none;
-      border-radius: 8px;
-      font-size: 18px;
+      border-radius: 10px;
+      cursor: not-allowed;
+      opacity: 0.6;
+      transition: all 0.3s;
+    }
+    .button.enabled {
       cursor: pointer;
+      opacity: 1;
     }
   </style>
 </head>
 <body>
-  <h2>⏳ انتظر حتى ينتهي العد التنازلي</h2>
-  <div id="timer">10</div>
-  <div id="done" style="display:none;">
-    <button onclick="finish()">✅ اضغط هنا لإتمام المهمة</button>
-  </div>
+
+  <h2>📂 جارٍ تنفيذ المهمة المختصرة</h2>
+  <p>⏳ انتظر حتى ينتهي الوقت قبل تأكيد المهمة.</p>
+  <div class="timer" id="countdown">30 ثانية</div>
+
+  <button id="completeBtn" class="button" disabled>✅ لقد أكملت المهمة</button>
 
   <script>
+    const countdownEl = document.getElementById("countdown");
+    const completeBtn = document.getElementById("completeBtn");
+    let timeLeft = 30;
+
+    const link = localStorage.getItem("redirect_link");
     const index = localStorage.getItem("redirect_index");
-    const url = localStorage.getItem("redirect_link");
-    let seconds = 10;
+
+    // فتح الرابط في تبويب جديد
+    if (link) window.open(link, "_blank");
 
     const timer = setInterval(() => {
-      seconds--;
-      document.getElementById("timer").textContent = seconds;
-      if (seconds <= 0) {
+      timeLeft--;
+      countdownEl.textContent = `${timeLeft} ثانية`;
+
+      if (timeLeft <= 0) {
         clearInterval(timer);
-        document.getElementById("timer").style.display = 'none';
-        document.getElementById("done").style.display = 'block';
+        completeBtn.disabled = false;
+        completeBtn.classList.add("enabled");
+        completeBtn.style.cursor = "pointer";
+        completeBtn.style.opacity = "1";
+        completeBtn.textContent = "✅ اضغط هنا لتأكيد إنهاء المهمة";
       }
     }, 1000);
 
-    function finish() {
-      if (index !== null) {
+    completeBtn.addEventListener("click", () => {
+      if (!completeBtn.disabled) {
         localStorage.setItem("justCompletedLink", index);
+        window.location.href = "shortlinks.html";
       }
-      window.location.href = "shortlinks.html";
-    }
+    });
   </script>
 </body>
 </html>
