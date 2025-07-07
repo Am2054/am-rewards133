@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<!DOCTYPE html><html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -8,7 +7,7 @@
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
-      background: #f8f9fa;
+      background: linear-gradient(to bottom right, #e6f0ff, #f8f9fa);
       padding: 20px;
       direction: rtl;
     }
@@ -58,15 +57,27 @@
     .send-btn:hover {
       background-color: #0056b3;
     }
+    .counts-table {
+      margin: 20px auto;
+      max-width: 600px;
+      border-collapse: collapse;
+      width: 100%;
+    }
+    .counts-table th, .counts-table td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: center;
+    }
+    .counts-table th {
+      background-color: #007bff;
+      color: white;
+    }
   </style>
 </head>
-<body>
-
-  <h2>📊 لوحة الذكاء الإداري (زاكي)</h2>
+<body>  <h2>📊 لوحة الذكاء الإداري (زاكي)</h2>
   <div id="alerts"></div>
-  <div id="messages"></div>
-
-  <script type="module">
+  <div id="countTable"></div>
+  <div id="messages"></div>  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
       getFirestore, collection, getDocs, query, orderBy, addDoc
@@ -85,6 +96,7 @@
     const responsesRef = collection(db, "contactReplies");
     const msgContainer = document.getElementById("messages");
     const alertBox = document.getElementById("alerts");
+    const countTable = document.getElementById("countTable");
     const issuesCount = {};
 
     function autoReply(category) {
@@ -119,28 +131,43 @@
         issuesCount[category] = (issuesCount[category] || 0) + 1;
 
         const suggestedReply = autoReply(category);
+        const timestamp = data.timestamp?.toDate().toLocaleString() || "غير معروف";
 
         const box = document.createElement("div");
         box.className = "message-box";
         box.innerHTML = `
-          <p><strong>📧 الاسم:</strong> ${data.name}</p>
-          <p><strong>✉️ البريد:</strong> ${data.email}</p>
+          <p><strong>📧 الاسم:</strong> ${data.name || "غير معروف"}</p>
+          <p><strong>✉️ البريد:</strong> ${data.email || "غير معروف"}</p>
           <p><strong class="category">📌 النوع:</strong> ${category}</p>
-          <p><strong>💬 الرسالة:</strong><br>${data.message}</p>
+          <p><strong>📅 التاريخ:</strong> ${timestamp}</p>
+          <p><strong>💬 الرسالة:</strong><br>${data.message || ""}</p>
           <div class="auto-response">🤖 زاكي يقترح: ${suggestedReply}</div>
           <button class="send-btn" onclick="sendResponse('${data.email}', \`${suggestedReply}\`)">📤 إرسال الرد</button>
         `;
         msgContainer.appendChild(box);
       });
 
+      renderCountsTable();
+
       if (issuesCount["مشكلة في السحب"] >= 5) {
         alertBox.innerHTML = "<div class='alert'>🚨 هناك أكثر من 5 بلاغات عن السحب اليوم! يُرجى التحقق فورًا.</div>";
-        // يمكنك هنا إضافة كود إشعار بالبريد أو تنبيه Push لاحقًا
       }
+    }
+
+    function renderCountsTable() {
+      const entries = Object.entries(issuesCount);
+      if (entries.length === 0) return;
+
+      let tableHTML = '<table class="counts-table">';
+      tableHTML += '<tr><th>الفئة</th><th>عدد الرسائل</th></tr>';
+      entries.forEach(([key, val]) => {
+        tableHTML += `<tr><td>${key}</td><td>${val}</td></tr>`;
+      });
+      tableHTML += '</table>';
+      countTable.innerHTML = tableHTML;
     }
 
     window.sendResponse = sendResponse;
     loadMessages();
-  </script>
-</body>
+  </script></body>
 </html>
