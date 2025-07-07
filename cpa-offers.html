@@ -10,11 +10,20 @@
       background: #fff3cd;
       margin: 0;
       padding: 20px;
-      direction: rtl;
     }
     h2 {
       text-align: center;
       color: #856404;
+    }
+    #balanceBox {
+      background: #fff;
+      padding: 10px;
+      border-radius: 10px;
+      text-align: center;
+      max-width: 400px;
+      margin: 15px auto;
+      font-weight: bold;
+      color: #333;
     }
     .offer-box {
       background: #fff;
@@ -42,22 +51,32 @@
       text-decoration: none;
       font-weight: bold;
     }
-    .btn:hover {
-      background: #e0a800;
-    }
+    .btn:hover { background: #e0a800; }
     .done {
       background-color: #28a745 !important;
+      color: white !important;
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
   <h2>💼 عروض CPA - أرباح عالية</h2>
+  <div id="balanceBox">جاري تحميل رصيدك...</div>
   <div id="offerList"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      updateDoc,
+      arrayUnion,
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getAuth,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -70,60 +89,91 @@
     const auth = getAuth(app);
 
     let currentUser;
+    let userData = {};
 
     const offers = [
       {
-        title: "سجل للحصول على بطاقة هدايا مجانية",
-        desc: "افتح العرض وسجل ببريدك الإلكتروني.",
+        id: "cpa1",
+        title: "🎁 بطاقة هدايا مجانية",
+        desc: "افتح الرابط وسجل ببريدك للحصول على نقاط.",
         url: "https://example.com/cpa1",
         points: 9
       },
       {
-        title: "احصل على فرصة ربح جوال مجاني",
-        desc: "أكمل الاستبيان القصير وسجل.",
+        id: "cpa2",
+        title: "📱 اربح جوال مجاني",
+        desc: "أكمل استبيان وسجل بياناتك.",
         url: "https://example.com/cpa2",
         points: 9
       }
     ];
 
-    onAuthStateChanged(auth, user => {
-      if (user) {
-        currentUser = user;
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return window.location.href = "login.html";
+      currentUser = user;
+      const snap = await getDoc(doc(db, "users", user.uid));
+      if (snap.exists()) {
+        userData = snap.data();
+        updateBalance();
         renderOffers();
-      } else {
-        window.location.href = "login.html";
       }
     });
 
+    function updateBalance() {
+      const points = userData.points || 0;
+      const egp = (points * 0.07).toFixed(2);
+      document.getElementById("balanceBox").textContent = `رصيدك: ${points} نقطة (≈ ${egp} جنيه مصري)`;
+    }
+
     function renderOffers() {
       const container = document.getElementById("offerList");
-      offers.forEach((offer, index) => {
+      const completed = userData.completedCPA || [];
+
+      offers.forEach(offer => {
         const div = document.createElement("div");
         div.className = "offer-box";
+        const isDone = completed.includes(offer.id);
+
         div.innerHTML = `
           <h3>${offer.title}</h3>
           <p>${offer.desc}</p>
-          <a href="${offer.url}" target="_blank" class="btn" id="btn-${index}">تنفيذ +${offer.points} نقطة</a>
+          <a href="${offer.url}" target="_blank" class="btn ${isDone ? 'done' : ''}" id="btn-${offer.id}">
+            ${isDone ? '✅ تم التنفيذ' : `تنفيذ +${offer.points} نقطة`}
+          </a>
         `;
+
         container.appendChild(div);
 
-        const btn = document.getElementById(`btn-${index}`);
-        btn.addEventListener("click", async () => {
-          await rewardUser(offer.points);
-          btn.textContent = "✅ تم التنفيذ";
-          btn.classList.add("done");
-          btn.disabled = true;
-        });
+        if (!isDone) {
+          const btn = document.getElementById(`btn-${offer.id}`);
+          btn.addEventListener("click", async () => {
+            await rewardUser(offer.points, offer.id);
+            btn.textContent = "✅ تم التنفيذ";
+            btn.classList.add("done");
+            btn.disabled = true;
+            updateBalance();
+          });
+        }
       });
     }
 
-    async function rewardUser(points) {
+    async function rewardUser(points, offerId) {
       if (!currentUser) return;
       const ref = doc(db, "users", currentUser.uid);
       const snap = await getDoc(ref);
       if (snap.exists()) {
-        const current = snap.data().points || 0;
-        await updateDoc(ref, { points: current + points });
+        const data = snap.data();
+        const currentPoints = data.points || 0;
+        const completed = data.completedCPA || [];
+
+        if (!completed.includes(offerId)) {
+          await updateDoc(ref, {
+            points: currentPoints + points,
+            completedCPA: arrayUnion(offerId)
+          });
+          userData.points = currentPoints + points;
+          userData.completedCPA = [...completed, offerId];
+        }
       }
     }
   </script>
