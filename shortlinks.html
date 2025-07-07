@@ -65,21 +65,6 @@
       cursor: pointer;
     }
   </style>
-
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const auth = firebase.auth();
-  </script>
 </head>
 <body>
   <h2>مهمة الروابط المختصرة</h2>
@@ -92,8 +77,21 @@
     <a href="tasks.html"><button>🗂️ العودة إلى صفحة المهام</button></a>
   </div>
 
-  <script>
-    let userId = null;
+  <!-- Firebase SDK باستخدام type="module" -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, updateDoc, setDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
     const shortlinks = [
       { title: "🔥 رابط مختصر 1 - شاهد فيديو قصير", url: "https://exe.io/shortlink1" },
@@ -103,17 +101,17 @@
       { title: "🧠 رابط مختصر 5 - معلومة مفيدة", url: "https://bitly.ws/shortlink5" }
     ];
 
-    auth.onAuthStateChanged(user => {
+    onAuthStateChanged(auth, user => {
       if (user) {
-        userId = user.uid;
-        initShortLinks();
+        const userId = user.uid;
+        initShortLinks(userId);
       } else {
         alert("⚠️ يجب تسجيل الدخول أولاً.");
         window.location.href = "index.html";
       }
     });
 
-    function initShortLinks() {
+    function initShortLinks(userId) {
       const today = new Date().toISOString().slice(0, 10);
       const userProgressKey = `shortlinks_progress_${userId}_${today}`;
 
@@ -133,11 +131,10 @@
           localStorage.setItem(userProgressKey, JSON.stringify(completedLinks));
           localStorage.removeItem("justCompletedLink");
 
-          db.collection("users").doc(userId).set({
-            points: firebase.firestore.FieldValue.increment(10)
-          }, { merge: true }).then(() => {
-            updateUserPoints();
-          });
+          const userDocRef = doc(db, "users", userId);
+          updateDoc(userDocRef, {
+            points: increment(10)
+          }).then(updateUserPoints);
         } else {
           localStorage.removeItem("justCompletedLink");
           updateUserPoints();
@@ -145,8 +142,9 @@
       }
 
       function updateUserPoints() {
-        db.collection("users").doc(userId).get().then(doc => {
-          const data = doc.data();
+        const userDocRef = doc(db, "users", userId);
+        getDoc(userDocRef).then(docSnap => {
+          const data = docSnap.data();
           const points = data?.points || 0;
           document.getElementById("user-points").textContent = `نقاطي: ${points} 🪙`;
         });
@@ -178,7 +176,7 @@
       updateUserPoints();
     }
 
-    function startRedirect(index, url) {
+    window.startRedirect = function(index, url) {
       localStorage.setItem("redirect_link", url);
       localStorage.setItem("redirect_index", index);
       window.location.href = "redirect.html";
