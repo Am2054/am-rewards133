@@ -6,31 +6,81 @@
   <title>سحب الأرباح - Am Rewards</title>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">
   <style>
-    body{
-      font-family:'Tajawal',sans-serif;background:linear-gradient(135deg,#e0ffe9,#fff);
-      min-height:100vh;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px
+    body {
+      font-family:'Tajawal',sans-serif;
+      background:linear-gradient(135deg,#e0ffe9,#fff);
+      min-height:100vh;
+      margin:0;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding:20px
     }
-    .container{
-      background:#fff;padding:30px;border-radius:20px;border:3px solid #0070ba;
-      box-shadow:0 0 15px rgba(0,0,0,.1);max-width:450px;width:100%;text-align:center
+    .container {
+      background:#fff;
+      padding:30px;
+      border-radius:20px;
+      border:3px solid #0070ba;
+      box-shadow:0 0 15px rgba(0,0,0,.1);
+      max-width:450px;
+      width:100%;
+      text-align:center
     }
-    h2{color:#0070ba;margin:0 0 15px}
-    p{font-size:18px;margin:10px 0}
-    input,button{
-      width:100%;padding:14px;margin:10px 0;border-radius:12px;border:1px solid #ccc;font-size:16px;box-sizing:border-box
+    h2 { color:#0070ba;margin:0 0 15px }
+    p { font-size:18px;margin:10px 0 }
+    input,button {
+      width:100%;
+      padding:14px;
+      margin:10px 0;
+      border-radius:12px;
+      border:1px solid #ccc;
+      font-size:16px;
+      box-sizing:border-box
     }
-    button{background:#0070ba;color:#fff;font-weight:700;border:none;cursor:pointer;transition:.3s}
-    button:hover{background:#005ea6}
-    .note{font-size:14px;color:red;margin-top:5px}
-    .success{color:green}
-    label{font-weight:700;display:block;text-align:right;margin-top:15px}
-    .modal{display:none;position:fixed;z-index:999;left:0;top:0;width:100%;height:100%;
-      background:rgba(0,0,0,.5);padding-top:100px;direction:rtl}
-    .modal-content{
-      background:#fff;margin:auto;padding:20px;border-radius:15px;max-width:400px;text-align:center;position:relative
+    button {
+      background:#0070ba;
+      color:#fff;
+      font-weight:700;
+      border:none;
+      cursor:pointer;
+      transition:.3s
     }
-    .close-btn{position:absolute;right:15px;top:10px;font-size:24px;font-weight:700;color:#0070ba;cursor:pointer}
-    #dollarRate{font-size:15px;color:#0070ba;margin:5px 0}
+    button:hover { background:#005ea6 }
+    .note { font-size:14px;color:red;margin-top:5px }
+    .success { color:green }
+    label { font-weight:700;display:block;text-align:right;margin-top:15px }
+    .modal {
+      display:none;
+      position:fixed;
+      z-index:999;
+      left:0;
+      top:0;
+      width:100%;
+      height:100%;
+      background:rgba(0,0,0,.5);
+      padding-top:100px;
+      direction:rtl
+    }
+    .modal-content {
+      background:#fff;
+      margin:auto;
+      padding:20px;
+      border-radius:15px;
+      max-width:400px;
+      text-align:center;
+      position:relative
+    }
+    .close-btn {
+      position:absolute;
+      right:15px;
+      top:10px;
+      font-size:24px;
+      font-weight:700;
+      color:#0070ba;
+      cursor:pointer
+    }
+    #dollarRate { font-size:15px;color:#0070ba;margin:5px 0 }
   </style>
 </head>
 <body>
@@ -54,15 +104,13 @@
     <input type="email" id="paypalEmail" placeholder="example@example.com">
 
     <p id="userBalance" style="font-weight:bold;color:#0070ba">رصيدي: 0.00 جنيه / 0.00 دولار</p>
-
     <p id="dollarRate">جارٍ تحديث سعر الدولار...</p>
 
     <button id="withdrawAfterConvert" style="background:#f44336" onclick="requestWithdraw()">سحب الرصيد عبر PayPal</button>
-
     <p id="message" class="note"></p>
   </div>
 
-  <!-- Modal تأكيد -->
+  <!-- نافذة التأكيد -->
   <div id="withdrawModal" class="modal">
     <div class="modal-content">
       <span class="close-btn" id="closeWithdrawModal">&times;</span>
@@ -79,153 +127,145 @@
     import { getFirestore, doc, getDoc, addDoc, collection, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-    /* ---------- إعداد Firebase ---------- */
-    const firebaseConfig={
-      apiKey:"AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain:"am--rewards.firebaseapp.com",
-      projectId:"am--rewards"
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards"
     };
-    const app=initializeApp(firebaseConfig);
-    const db=getFirestore(app);
-    const auth=getAuth(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
 
-    /* ---------- متغيرات أساسية ---------- */
-    const pointValueEGP=0.08; // قيمة النقطة بالجنيه
-    let dollarRate=50;        // يُحدَّث كل دقيقة
-    let userPoints=0;
+    const pointValueEGP = 0.07; // ✅ القيمة الجديدة للنقطة
 
-    /* ---------- عناصر DOM ---------- */
-    const pointsInput=document.getElementById("pointsToConvert");
-    const convertedEGP=document.getElementById("convertedEGP");
-    const convertedUSD=document.getElementById("convertedUSD");
-    const paypalEmailInput=document.getElementById("paypalEmail");
-    const userBalanceText=document.getElementById("userBalance");
-    const msg=document.getElementById("message");
-    const withdrawModal=document.getElementById("withdrawModal");
-    const closeWithdrawModal=document.getElementById("closeWithdrawModal");
-    const confirmPaypalEmail=document.getElementById("confirmPaypalEmail");
-    const confirmWithdrawAmount=document.getElementById("confirmWithdrawAmount");
-    const modalUserBalance=document.getElementById("modalUserBalance");
-    const confirmWithdrawBtn=document.getElementById("confirmWithdrawBtn");
-    const dollarRateTxt=document.getElementById("dollarRate");
+    let dollarRate = 50;
+    let userPoints = 0;
 
-    /* ---------- جلب سعر الدولار ---------- */
-    async function getDollarRate(){
-      try{
-        const res=await fetch("https://api.exchangerate-api.com/v4/latest/USD");
-        const data=await res.json();
-        return data.rates.EGP||50;
-      }catch(e){
+    const pointsInput = document.getElementById("pointsToConvert");
+    const convertedEGP = document.getElementById("convertedEGP");
+    const convertedUSD = document.getElementById("convertedUSD");
+    const paypalEmailInput = document.getElementById("paypalEmail");
+    const userBalanceText = document.getElementById("userBalance");
+    const msg = document.getElementById("message");
+    const withdrawModal = document.getElementById("withdrawModal");
+    const closeWithdrawModal = document.getElementById("closeWithdrawModal");
+    const confirmPaypalEmail = document.getElementById("confirmPaypalEmail");
+    const confirmWithdrawAmount = document.getElementById("confirmWithdrawAmount");
+    const modalUserBalance = document.getElementById("modalUserBalance");
+    const confirmWithdrawBtn = document.getElementById("confirmWithdrawBtn");
+    const dollarRateTxt = document.getElementById("dollarRate");
+
+    async function getDollarRate() {
+      try {
+        const res = await fetch("https://api.exchangerate-api.com/v4/latest/USD");
+        const data = await res.json();
+        return data.rates.EGP || 50;
+      } catch (e) {
         console.warn("فشل جلب السعر الحقيقي، استخدام احتياطي");
         return 50;
       }
     }
-    async function updateDollarRate(){
-      dollarRate=await getDollarRate();
-      dollarRateTxt.textContent=`1 دولار = ${dollarRate.toFixed(2)} جنيه`;
+
+    async function updateDollarRate() {
+      dollarRate = await getDollarRate();
+      dollarRateTxt.textContent = `1 دولار = ${dollarRate.toFixed(2)} جنيه`;
       updateConvertedValues();
       updateUserBalanceDisplay();
     }
-    setInterval(updateDollarRate,60000); // كل دقيقة
+
+    setInterval(updateDollarRate, 60000);
     updateDollarRate();
 
-    /* ---------- تحميل بيانات المستخدم ---------- */
-    setPersistence(auth,browserLocalPersistence).then(()=>{
-      onAuthStateChanged(auth,async user=>{
-        if(!user) return window.location.href="login.html";
-        const snap=await getDoc(doc(db,"users",user.uid));
-        userPoints=snap.exists()?snap.data().points||0:0;
+    setPersistence(auth, browserLocalPersistence).then(() => {
+      onAuthStateChanged(auth, async user => {
+        if (!user) return window.location.href = "login.html";
+        const snap = await getDoc(doc(db, "users", user.uid));
+        userPoints = snap.exists() ? snap.data().points || 0 : 0;
         updateUserBalanceDisplay();
       });
     });
 
-    /* ---------- دوال الموازنة ---------- */
-    function updateUserBalanceDisplay(){
-      const egp=userPoints*pointValueEGP;
-      const usd=egp/dollarRate;
-      userBalanceText.textContent=`رصيدي: ${egp.toFixed(2)} جنيه / ${usd.toFixed(2)} دولار`;
+    function updateUserBalanceDisplay() {
+      const egp = userPoints * pointValueEGP;
+      const usd = egp / dollarRate;
+      userBalanceText.textContent = `رصيدي: ${egp.toFixed(2)} جنيه / ${usd.toFixed(2)} دولار`;
     }
 
-    function updateConvertedValues(){
-      const pts=parseFloat(pointsInput.value)||0;
-      const egp=pts*pointValueEGP;
-      const usd=egp/dollarRate;
-      convertedEGP.textContent=egp.toFixed(2);
-      convertedUSD.textContent=usd.toFixed(2);
+    function updateConvertedValues() {
+      const pts = parseFloat(pointsInput.value) || 0;
+      const egp = pts * pointValueEGP;
+      const usd = egp / dollarRate;
+      convertedEGP.textContent = egp.toFixed(2);
+      convertedUSD.textContent = usd.toFixed(2);
     }
 
-    /* ---------- تحويل النقاط ---------- */
-    window.convertPoints=()=>{
-      const pts=parseFloat(pointsInput.value);
-      if(isNaN(pts)||pts<=0){
-        showMsg("❌ أدخل عدد نقاط صحيح أولًا.");return;
+    window.convertPoints = () => {
+      const pts = parseFloat(pointsInput.value);
+      if (isNaN(pts) || pts <= 0) {
+        showMsg("❌ أدخل عدد نقاط صحيح أولًا."); return;
       }
       updateConvertedValues();
-      showMsg("✅ تم تحويل النقاط بنجاح!",true);
+      showMsg("✅ تم تحويل النقاط بنجاح!", true);
     };
 
-    /* ---------- طلب السحب ---------- */
-    window.requestWithdraw=()=>{
-      const usd=parseFloat(convertedUSD.textContent)||0;
-      const email=paypalEmailInput.value.trim();
-      if(!email){showMsg("❌ أدخل بريد PayPal أولًا.");return;}
-      if(usd<=0){showMsg("❌ قم بتحويل النقاط أولًا.");return;}
-      if(usd>10){showMsg("❌ الحد الأقصى للسحب 10 دولار يوميًا.");return;}
+    window.requestWithdraw = () => {
+      const usd = parseFloat(convertedUSD.textContent) || 0;
+      const email = paypalEmailInput.value.trim();
+      if (!email) { showMsg("❌ أدخل بريد PayPal أولًا."); return; }
+      if (usd <= 0) { showMsg("❌ قم بتحويل النقاط أولًا."); return; }
+      if (usd > 10) { showMsg("❌ الحد الأقصى للسحب 10 دولار يوميًا."); return; }
 
-      confirmPaypalEmail.textContent=email;
-      confirmWithdrawAmount.textContent=usd.toFixed(2);
-      modalUserBalance.textContent=`رصيدك المتاح: ${usd.toFixed(2)} دولار`;
-      withdrawModal.style.display="block";
+      confirmPaypalEmail.textContent = email;
+      confirmWithdrawAmount.textContent = usd.toFixed(2);
+      modalUserBalance.textContent = `رصيدك المتاح: ${usd.toFixed(2)} دولار`;
+      withdrawModal.style.display = "block";
     };
 
-    /* ---------- تأكيد السحب ---------- */
-    confirmWithdrawBtn.onclick=async()=>{
-      const user=auth.currentUser;
-      const pts=parseFloat(pointsInput.value)||0;
-      const egp=pts*pointValueEGP;
-      const usd=egp/dollarRate;
-      const paypalEmail=paypalEmailInput.value.trim();
+    confirmWithdrawBtn.onclick = async () => {
+      const user = auth.currentUser;
+      const pts = parseFloat(pointsInput.value) || 0;
+      const egp = pts * pointValueEGP;
+      const usd = egp / dollarRate;
+      const paypalEmail = paypalEmailInput.value.trim();
 
-      if(!user||usd<=0||usd>10||!paypalEmail){return;}
+      if (!user || usd <= 0 || usd > 10 || !paypalEmail) return;
 
-      try{
-        await addDoc(collection(db,"withdrawRequests"),{
-          uid:user.uid,
-          userEmail:user.email,
+      try {
+        await addDoc(collection(db, "withdrawRequests"), {
+          uid: user.uid,
+          userEmail: user.email,
           paypalEmail,
-          points:pts,
-          amountEGP:egp.toFixed(2),
-          amountUSD:usd.toFixed(2),
-          status:"pending",
-          createdAt:serverTimestamp()
+          points: pts,
+          amountEGP: egp.toFixed(2),
+          amountUSD: usd.toFixed(2),
+          status: "pending",
+          createdAt: serverTimestamp()
         });
 
-        // خصم النقاط من المستخدم
-        const userRef=doc(db,"users",user.uid);
-        await updateDoc(userRef,{points:userPoints-pts});
+        await updateDoc(doc(db, "users", user.uid), {
+          points: userPoints - pts
+        });
 
-        showMsg("✅ تم إرسال طلب السحب، يُراجع خلال 24 ساعة.",true);
-        withdrawModal.style.display="none";
-        pointsInput.value="";
+        showMsg("✅ تم إرسال طلب السحب، يُراجع خلال 24 ساعة.", true);
+        withdrawModal.style.display = "none";
+        pointsInput.value = "";
         updateConvertedValues();
-        userPoints-=pts;
+        userPoints -= pts;
         updateUserBalanceDisplay();
-      }catch(err){
+      } catch (err) {
         console.error(err);
         showMsg("❌ حدث خطأ أثناء إرسال الطلب.");
       }
     };
 
-    /* ---------- إغلاق المودال ---------- */
-    closeWithdrawModal.onclick=()=>withdrawModal.style.display="none";
-    window.onclick=e=>{if(e.target===withdrawModal)withdrawModal.style.display="none";};
+    closeWithdrawModal.onclick = () => withdrawModal.style.display = "none";
+    window.onclick = e => { if (e.target === withdrawModal) withdrawModal.style.display = "none"; };
 
-    /* ---------- رسائل التنبيه ---------- */
-    function showMsg(text,isSuccess=false){
-      msg.textContent=text;
-      msg.classList.toggle("success",isSuccess);
-      msg.classList.toggle("note",!isSuccess);
+    function showMsg(text, isSuccess = false) {
+      msg.textContent = text;
+      msg.classList.toggle("success", isSuccess);
+      msg.classList.toggle("note", !isSuccess);
     }
   </script>
 </body>
-  </html>
+      </html>
