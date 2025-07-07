@@ -10,7 +10,6 @@
       background: #fff3cd;
       margin: 0;
       padding: 20px;
-      direction: rtl;
     }
     h2 {
       text-align: center;
@@ -41,6 +40,9 @@
       text-decoration: none;
       border-radius: 8px;
       font-weight: bold;
+      margin-top: 6px;
+      border: none;
+      cursor: pointer;
     }
     .btn:hover {
       background: #e0a800;
@@ -105,22 +107,30 @@
     function showTasks() {
       const container = document.getElementById("ytTasks");
       tasks.forEach((task, i) => {
+        const doneKey = `yt_task_${i}_done`;
+        const isDone = sessionStorage.getItem(doneKey);
+
         const div = document.createElement("div");
         div.className = "task";
         div.innerHTML = `
           <h3>${task.title}</h3>
           <p>${task.desc}</p>
-          <a href="${task.url}" class="btn" target="_blank">تنفيذ</a>
-          <button class="btn" id="done-${i}">✅ أتممت المهمة</button>
+          <p>🎯 نقاط المهمة: <strong>${task.points}</strong></p>
+          <a href="${task.url}" class="btn" target="_blank">تنفيذ المهمة</a>
+          <button class="btn ${isDone ? 'done' : ''}" id="done-${i}" ${isDone ? 'disabled' : ''}>
+            ${isDone ? '✅ تمت إضافة النقاط' : '✅ أتممت المهمة'}
+          </button>
         `;
         container.appendChild(div);
 
         document.getElementById(`done-${i}`).addEventListener("click", async () => {
+          if (sessionStorage.getItem(doneKey)) return;
           await rewardUser(task.points);
           const btn = document.getElementById(`done-${i}`);
-          btn.textContent = "تمت إضافة النقاط ✅";
+          btn.textContent = "✅ تمت إضافة النقاط";
           btn.classList.add("done");
           btn.disabled = true;
+          sessionStorage.setItem(doneKey, "true");
         });
       });
     }
