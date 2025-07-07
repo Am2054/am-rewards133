@@ -1,48 +1,60 @@
-<!DOCTYPE html><html lang="ar" dir="rtl">
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>تثبيت التطبيقات | Am Rewards</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: 'Cairo', sans-serif;
-      background-color: #f3f9ff;
-      padding: 20px;
+      font-family: 'Tajawal', sans-serif;
+      background: linear-gradient(to bottom right, #e6f2ff, #ffffff);
       margin: 0;
+      padding: 20px;
     }
+
     h2 {
       text-align: center;
       color: #007bff;
+      font-size: 28px;
+      margin-bottom: 10px;
     }
+
     #user-points {
       text-align: center;
       font-size: 18px;
       background: #fff3cd;
-      padding: 10px;
+      padding: 10px 20px;
       border-radius: 10px;
-      margin-bottom: 10px;
+      margin: 0 auto 20px;
       border: 1px solid #ffeeba;
       max-width: 300px;
-      margin-left: auto;
-      margin-right: auto;
     }
-    .notice {
-      text-align: center;
-      color: #dc3545;
-      font-weight: bold;
-      font-size: 16px;
-      margin-top: -10px;
-      margin-bottom: 20px;
-    }
+
     .app-task {
-      background: white;
+      background: #ffffff;
       padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
       margin: 20px auto;
-      max-width: 480px;
+      max-width: 460px;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      transition: 0.3s;
     }
+
+    .app-task:hover {
+      transform: scale(1.01);
+    }
+
+    .app-task h3 {
+      margin: 0;
+      color: #333;
+    }
+
+    .app-task p {
+      color: #555;
+      margin: 8px 0;
+    }
+
     .btn-install, .btn-upload {
       display: inline-block;
       margin-top: 10px;
@@ -53,24 +65,47 @@
       font-weight: bold;
       cursor: pointer;
     }
+
     .btn-install {
       background-color: #007bff;
       color: white;
     }
+
     .btn-upload {
       background-color: #28a745;
       color: white;
+      margin-top: 8px;
     }
-    .status {
+
+    input[type="file"] {
       margin-top: 10px;
+      width: 100%;
+    }
+
+    .status {
+      margin-top: 8px;
+      font-weight: bold;
       color: #155724;
+    }
+
+    .footer-buttons {
+      text-align: center;
+      margin-top: 30px;
+    }
+
+    .footer-buttons a button {
+      background: #6c63ff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      margin: 8px;
+      cursor: pointer;
       font-weight: bold;
     }
-    input[type="file"] {
-      margin-top: 12px;
-      display: block;
-    }
   </style>
+
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
@@ -89,10 +124,17 @@
   </script>
 </head>
 <body>
+
   <h2>📲 مهام تثبيت التطبيقات</h2>
-  <p class="notice">📸 للحصول على النقاط، يجب رفع لقطة شاشة توضح تثبيت التطبيق. سيتم مراجعة الصورة يدويًا.</p>
-  <div id="user-points">جاري تحميل النقاط...</div>
-  <div id="tasks">جاري تحميل التطبيقات...</div>  <script>
+  <div id="user-points">جارٍ تحميل نقاطك...</div>
+  <div id="tasks">جارٍ تحميل التطبيقات...</div>
+
+  <div class="footer-buttons">
+    <a href="dashboard.html"><button>🏠 الصفحة الرئيسية</button></a>
+    <a href="tasks.html"><button>📋 العودة للمهام</button></a>
+  </div>
+
+  <script>
     const apps = [
       {
         title: "ClipClaps",
@@ -102,8 +144,14 @@
       },
       {
         title: "CashZine",
-        description: "تطبيق لربح المال من قراءة الأخبار والدعوات.",
+        description: "ربح من قراءة الأخبار والدعوات.",
         link: "https://play.google.com/store/apps/details?id=com.jifen.qukan",
+        points: 30
+      },
+      {
+        title: "BuzzBreak",
+        description: "تابع الأخبار واربح مقابل الوقت.",
+        link: "https://play.google.com/store/apps/details?id=com.buzzbreak.reward.news",
         points: 25
       }
     ];
@@ -126,28 +174,29 @@
       const userId = user.uid;
       const container = document.getElementById("tasks");
 
+      // تحميل النقاط
       db.collection("users").doc(userId).get().then(doc => {
         const points = doc.exists ? (doc.data().points || 0) : 0;
         document.getElementById("user-points").textContent = `نقاطي: ${points} 🪙`;
       });
 
+      // التحقق من المهام المنجزة
       checkIfAlreadyUploaded(userId).then(() => {
         container.innerHTML = "";
         apps.forEach((app, index) => {
           const alreadyUploaded = uploadedApps.includes(app.title);
           const disabled = alreadyUploaded ? "disabled" : "";
-          const uploadedMsg = alreadyUploaded ? "<div class='status' style='color:red;'>📌 تم رفع الإثبات بالفعل</div>" : "";
+          const uploadedMsg = alreadyUploaded ? "<div class='status' style='color:red;'>✅ تم الرفع بالفعل</div>" : "";
 
           const div = document.createElement("div");
           div.className = "app-task";
           div.innerHTML = `
             <h3>📱 ${app.title}</h3>
             <p>${app.description}</p>
-            <p>💰 ${app.points} نقاط</p>
-            <a href="${app.link}" target="_blank" class="btn-install">🔗 تثبيت التطبيق</a>
-            <label>📸 ارفع لقطة شاشة للتأكيد:</label>
+            <p>🎁 <strong>${app.points}</strong> نقطة</p>
+            <a href="${app.link}" target="_blank" class="btn-install">🔗 تثبيت التطبيق</a><br>
             <input type="file" accept="image/*" id="file-${index}" ${disabled}>
-            <button class="btn-upload" onclick="uploadProof(${index}, '${app.title}', '${userId}', ${app.points})" ${disabled}>📤 رفع الإثبات</button>
+            <button class="btn-upload" onclick="uploadProof(${index}, '${app.title}', '${userId}', ${app.points})" ${disabled}>📤 رفع إثبات التثبيت</button>
             <div class="status" id="status-${index}">${uploadedMsg}</div>
           `;
           container.appendChild(div);
@@ -164,7 +213,7 @@
       const fileInput = document.getElementById(`file-${index}`);
       const file = fileInput.files[0];
       const status = document.getElementById(`status-${index}`);
-      if (!file) return alert("📸 يرجى اختيار صورة لإثبات التثبيت");
+      if (!file) return alert("📸 يرجى اختيار لقطة شاشة لإثبات التثبيت");
 
       if (!file.type.startsWith("image/")) {
         status.textContent = "❌ الملف المرفوع ليس صورة صالحة.";
@@ -174,8 +223,9 @@
       const filePath = `proofs/${userId}/${appTitle}_${Date.now()}.jpg`;
       const uploadTask = storage.ref(filePath).put(file);
 
-      status.textContent = "📤 جاري رفع الصورة...";
+      status.textContent = "⏳ جاري رفع الصورة...";
       uploadTask.then(() => {
+        // حفظ الإثبات
         db.collection("install_proofs").add({
           userId,
           appTitle,
@@ -184,12 +234,24 @@
           timestamp: firebase.firestore.FieldValue.serverTimestamp(),
           reviewed: false
         });
-        status.textContent = "✅ تم إرسال الإثبات بنجاح، سيتم مراجعته يدويًا.";
+
+        // تحديث النقاط
+        db.collection("users").doc(userId).update({
+          points: firebase.firestore.FieldValue.increment(points)
+        });
+
+        // تحديث واجهة المستخدم
+        const current = document.getElementById("user-points").textContent.match(/\d+/);
+        const updated = parseInt(current[0]) + points;
+        document.getElementById("user-points").textContent = `نقاطي: ${updated} 🪙`;
+
+        status.textContent = "✅ تم إرسال الإثبات! ستتم مراجعته يدويًا.";
         fileInput.disabled = true;
         uploadedApps.push(appTitle);
       }).catch(() => {
         status.textContent = "❌ فشل في رفع الصورة. حاول مرة أخرى.";
       });
     }
-  </script></body>
+  </script>
+</body>
 </html>
