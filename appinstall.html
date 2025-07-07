@@ -8,53 +8,33 @@
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
-      background: linear-gradient(to bottom right, #e6f2ff, #ffffff);
-      margin: 0;
+      background: #f0f9ff;
       padding: 20px;
+      margin: 0;
     }
-
     h2 {
       text-align: center;
       color: #007bff;
-      font-size: 28px;
-      margin-bottom: 10px;
     }
-
     #user-points {
       text-align: center;
       font-size: 18px;
       background: #fff3cd;
-      padding: 10px 20px;
+      padding: 10px;
       border-radius: 10px;
-      margin: 0 auto 20px;
+      margin-bottom: 20px;
       border: 1px solid #ffeeba;
       max-width: 300px;
+      margin: auto;
     }
-
     .app-task {
-      background: #ffffff;
-      padding: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
       margin: 20px auto;
-      max-width: 460px;
-      border-radius: 15px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      transition: 0.3s;
+      max-width: 480px;
     }
-
-    .app-task:hover {
-      transform: scale(1.01);
-    }
-
-    .app-task h3 {
-      margin: 0;
-      color: #333;
-    }
-
-    .app-task p {
-      color: #555;
-      margin: 8px 0;
-    }
-
     .btn-install, .btn-upload {
       display: inline-block;
       margin-top: 10px;
@@ -65,47 +45,25 @@
       font-weight: bold;
       cursor: pointer;
     }
-
     .btn-install {
       background-color: #007bff;
       color: white;
     }
-
     .btn-upload {
       background-color: #28a745;
       color: white;
-      margin-top: 8px;
     }
-
+    .status {
+      margin-top: 10px;
+      color: #155724;
+      font-weight: bold;
+    }
     input[type="file"] {
       margin-top: 10px;
-      width: 100%;
-    }
-
-    .status {
-      margin-top: 8px;
-      font-weight: bold;
-      color: #155724;
-    }
-
-    .footer-buttons {
-      text-align: center;
-      margin-top: 30px;
-    }
-
-    .footer-buttons a button {
-      background: #6c63ff;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 10px;
-      margin: 8px;
-      cursor: pointer;
-      font-weight: bold;
     }
   </style>
 
-  <!-- Firebase -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
@@ -126,19 +84,14 @@
 <body>
 
   <h2>📲 مهام تثبيت التطبيقات</h2>
-  <div id="user-points">جارٍ تحميل نقاطك...</div>
+  <div id="user-points">جارٍ تحميل النقاط...</div>
   <div id="tasks">جارٍ تحميل التطبيقات...</div>
-
-  <div class="footer-buttons">
-    <a href="dashboard.html"><button>🏠 الصفحة الرئيسية</button></a>
-    <a href="tasks.html"><button>📋 العودة للمهام</button></a>
-  </div>
 
   <script>
     const apps = [
       {
         title: "ClipClaps",
-        description: "اربح المال من مشاهدة الفيديوهات والمكافآت اليومية.",
+        description: "اربح من مشاهدة الفيديوهات والمكافآت.",
         link: "https://play.google.com/store/apps/details?id=com.sanhe.clipclaps",
         points: 30
       },
@@ -146,19 +99,19 @@
         title: "CashZine",
         description: "ربح من قراءة الأخبار والدعوات.",
         link: "https://play.google.com/store/apps/details?id=com.jifen.qukan",
-        points: 30
+        points: 25
       },
       {
         title: "BuzzBreak",
         description: "تابع الأخبار واربح مقابل الوقت.",
         link: "https://play.google.com/store/apps/details?id=com.buzzbreak.reward.news",
-        points: 25
+        points: 20
       }
     ];
 
     const uploadedApps = [];
 
-    function checkIfAlreadyUploaded(userId) {
+    function checkUploads(userId) {
       return db.collection("install_proofs")
         .where("userId", "==", userId)
         .get()
@@ -169,64 +122,58 @@
         });
     }
 
-    auth.onAuthStateChanged(user => {
-      if (!user) return location.href = 'index.html';
-      const userId = user.uid;
-      const container = document.getElementById("tasks");
+    function showApps(userId, userPoints) {
+      const taskContainer = document.getElementById("tasks");
+      document.getElementById("user-points").textContent = `نقاطي: ${userPoints} 🪙`;
 
-      // تحميل النقاط
-      db.collection("users").doc(userId).get().then(doc => {
-        const points = doc.exists ? (doc.data().points || 0) : 0;
-        document.getElementById("user-points").textContent = `نقاطي: ${points} 🪙`;
+      apps.forEach((app, index) => {
+        const uploaded = uploadedApps.includes(app.title);
+        const disabled = uploaded ? "disabled" : "";
+        const div = document.createElement("div");
+        div.className = "app-task";
+        div.innerHTML = `
+          <h3>${app.title}</h3>
+          <p>${app.description}</p>
+          <p>🎁 <strong>${app.points}</strong> نقطة</p>
+          <a href="${app.link}" target="_blank" class="btn-install">🔗 تثبيت التطبيق</a><br>
+          <input type="file" accept="image/*" id="file-${index}" ${disabled}>
+          <button class="btn-upload" onclick="uploadProof(${index}, '${app.title}', '${userId}', ${app.points})" ${disabled}>📤 إثبات التثبيت</button>
+          <div class="status" id="status-${index}">${uploaded ? "✅ تم الرفع مسبقًا" : ""}</div>
+        `;
+        taskContainer.appendChild(div);
       });
+    }
 
-      // التحقق من المهام المنجزة
-      checkIfAlreadyUploaded(userId).then(() => {
-        container.innerHTML = "";
-        apps.forEach((app, index) => {
-          const alreadyUploaded = uploadedApps.includes(app.title);
-          const disabled = alreadyUploaded ? "disabled" : "";
-          const uploadedMsg = alreadyUploaded ? "<div class='status' style='color:red;'>✅ تم الرفع بالفعل</div>" : "";
+    auth.onAuthStateChanged(user => {
+      if (!user) return (location.href = 'login.html');
+      const userId = user.uid;
 
-          const div = document.createElement("div");
-          div.className = "app-task";
-          div.innerHTML = `
-            <h3>📱 ${app.title}</h3>
-            <p>${app.description}</p>
-            <p>🎁 <strong>${app.points}</strong> نقطة</p>
-            <a href="${app.link}" target="_blank" class="btn-install">🔗 تثبيت التطبيق</a><br>
-            <input type="file" accept="image/*" id="file-${index}" ${disabled}>
-            <button class="btn-upload" onclick="uploadProof(${index}, '${app.title}', '${userId}', ${app.points})" ${disabled}>📤 رفع إثبات التثبيت</button>
-            <div class="status" id="status-${index}">${uploadedMsg}</div>
-          `;
-          container.appendChild(div);
+      db.collection("users").doc(userId).get().then(doc => {
+        const userPoints = doc.exists ? (doc.data().points || 0) : 0;
+        checkUploads(userId).then(() => {
+          showApps(userId, userPoints);
         });
       });
     });
 
     function uploadProof(index, appTitle, userId, points) {
-      if (uploadedApps.includes(appTitle)) {
-        alert("❌ لقد قمت برفع إثبات لهذا التطبيق بالفعل.");
-        return;
-      }
-
       const fileInput = document.getElementById(`file-${index}`);
       const file = fileInput.files[0];
       const status = document.getElementById(`status-${index}`);
-      if (!file) return alert("📸 يرجى اختيار لقطة شاشة لإثبات التثبيت");
 
+      if (!file) return alert("يرجى اختيار لقطة شاشة لإثبات التثبيت");
       if (!file.type.startsWith("image/")) {
-        status.textContent = "❌ الملف المرفوع ليس صورة صالحة.";
+        status.textContent = "❌ الملف المرفوع ليس صورة";
         return;
       }
 
       const filePath = `proofs/${userId}/${appTitle}_${Date.now()}.jpg`;
       const uploadTask = storage.ref(filePath).put(file);
 
-      status.textContent = "⏳ جاري رفع الصورة...";
+      status.textContent = "📤 جاري الرفع...";
+
       uploadTask.then(() => {
-        // حفظ الإثبات
-        db.collection("install_proofs").add({
+        return db.collection("install_proofs").add({
           userId,
           appTitle,
           filePath,
@@ -234,22 +181,23 @@
           timestamp: firebase.firestore.FieldValue.serverTimestamp(),
           reviewed: false
         });
-
+      }).then(() => {
         // تحديث النقاط
-        db.collection("users").doc(userId).update({
+        return db.collection("users").doc(userId).update({
           points: firebase.firestore.FieldValue.increment(points)
         });
-
-        // تحديث واجهة المستخدم
-        const current = document.getElementById("user-points").textContent.match(/\d+/);
-        const updated = parseInt(current[0]) + points;
-        document.getElementById("user-points").textContent = `نقاطي: ${updated} 🪙`;
-
-        status.textContent = "✅ تم إرسال الإثبات! ستتم مراجعته يدويًا.";
+      }).then(() => {
+        status.textContent = "✅ تم إرسال الإثبات! سيتم مراجعته يدويًا.";
         fileInput.disabled = true;
-        uploadedApps.push(appTitle);
+        document.querySelector(`#file-${index}`).disabled = true;
+        document.querySelector(`#status-${index}`).style.color = "green";
+
+        // تحديث النقاط في الأعلى
+        const pointsBox = document.getElementById("user-points");
+        const current = parseInt(pointsBox.textContent.match(/\d+/)[0]);
+        pointsBox.textContent = `نقاطي: ${current + points} 🪙`;
       }).catch(() => {
-        status.textContent = "❌ فشل في رفع الصورة. حاول مرة أخرى.";
+        status.textContent = "❌ حدث خطأ أثناء رفع الصورة";
       });
     }
   </script>
