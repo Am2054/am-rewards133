@@ -1,25 +1,37 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>تثبيت التطبيقات | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
-      background-color: #f9f9f9;
+      background-color: #f3f9ff;
       padding: 20px;
     }
     h2 {
       text-align: center;
       color: #007bff;
     }
+    #user-points {
+      text-align: center;
+      font-size: 18px;
+      background: #fff3cd;
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #ffeeba;
+      max-width: 300px;
+      margin-left: auto;
+      margin-right: auto;
+    }
     .app-task {
       background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
       padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
       margin: 20px auto;
       max-width: 480px;
     }
@@ -29,6 +41,7 @@
       padding: 10px 16px;
       border: none;
       border-radius: 8px;
+      text-decoration: none;
       font-weight: bold;
       cursor: pointer;
     }
@@ -42,16 +55,12 @@
     }
     .status {
       margin-top: 10px;
-      font-weight: bold;
       color: #155724;
+      font-weight: bold;
     }
   </style>
-</head>
-<body>
-  <h2>📲 مهام تثبيت التطبيقات</h2>
-  <div id="tasks">جاري التحميل...</div>
 
-  <!-- Firebase SDK -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
@@ -64,44 +73,109 @@
       storageBucket: "am--rewards.appspot.com"
     };
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
     const db = firebase.firestore();
+    const auth = firebase.auth();
     const storage = firebase.storage();
+  </script>
+</head>
+<body>
+  <h2>📲 مهام تثبيت التطبيقات</h2>
+  <div id="user-points">جاري تحميل النقاط...</div>
+  <div id="tasks">جاري تحميل التطبيقات...</div>
 
+  <script>
     const apps = [
-      { title: "ClipClaps", description: "اربح من الفيديوهات.", link: "https://play.google.com/store/apps/details?id=com.sanhe.clipclaps", points: 30 },
-      { title: "CashZine", description: "ربح من الأخبار.", link: "https://play.google.com/store/apps/details?id=com.jifen.qukan", points: 30 },
-      { title: "Toloka", description: "مهام بسيطة بمقابل مالي.", link: "https://play.google.com/store/apps/details?id=com.yandex.toloka.app", points: 40 }
+      {
+        title: "ClipClaps",
+        description: "اربح المال من مشاهدة الفيديوهات والمكافآت اليومية.",
+        link: "https://play.google.com/store/apps/details?id=com.sanhe.clipclaps",
+        points: 30
+      },
+      {
+        title: "CashZine",
+        description: "تطبيق لربح المال من قراءة الأخبار والدعوات.",
+        link: "https://play.google.com/store/apps/details?id=com.jifen.qukan",
+        points: 30
+      },
+      {
+        title: "BuzzBreak",
+        description: "تابع الأخبار والربح مقابل الوقت الذي تقضيه.",
+        link: "https://play.google.com/store/apps/details?id=com.buzzbreak.reward.news",
+        points: 25
+      },
+      {
+        title: "Current Music",
+        description: "استمع إلى الموسيقى واربح المال أثناء ذلك.",
+        link: "https://play.google.com/store/apps/details?id=us.current.android",
+        points: 35
+      },
+      {
+        title: "Toloka",
+        description: "أنجز مهام بسيطة واكسب مال حقيقي.",
+        link: "https://play.google.com/store/apps/details?id=com.yandex.toloka.app",
+        points: 40
+      }
     ];
 
+    const uploadedApps = [];
+
+    function checkIfAlreadyUploaded(userId) {
+      return db.collection("install_proofs")
+        .where("userId", "==", userId)
+        .get()
+        .then(snapshot => {
+          snapshot.forEach(doc => {
+            uploadedApps.push(doc.data().appTitle);
+          });
+        });
+    }
+
     auth.onAuthStateChanged(user => {
-      if (!user) return location.href = "index.html";
+      if (!user) return location.href = 'index.html';
       const userId = user.uid;
       const container = document.getElementById("tasks");
-      container.innerHTML = "";
 
-      apps.forEach((app, index) => {
-        const div = document.createElement("div");
-        div.className = "app-task";
-        div.innerHTML = `
-          <h3>📱 ${app.title}</h3>
-          <p>${app.description}</p>
-          <a href="${app.link}" target="_blank" class="btn-install">🔗 تثبيت التطبيق</a><br>
-          <input type="file" accept="image/*" id="file-${index}" style="margin-top:10px">
-          <button class="btn-upload" onclick="uploadProof(${index}, '${app.title}', ${app.points}, '${userId}')">📤 رفع إثبات التثبيت</button>
-          <div class="status" id="status-${index}"></div>
-        `;
-        container.appendChild(div);
+      db.collection("users").doc(userId).get().then(doc => {
+        const points = doc.exists ? (doc.data().points || 0) : 0;
+        document.getElementById("user-points").textContent = `نقاطي: ${points} 🪙`;
+      });
+
+      checkIfAlreadyUploaded(userId).then(() => {
+        container.innerHTML = "";
+        apps.forEach((app, index) => {
+          const alreadyUploaded = uploadedApps.includes(app.title);
+          const disabled = alreadyUploaded ? "disabled" : "";
+          const uploadedMsg = alreadyUploaded ? "<div class='status' style='color:red;'>📌 تم رفع الإثبات بالفعل</div>" : "";
+
+          const div = document.createElement("div");
+          div.className = "app-task";
+          div.innerHTML = `
+            <h3>📱 ${app.title}</h3>
+            <p>${app.description}</p>
+            <p>💰 ${app.points} نقاط</p>
+            <a href="${app.link}" target="_blank" class="btn-install">🔗 تثبيت التطبيق</a><br>
+            <input type="file" accept="image/*" id="file-${index}" ${disabled} style="margin-top:10px">
+            <button class="btn-upload" onclick="uploadProof(${index}, '${app.title}', '${userId}', ${app.points})" ${disabled}>📤 رفع إثبات التثبيت</button>
+            <div class="status" id="status-${index}">${uploadedMsg}</div>
+          `;
+          container.appendChild(div);
+        });
       });
     });
 
-    function uploadProof(index, appTitle, points, userId) {
+    function uploadProof(index, appTitle, userId, points) {
+      if (uploadedApps.includes(appTitle)) {
+        alert("❌ لقد قمت برفع إثبات لهذا التطبيق بالفعل.");
+        return;
+      }
+
       const fileInput = document.getElementById(`file-${index}`);
       const file = fileInput.files[0];
       const status = document.getElementById(`status-${index}`);
+      if (!file) return alert("📸 يرجى اختيار صورة لإثبات التثبيت");
 
-      if (!file) {
-        status.textContent = "❌ الرجاء اختيار صورة أولاً.";
+      if (!file.type.startsWith("image/")) {
+        status.textContent = "❌ الملف المرفوع ليس صورة صالحة.";
         return;
       }
 
@@ -109,21 +183,20 @@
       const uploadTask = storage.ref(filePath).put(file);
 
       status.textContent = "📤 جاري رفع الصورة...";
-
       uploadTask.then(() => {
         db.collection("install_proofs").add({
           userId,
           appTitle,
-          points,
           filePath,
+          points,
           timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-          reviewed: false,
-          approved: false
-        }).then(() => {
-          status.textContent = "✅ تم إرسال الإثبات بنجاح. سيتم مراجعته خلال ساعات.";
+          reviewed: false
         });
-      }).catch(err => {
-        status.textContent = "❌ حدث خطأ أثناء رفع الصورة.";
+        status.textContent = "✅ تم إرسال الإثبات بنجاح، سيتم مراجعته يدويًا.";
+        fileInput.disabled = true;
+        uploadedApps.push(appTitle);
+      }).catch(() => {
+        status.textContent = "❌ فشل في رفع الصورة. حاول مرة أخرى.";
       });
     }
   </script>
