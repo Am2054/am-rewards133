@@ -8,12 +8,12 @@
   <style>
     body {
       font-family: 'Cairo', sans-serif;
-      background: #f9fbfd;
+      background: linear-gradient(to bottom right, #e0f7fa, #fce4ec);
       margin: 0;
       padding: 20px;
     }
     .container {
-      max-width: 900px;
+      max-width: 960px;
       margin: auto;
       background: white;
       padding: 30px;
@@ -80,6 +80,13 @@
       <div class="card"><h2 id="withdrawTotal">0 EGP</h2><p>إجمالي السحب</p></div>
       <div class="card"><h2 id="siteProfit">0 EGP</h2><p>أرباحك (بعد الخصم)</p></div>
       <div class="card"><h2 id="discountEarnings">0 EGP</h2><p>أرباح الخصم 10%</p></div>
+
+      <!-- إضافات جديدة -->
+      <div class="card"><h2 id="dailyTasksAll">0</h2><p>عدد المهام اليومية (الإجمالي)</p></div>
+      <div class="card"><h2 id="totalPointsGiven">0</h2><p>النقاط الموزعة</p></div>
+      <div class="card"><h2 id="totalPaidEGP">0 EGP</h2><p>المبالغ المدفوعة للمستخدمين</p></div>
+      <div class="card"><h2 id="totalEarnedEGP">0 EGP</h2><p>إجمالي أرباحك</p></div>
+      <div class="card"><h2 id="netProfit">0 EGP</h2><p>صافي ربح الموقع</p></div>
     </div>
 
     <!-- الأزرار -->
@@ -116,6 +123,10 @@
     const db = getFirestore(app);
 
     async function loadStats() {
+      const POINT_VALUE = 0.07;
+      const PROFIT_MULTIPLIER = 1.5;
+      const TASKS_PER_USER = 310;
+
       const usersSnap = await getDocs(collection(db, "users"));
       let totalUsers = 0;
       let totalWithdrawn = 0;
@@ -131,13 +142,26 @@
       });
 
       const discount = totalWithdrawn * 0.10;
-      const siteProfit = (totalPoints * 0.08 * 1.5) - totalWithdrawn;
+      const siteProfit = (totalPoints * POINT_VALUE * PROFIT_MULTIPLIER) - totalWithdrawn;
+
+      const totalTasks = totalUsers * TASKS_PER_USER;
+      const avgPointsPerUser = totalPoints / (totalUsers || 1);
+      const totalPointsGiven = totalTasks * (avgPointsPerUser / TASKS_PER_USER);
+      const totalPaid = totalPointsGiven * POINT_VALUE;
+      const totalEarned = totalPointsGiven * POINT_VALUE * PROFIT_MULTIPLIER;
+      const netProfit = totalEarned - totalPaid;
 
       document.getElementById("userCount").textContent = totalUsers;
       document.getElementById("taskCount").textContent = Math.round(totalPoints / 5);
       document.getElementById("withdrawTotal").textContent = `${totalWithdrawn.toFixed(2)} EGP`;
       document.getElementById("siteProfit").textContent = `${siteProfit.toFixed(2)} EGP`;
       document.getElementById("discountEarnings").textContent = `${discount.toFixed(2)} EGP`;
+
+      document.getElementById("dailyTasksAll").textContent = totalTasks;
+      document.getElementById("totalPointsGiven").textContent = totalPointsGiven.toFixed(0);
+      document.getElementById("totalPaidEGP").textContent = `${totalPaid.toFixed(2)} EGP`;
+      document.getElementById("totalEarnedEGP").textContent = `${totalEarned.toFixed(2)} EGP`;
+      document.getElementById("netProfit").textContent = `${netProfit.toFixed(2)} EGP`;
 
       const vipListEl = document.getElementById("vipUsers");
       vipList.forEach(uid => {
@@ -170,7 +194,6 @@
       }
     }
 
-    // ✅ عدّاد السحوبات المعلقة
     async function countPendingWithdrawals() {
       const snap = await getDocs(collection(db, "withdrawRequests"));
       let pending = 0;
@@ -181,7 +204,6 @@
       document.getElementById("pendingCount").textContent = `(${pending})`;
     }
 
-    // ✅ إرسال السحب المعلق (تحديث الحالة إلى paid)
     async function processPendingWithdrawals() {
       const snap = await getDocs(collection(db, "withdrawRequests"));
       let sent = 0;
