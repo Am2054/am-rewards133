@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -89,11 +88,19 @@
   <div id="links-container"></div>
 
   <div class="back-buttons">
-    <a href="dashboard.html"><button>🔙 العودة إلى الصفحة الرئيسية</button></a>
-    <a href="tasks.html"><button>🗂️ العودة إلى صفحة المهام</button></a>
+    <a href="dashboard.html"><button>🔙 الرئيسية</button></a>
+    <a href="tasks.html"><button>🗂️ المهام</button></a>
   </div>
 
   <script>
+    const shortlinks = [
+      { title: "🔥 رابط مختصر 1 - شاهد فيديو قصير", url: "https://exe.io/shortlink1" },
+      { title: "📄 رابط مختصر 2 - استبيان بسيط", url: "https://cuty.io/shortlink2" },
+      { title: "🎮 رابط مختصر 3 - جرب لعبة سريعة", url: "https://fc.lc/shortlink3" },
+      { title: "💰 رابط مختصر 4 - اربح نقاط إضافية", url: "https://tinyurl.com/shortlink4" },
+      { title: "🧠 رابط مختصر 5 - معلومة مفيدة", url: "https://bitly.ws/shortlink5" }
+    ];
+
     let userId = null;
 
     auth.onAuthStateChanged(user => {
@@ -130,27 +137,13 @@
         }
       }
 
-      function updateUserPoints() {
-        db.collection("users").doc(userId).get().then(doc => {
-          const data = doc.data();
-          const points = data?.points || 0;
-          document.getElementById("user-points").textContent = `نقاطي: ${points} 🪙`;
-        });
-      }
-
-      const data = [
-        { title: "🔥 رابط مختصر 1 - شاهد فيديو قصير", url: "https://exe.io/shortlink1" },
-        { title: "📄 رابط مختصر 2 - استبيان بسيط", url: "https://cuty.io/shortlink2" },
-        { title: "🎮 رابط مختصر 3 - جرب لعبة سريعة", url: "https://fc.lc/shortlink3" },
-        { title: "💰 رابط مختصر 4 - اربح نقاط إضافية", url: "https://tinyurl.com/shortlink4" },
-        { title: "🧠 رابط مختصر 5 - معلومة مفيدة", url: "https://bitly.ws/shortlink5" }
-      ];
+      updateUserPoints();
 
       const container = document.getElementById("links-container");
       const status = document.getElementById("status");
 
-      const availableLinks = data.filter((_, i) => !completedLinks.includes(i));
-      status.textContent = `روابط مكتملة: ${completedLinks.length} / ${data.length}`;
+      const availableLinks = shortlinks.filter((_, i) => !completedLinks.includes(i));
+      status.textContent = `روابط مكتملة: ${completedLinks.length} / ${shortlinks.length}`;
 
       if (availableLinks.length === 0) {
         container.innerHTML = "<p style='text-align:center;'>✅ لقد أكملت جميع الروابط المختصرة اليوم!</p>";
@@ -158,7 +151,7 @@
       }
 
       availableLinks.forEach((item, index) => {
-        const globalIndex = data.indexOf(item);
+        const globalIndex = shortlinks.indexOf(item);
         const div = document.createElement("div");
         div.className = "link-box";
         div.innerHTML = `
@@ -168,14 +161,20 @@
         `;
         container.appendChild(div);
       });
+    }
 
-      function startRedirect(index, url) {
-        localStorage.setItem("redirect_link", url);
-        localStorage.setItem("redirect_index", index);
-        window.location.href = "redirect.html";
-      }
+    function updateUserPoints() {
+      db.collection("users").doc(userId).get().then(doc => {
+        const data = doc.data();
+        const points = data?.points || 0;
+        document.getElementById("user-points").textContent = `نقاطي: ${points} 🪙`;
+      });
+    }
 
-      updateUserPoints();
+    function startRedirect(index, url) {
+      localStorage.setItem("redirect_link", url);
+      localStorage.setItem("redirect_index", index);
+      window.location.href = "redirect.html";
     }
   </script>
 </body>
