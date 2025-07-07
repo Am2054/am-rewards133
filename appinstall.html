@@ -129,64 +129,51 @@
 
     const uploadedApps = [];
 
-    firebase.auth().onAuthStateChanged(async user => {
-      const userId = user ? user.uid : "guest-mode";
-      const isGuest = !user;
-      const container = document.getElementById("tasks");
-
-      // عرض النقاط
-      if (!isGuest) {
-        try {
-          const doc = await db.collection("users").doc(userId).get();
-          const points = doc.exists ? (doc.data().points || 0) : 0;
-          document.getElementById("user-points").textContent = `نقاطي: ${points} 🪙`;
-        } catch {
-          document.getElementById("user-points").textContent = "⚠️ خطأ في تحميل النقاط";
-        }
-      } else {
-        document.getElementById("user-points").textContent = `🧪 وضع تجربة: سجّل الدخول لحفظ النقاط`;
-      }
-
-      // جلب المهام التي رُفعت مسبقًا
-      try {
-        const snapshot = await db.collection("install_proofs").where("userId", "==", userId).get();
-        snapshot.forEach(doc => {
-          uploadedApps.push(doc.data().appTitle);
-        });
-      } catch (e) {
-        console.error("خطأ في تحميل إثباتات التثبيت:", e);
-      }
-
-      // عرض التطبيقات
-      container.innerHTML = "";
-      apps.forEach((app, index) => {
-        const alreadyUploaded = uploadedApps.includes(app.title);
-        const disabled = alreadyUploaded ? "disabled" : "";
-        const uploadedMsg = alreadyUploaded ? "<div class='status' style='color:red;'>📌 تم رفع الإثبات</div>" : "";
-
-        const div = document.createElement("div");
-        div.className = "app-task";
-        div.innerHTML = `
-          <h3>📱 ${app.title}</h3>
-          <p>${app.description}</p>
-          <p>💰 ${app.points} نقاط</p>
-          <a href="${app.link}" target="_blank" class="btn-install">🔗 تثبيت التطبيق</a><br>
-          <input type="file" accept="image/*" id="file-${index}" ${disabled} style="margin-top:10px">
-          <button class="btn-upload" onclick="uploadProof(${index}, '${app.title}', '${userId}', ${app.points}, ${isGuest})" ${disabled}>📤 رفع لقطة شاشة</button>
-          <div class="status" id="status-${index}">${uploadedMsg}</div>
-        `;
-        container.appendChild(div);
-      });
-    });
-
-    function uploadProof(index, appTitle, userId, points, isGuest) {
-      if (uploadedApps.includes(appTitle)) {
-        alert("❌ لقد قمت برفع إثبات لهذا التطبيق بالفعل.");
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        alert("يرجى تسجيل الدخول أولاً.");
+        window.location.href = "index.html";
         return;
       }
 
-      if (isGuest) {
-        alert("🔐 سجّل الدخول أولاً لرفع إثبات.");
+      const userId = user.uid;
+      const container = document.getElementById("tasks");
+
+      db.collection("users").doc(userId).get().then(doc => {
+        const points = doc.exists ? (doc.data().points || 0) : 0;
+        document.getElementById("user-points").textContent = `نقاطي: ${points} 🪙`;
+      });
+
+      db.collection("install_proofs").where("userId", "==", userId).get().then(snapshot => {
+        snapshot.forEach(doc => {
+          uploadedApps.push(doc.data().appTitle);
+        });
+
+        container.innerHTML = "";
+        apps.forEach((app, index) => {
+          const alreadyUploaded = uploadedApps.includes(app.title);
+          const disabled = alreadyUploaded ? "disabled" : "";
+          const uploadedMsg = alreadyUploaded ? "<div class='status' style='color:red;'>📌 تم رفع الإثبات</div>" : "";
+
+          const div = document.createElement("div");
+          div.className = "app-task";
+          div.innerHTML = `
+            <h3>📱 ${app.title}</h3>
+            <p>${app.description}</p>
+            <p>💰 ${app.points} نقاط</p>
+            <a href="${app.link}" target="_blank" class="btn-install">🔗 تثبيت التطبيق</a><br>
+            <input type="file" accept="image/*" id="file-${index}" ${disabled} style="margin-top:10px">
+            <button class="btn-upload" onclick="uploadProof(${index}, '${app.title}', '${userId}', ${app.points})" ${disabled}>📤 رفع لقطة شاشة</button>
+            <div class="status" id="status-${index}">${uploadedMsg}</div>
+          `;
+          container.appendChild(div);
+        });
+      });
+    });
+
+    function uploadProof(index, appTitle, userId, points) {
+      if (uploadedApps.includes(appTitle)) {
+        alert("❌ لقد قمت برفع إثبات لهذا التطبيق بالفعل.");
         return;
       }
 
@@ -213,6 +200,17 @@
           timestamp: firebase.firestore.FieldValue.serverTimestamp(),
           reviewed: false
         });
+
+        // تحديث النقاط بعد إرسال الإثبات
+        db.collection("users").doc(userId).update({
+          points: firebase.firestore.FieldValue.increment(points)
+        }).then(() => {
+          db.collection("users").doc(userId).get().then(doc => {
+            const newPoints = doc.data().points || 0;
+            document.getElementById("user-points").textContent = `نقاطي: ${newPoints} 🪙`;
+          });
+        });
+
         status.textContent = "✅ تم إرسال لقطة الشاشة. سيتم مراجعتها.";
         fileInput.disabled = true;
         uploadedApps.push(appTitle);
