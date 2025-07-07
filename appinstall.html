@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>تثبيت التطبيقات | Am Rewards</title>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet" />
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
@@ -16,15 +16,15 @@
       color: #007bff;
     }
     #user-points {
-      text-align: center;
-      background-color: #fff3cd;
+      background: #fff3cd;
+      color: #333;
+      font-size: 18px;
       padding: 10px;
       border-radius: 10px;
       border: 1px solid #ffeeba;
-      max-width: 320px;
+      max-width: 300px;
       margin: 15px auto;
-      font-weight: bold;
-      color: #333;
+      text-align: center;
     }
     .app-task {
       background: white;
@@ -79,29 +79,33 @@
 </head>
 <body>
   <h2>📲 مهام تثبيت التطبيقات</h2>
-  <div id="user-points">جارٍ تحميل رصيدك...</div>
+  <div id="user-points">نقاطي: ...</div>
   <div id="tasks">جاري تحميل التطبيقات...</div>
 
   <script>
-    const apps = [
-      {
-        title: "ClipClaps",
-        description: "اربح المال من مشاهدة الفيديوهات.",
-        link: "https://play.google.com/store/apps/details?id=com.sanhe.clipclaps"
-      },
-      {
-        title: "CashZine",
-        description: "تطبيق لربح المال من قراءة الأخبار.",
-        link: "https://play.google.com/store/apps/details?id=com.jifen.qukan"
-      }
-    ];
+    let userId = null;
 
     auth.onAuthStateChanged(user => {
       if (!user) return location.href = 'index.html';
-      const userId = user.uid;
+      userId = user.uid;
+      loadUserPoints();
+      loadApps();
+    });
 
-      updateUserPoints(userId);
+    function loadUserPoints() {
+      db.collection("users").doc(userId).get().then(doc => {
+        const points = doc.data()?.points || 0;
+        document.getElementById("user-points").textContent = `نقاطي: ${points} 🪙`;
+      });
+    }
 
+    function loadApps() {
+      fetch("apps-data.json")
+        .then(res => res.json())
+        .then(apps => renderApps(apps));
+    }
+
+    function renderApps(apps) {
       const container = document.getElementById("tasks");
       container.innerHTML = "";
       apps.forEach((app, index) => {
@@ -110,6 +114,7 @@
         div.innerHTML = `
           <h3>📱 ${app.title}</h3>
           <p>${app.description}</p>
+          <p>💰 <strong>${app.points} نقطة</strong></p>
           <a href="${app.link}" target="_blank" class="btn-install">🔗 تثبيت التطبيق</a><br>
           <input type="file" accept="image/*" id="file-${index}" style="margin-top:10px">
           <button class="btn-upload" onclick="uploadProof(${index}, '${app.title}', '${userId}')">📤 رفع إثبات التثبيت</button>
@@ -117,26 +122,15 @@
         `;
         container.appendChild(div);
       });
-    });
-
-    function updateUserPoints(userId) {
-      db.collection("users").doc(userId).get().then(doc => {
-        const data = doc.data();
-        const points = data?.points || 0;
-        document.getElementById("user-points").textContent = `رصيدك: ${points} 🪙 نقطة`;
-      });
     }
 
     function uploadProof(index, appTitle, userId) {
       const fileInput = document.getElementById(`file-${index}`);
       const file = fileInput.files[0];
+      if (!file) return alert("📸 يرجى اختيار صورة للتثبيت");
       const status = document.getElementById(`status-${index}`);
-
-      if (!file) return alert("📸 يرجى اختيار صورة التثبيت أولاً");
-
       const filePath = `proofs/${userId}/${appTitle}_${Date.now()}.jpg`;
       const uploadTask = storage.ref(filePath).put(file);
-
       status.textContent = "📤 جاري رفع الصورة...";
 
       uploadTask.then(() => {
@@ -147,7 +141,7 @@
           timestamp: firebase.firestore.FieldValue.serverTimestamp(),
           reviewed: false
         });
-        status.textContent = "✅ تم إرسال الإثبات بنجاح! سيتم مراجعته قريبًا.";
+        status.textContent = "✅ تم إرسال الإثبات بنجاح، سيتم مراجعته من الإدارة.";
       }).catch(() => {
         status.textContent = "❌ فشل في رفع الصورة.";
       });
