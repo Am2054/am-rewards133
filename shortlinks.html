@@ -88,11 +88,13 @@
   <div id="links-container"></div>
 
   <div class="back-buttons">
-    <a href="dashboard.html"><button>🔙 الرئيسية</button></a>
-    <a href="tasks.html"><button>🗂️ المهام</button></a>
+    <a href="dashboard.html"><button>🔙 العودة إلى الصفحة الرئيسية</button></a>
+    <a href="tasks.html"><button>🗂️ العودة إلى صفحة المهام</button></a>
   </div>
 
   <script>
+    let userId = null;
+
     const shortlinks = [
       { title: "🔥 رابط مختصر 1 - شاهد فيديو قصير", url: "https://exe.io/shortlink1" },
       { title: "📄 رابط مختصر 2 - استبيان بسيط", url: "https://cuty.io/shortlink2" },
@@ -100,8 +102,6 @@
       { title: "💰 رابط مختصر 4 - اربح نقاط إضافية", url: "https://tinyurl.com/shortlink4" },
       { title: "🧠 رابط مختصر 5 - معلومة مفيدة", url: "https://bitly.ws/shortlink5" }
     ];
-
-    let userId = null;
 
     auth.onAuthStateChanged(user => {
       if (user) {
@@ -137,7 +137,13 @@
         }
       }
 
-      updateUserPoints();
+      function updateUserPoints() {
+        db.collection("users").doc(userId).get().then(doc => {
+          const data = doc.data();
+          const points = data?.points || 0;
+          document.getElementById("user-points").textContent = `نقاطي: ${points} 🪙`;
+        });
+      }
 
       const container = document.getElementById("links-container");
       const status = document.getElementById("status");
@@ -161,14 +167,8 @@
         `;
         container.appendChild(div);
       });
-    }
 
-    function updateUserPoints() {
-      db.collection("users").doc(userId).get().then(doc => {
-        const data = doc.data();
-        const points = data?.points || 0;
-        document.getElementById("user-points").textContent = `نقاطي: ${points} 🪙`;
-      });
+      updateUserPoints();
     }
 
     function startRedirect(index, url) {
