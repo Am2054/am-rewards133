@@ -21,11 +21,19 @@
       background: #fff3cd;
       padding: 10px;
       border-radius: 10px;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
       border: 1px solid #ffeeba;
       max-width: 300px;
       margin-left: auto;
       margin-right: auto;
+    }
+    .notice {
+      text-align: center;
+      color: #dc3545;
+      font-weight: bold;
+      font-size: 16px;
+      margin-top: -10px;
+      margin-bottom: 20px;
     }
     .app-task {
       background: white;
@@ -80,6 +88,7 @@
 </head>
 <body>
   <h2>📲 مهام تثبيت التطبيقات</h2>
+  <p class="notice">📸 للحصول على النقاط، يجب رفع لقطة شاشة توضح تثبيت التطبيق. سيتم مراجعة الصورة يدويًا.</p>
   <div id="user-points">جاري تحميل النقاط...</div>
   <div id="tasks">جاري تحميل التطبيقات...</div>
 
@@ -92,28 +101,16 @@
         points: 30
       },
       {
-        title: "CashZine",
-        description: "تطبيق لربح المال من قراءة الأخبار والدعوات.",
-        link: "https://play.google.com/store/apps/details?id=com.jifen.qukan",
-        points: 30
+        title: "تطبيق تجريبي A",
+        description: "تطبيق وهمي لتجربة واجهة الرفع.",
+        link: "#",
+        points: 10
       },
       {
-        title: "BuzzBreak",
-        description: "تابع الأخبار والربح مقابل الوقت الذي تقضيه.",
-        link: "https://play.google.com/store/apps/details?id=com.buzzbreak.reward.news",
-        points: 25
-      },
-      {
-        title: "Current Music",
-        description: "استمع إلى الموسيقى واربح المال أثناء ذلك.",
-        link: "https://play.google.com/store/apps/details?id=us.current.android",
-        points: 35
-      },
-      {
-        title: "Toloka",
-        description: "أنجز مهام بسيطة واكسب مال حقيقي.",
-        link: "https://play.google.com/store/apps/details?id=com.yandex.toloka.app",
-        points: 40
+        title: "تطبيق تجريبي B",
+        description: "مثال آخر لاختبار صفحة التثبيت.",
+        link: "#",
+        points: 15
       }
     ];
 
@@ -134,6 +131,13 @@
       if (!user) return location.href = 'index.html';
       const userId = user.uid;
       const container = document.getElementById("tasks");
+      const todayKey = `apps_uploaded_${userId}_${new Date().toISOString().slice(0, 10)}`;
+      let localUploaded = [];
+
+      try {
+        const stored = JSON.parse(localStorage.getItem(todayKey));
+        if (Array.isArray(stored)) localUploaded = stored;
+      } catch (e) { localUploaded = []; }
 
       db.collection("users").doc(userId).get().then(doc => {
         const points = doc.exists ? (doc.data().points || 0) : 0;
@@ -143,7 +147,7 @@
       checkIfAlreadyUploaded(userId).then(() => {
         container.innerHTML = "";
         apps.forEach((app, index) => {
-          const alreadyUploaded = uploadedApps.includes(app.title);
+          const alreadyUploaded = uploadedApps.includes(app.title) || localUploaded.includes(app.title);
           const disabled = alreadyUploaded ? "disabled" : "";
           const uploadedMsg = alreadyUploaded ? "<div class='status' style='color:red;'>📌 تم رفع الإثبات بالفعل</div>" : "";
 
@@ -161,44 +165,55 @@
           container.appendChild(div);
         });
       });
-    });
 
-    function uploadProof(index, appTitle, userId, points) {
-      if (uploadedApps.includes(appTitle)) {
-        alert("❌ لقد قمت برفع إثبات لهذا التطبيق بالفعل.");
-        return;
-      }
+      window.uploadProof = function(index, appTitle, userId, points) {
+        const todayKey = `apps_uploaded_${userId}_${new Date().toISOString().slice(0, 10)}`;
+        let localUploaded = [];
+        try {
+          const stored = JSON.parse(localStorage.getItem(todayKey));
+          if (Array.isArray(stored)) localUploaded = stored;
+        } catch (e) { localUploaded = []; }
 
-      const fileInput = document.getElementById(`file-${index}`);
-      const file = fileInput.files[0];
-      const status = document.getElementById(`status-${index}`);
-      if (!file) return alert("📸 يرجى اختيار صورة لإثبات التثبيت");
+        if (uploadedApps.includes(appTitle) || localUploaded.includes(appTitle)) {
+          alert("❌ لقد قمت برفع إثبات لهذا التطبيق بالفعل.");
+          return;
+        }
 
-      if (!file.type.startsWith("image/")) {
-        status.textContent = "❌ الملف المرفوع ليس صورة صالحة.";
-        return;
-      }
+        const fileInput = document.getElementById(`file-${index}`);
+        const file = fileInput.files[0];
+        const status = document.getElementById(`status-${index}`);
+        if (!file) return alert("📸 يرجى اختيار صورة لإثبات التثبيت");
 
-      const filePath = `proofs/${userId}/${appTitle}_${Date.now()}.jpg`;
-      const uploadTask = storage.ref(filePath).put(file);
+        if (!file.type.startsWith("image/")) {
+          status.textContent = "❌ الملف المرفوع ليس صورة صالحة.";
+          return;
+        }
 
-      status.textContent = "📤 جاري رفع الصورة...";
-      uploadTask.then(() => {
-        db.collection("install_proofs").add({
-          userId,
-          appTitle,
-          filePath,
-          points,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-          reviewed: false
+        const filePath = `proofs/${userId}/${appTitle}_${Date.now()}.jpg`;
+        const uploadTask = storage.ref(filePath).put(file);
+
+        status.textContent = "📤 جاري رفع الصورة...";
+        uploadTask.then(() => {
+          db.collection("install_proofs").add({
+            userId,
+            appTitle,
+            filePath,
+            points,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            reviewed: false
+          });
+
+          const updated = [...localUploaded, appTitle];
+          localStorage.setItem(todayKey, JSON.stringify(updated));
+
+          status.textContent = "✅ تم إرسال الإثبات بنجاح، سيتم مراجعته يدويًا.";
+          fileInput.disabled = true;
+          uploadedApps.push(appTitle);
+        }).catch(() => {
+          status.textContent = "❌ فشل في رفع الصورة. حاول مرة أخرى.";
         });
-        status.textContent = "✅ تم إرسال الإثبات بنجاح، سيتم مراجعته يدويًا.";
-        fileInput.disabled = true;
-        uploadedApps.push(appTitle);
-      }).catch(() => {
-        status.textContent = "❌ فشل في رفع الصورة. حاول مرة أخرى.";
-      });
-    }
+      };
+    });
   </script>
 </body>
 </html>
