@@ -111,16 +111,31 @@
 
         div.innerHTML = `
           <h3>${poll.question}</h3>
+          <p style="color:#777;">🟣 نقاط هذه المهمة: ${poll.points} نقطة</p>
           ${optionsHTML}
-          <button class="btn" id="btn-${index}">إرسال +${poll.points} نقطة</button>
+          <button class="btn" id="btn-${index}">إرسال</button>
         `;
         container.appendChild(div);
 
         document.getElementById(`btn-${index}`).addEventListener("click", async () => {
+          const selected = document.querySelector(`input[name="q${index}"]:checked`);
+          if (!selected) {
+            alert("يرجى اختيار إجابة أولاً.");
+            return;
+          }
+
+          const alreadyDone = sessionStorage.getItem(`poll_done_${index}`);
+          if (alreadyDone) {
+            alert("لقد أجبت على هذا الاستطلاع بالفعل.");
+            return;
+          }
+
           await rewardUser(poll.points);
-          document.getElementById(`btn-${index}`).textContent = "✅ تم إرسال الإجابة";
-          document.getElementById(`btn-${index}`).classList.add("done");
-          document.getElementById(`btn-${index}`).disabled = true;
+          sessionStorage.setItem(`poll_done_${index}`, "true");
+          const btn = document.getElementById(`btn-${index}`);
+          btn.textContent = "✅ تم إرسال الإجابة";
+          btn.classList.add("done");
+          btn.disabled = true;
         });
       });
     }
