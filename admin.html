@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="ar" dir="rtl">
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <title>لوحة تحكم صاحب الموقع | Am Rewards</title>
@@ -20,7 +21,7 @@
       border-radius: 15px;
       box-shadow: 0 0 20px rgba(0,0,0,0.5);
     }
-    h1, h2 {
+    h1, h2, h3 {
       text-align: center;
       color: #00d1ff;
     }
@@ -52,42 +53,25 @@
     .button.green {
       background-color: #28a745;
     }
-    .button.yellow {
-      background-color: #ffc107;
-      color: black;
-    }
-    .vip-list, .achievements {
+
+    .achievements, .vip-list {
       margin-top: 30px;
     }
-    .vip-list h3, .achievements h3 {
+    .achievements h3, .vip-list h3 {
       color: #00ffff;
       margin-bottom: 10px;
     }
-    .vip-list ul {
+    .achievements ul, .vip-list ul {
       list-style: none;
       padding: 0;
     }
-    .vip-list li {
+    .achievements li, .vip-list li {
       background: #2c2c2c;
-      padding: 8px;
+      padding: 10px;
       margin-bottom: 6px;
       border-radius: 6px;
     }
-    .achievements {
-      background: #1a1a1a;
-      border: 1px solid #444;
-      border-radius: 12px;
-      padding: 20px;
-    }
-    .achievement {
-      padding: 12px;
-      margin-bottom: 10px;
-      background: #333;
-      border-left: 5px solid #ffc107;
-      border-radius: 6px;
-      font-weight: bold;
-      color: #ffd700;
-    }
+
     #proofReview {
       margin-top: 40px;
     }
@@ -112,23 +96,63 @@
     }
     .approve { background: #28a745; color: #fff; }
     .reject { background: #dc3545; color: #fff; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    table th, table td {
+      padding: 10px;
+      border: 1px solid #444;
+      text-align: center;
+    }
+    table th {
+      background-color: #333;
+      color: #00ffff;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>لوحة تحكم صاحب الموقع</h1>
+
     <div class="stat-box">
       <div class="card"><h2 id="userCount">0</h2><p>عدد المستخدمين</p></div>
       <div class="card"><h2 id="taskCount">0</h2><p>عدد المهام المنفذة</p></div>
       <div class="card"><h2 id="withdrawTotal">0 EGP</h2><p>إجمالي السحب</p></div>
       <div class="card"><h2 id="siteProfit">0 EGP</h2><p>أرباحك (بعد الخصم)</p></div>
       <div class="card"><h2 id="discountEarnings">0 EGP</h2><p>أرباح الخصم 10%</p></div>
-    </div><button class="button green" onclick="adminWithdraw()">💰 سحب أرباحي</button>
+    </div>
 
-<h2 id="proofReview">📝 مراجعة إثباتات تثبيت التطبيقات</h2>
-<div id="proofsContainer"></div>
+    <button class="button green" onclick="adminWithdraw()">💰 سحب أرباحي</button>
 
-  </div>  <script type="module">
+    <h2 id="proofReview">📝 مراجعة إثباتات تثبيت التطبيقات</h2>
+    <div id="proofsContainer"></div>
+
+    <h2>📊 تفاصيل المهام المنفذة</h2>
+    <div id="taskDetails">
+      <table>
+        <thead>
+          <tr>
+            <th>👤 المستخدم</th>
+            <th>📌 نوع المهمة</th>
+            <th>📅 التاريخ</th>
+          </tr>
+        </thead>
+        <tbody id="taskTableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="achievements">
+      <h3>🏆 أكثر أنواع المهام تنفيذًا</h3>
+      <ul id="mostTasks"></ul>
+
+      <h3>👑 المستخدمون الأكثر نشاطًا</h3>
+      <ul id="topUsers"></ul>
+    </div>
+  </div>
+
+  <script type="module">
     import {
       getFirestore, getDocs, collection, deleteDoc, doc,
       updateDoc, increment, addDoc, serverTimestamp
@@ -153,6 +177,7 @@
       }
       loadStats();
       loadProofs();
+      loadTaskLogs();
     });
 
     const userCount = document.getElementById("userCount");
@@ -265,5 +290,53 @@
       };
       return map[appTitle] || 30;
     }
-  </script></body>
+
+    async function loadTaskLogs() {
+      const logsSnap = await getDocs(collection(db, "task_logs"));
+      const tableBody = document.getElementById("taskTableBody");
+      const taskCounter = {};
+      const userCounter = {};
+
+      logsSnap.forEach(doc => {
+        const data = doc.data();
+        if (!data.real) return;
+
+        const userId = data.userId || "مجهول";
+        const taskType = data.taskType || "غير معروف";
+        const createdAt = data.createdAt?.toDate().toLocaleString("ar-EG") || "؟";
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${userId}</td>
+          <td>${taskType}</td>
+          <td>${createdAt}</td>
+        `;
+        tableBody.appendChild(row);
+
+        taskCounter[taskType] = (taskCounter[taskType] || 0) + 1;
+        userCounter[userId] = (userCounter[userId] || 0) + 1;
+      });
+
+      const mostTasks = Object.entries(taskCounter)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+      const taskList = document.getElementById("mostTasks");
+      mostTasks.forEach(([type, count]) => {
+        const li = document.createElement("li");
+        li.textContent = `${type} - ${count} مرة`;
+        taskList.appendChild(li);
+      });
+
+      const topUsers = Object.entries(userCounter)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+      const userList = document.getElementById("topUsers");
+      topUsers.forEach(([user, count]) => {
+        const li = document.createElement("li");
+        li.textContent = `${user} - ${count} مهمة`;
+        userList.appendChild(li);
+      });
+    }
+  </script>
+</body>
   </html>
