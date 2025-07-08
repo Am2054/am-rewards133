@@ -15,6 +15,17 @@
       text-align: center;
       color: #856404;
     }
+    #userPoints {
+      background: #fff;
+      max-width: 400px;
+      margin: 10px auto 20px;
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: bold;
+      color: #333;
+      text-align: center;
+      border: 1px solid #ffeeba;
+    }
     .task {
       background: #fff;
       border: 2px solid #ffeeba;
@@ -55,11 +66,12 @@
 </head>
 <body>
   <h2>📺 مهام YouTube و TikTok</h2>
+  <div id="userPoints">جاري تحميل نقاطك...</div>
   <div id="ytTasks"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const firebaseConfig = {
@@ -71,77 +83,114 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
-
     let currentUser;
+    let userData = {};
 
     const tasks = [
       {
-        title: "اشترك في قناة YouTube",
-        desc: "ادخل واشترك في القناة الرسمية لـ Am Rewards.",
-        url: "https://youtube.com/@example",
-        points: 3
+        id: "yt1",
+        title: "اشترك في قناة أحمد أبو زيد",
+        desc: "ادخل واشترك في القناة التعليمية المعروفة.",
+        url: "https://www.youtube.com/@AhmedAbouzaid",
+        points: 5
       },
       {
-        title: "تابع حساب TikTok",
-        desc: "تابع حساب Am Rewards على TikTok الآن!",
-        url: "https://tiktok.com/@example",
-        points: 3
+        id: "yt2",
+        title: "اشترك في قناة حوحو للمعلوميات",
+        desc: "قناة تقنية شهيرة، اشترك الآن.",
+        url: "https://www.youtube.com/@fidiwstube",
+        points: 5
       },
       {
-        title: "شاهد هذا الفيديو",
-        desc: "شاهد فيديو قصير حتى النهاية.",
-        url: "https://www.youtube.com/watch?v=example",
-        points: 3
+        id: "tt1",
+        title: "تابع حساب TikTok AmRewards",
+        desc: "تابعنا على تيك توك وابقَ على اطلاع.",
+        url: "https://www.tiktok.com/@openai",
+        points: 5
+      },
+      {
+        id: "yt3",
+        title: "شاهد فيديو 5 دقائق عن الذكاء الاصطناعي",
+        desc: "افتح الرابط وشاهد الفيديو.",
+        url: "https://www.youtube.com/watch?v=2ePf9rue1Ao",
+        points: 5
+      },
+      {
+        id: "yt4",
+        title: "اشترك في قناة هل تعلم؟",
+        desc: "قناة معلومات غريبة ومفيدة.",
+        url: "https://www.youtube.com/@DidYouKnowYT",
+        points: 5
       }
     ];
 
-    onAuthStateChanged(auth, user => {
+    onAuthStateChanged(auth, async (user) => {
       if (user) {
         currentUser = user;
-        showTasks();
+        const ref = doc(db, "users", user.uid);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          userData = snap.data();
+          showPoints();
+          renderTasks();
+        }
       } else {
         window.location.href = "login.html";
       }
     });
 
-    function showTasks() {
-      const container = document.getElementById("ytTasks");
-      tasks.forEach((task, i) => {
-        const doneKey = `yt_task_${i}_done`;
-        const isDone = sessionStorage.getItem(doneKey);
+    function showPoints() {
+      const p = userData.points || 0;
+      document.getElementById("userPoints").textContent = `رصيدك: ${p} نقطة`;
+    }
 
+    function renderTasks() {
+      const container = document.getElementById("ytTasks");
+      const completed = userData.completedYT || [];
+
+      tasks.forEach(task => {
         const div = document.createElement("div");
         div.className = "task";
+        const isDone = completed.includes(task.id);
         div.innerHTML = `
           <h3>${task.title}</h3>
           <p>${task.desc}</p>
           <p>🎯 نقاط المهمة: <strong>${task.points}</strong></p>
           <a href="${task.url}" class="btn" target="_blank">تنفيذ المهمة</a>
-          <button class="btn ${isDone ? 'done' : ''}" id="done-${i}" ${isDone ? 'disabled' : ''}>
-            ${isDone ? '✅ تمت إضافة النقاط' : '✅ أتممت المهمة'}
+          <button class="btn ${isDone ? 'done' : ''}" id="btn-${task.id}" ${isDone ? 'disabled' : ''}>
+            ${isDone ? '✅ تم التنفيذ' : '✅ أتممت المهمة'}
           </button>
         `;
         container.appendChild(div);
 
-        document.getElementById(`done-${i}`).addEventListener("click", async () => {
-          if (sessionStorage.getItem(doneKey)) return;
-          await rewardUser(task.points);
-          const btn = document.getElementById(`done-${i}`);
-          btn.textContent = "✅ تمت إضافة النقاط";
-          btn.classList.add("done");
-          btn.disabled = true;
-          sessionStorage.setItem(doneKey, "true");
-        });
+        if (!isDone) {
+          const btn = document.getElementById(`btn-${task.id}`);
+          btn.addEventListener("click", async () => {
+            await completeTask(task);
+            btn.textContent = "✅ تم التنفيذ";
+            btn.classList.add("done");
+            btn.disabled = true;
+            showPoints();
+          });
+        }
       });
     }
 
-    async function rewardUser(points) {
-      if (!currentUser) return;
+    async function completeTask(task) {
       const ref = doc(db, "users", currentUser.uid);
       const snap = await getDoc(ref);
       if (snap.exists()) {
-        const current = snap.data().points || 0;
-        await updateDoc(ref, { points: current + points });
+        const data = snap.data();
+        const points = data.points || 0;
+        const completed = data.completedYT || [];
+        if (!completed.includes(task.id)) {
+          await updateDoc(ref, {
+            points: points + task.points,
+            completedYT: arrayUnion(task.id)
+          });
+          userData.points = points + task.points;
+          userData.completedYT = [...completed, task.id];
+        }
       }
     }
   </script>
