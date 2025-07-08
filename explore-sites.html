@@ -15,6 +15,12 @@
       text-align: center;
       color: #2e7d32;
     }
+    #pointsDisplay {
+      text-align: center;
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: #2e7d32;
+    }
     .site {
       background: #fff;
       border: 2px solid #a5d6a7;
@@ -54,6 +60,7 @@
 </head>
 <body>
   <h2>🌐 استكشاف مواقع - اجمع نقاطك بسهولة</h2>
+  <div id="pointsDisplay">💰 نقاطك: <span id="points">...</span></div>
   <div id="siteTasks"></div>
 
   <script type="module">
@@ -72,35 +79,55 @@
     const auth = getAuth(app);
 
     let currentUser;
+    const pointsDisplay = document.getElementById("points");
 
     const sites = [
       {
+        id: "tech",
         title: "موقع أخبار تقنية",
         desc: "اقرأ مقالة عن الذكاء الاصطناعي.",
         url: "https://techcrunch.com/",
         points: 3
       },
       {
+        id: "culture",
         title: "موقع ثقافي",
         desc: "استعرض موضوع ثقافي جديد.",
         url: "https://www.britannica.com/",
         points: 3
+      },
+      {
+        id: "finance",
+        title: "موقع مالي",
+        desc: "تصفح الأخبار الاقتصادية.",
+        url: "https://www.investing.com/",
+        points: 3
       }
     ];
 
-    onAuthStateChanged(auth, user => {
+    onAuthStateChanged(auth, async (user) => {
       if (user) {
         currentUser = user;
+        await updatePointsDisplay();
         showSites();
       } else {
         window.location.href = "login.html";
       }
     });
 
+    async function updatePointsDisplay() {
+      const ref = doc(db, "users", currentUser.uid);
+      const snap = await getDoc(ref);
+      const currentPoints = snap.exists() ? snap.data().points || 0 : 0;
+      pointsDisplay.textContent = currentPoints;
+    }
+
     function showSites() {
       const container = document.getElementById("siteTasks");
-      sites.forEach((site, i) => {
-        const isDone = sessionStorage.getItem(`site_done_${i}`);
+      sites.forEach((site) => {
+        const key = `site_done_${site.id}`;
+        const isDone = sessionStorage.getItem(key);
+
         const div = document.createElement("div");
         div.className = "site";
         div.innerHTML = `
@@ -108,20 +135,21 @@
           <p>${site.desc}</p>
           <p style="color:#555;">🔹 نقاط المهمة: <strong>${site.points}</strong> نقطة</p>
           <a href="${site.url}" class="btn" target="_blank">استكشاف</a>
-          <button class="btn ${isDone ? 'done' : ''}" id="done-${i}" ${isDone ? 'disabled' : ''}>
+          <button class="btn ${isDone ? 'done' : ''}" id="btn-${site.id}" ${isDone ? 'disabled' : ''}>
             ${isDone ? '✅ تمت إضافة النقاط' : '✅ تمت الزيارة'}
           </button>
         `;
         container.appendChild(div);
 
-        document.getElementById(`done-${i}`).addEventListener("click", async () => {
-          if (sessionStorage.getItem(`site_done_${i}`)) return;
+        const btn = document.getElementById(`btn-${site.id}`);
+        btn.addEventListener("click", async () => {
+          if (sessionStorage.getItem(key)) return;
           await rewardUser(site.points);
-          const btn = document.getElementById(`done-${i}`);
           btn.textContent = "✅ تمت إضافة النقاط";
           btn.classList.add("done");
           btn.disabled = true;
-          sessionStorage.setItem(`site_done_${i}`, "true");
+          sessionStorage.setItem(key, "true");
+          await updatePointsDisplay(); // تحديث الرصيد
         });
       });
     }
