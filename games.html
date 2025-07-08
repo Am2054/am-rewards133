@@ -15,6 +15,12 @@
       text-align: center;
       color: #e65100;
     }
+    #pointsDisplay {
+      text-align: center;
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: #444;
+    }
     .game {
       background: #fff;
       border: 2px solid #ffe0b2;
@@ -27,9 +33,6 @@
     .game h3 {
       margin: 0;
       color: #e65100;
-    }
-    .game p {
-      margin: 10px 0;
     }
     .btn {
       display: inline-block;
@@ -54,6 +57,7 @@
 </head>
 <body>
   <h2>🎮 ألعاب سريعة - اربح نقاط إضافية!</h2>
+  <div id="pointsDisplay">💰 نقاطك: <span id="points">...</span></div>
   <div id="gamesContainer"></div>
 
   <script type="module">
@@ -72,35 +76,69 @@
     const auth = getAuth(app);
 
     let currentUser;
+    const pointsDisplay = document.getElementById("points");
 
     const games = [
       {
-        title: "لعبة XO بسيطة",
-        desc: "ابدأ لعب XO ضد الذكاء الصناعي!",
+        id: "xo",
+        title: "لعبة XO",
+        desc: "العب XO ضد الكمبيوتر",
         url: "https://playtictactoe.org/",
-        points: 3
+        points: 4
       },
       {
-        title: "لعبة اختبار الذكاء",
-        desc: "أجب عن 5 أسئلة لتحصل على نقاط.",
-        url: "https://www.mensaiqtest.net/",
-        points: 3
+        id: "reaction",
+        title: "اختبر سرعة رد فعلك",
+        desc: "اضغط عند تغير اللون بأسرع ما يمكن",
+        url: "https://humanbenchmark.com/tests/reactiontime",
+        points: 4
+      },
+      {
+        id: "memory",
+        title: "اختبر ذاكرتك البصرية",
+        desc: "هل تستطيع تذكر ترتيب المربعات؟",
+        url: "https://www.memory-improvement-tips.com/free-memory-games.html",
+        points: 4
+      },
+      {
+        id: "math",
+        title: "لعبة العمليات الحسابية السريعة",
+        desc: "احسب بسرعة وتحدى نفسك!",
+        url: "https://www.mathplayground.com/ASB_AlienAddition.html",
+        points: 4
+      },
+      {
+        id: "aim",
+        title: "اختبار سرعة التصويب",
+        desc: "دقة وسرعة التصويب في اختبار ممتع!",
+        url: "https://aimtrainer.io/",
+        points: 4
       }
     ];
 
-    onAuthStateChanged(auth, user => {
+    onAuthStateChanged(auth, async (user) => {
       if (user) {
         currentUser = user;
+        await updatePointsDisplay();
         showGames();
       } else {
         window.location.href = "login.html";
       }
     });
 
+    async function updatePointsDisplay() {
+      const ref = doc(db, "users", currentUser.uid);
+      const snap = await getDoc(ref);
+      const currentPoints = snap.exists() ? snap.data().points || 0 : 0;
+      pointsDisplay.textContent = currentPoints;
+    }
+
     function showGames() {
       const container = document.getElementById("gamesContainer");
-      games.forEach((game, i) => {
-        const isDone = sessionStorage.getItem(`game_done_${i}`);
+      games.forEach((game) => {
+        const key = `game_done_${game.id}`;
+        const isDone = sessionStorage.getItem(key);
+
         const div = document.createElement("div");
         div.className = "game";
         div.innerHTML = `
@@ -108,20 +146,21 @@
           <p>${game.desc}</p>
           <p style="color:#555;">🔹 نقاط هذه اللعبة: <strong>${game.points}</strong> نقطة</p>
           <a href="${game.url}" class="btn" target="_blank">ابدأ اللعب</a>
-          <button class="btn ${isDone ? 'done' : ''}" id="done-${i}" ${isDone ? 'disabled' : ''}>
+          <button class="btn ${isDone ? 'done' : ''}" id="btn-${game.id}" ${isDone ? 'disabled' : ''}>
             ${isDone ? '✅ تم احتساب النقاط' : '✅ أنهيت اللعبة'}
           </button>
         `;
         container.appendChild(div);
 
-        document.getElementById(`done-${i}`).addEventListener("click", async () => {
-          if (sessionStorage.getItem(`game_done_${i}`)) return;
+        const btn = document.getElementById(`btn-${game.id}`);
+        btn.addEventListener("click", async () => {
+          if (sessionStorage.getItem(key)) return;
           await rewardUser(game.points);
-          const btn = document.getElementById(`done-${i}`);
           btn.textContent = "✅ تم احتساب النقاط";
           btn.classList.add("done");
           btn.disabled = true;
-          sessionStorage.setItem(`game_done_${i}`, "true");
+          sessionStorage.setItem(key, "true");
+          await updatePointsDisplay(); // تحديث النقاط بعد التنفيذ
         });
       });
     }
