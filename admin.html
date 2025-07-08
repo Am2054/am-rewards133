@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<!DOCTYPE html><html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <title>لوحة تحكم صاحب الموقع | Am Rewards</title>
@@ -124,32 +123,37 @@
       <div class="card"><h2 id="withdrawTotal">0 EGP</h2><p>إجمالي السحب</p></div>
       <div class="card"><h2 id="siteProfit">0 EGP</h2><p>أرباحك (بعد الخصم)</p></div>
       <div class="card"><h2 id="discountEarnings">0 EGP</h2><p>أرباح الخصم 10%</p></div>
-    </div>
+    </div><button class="button green" onclick="adminWithdraw()">💰 سحب أرباحي</button>
 
-    <button class="button" onclick="toggleWithdraw()" id="withdrawBtn">⏸️ جار التحقق...</button>
-    <button class="button green" onclick="adminWithdraw()">💰 سحب أرباحي</button>
-    <button class="button yellow" onclick="processPendingWithdrawals()">📤 إرسال السحب المعلّق <span id="pendingCount">(0)</span></button>
+<h2 id="proofReview">📝 مراجعة إثباتات تثبيت التطبيقات</h2>
+<div id="proofsContainer"></div>
 
-    <div class="vip-list">
-      <h3>👑 المستخدمين المميزين (VIP)</h3>
-      <ul id="vipUsers"></ul>
-    </div>
-
-    <h2>🏆 إنجازات الموقع</h2>
-    <div id="achievementsBox" class="achievements"></div>
-
-    <h2 id="proofReview">📝 مراجعة إثباتات تثبيت التطبيقات</h2>
-    <div id="proofsContainer"></div>
-  </div>
-
-  <script type="module">
-    import { getFirestore, getDocs, collection, deleteDoc, doc, updateDoc, increment, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getStorage, ref, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-    import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  </div>  <script type="module">
+    import {
+      getFirestore, getDocs, collection, deleteDoc, doc,
+      updateDoc, increment, addDoc, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getStorage, ref, getDownloadURL
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+    import {
+      getAuth, onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const db = getFirestore();
     const storage = getStorage();
     const auth = getAuth();
+    const adminEmail = "amirfg992005@gmail.com";
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user || user.email !== adminEmail) {
+        alert("❌ هذه الصفحة مخصصة فقط لصاحب الموقع.");
+        window.location.href = "login.html";
+        return;
+      }
+      loadStats();
+      loadProofs();
+    });
 
     const userCount = document.getElementById("userCount");
     const taskCount = document.getElementById("taskCount");
@@ -157,7 +161,6 @@
     const siteProfit = document.getElementById("siteProfit");
     const discountEarnings = document.getElementById("discountEarnings");
 
-    // إحصائيات عامة
     async function loadStats() {
       const users = await getDocs(collection(db, "users"));
       userCount.textContent = users.size;
@@ -178,16 +181,13 @@
       });
       withdrawTotal.textContent = `${totalWithdraw.toFixed(2)} EGP`;
 
-      const totalPoints = totalTasks * 0.07; // نقطة = 0.07 EGP
+      const totalPoints = totalTasks * 0.07;
       const adminProfit = totalPoints - totalWithdraw;
       siteProfit.textContent = `${adminProfit.toFixed(2)} EGP`;
 
       discountEarnings.textContent = `${(totalWithdraw * 0.10).toFixed(2)} EGP`;
     }
 
-    loadStats();
-
-    // زر سحب أرباحي
     window.adminWithdraw = async () => {
       const siteProfitEl = document.getElementById("siteProfit");
       const rawProfit = siteProfitEl.textContent.replace("EGP", "").trim();
@@ -203,22 +203,20 @@
 
       try {
         await addDoc(collection(db, "admin_withdrawals"), {
-          adminEmail: "amirfg992005@gmail.com",
+          adminEmail,
           amountEGP: profit.toFixed(2),
           status: "pending",
           createdAt: serverTimestamp()
         });
 
-        alert("✅ تم إرسال طلب السحب، يُراجع خلال ساعات.");
+        alert("✅ تم إرسال طلب السحب.");
         siteProfitEl.textContent = "0 EGP";
-
       } catch (e) {
         console.error(e);
         alert("❌ حدث خطأ أثناء تقديم الطلب.");
       }
     };
 
-    // مراجعة إثباتات التطبيقات
     async function loadProofs() {
       const snap = await getDocs(collection(db, "install_proofs"));
       const container = document.getElementById("proofsContainer");
@@ -267,8 +265,5 @@
       };
       return map[appTitle] || 30;
     }
-
-    loadProofs();
-  </script>
-</body>
+  </script></body>
   </html>
