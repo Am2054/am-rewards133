@@ -10,11 +10,21 @@
       background: #f5f5f5;
       margin: 0;
       padding: 20px;
-      direction: rtl;
     }
     h2 {
       text-align: center;
       color: #444;
+    }
+    #userPoints {
+      background: #fff;
+      max-width: 400px;
+      margin: 10px auto 20px;
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: bold;
+      color: #333;
+      text-align: center;
+      border: 1px solid #ddd;
     }
     .poll {
       background: #fff;
@@ -46,23 +56,31 @@
       text-decoration: none;
       font-weight: bold;
       margin-top: 10px;
+      border: none;
+      cursor: pointer;
     }
     .btn:hover {
       background: #b82b62;
     }
     .done {
       background-color: #28a745 !important;
+      color: white !important;
     }
   </style>
 </head>
 <body>
   <h2>📊 استطلاعات قصيرة - اربح النقاط بسرعة</h2>
+  <div id="userPoints">جاري تحميل نقاطك...</div>
   <div id="pollList"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, updateDoc, arrayUnion
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getAuth, onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -75,78 +93,118 @@
     const auth = getAuth(app);
 
     let currentUser;
+    let userData = {};
 
     const polls = [
       {
+        id: "poll1",
         question: "ما نوع المحتوى المفضل لديك؟",
         options: ["تعليمي", "ترفيهي", "رياضي", "ألعاب"],
         points: 4
       },
       {
-        question: "كم ساعة تستخدم فيها الإنترنت يوميًا؟",
+        id: "poll2",
+        question: "كم ساعة تستخدم الإنترنت يوميًا؟",
         options: ["أقل من ساعة", "1-3 ساعات", "4-6 ساعات", "أكثر من 6 ساعات"],
+        points: 4
+      },
+      {
+        id: "poll3",
+        question: "أي نوع من الهواتف تستخدم؟",
+        options: ["أندرويد", "آيفون", "هواوي", "غير ذلك"],
+        points: 4
+      },
+      {
+        id: "poll4",
+        question: "هل تفضل مشاهدة الفيديوهات أم قراءة المقالات؟",
+        options: ["الفيديوهات", "المقالات", "الاثنين معًا"],
+        points: 4
+      },
+      {
+        id: "poll5",
+        question: "هل تستخدم الذكاء الاصطناعي يوميًا؟",
+        options: ["نعم", "لا", "أحيانًا"],
         points: 4
       }
     ];
 
-    onAuthStateChanged(auth, user => {
-      if (user) {
-        currentUser = user;
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return window.location.href = "login.html";
+      currentUser = user;
+      const snap = await getDoc(doc(db, "users", user.uid));
+      if (snap.exists()) {
+        userData = snap.data();
         renderPolls();
-      } else {
-        window.location.href = "login.html";
+        updatePointsBox();
       }
     });
 
+    function updatePointsBox() {
+      const p = userData.points || 0;
+      document.getElementById("userPoints").textContent = `رصيدك: ${p} نقطة`;
+    }
+
     function renderPolls() {
       const container = document.getElementById("pollList");
+      const completed = userData.completedPolls || [];
+
       polls.forEach((poll, index) => {
+        const isDone = completed.includes(poll.id);
         const div = document.createElement("div");
         div.className = "poll";
 
         let optionsHTML = "";
         poll.options.forEach((option, i) => {
-          optionsHTML += `<label><input type="radio" name="q${index}" value="${option}"> ${option}</label>`;
+          optionsHTML += `<label><input type="radio" name="${poll.id}" value="${option}" ${isDone ? "disabled" : ""}> ${option}</label>`;
         });
 
         div.innerHTML = `
           <h3>${poll.question}</h3>
           <p style="color:#777;">🟣 نقاط هذه المهمة: ${poll.points} نقطة</p>
           ${optionsHTML}
-          <button class="btn" id="btn-${index}">إرسال</button>
+          <button class="btn ${isDone ? 'done' : ''}" id="btn-${poll.id}" ${isDone ? 'disabled' : ''}>
+            ${isDone ? '✅ تم إرسال الإجابة' : 'إرسال'}
+          </button>
         `;
+
         container.appendChild(div);
 
-        document.getElementById(`btn-${index}`).addEventListener("click", async () => {
-          const selected = document.querySelector(`input[name="q${index}"]:checked`);
-          if (!selected) {
-            alert("يرجى اختيار إجابة أولاً.");
-            return;
-          }
+        if (!isDone) {
+          const btn = document.getElementById(`btn-${poll.id}`);
+          btn.addEventListener("click", async () => {
+            const selected = document.querySelector(`input[name="${poll.id}"]:checked`);
+            if (!selected) {
+              alert("يرجى اختيار إجابة أولاً.");
+              return;
+            }
 
-          const alreadyDone = sessionStorage.getItem(`poll_done_${index}`);
-          if (alreadyDone) {
-            alert("لقد أجبت على هذا الاستطلاع بالفعل.");
-            return;
-          }
-
-          await rewardUser(poll.points);
-          sessionStorage.setItem(`poll_done_${index}`, "true");
-          const btn = document.getElementById(`btn-${index}`);
-          btn.textContent = "✅ تم إرسال الإجابة";
-          btn.classList.add("done");
-          btn.disabled = true;
-        });
+            await completePoll(poll);
+            btn.textContent = "✅ تم إرسال الإجابة";
+            btn.classList.add("done");
+            btn.disabled = true;
+            updatePointsBox();
+          });
+        }
       });
     }
 
-    async function rewardUser(points) {
+    async function completePoll(poll) {
       if (!currentUser) return;
       const ref = doc(db, "users", currentUser.uid);
       const snap = await getDoc(ref);
       if (snap.exists()) {
-        const current = snap.data().points || 0;
-        await updateDoc(ref, { points: current + points });
+        const data = snap.data();
+        const points = data.points || 0;
+        const completed = data.completedPolls || [];
+
+        if (!completed.includes(poll.id)) {
+          await updateDoc(ref, {
+            points: points + poll.points,
+            completedPolls: arrayUnion(poll.id)
+          });
+          userData.points = points + poll.points;
+          userData.completedPolls = [...completed, poll.id];
+        }
       }
     }
   </script>
