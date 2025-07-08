@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>جارٍ فتح المهمة | Am Rewards</title>
+  <title>جارٍ تنفيذ المهمة | Am Rewards</title>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">
   <style>
     body {
@@ -47,46 +47,53 @@
 </head>
 <body>
 
-  <h2>📂 جارٍ تنفيذ المهمة المختصرة</h2>
-  <p>⏳ اضغط على الزر لفتح الرابط، ثم انتظر حتى ينتهي الوقت لتأكيد المهمة.</p>
+  <h2>📂 تنفيذ المهمة المختصرة</h2>
+  <p>⏳ افتح الرابط وانتظر حتى ينتهي العداد لتأكيد المهمة.</p>
 
-  <!-- زر فتح الرابط يدويًا -->
   <button id="openLinkBtn" class="button enabled" style="background-color: #007bff;">🔗 اضغط هنا لفتح الرابط</button>
-
   <div class="timer" id="countdown">30 ثانية</div>
-
-  <!-- زر تأكيد إنهاء المهمة -->
   <button id="completeBtn" class="button" disabled>✅ لقد أكملت المهمة</button>
 
   <script>
     const countdownEl = document.getElementById("countdown");
     const completeBtn = document.getElementById("completeBtn");
     const openLinkBtn = document.getElementById("openLinkBtn");
-    let timeLeft = 30;
 
     const link = localStorage.getItem("redirect_link");
     const index = localStorage.getItem("redirect_index");
 
-    // زر فتح الرابط يدويًا
+    let timeLeft = 30;
+    let hasOpened = false;
+
+    // حماية أساسية: لا تعمل بدون رابط
+    if (!link || index === null) {
+      alert("⚠️ حدث خطأ في بيانات المهمة. يرجى العودة وإعادة المحاولة.");
+      window.location.href = "shortlinks.html";
+    }
+
     openLinkBtn.addEventListener("click", () => {
-      if (link) window.open(link, "_blank");
+      hasOpened = true;
+      window.open(link, "_blank");
     });
 
-    // بدء العد التنازلي
     const timer = setInterval(() => {
       timeLeft--;
       countdownEl.textContent = `${timeLeft} ثانية`;
 
       if (timeLeft <= 0) {
         clearInterval(timer);
-        completeBtn.disabled = false;
-        completeBtn.classList.add("enabled");
-        completeBtn.textContent = "✅ اضغط هنا لتأكيد إنهاء المهمة";
+        if (hasOpened) {
+          completeBtn.disabled = false;
+          completeBtn.classList.add("enabled");
+          completeBtn.textContent = "✅ اضغط هنا لتأكيد إنهاء المهمة";
+        } else {
+          countdownEl.textContent = "⚠️ افتح الرابط أولاً لإكمال المهمة";
+        }
       }
     }, 1000);
 
     completeBtn.addEventListener("click", () => {
-      if (!completeBtn.disabled) {
+      if (!completeBtn.disabled && hasOpened) {
         localStorage.setItem("justCompletedLink", index);
         window.location.href = "shortlinks.html";
       }
