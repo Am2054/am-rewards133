@@ -170,12 +170,19 @@
 
         if (!isDone) {
           const btn = document.getElementById(`btn-${offer.id}`);
-          btn.addEventListener("click", async () => {
-            await rewardUser(offer.points, offer.id);
-            btn.textContent = "✅ تم التنفيذ";
-            btn.classList.add("done");
+          btn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            btn.textContent = "🔄 جارِ التحقق...";
             btn.disabled = true;
-            updateBalance();
+
+            window.open(offer.url, "_blank");
+
+            setTimeout(async () => {
+              await rewardUser(offer.points, offer.id);
+              btn.textContent = "✅ تم التنفيذ";
+              btn.classList.add("done");
+              updateBalance();
+            }, 15000); // 15 ثانية
           });
         }
       });
