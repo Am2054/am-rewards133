@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<!DOCTYPE html><html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <title>لوحة تحكم صاحب الموقع | Am Rewards</title>
@@ -53,7 +52,6 @@
     .button.green {
       background-color: #28a745;
     }
-
     .achievements, .vip-list {
       margin-top: 30px;
     }
@@ -71,7 +69,6 @@
       margin-bottom: 6px;
       border-radius: 6px;
     }
-
     #proofReview {
       margin-top: 40px;
     }
@@ -115,43 +112,36 @@
 <body>
   <div class="container">
     <h1>لوحة تحكم صاحب الموقع</h1>
-
     <div class="stat-box">
       <div class="card"><h2 id="userCount">0</h2><p>عدد المستخدمين</p></div>
-      <div class="card"><h2 id="taskCount">0</h2><p>عدد المهام المنفذة</p></div>
+      <div class="card"><h2 id="taskCount">0</h2><p>عدد المهام الحقيقية</p></div>
       <div class="card"><h2 id="withdrawTotal">0 EGP</h2><p>إجمالي السحب</p></div>
-      <div class="card"><h2 id="siteProfit">0 EGP</h2><p>أرباحك (بعد الخصم)</p></div>
-      <div class="card"><h2 id="discountEarnings">0 EGP</h2><p>أرباح الخصم 10%</p></div>
+      <div class="card"><h2 id="siteProfit">0 EGP</h2><p>أرباحك بعد الدفع</p></div>
+      <div class="card"><h2 id="discountEarnings">0 EGP</h2><p>نسبة الخصم 10%</p></div>
     </div>
-
     <button class="button green" onclick="adminWithdraw()">💰 سحب أرباحي</button>
-
-    <h2 id="proofReview">📝 مراجعة إثباتات تثبيت التطبيقات</h2>
+    <h2 id="proofReview">📸 مراجعة إثباتات التثبيت</h2>
     <div id="proofsContainer"></div>
-
     <h2>📊 تفاصيل المهام المنفذة</h2>
     <div id="taskDetails">
       <table>
         <thead>
           <tr>
-            <th>👤 المستخدم</th>
-            <th>📌 نوع المهمة</th>
-            <th>📅 التاريخ</th>
+            <th>المستخدم</th>
+            <th>نوع المهمة</th>
+            <th>التاريخ</th>
           </tr>
         </thead>
         <tbody id="taskTableBody"></tbody>
       </table>
     </div>
-
     <div class="achievements">
-      <h3>🏆 أكثر أنواع المهام تنفيذًا</h3>
+      <h3>📈 أكثر المهام تنفيذاً</h3>
       <ul id="mostTasks"></ul>
-
-      <h3>👑 المستخدمون الأكثر نشاطًا</h3>
+      <h3>👤 المستخدمون الأكثر نشاطاً</h3>
       <ul id="topUsers"></ul>
     </div>
   </div>
-
   <script type="module">
     import {
       getFirestore, getDocs, collection, deleteDoc, doc,
@@ -162,181 +152,147 @@
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
     import {
       getAuth, onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";const db = getFirestore();
+const storage = getStorage();
+const auth = getAuth();
+const adminEmail = "amirfg992005@gmail.com";
 
-    const db = getFirestore();
-    const storage = getStorage();
-    const auth = getAuth();
-    const adminEmail = "amirfg992005@gmail.com";
+onAuthStateChanged(auth, (user) => {
+  if (!user || user.email !== adminEmail) {
+    alert("❌ هذه الصفحة مخصصة فقط لصاحب الموقع.");
+    window.location.href = "login.html";
+    return;
+  }
+  loadStats();
+  loadProofs();
+  loadTaskLogs();
+});
 
-    onAuthStateChanged(auth, (user) => {
-      if (!user || user.email !== adminEmail) {
-        alert("❌ هذه الصفحة مخصصة فقط لصاحب الموقع.");
-        window.location.href = "login.html";
-        return;
-      }
-      loadStats();
-      loadProofs();
-      loadTaskLogs();
-    });
+async function loadStats() {
+  const users = await getDocs(collection(db, "users"));
+  document.getElementById("userCount").textContent = users.size;
 
-    const userCount = document.getElementById("userCount");
-    const taskCount = document.getElementById("taskCount");
-    const withdrawTotal = document.getElementById("withdrawTotal");
-    const siteProfit = document.getElementById("siteProfit");
-    const discountEarnings = document.getElementById("discountEarnings");
+  let totalTasks = 0;
+  let totalWithdraw = 0;
 
-    async function loadStats() {
-      const users = await getDocs(collection(db, "users"));
-      userCount.textContent = users.size;
+  const tasks = await getDocs(collection(db, "task_logs"));
+  tasks.forEach(doc => {
+    if (doc.data().real === true) totalTasks++;
+  });
+  document.getElementById("taskCount").textContent = totalTasks;
 
-      let totalTasks = 0;
-      let totalWithdraw = 0;
+  const withdrawals = await getDocs(collection(db, "withdrawRequests"));
+  withdrawals.forEach(doc => {
+    const amount = parseFloat(doc.data().amountEGP || 0);
+    totalWithdraw += amount;
+  });
+  document.getElementById("withdrawTotal").textContent = `${totalWithdraw.toFixed(2)} EGP`;
 
-      const tasks = await getDocs(collection(db, "task_logs"));
-      tasks.forEach(doc => {
-        if (doc.data().real === true) totalTasks++;
-      });
-      taskCount.textContent = totalTasks;
+  const totalPoints = totalTasks * 0.07;
+  const adminProfit = totalPoints - totalWithdraw;
+  document.getElementById("siteProfit").textContent = `${adminProfit.toFixed(2)} EGP`;
 
-      const withdrawals = await getDocs(collection(db, "withdrawRequests"));
-      withdrawals.forEach(doc => {
-        const amount = parseFloat(doc.data().amountEGP || 0);
-        totalWithdraw += amount;
-      });
-      withdrawTotal.textContent = `${totalWithdraw.toFixed(2)} EGP`;
+  document.getElementById("discountEarnings").textContent = `${(totalWithdraw * 0.10).toFixed(2)} EGP`;
+}
 
-      const totalPoints = totalTasks * 0.07;
-      const adminProfit = totalPoints - totalWithdraw;
-      siteProfit.textContent = `${adminProfit.toFixed(2)} EGP`;
+window.adminWithdraw = async () => {
+  const raw = document.getElementById("siteProfit").textContent.replace("EGP", "").trim();
+  const profit = parseFloat(raw);
+  if (isNaN(profit) || profit <= 0) return alert("❌ لا توجد أرباح متاحة للسحب.");
+  const confirmWithdraw = confirm(`هل تريد سحب ${profit.toFixed(2)} جنيه؟`);
+  if (!confirmWithdraw) return;
 
-      discountEarnings.textContent = `${(totalWithdraw * 0.10).toFixed(2)} EGP`;
-    }
+  await addDoc(collection(db, "admin_withdrawals"), {
+    adminEmail,
+    amountEGP: profit.toFixed(2),
+    status: "pending",
+    createdAt: serverTimestamp()
+  });
+  alert("✅ تم إرسال طلب السحب.");
+  document.getElementById("siteProfit").textContent = "0 EGP";
+};
 
-    window.adminWithdraw = async () => {
-      const siteProfitEl = document.getElementById("siteProfit");
-      const rawProfit = siteProfitEl.textContent.replace("EGP", "").trim();
-      const profit = parseFloat(rawProfit);
+async function loadProofs() {
+  const snap = await getDocs(collection(db, "install_proofs"));
+  const container = document.getElementById("proofsContainer");
+  container.innerHTML = "";
+  snap.forEach(async docSnap => {
+    const data = docSnap.data();
+    if (data.reviewed) return;
+    const url = await getDownloadURL(ref(storage, data.filePath));
+    const div = document.createElement("div");
+    div.className = "proof-card";
+    div.innerHTML = `
+      <img src="${url}" alt="proof" />
+      <p>📱 التطبيق: <strong>${data.appTitle}</strong></p>
+      <p>👤 المستخدم: ${data.userId}</p>
+      <div class="proof-actions">
+        <button class="approve" onclick="approveProof('${docSnap.id}', '${data.userId}', ${getPoints(data.appTitle)})">✅ قبول</button>
+        <button class="reject" onclick="rejectProof('${docSnap.id}')">❌ رفض</button>
+      </div>`;
+    container.appendChild(div);
+  });
+}
 
-      if (isNaN(profit) || profit <= 0) {
-        alert("❌ لا توجد أرباح متاحة للسحب حالياً.");
-        return;
-      }
+window.approveProof = async (id, userId, points) => {
+  await updateDoc(doc(db, "users", userId), {
+    points: increment(points || 30)
+  });
+  await updateDoc(doc(db, "install_proofs", id), {
+    reviewed: true
+  });
+  loadProofs();
+};
 
-      const confirmWithdraw = confirm(`هل أنت متأكد من طلب سحب ${profit.toFixed(2)} جنيه؟`);
-      if (!confirmWithdraw) return;
+window.rejectProof = async (id) => {
+  await deleteDoc(doc(db, "install_proofs", id));
+  loadProofs();
+};
 
-      try {
-        await addDoc(collection(db, "admin_withdrawals"), {
-          adminEmail,
-          amountEGP: profit.toFixed(2),
-          status: "pending",
-          createdAt: serverTimestamp()
-        });
+function getPoints(appTitle) {
+  const map = {
+    "ClipClaps": 30,
+    "CashZine": 30,
+    "BuzzBreak": 25,
+    "Current Music": 35,
+    "Toloka": 40
+  };
+  return map[appTitle] || 30;
+}
 
-        alert("✅ تم إرسال طلب السحب.");
-        siteProfitEl.textContent = "0 EGP";
-      } catch (e) {
-        console.error(e);
-        alert("❌ حدث خطأ أثناء تقديم الطلب.");
-      }
-    };
+async function loadTaskLogs() {
+  const logsSnap = await getDocs(collection(db, "task_logs"));
+  const tableBody = document.getElementById("taskTableBody");
+  const taskCounter = {}, userCounter = {};
 
-    async function loadProofs() {
-      const snap = await getDocs(collection(db, "install_proofs"));
-      const container = document.getElementById("proofsContainer");
-      container.innerHTML = "";
-      snap.forEach(async docSnap => {
-        const data = docSnap.data();
-        if (data.reviewed) return;
-        const url = await getDownloadURL(ref(storage, data.filePath));
-        const div = document.createElement("div");
-        div.className = "proof-card";
-        div.innerHTML = `
-          <img src="${url}" alt="proof" />
-          <p>📱 التطبيق: <strong>${data.appTitle}</strong></p>
-          <p>👤 المستخدم: ${data.userId}</p>
-          <div class="proof-actions">
-            <button class="approve" onclick="approveProof('${docSnap.id}', '${data.userId}', ${getPoints(data.appTitle)})">✅ قبول</button>
-            <button class="reject" onclick="rejectProof('${docSnap.id}')">❌ رفض</button>
-          </div>
-        `;
-        container.appendChild(div);
-      });
-    }
+  logsSnap.forEach(doc => {
+    const data = doc.data();
+    if (!data.real) return;
+    const userId = data.userId || "مجهول";
+    const taskType = data.taskType || "غير معروف";
+    const createdAt = data.createdAt?.toDate().toLocaleString("ar-EG") || "؟";
+    const row = document.createElement("tr");
+    row.innerHTML = `<td>${userId}</td><td>${taskType}</td><td>${createdAt}</td>`;
+    tableBody.appendChild(row);
+    taskCounter[taskType] = (taskCounter[taskType] || 0) + 1;
+    userCounter[userId] = (userCounter[userId] || 0) + 1;
+  });
 
-    window.approveProof = async (id, userId, points) => {
-      await updateDoc(doc(db, "users", userId), {
-        points: increment(points || 30)
-      });
-      await updateDoc(doc(db, "install_proofs", id), {
-        reviewed: true
-      });
-      loadProofs();
-    };
+  const mostTasks = Object.entries(taskCounter).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  mostTasks.forEach(([type, count]) => {
+    const li = document.createElement("li");
+    li.textContent = `${type} - ${count} مرة`;
+    document.getElementById("mostTasks").appendChild(li);
+  });
 
-    window.rejectProof = async (id) => {
-      await deleteDoc(doc(db, "install_proofs", id));
-      loadProofs();
-    };
+  const topUsers = Object.entries(userCounter).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  topUsers.forEach(([user, count]) => {
+    const li = document.createElement("li");
+    li.textContent = `${user} - ${count} مهمة`;
+    document.getElementById("topUsers").appendChild(li);
+  });
+}
 
-    function getPoints(appTitle) {
-      const map = {
-        "ClipClaps": 30,
-        "CashZine": 30,
-        "BuzzBreak": 25,
-        "Current Music": 35,
-        "Toloka": 40
-      };
-      return map[appTitle] || 30;
-    }
-
-    async function loadTaskLogs() {
-      const logsSnap = await getDocs(collection(db, "task_logs"));
-      const tableBody = document.getElementById("taskTableBody");
-      const taskCounter = {};
-      const userCounter = {};
-
-      logsSnap.forEach(doc => {
-        const data = doc.data();
-        if (!data.real) return;
-
-        const userId = data.userId || "مجهول";
-        const taskType = data.taskType || "غير معروف";
-        const createdAt = data.createdAt?.toDate().toLocaleString("ar-EG") || "؟";
-
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${userId}</td>
-          <td>${taskType}</td>
-          <td>${createdAt}</td>
-        `;
-        tableBody.appendChild(row);
-
-        taskCounter[taskType] = (taskCounter[taskType] || 0) + 1;
-        userCounter[userId] = (userCounter[userId] || 0) + 1;
-      });
-
-      const mostTasks = Object.entries(taskCounter)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5);
-      const taskList = document.getElementById("mostTasks");
-      mostTasks.forEach(([type, count]) => {
-        const li = document.createElement("li");
-        li.textContent = `${type} - ${count} مرة`;
-        taskList.appendChild(li);
-      });
-
-      const topUsers = Object.entries(userCounter)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5);
-      const userList = document.getElementById("topUsers");
-      topUsers.forEach(([user, count]) => {
-        const li = document.createElement("li");
-        li.textContent = `${user} - ${count} مهمة`;
-        userList.appendChild(li);
-      });
-    }
   </script>
 </body>
   </html>
