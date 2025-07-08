@@ -72,6 +72,9 @@
       getDoc,
       updateDoc,
       arrayUnion,
+      addDoc,
+      collection,
+      serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import {
       getAuth,
@@ -93,17 +96,38 @@
 
     const offers = [
       {
-        id: "cpa1",
-        title: "🎁 بطاقة هدايا مجانية",
-        desc: "افتح الرابط وسجل ببريدك للحصول على نقاط.",
-        url: "https://example.com/cpa1",
-        points: 9
+        id: "cpa3",
+        title: "💼 احصل على وظيفة أونلاين",
+        desc: "سجل في منصة العمل الحر واحصل على فرص حقيقية.",
+        url: "https://link3.example.com",
+        points: 10
       },
       {
-        id: "cpa2",
-        title: "📱 اربح جوال مجاني",
-        desc: "أكمل استبيان وسجل بياناتك.",
-        url: "https://example.com/cpa2",
+        id: "cpa4",
+        title: "🛍️ كوبون خصم لموقع تسوق",
+        desc: "احصل على كوبون خصم بعد التسجيل.",
+        url: "https://link4.example.com",
+        points: 8
+      },
+      {
+        id: "cpa5",
+        title: "🎧 تجربة موسيقى مجانية",
+        desc: "سجل لتجربة شهر مجاني في تطبيق موسيقى.",
+        url: "https://link5.example.com",
+        points: 10
+      },
+      {
+        id: "cpa6",
+        title: "📰 اشترك في مجلة إلكترونية",
+        desc: "سجل بريدك للحصول على نشرة يومية مفيدة.",
+        url: "https://link6.example.com",
+        points: 7
+      },
+      {
+        id: "cpa7",
+        title: "📊 شارك رأيك في استبيان عالمي",
+        desc: "أجب على بعض الأسئلة القصيرة وكسب نقاط.",
+        url: "https://link7.example.com",
         points: 9
       }
     ];
@@ -171,6 +195,14 @@
             points: currentPoints + points,
             completedCPA: arrayUnion(offerId)
           });
+
+          await addDoc(collection(db, "task_logs"), {
+            userId: currentUser.uid,
+            taskType: "CPA",
+            real: true,
+            createdAt: serverTimestamp()
+          });
+
           userData.points = currentPoints + points;
           userData.completedCPA = [...completed, offerId];
         }
