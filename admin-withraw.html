@@ -66,7 +66,8 @@
       <p>⏳ <strong>الإجمالي قيد الانتظار:</strong> <span id="pendingTotal">0</span> دولار</p>
     </div>
     <div id="requestsList">جاري التحميل...</div>
-  </div>  <script type="module">
+  </div>  
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
       getFirestore, collection, query, orderBy, getDocs, updateDoc, doc
@@ -119,13 +120,17 @@
         const id = docSnap.id;
         const div = document.createElement("div");
         div.className = "request";
-        const time = data.requestedAt?.toDate().toLocaleString("ar-EG") || "غير معروف";
+
+        const timestamp = data.requestedAt;
+        const time = (timestamp && timestamp.toDate) ? timestamp.toDate().toLocaleString("ar-EG") : "غير معروف";
+
+        const email = data.paypalEmail || data.userEmail || data.email || "غير معروف";
 
         if (data.status === "pending") pendingTotal += Number(data.amount);
         if (data.status === "done") doneTotal += Number(data.amount);
 
         div.innerHTML = `
-          <p>📧 الإيميل: <strong>${data.email}</strong></p>
+          <p>📧 الإيميل: <strong>${email}</strong></p>
           <p>💵 المبلغ: <strong>${data.amount}$</strong></p>
           <p>⏰ التاريخ: ${time}</p>
           <p>🔄 الحالة: <span id="status-${id}">${data.status === "done" ? "<span class='done'>تم التحويل</span>" : "قيد المراجعة"}</span></p>
@@ -148,5 +153,6 @@
       alert("✅ تم تحديث الحالة إلى تم التحويل.");
       await loadRequests();
     };
-  </script></body>
+  </script>
+</body>
 </html>
