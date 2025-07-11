@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>سجل السحوبات | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: #f0f4f8;
+      padding: 20px;
+    }
+    .box {
+      max-width: 600px;
+      margin: auto;
+      background: #ffffff;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      color: #007bff;
+      margin-bottom: 20px;
+    }
+    .withdraw {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+    }
+    .withdraw p {
+      margin: 5px 0;
+    }
+    .status-done {
+      color: green;
+      font-weight: bold;
+    }
+    .status-pending {
+      color: orange;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>سجل السحوبات الخاصة بك</h2>
+    <div id="withdrawList">جارٍ التحميل...</div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore, collection, query, where, getDocs, orderBy
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getAuth, onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const list = document.getElementById("withdrawList");
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        alert("يجب تسجيل الدخول أولاً.");
+        window.location.href = "login.html";
+        return;
+      }
+
+      const q = query(
+        collection(db, "withdrawRequests"),
+        where("uid", "==", user.uid),
+        orderBy("createdAt", "desc")
+      );
+
+      const snapshot = await getDocs(q);
+      list.innerHTML = "";
+
+      if (snapshot.empty) {
+        list.innerHTML = "<p>لا توجد سحوبات حتى الآن.</p>";
+        return;
+      }
+
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const date = data.createdAt?.toDate().toLocaleString("ar-EG") || "غير معروف";
+        const statusClass = data.status === "done" ? "status-done" : "status-pending";
+        const statusText = data.status === "done" ? "✅ تم التحويل" : "⏳ قيد المراجعة";
+
+        const div = document.createElement("div");
+        div.className = "withdraw";
+        div.innerHTML = `
+          <p><strong>💵 المبلغ:</strong> ${data.amountUSD} $</p>
+          <p><strong>📧 PayPal:</strong> ${data.paypalEmail}</p>
+          <p><strong>🗓️ التاريخ:</strong> ${date}</p>
+          <p><strong>🔄 الحالة:</strong> <span class="${statusClass}">${statusText}</span></p>
+        `;
+        list.appendChild(div);
+      });
+    });
+  </script>
+</body>
+</html>
