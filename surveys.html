@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="ar" dir="rtl">
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -14,6 +15,18 @@
     h2 {
       text-align: center;
       color: #004085;
+    }
+    #userPoints {
+      text-align: center;
+      margin: 10px auto 20px;
+      font-weight: bold;
+      font-size: 16px;
+      color: #333;
+      background: #fff;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      max-width: 400px;
     }
     .survey {
       background: #fff;
@@ -37,13 +50,18 @@
       background: #007bff;
       color: #fff;
       padding: 10px 16px;
-      text-decoration: none;
       border-radius: 8px;
       font-weight: bold;
+      text-decoration: none;
       margin-top: 10px;
+      border: none;
+      cursor: pointer;
     }
     .btn:hover {
       background: #0056b3;
+    }
+    .btn.done {
+      background-color: #28a745 !important;
     }
     .back-btn {
       display: block;
@@ -61,22 +79,17 @@
     .back-btn:hover {
       background-color: #5a6268;
     }
-    #userPoints {
-      text-align: center;
-      margin-bottom: 20px;
-      font-weight: bold;
-      color: #333;
-      font-size: 16px;
-    }
   </style>
 </head>
 <body>
   <h2>📝 مهام الاستبيانات المدفوعة</h2>
   <div id="userPoints">رصيدك: جاري التحميل...</div>
   <div id="surveyList"></div>
-  <a href="tasks.html" class="back-btn">⬅️ الرجوع إلى صفحة المهام</a>  <script type="module">
+  <a href="tasks.html" class="back-btn">⬅️ الرجوع إلى صفحة المهام</a>
+
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const firebaseConfig = {
@@ -90,55 +103,98 @@
     const auth = getAuth(app);
 
     let currentUser;
+    let userData = {};
 
     const surveys = [
       {
+        id: "bl1",
         name: "BitLabs Surveys",
         desc: "أكمل استطلاعات من BitLabs واربح نقاط عالية.",
         url: "https://web.bitlabs.ai/",
+        points: 8
       },
       {
+        id: "th1",
         name: "TheoremReach Surveys",
         desc: "شارك في استطلاعات متنوعة واحصل على مكافآت.",
         url: "https://theoremreach.com/",
+        points: 8
       },
       {
+        id: "rw1",
         name: "RevenueWall Surveys",
         desc: "استبيانات سريعة ومربحة للمستخدمين العرب.",
         url: "https://revenuewall.com/",
+        points: 8
       }
     ];
 
     onAuthStateChanged(auth, async user => {
-      if (user) {
-        currentUser = user;
-        loadSurveys();
-        await updatePointsDisplay();
-      } else {
-        window.location.href = "login.html";
+      if (!user) return window.location.href = "login.html";
+      currentUser = user;
+      const ref = doc(db, "users", user.uid);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        userData = snap.data();
+        renderSurveys();
+        updatePoints();
       }
     });
 
-    async function updatePointsDisplay() {
-      const ref = doc(db, "users", currentUser.uid);
-      const snap = await getDoc(ref);
-      const points = snap.exists() ? snap.data().points || 0 : 0;
-      document.getElementById("userPoints").textContent = `رصيدك الحالي: ${points} نقطة`;
+    function updatePoints() {
+      const p = userData.points || 0;
+      document.getElementById("userPoints").textContent = `رصيدك الحالي: ${p} نقطة`;
     }
 
-    function loadSurveys() {
+    function renderSurveys() {
       const container = document.getElementById("surveyList");
-      container.innerHTML = "";
+      const completed = userData.completedSurveys || [];
+
       surveys.forEach(survey => {
+        const isDone = completed.includes(survey.id);
         const div = document.createElement("div");
         div.className = "survey";
         div.innerHTML = `
           <h3>${survey.name}</h3>
           <p>${survey.desc}</p>
-          <a href="${survey.url}" target="_blank" class="btn">بدء المهمة</a>
+          <a href="${survey.url}" target="_blank" class="btn" ${isDone ? 'style="opacity:0.6;pointer-events:none;"' : ''}>🔗 بدء المهمة</a>
+          <button class="btn ${isDone ? 'done' : ''}" id="btn-${survey.id}" ${isDone ? 'disabled' : ''}>
+            ${isDone ? '✅ تم التنفيذ' : '✅ أتممت المهمة'}
+          </button>
         `;
         container.appendChild(div);
+
+        if (!isDone) {
+          const btn = div.querySelector(`#btn-${survey.id}`);
+          btn.addEventListener("click", async () => {
+            await completeSurvey(survey);
+            btn.textContent = "✅ تم التنفيذ";
+            btn.classList.add("done");
+            btn.disabled = true;
+            updatePoints();
+          });
+        }
       });
     }
-  </script></body>
-  </html>
+
+    async function completeSurvey(survey) {
+      if (!currentUser) return;
+      const ref = doc(db, "users", currentUser.uid);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const data = snap.data();
+        const points = data.points || 0;
+        const completed = data.completedSurveys || [];
+        if (!completed.includes(survey.id)) {
+          await updateDoc(ref, {
+            points: points + survey.points,
+            completedSurveys: arrayUnion(survey.id)
+          });
+          userData.points = points + survey.points;
+          userData.completedSurveys = [...completed, survey.id];
+        }
+      }
+    }
+  </script>
+</body>
+</html>
