@@ -1,0 +1,144 @@
+<!DOCTYPE html><html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>استبيانات مدفوعة | Am Rewards</title>
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: #f5f8ff;
+      margin: 0;
+      padding: 20px;
+      direction: rtl;
+    }
+    h2 {
+      text-align: center;
+      color: #004085;
+    }
+    .survey {
+      background: #fff;
+      border-right: 6px solid #007bff;
+      margin: 20px auto;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      max-width: 650px;
+    }
+    .survey h3 {
+      margin: 0 0 10px;
+      color: #007bff;
+    }
+    .survey p {
+      font-size: 15px;
+      margin: 5px 0;
+    }
+    .btn {
+      display: inline-block;
+      background: #007bff;
+      color: #fff;
+      padding: 10px 16px;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    .btn:hover {
+      background: #0056b3;
+    }
+    .back-btn {
+      display: block;
+      width: fit-content;
+      margin: 30px auto 0;
+      padding: 10px 20px;
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      text-align: center;
+      text-decoration: none;
+    }
+    .back-btn:hover {
+      background-color: #5a6268;
+    }
+    #userPoints {
+      text-align: center;
+      margin-bottom: 20px;
+      font-weight: bold;
+      color: #333;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h2>📝 مهام الاستبيانات المدفوعة</h2>
+  <div id="userPoints">رصيدك: جاري التحميل...</div>
+  <div id="surveyList"></div>
+  <a href="tasks.html" class="back-btn">⬅️ الرجوع إلى صفحة المهام</a>  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let currentUser;
+
+    const surveys = [
+      {
+        name: "BitLabs Surveys",
+        desc: "أكمل استطلاعات من BitLabs واربح نقاط عالية.",
+        url: "https://web.bitlabs.ai/",
+      },
+      {
+        name: "TheoremReach Surveys",
+        desc: "شارك في استطلاعات متنوعة واحصل على مكافآت.",
+        url: "https://theoremreach.com/",
+      },
+      {
+        name: "RevenueWall Surveys",
+        desc: "استبيانات سريعة ومربحة للمستخدمين العرب.",
+        url: "https://revenuewall.com/",
+      }
+    ];
+
+    onAuthStateChanged(auth, async user => {
+      if (user) {
+        currentUser = user;
+        loadSurveys();
+        await updatePointsDisplay();
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    async function updatePointsDisplay() {
+      const ref = doc(db, "users", currentUser.uid);
+      const snap = await getDoc(ref);
+      const points = snap.exists() ? snap.data().points || 0 : 0;
+      document.getElementById("userPoints").textContent = `رصيدك الحالي: ${points} نقطة`;
+    }
+
+    function loadSurveys() {
+      const container = document.getElementById("surveyList");
+      container.innerHTML = "";
+      surveys.forEach(survey => {
+        const div = document.createElement("div");
+        div.className = "survey";
+        div.innerHTML = `
+          <h3>${survey.name}</h3>
+          <p>${survey.desc}</p>
+          <a href="${survey.url}" target="_blank" class="btn">بدء المهمة</a>
+        `;
+        container.appendChild(div);
+      });
+    }
+  </script></body>
+  </html>
