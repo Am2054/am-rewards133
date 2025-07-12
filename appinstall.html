@@ -1,0 +1,153 @@
+<!DOCTYPE html><html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>تثبيت التطبيقات | Am Rewards</title>
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: #f0f8ff;
+      margin: 0;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+      color: #004085;
+    }
+    .app-task {
+      background: #fff;
+      border-right: 5px solid #007bff;
+      margin: 20px auto;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      max-width: 650px;
+    }
+    .app-task h3 {
+      margin: 0 0 10px;
+      color: #007bff;
+    }
+    .app-task p {
+      font-size: 15px;
+      margin: 5px 0;
+    }
+    .btn {
+      display: inline-block;
+      background: #007bff;
+      color: #fff;
+      padding: 10px 16px;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+    .btn:hover {
+      background: #0056b3;
+    }
+    .screenshot-input {
+      margin-top: 10px;
+    }
+    .status {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h2>📱 مهام تثبيت التطبيقات - اربح بعد التحقق من التثبيت</h2>
+  <div id="appList"></div><a href="tasks.html" class="btn" style="background:#6c757d;display:block;width:fit-content;margin:30px auto 0;">⬅️ العودة إلى صفحة المهام</a>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, getDoc, updateDoc, arrayUnion, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.appspot.com"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    const storage = getStorage(app);
+
+    let currentUser;
+
+    const apps = [
+      {
+        id: "kwai1",
+        name: "تطبيق Kwai",
+        desc: "نزّل التطبيق وسجل دخولك وابدأ في مشاهدة الفيديوهات.",
+        url: "https://play.google.com/store/apps/details?id=com.kwai.video",
+      },
+      {
+        id: "clipclaps1",
+        name: "تطبيق ClipClaps",
+        desc: "نزّل التطبيق وسجّل لتبدأ الربح من الفيديوهات.",
+        url: "https://play.google.com/store/apps/details?id=com.sanhe.clipclaps",
+      },
+      {
+        id: "pollpay1",
+        name: "تطبيق Poll Pay",
+        desc: "قم بتحميل التطبيق، وأكمل الاستبيانات بداخله.",
+        url: "https://play.google.com/store/apps/details?id=com.bitburst.pollpay",
+      }
+    ];
+
+    onAuthStateChanged(auth, async user => {
+      if (user) {
+        currentUser = user;
+        renderApps();
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    function renderApps() {
+      const container = document.getElementById("appList");
+      apps.forEach(app => {
+        const div = document.createElement("div");
+        div.className = "app-task";
+        div.innerHTML = `
+          <h3>${app.name}</h3>
+          <p>${app.desc}</p>
+          <a href="${app.url}" target="_blank" class="btn">⬇️ تنزيل التطبيق</a>
+          <br><br>
+          <label class="screenshot-input">
+            📷 ارفع لقطة شاشة للتطبيق بعد التثبيت:
+            <input type="file" accept="image/*" id="upload-${app.id}" />
+          </label>
+          <p class="status" id="status-${app.id}">⚠️ لم يتم إرسال إثبات بعد.</p>
+        `;
+        container.appendChild(div);
+
+        const input = div.querySelector(`#upload-${app.id}`);
+        input.addEventListener("change", e => uploadProof(e, app));
+      });
+    }
+
+    async function uploadProof(e, app) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const path = `proofs/${currentUser.uid}/${app.id}`;
+      const fileRef = ref(storage, path);
+      await uploadBytes(fileRef, file);
+      const url = await getDownloadURL(fileRef);
+
+      await setDoc(doc(db, "app_proofs", `${currentUser.uid}_${app.id}`), {
+        user: currentUser.uid,
+        task: app.id,
+        proofUrl: url,
+        status: "pending",
+        timestamp: Date.now()
+      });
+
+      document.getElementById(`status-${app.id}`).textContent = "📤 تم إرسال الإثبات، بانتظار المراجعة";
+    }
+  </script></body>
+</html>
