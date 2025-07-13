@@ -1,0 +1,100 @@
+<!DOCTYPE html><html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الإشعارات | Am Rewards</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: linear-gradient(to bottom right, #f7f9fc, #ffffff);
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    h2 {
+      text-align: center;
+      color: #007bff;
+    }
+    .notification {
+      border-right: 6px solid #007bff;
+      background: #fff;
+      padding: 15px;
+      margin: 15px auto;
+      border-radius: 12px;
+      max-width: 700px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .notification h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+    .notification p {
+      margin: 5px 0;
+    }
+    .status-accepted { border-right-color: #28a745; }
+    .status-rejected { border-right-color: #dc3545; }
+    .status-pending { border-right-color: #ffc107; }
+    .back-btn {
+      display: block;
+      width: fit-content;
+      margin: 30px auto 0;
+      padding: 10px 20px;
+      background-color: #6c757d;
+      color: white;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .back-btn:hover { background-color: #5a6268; }
+  </style>
+</head>
+<body>
+  <h2>🔔 إشعارات السحب</h2>
+  <div id="notificationsList">جار تحميل الإشعارات...</div>
+  <a class="back-btn" href="dashboard.html">⬅️ العودة للوحة التحكم</a>  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const notificationsList = document.getElementById("notificationsList");
+
+    onAuthStateChanged(auth, async user => {
+      if (!user) return window.location.href = "login.html";
+      const q = query(
+        collection(db, "notifications"),
+        where("uid", "==", user.uid),
+        orderBy("createdAt", "desc")
+      );
+      const querySnapshot = await getDocs(q);
+      notificationsList.innerHTML = "";
+
+      if (querySnapshot.empty) {
+        notificationsList.innerHTML = "<p style='text-align:center;'>لا توجد إشعارات حاليًا.</p>";
+        return;
+      }
+
+      querySnapshot.forEach(doc => {
+        const data = doc.data();
+        const div = document.createElement("div");
+        div.className = `notification status-${data.status}`;
+        div.innerHTML = `
+          <h3>${data.title || "إشعار جديد"}</h3>
+          <p>${data.message || "تم تحديث حالة الطلب الخاص بك."}</p>
+          <p style="font-size: 13px; color: #666;">🕓 ${data.createdAt?.toDate().toLocaleString('ar-EG') || "تاريخ غير متاح"}</p>
+        `;
+        notificationsList.appendChild(div);
+      });
+    });
+  </script></body>
+</html>
