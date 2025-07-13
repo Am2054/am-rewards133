@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>لوحة تحكم صاحب الموقع | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://fonts.googleapis.com/css2?family=Cairo&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo&display=swap" rel="stylesheet" />
   <style>
     body {
       font-family: 'Cairo', sans-serif;
@@ -53,22 +53,6 @@
     .button.green {
       background-color: #28a745;
     }
-    .proof-card {
-      background: #222;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-    }
-    .proof-actions button {
-      margin: 5px;
-      padding: 8px 14px;
-      border: none;
-      border-radius: 6px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .approve { background: #28a745; color: #fff; }
-    .reject { background: #dc3545; color: #fff; }
   </style>
 </head>
 <body>
@@ -79,21 +63,17 @@
       <div class="card"><h2 id="userCount">0</h2><p>عدد المستخدمين</p></div>
       <div class="card"><h2 id="taskCount">0</h2><p>عدد المهام المنفذة</p></div>
       <div class="card"><h2 id="withdrawTotal">0 EGP</h2><p>إجمالي السحب</p></div>
-      <div class="card"><h2 id="siteProfit">0 EGP</h2><p>أرباحك (بعد الخصم)</p></div>
+      <div class="card"><h2 id="siteProfit">0 EGP</h2><p>💰 صافي أرباحي بعد الدفع للمستخدم</p></div>
       <div class="card"><h2 id="discountEarnings">0 EGP</h2><p>أرباح الخصم 10%</p></div>
     </div>
 
-    <button class="button green" onclick="adminWithdraw()">💰 سحب أرباحي</button>
-
-    <h2>🔔 إشعارات السحب</h2>
-    <div id="withdrawRequests"></div>
-
+    <button class="button green" onclick="adminWithdraw()">💸 سحب أرباحي</button>
+    <button class="button green" onclick="window.location.href='proofs.html'">📷 مراجعة إثباتات المهام</button>
   </div>
 
   <script type="module">
     import {
-      getFirestore, getDocs, collection, updateDoc, doc,
-      addDoc, serverTimestamp
+      getFirestore, getDocs, collection, addDoc, serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import {
       getAuth, onAuthStateChanged
@@ -108,7 +88,6 @@
     const withdrawTotal = document.getElementById("withdrawTotal");
     const siteProfit = document.getElementById("siteProfit");
     const discountEarnings = document.getElementById("discountEarnings");
-    const withdrawContainer = document.getElementById("withdrawRequests");
 
     onAuthStateChanged(auth, (user) => {
       if (!user || user.email !== adminEmail) {
@@ -117,7 +96,6 @@
         return;
       }
       loadStats();
-      loadWithdrawRequests();
     });
 
     async function loadStats() {
@@ -143,48 +121,20 @@
       const totalPoints = totalTasks * 0.07;
       const adminProfit = totalPoints - totalWithdraw;
       siteProfit.textContent = `${adminProfit.toFixed(2)} EGP`;
+
       discountEarnings.textContent = `${(totalWithdraw * 0.10).toFixed(2)} EGP`;
     }
 
-    async function loadWithdrawRequests() {
-      const snap = await getDocs(collection(db, "withdrawRequests"));
-      withdrawContainer.innerHTML = "";
-
-      snap.forEach(docSnap => {
-        const data = docSnap.data();
-        if (data.status !== "pending") return;
-
-        const div = document.createElement("div");
-        div.className = "proof-card";
-        div.id = `withdraw-${docSnap.id}`;
-        div.innerHTML = `
-          <p>👤 المستخدم: <strong>${data.userEmail}</strong></p>
-          <p>📱 رقم فودافون كاش: <strong>${data.paypalEmail}</strong></p>
-          <p>💰 المبلغ: <strong>${data.amountEGP} جنيه</strong></p>
-          <button class="approve" onclick="markAsPaid('${docSnap.id}')">✔ تم الدفع</button>
-        `;
-        withdrawContainer.appendChild(div);
-      });
-    }
-
-    window.markAsPaid = async function (withdrawId) {
-      try {
-        await updateDoc(doc(db, "withdrawRequests", withdrawId), {
-          status: "done"
-        });
-        document.getElementById(`withdraw-${withdrawId}`).remove();
-      } catch (e) {
-        alert("❌ حدث خطأ أثناء تحديث الحالة.");
-      }
-    };
-
     window.adminWithdraw = async () => {
-      const rawProfit = siteProfit.textContent.replace("EGP", "").trim();
+      const siteProfitEl = document.getElementById("siteProfit");
+      const rawProfit = siteProfitEl.textContent.replace("EGP", "").trim();
       const profit = parseFloat(rawProfit);
+
       if (isNaN(profit) || profit <= 0) {
         alert("❌ لا توجد أرباح متاحة للسحب حالياً.");
         return;
       }
+
       const confirmWithdraw = confirm(`هل أنت متأكد من طلب سحب ${profit.toFixed(2)} جنيه؟`);
       if (!confirmWithdraw) return;
 
@@ -195,8 +145,9 @@
           status: "pending",
           createdAt: serverTimestamp()
         });
+
         alert("✅ تم إرسال طلب السحب.");
-        siteProfit.textContent = "0 EGP";
+        siteProfitEl.textContent = "0 EGP";
       } catch (e) {
         console.error(e);
         alert("❌ حدث خطأ أثناء تقديم الطلب.");
@@ -204,4 +155,4 @@
     };
   </script>
 </body>
-</html>
+  </html>
