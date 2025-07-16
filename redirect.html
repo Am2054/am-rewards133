@@ -70,7 +70,7 @@
 
     openLinkBtn.addEventListener("click", () => {
       hasOpened = true;
-      localStorage.setItem("linkOpenedAt", Date.now()); // ✅ ضمان التحقق من الفتح
+      localStorage.setItem("linkOpenedAt", Date.now());
       window.open(link, "_blank");
     });
 
@@ -92,8 +92,16 @@
 
     completeBtn.addEventListener("click", () => {
       if (!completeBtn.disabled && hasOpened) {
-        localStorage.setItem("justCompletedLink", index);
-        window.location.href = "shortlinks.html";
+        const openedAt = parseInt(localStorage.getItem("linkOpenedAt") || 0);
+        const now = Date.now();
+
+        if (now - openedAt >= 25000) {
+          localStorage.setItem("justCompletedLink", index);
+          localStorage.removeItem("linkOpenedAt");
+          window.location.href = "shortlinks.html";
+        } else {
+          alert("⏳ يجب انتظار 30 ثانية على الأقل بعد فتح الرابط لإكمال المهمة.");
+        }
       }
     });
   </script>
