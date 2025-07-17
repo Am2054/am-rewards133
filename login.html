@@ -1,133 +1,211 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>تسجيل الدخول | Am Rewards</title>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Tajawal', sans-serif;
-      background-color: #f2f2f2;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      transition: background-color 0.3s, color 0.3s;
-    }
+<!DOCTYPE html>  <html lang="ar" dir="rtl">    <head>    
+  <meta charset="UTF-8" />    
+  <title>تسجيل الدخول / إنشاء حساب - Am Rewards</title>    
+  <meta name="viewport" content="width=device-width, initial-scale=1" />    
+  <style>    
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');    
+    :root {    
+      --light-bg: #f0f8ff;    
+      --dark-bg: #121212;    
+      --light-text: #023047;    
+      --dark-text: #eeeeee;    
+      --light-box: #ffffff;    
+      --dark-box: #1e1e1e;    
+      --light-shadow: rgba(0,0,0,0.1);    
+      --dark-shadow: rgba(255,255,255,0.05);    
+    }  body {    
+  font-family: 'Cairo', sans-serif;    
+  background-color: var(--light-bg);    
+  color: var(--light-text);    
+  display: flex;    
+  justify-content: center;    
+  align-items: center;    
+  height: 100vh;    
+  margin: 0;    
+  transition: background-color 0.3s, color 0.3s;    
+}    .dark-mode {
+background-color: var(--dark-bg);
+color: var(--dark-text);
+}
 
-    .login-container {
-      background-color: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      text-align: center;
-      width: 300px;
-    }
+.form-box {
+background: var(--light-box);
+color: inherit;
+padding: 30px;
+border-radius: 15px;
+box-shadow: 0 5px 20px var(--light-shadow);
+width: 100%;
+max-width: 400px;
+transition: background 0.3s, box-shadow 0.3s;
+}
 
-    h2 {
-      margin-bottom: 20px;
-    }
+.dark-mode .form-box {
+background: var(--dark-box);
+box-shadow: 0 5px 20px var(--dark-shadow);
+}
 
-    .google-btn {
-      background-color: #4285F4;
-      color: white;
-      padding: 12px 20px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 16px;
-      margin-top: 20px;
-      width: 100%;
-    }
+h2 { text-align: center; }
 
-    .google-btn:hover {
-      background-color: #357ae8;
-    }
+input, button {
+width: 100%;
+padding: 12px;
+margin-bottom: 15px;
+border-radius: 10px;
+font-size: 1rem;
+border: 1px solid #ccc;
+}
 
-    /* الوضع الليلي */
-    .dark-mode {
-      background-color: #121212;
-      color: white;
-    }
+.login-btn { background-color: #219ebc; color: white; }
+.signup-btn { background-color: #fb8500; color: white; }
+.switcher {
+background: none;
+border: none;
+color: #666;
+text-decoration: underline;
+cursor: pointer;
+margin-top: 10px;
+}
 
-    .dark-mode .login-container {
-      background-color: #1e1e1e;
-      color: white;
-      box-shadow: 0 4px 10px rgba(255,255,255,0.1);
-    }
+.mode-toggle {
+position: absolute;
+top: 20px;
+left: 20px;
+background: #444;
+color: white;
+padding: 8px 14px;
+border: none;
+border-radius: 8px;
+cursor: pointer;
+font-size: 14px;
+}
 
-    /* زر الوضع الليلي */
-    .mode-toggle {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: #444;
-      color: white;
-      padding: 8px 14px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-      z-index: 1000;
-    }
-  </style>
-</head>
-<body>
-  <!-- زر الوضع الليلي -->
-  <button class="mode-toggle" onclick="toggleDarkMode()">🌗 الوضع الليلي</button>
+.hidden { display: none; }
 
-  <div class="login-container">
-    <h2>تسجيل الدخول إلى Am Rewards</h2>
-    <button class="google-btn" onclick="signInWithGoogle()">تسجيل الدخول باستخدام Google</button>
-  </div>
+  </style>    
+</head>    
+<body>    
+  <button class="mode-toggle" onclick="toggleDarkMode()">🌗 وضع الليل / النهار</button>    <div class="form-box">    
+    <h2 id="form-title">تسجيل الدخول إلى Am Rewards</h2>  <div id="login-form">    
+  <input type="email" id="login-email" placeholder="البريد الإلكتروني" />    
+  <input type="password" id="login-password" placeholder="كلمة المرور" />    
+  <button class="login-btn" id="login-btn" onclick="login()">تسجيل الدخول</button>    
+</div>    <div id="signup-form" class="hidden">    
+  <input type="email" id="signup-email" placeholder="البريد الإلكتروني" />    
+  <input type="password" id="signup-password" placeholder="كلمة المرور" />    
+  <input type="password" id="signup-confirm" placeholder="تأكيد كلمة المرور" />    
+  <button class="signup-btn" id="signup-btn" onclick="signup()">إنشاء الحساب</button>    
+</div>    <button class="switcher" onclick="toggleMode()">أو أنشئ حساب جديد</button>
 
-  <script type="module">
-    // استيراد Firebase
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  </div>    <!-- Firebase -->    <script type="module">    
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";    
+    import {    
+      getAuth,    
+      setPersistence,    
+      browserLocalPersistence,    
+      signInWithEmailAndPassword,    
+      createUserWithEmailAndPassword    
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";    
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";    const firebaseConfig = {    
+  apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",    
+  authDomain: "am--rewards.firebaseapp.com",    
+  projectId: "am--rewards",    
+};    
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBgL8G-vshSzlAf2MvM3rf4uEvTf3rrEK8",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards",
-      storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "1060387902878",
-      appId: "1:1060387902878:web:b961a7f1210c65d6b7383a"
-    };
+const app = initializeApp(firebaseConfig);    
+const auth = getAuth(app);    
+const db = getFirestore(app);    
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+let isLogin = true;    
+window.toggleMode = function () {    
+  isLogin = !isLogin;    
+  document.getElementById("login-form").classList.toggle("hidden", !isLogin);    
+  document.getElementById("signup-form").classList.toggle("hidden", isLogin);    
+  document.getElementById("form-title").textContent = isLogin ? "تسجيل الدخول إلى Am Rewards" : "إنشاء حساب جديد في Am Rewards";    
+  document.querySelector(".switcher").textContent = isLogin ? "أو أنشئ حساب جديد" : "أو سجّل الدخول";    
+};    
 
-    window.signInWithGoogle = function () {
-      const provider = new GoogleAuthProvider();
-      signInWithPopup(auth, provider)
-        .then((result) => {
-          const user = result.user;
-          localStorage.setItem("user", JSON.stringify(user));
-          window.location.href = "dashboard.html";
-        })
-        .catch((error) => {
-          console.error("خطأ في تسجيل الدخول:", error);
-        });
-    };
+window.login = async function () {    
+  const email = document.getElementById("login-email").value.trim();    
+  const password = document.getElementById("login-password").value.trim();    
+  const btn = document.getElementById("login-btn");    
 
-    // استرجاع الوضع الليلي عند فتح الصفحة
-    window.addEventListener("DOMContentLoaded", () => {
-      const mode = localStorage.getItem("theme");
-      if (mode === "dark") {
-        document.body.classList.add("dark-mode");
-      }
-    });
+  if (!email || !password) return alert("يرجى إدخال البريد وكلمة المرور");    
 
-    // تبديل الوضع وتخزينه
-    window.toggleDarkMode = function () {
-      const isDark = document.body.classList.toggle("dark-mode");
-      localStorage.setItem("theme", isDark ? "dark" : "light");
-    };
-  </script>
-</body>
-</html>
+  if (email === "owner@am.com" && password === "AmOwner@2025") {    
+    window.location.href = "admin.html";    
+    return;    
+  }    
+
+  try {    
+    btn.textContent = "جاري الدخول...";    
+    btn.disabled = true;    
+    await setPersistence(auth, browserLocalPersistence);    
+    await signInWithEmailAndPassword(auth, email, password);    
+    window.location.href = "dashboard.html";    
+  } catch (error) {    
+    btn.textContent = "تسجيل الدخول";    
+    btn.disabled = false;    
+    if (error.code === "auth/user-not-found") {    
+      alert("الحساب غير موجود.");    
+    } else if (error.code === "auth/wrong-password") {    
+      alert("كلمة المرور غير صحيحة.");    
+    } else {    
+      alert("خطأ: " + error.message);    
+    }    
+  }    
+};    
+
+window.signup = async function () {    
+  const email = document.getElementById("signup-email").value.trim();    
+  const password = document.getElementById("signup-password").value.trim();    
+  const confirm = document.getElementById("signup-confirm").value.trim();    
+  const btn = document.getElementById("signup-btn");    
+
+  if (!email || !password || !confirm) return alert("يرجى تعبئة جميع الحقول");    
+  if (password !== confirm) return alert("كلمة المرور وتأكيدها غير متطابقين");    
+
+  const bannedWords = ["admin", "owner", "test", "fake", "bot"];    
+  if (bannedWords.some(word => email.toLowerCase().includes(word))) {    
+    return alert("لا يمكنك استخدام هذا البريد.");    
+  }    
+
+  const emailPart = email.split("@")[0];    
+  if (password.toLowerCase().includes(emailPart.toLowerCase())) {    
+    return alert("كلمة المرور لا يجب أن تحتوي على جزء من البريد.");    
+  }    
+
+  try {    
+    btn.textContent = "جاري التسجيل...";    
+    btn.disabled = true;    
+
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);    
+    const uid = userCredential.user.uid;    
+
+    await setDoc(doc(db, "users", uid), {    
+      points: 0,    
+      withdrawn: 0    
+    });    
+
+    alert("✅ تم إنشاء الحساب بنجاح!");    
+    window.location.href = "dashboard.html";    
+  } catch (error) {    
+    btn.textContent = "إنشاء الحساب";    
+    btn.disabled = false;    
+    if (error.code === "auth/email-already-in-use") {    
+      alert("هذا البريد مستخدم بالفعل.");    
+    } else if (error.code === "auth/weak-password") {    
+      alert("كلمة المرور ضعيفة.");    
+    } else {    
+      alert("خطأ: " + error.message);    
+    }    
+  }    
+};
+
+</script>    <script>
+// الوضع الداكن/الفاتح
+function toggleDarkMode() {
+document.body.classList.toggle("dark-mode");
+}
+</script>  </body>
+
+</html>    
