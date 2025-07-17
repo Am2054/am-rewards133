@@ -2,88 +2,132 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>تسجيل الدخول | Am Rewards</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
-      background-color: #f0f2f5;
-      text-align: center;
-      padding: 40px 20px;
-      direction: rtl;
+      background-color: #f2f2f2;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      transition: background-color 0.3s, color 0.3s;
     }
+
     .login-container {
-      max-width: 400px;
-      margin: auto;
-      background-color: #fff;
+      background-color: white;
       padding: 30px;
-      border-radius: 20px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.1);
-    }
-    h1 {
-      margin-bottom: 20px;
-      color: #333;
-    }
-    button {
-      background-color: #4285f4;
-      color: white;
-      padding: 12px 18px;
-      border: none;
       border-radius: 10px;
-      font-size: 16px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      text-align: center;
+      width: 300px;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    .google-btn {
+      background-color: #4285F4;
+      color: white;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 6px;
       cursor: pointer;
+      font-size: 16px;
       margin-top: 20px;
-      transition: 0.3s;
+      width: 100%;
     }
-    button:hover {
-      background-color: #3367d6;
+
+    .google-btn:hover {
+      background-color: #357ae8;
     }
-    .footer {
-      margin-top: 30px;
+
+    /* الوضع الليلي */
+    .dark-mode {
+      background-color: #121212;
+      color: white;
+    }
+
+    .dark-mode .login-container {
+      background-color: #1e1e1e;
+      color: white;
+      box-shadow: 0 4px 10px rgba(255,255,255,0.1);
+    }
+
+    /* زر الوضع الليلي */
+    .mode-toggle {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: #444;
+      color: white;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
       font-size: 14px;
-      color: #888;
+      z-index: 1000;
     }
   </style>
+</head>
+<body>
+  <!-- زر الوضع الليلي -->
+  <button class="mode-toggle" onclick="toggleDarkMode()">🌗 الوضع الليلي</button>
+
+  <div class="login-container">
+    <h2>تسجيل الدخول إلى Am Rewards</h2>
+    <button class="google-btn" onclick="signInWithGoogle()">تسجيل الدخول باستخدام Google</button>
+  </div>
+
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
+    // استيراد Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyDxxxxxxxxxxxxxxxxxxxxxxx",
+      apiKey: "AIzaSyBgL8G-vshSzlAf2MvM3rf4uEvTf3rrEK8",
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
       storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "xxxxxxxxxxxx",
-      appId: "1:xxxxxxxxxxxx:web:xxxxxxxxxxxxxxxx"
+      messagingSenderId: "1060387902878",
+      appId: "1:1060387902878:web:b961a7f1210c65d6b7383a"
     };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const provider = new GoogleAuthProvider();
 
-    document.getElementById("loginBtn").addEventListener("click", () => {
+    window.signInWithGoogle = function () {
+      const provider = new GoogleAuthProvider();
       signInWithPopup(auth, provider)
         .then((result) => {
           const user = result.user;
-          localStorage.setItem("userEmail", user.email);
+          localStorage.setItem("user", JSON.stringify(user));
           window.location.href = "dashboard.html";
         })
         .catch((error) => {
-          console.error("فشل تسجيل الدخول", error);
-          alert("حدث خطأ أثناء تسجيل الدخول. حاول مرة أخرى.");
+          console.error("خطأ في تسجيل الدخول:", error);
         });
+    };
+
+    // استرجاع الوضع الليلي عند فتح الصفحة
+    window.addEventListener("DOMContentLoaded", () => {
+      const mode = localStorage.getItem("theme");
+      if (mode === "dark") {
+        document.body.classList.add("dark-mode");
+      }
     });
+
+    // تبديل الوضع وتخزينه
+    window.toggleDarkMode = function () {
+      const isDark = document.body.classList.toggle("dark-mode");
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    };
   </script>
-</head>
-<body>
-  <div class="login-container">
-    <h1>أهلاً بك في Am Rewards</h1>
-    <p>سجّل دخولك باستخدام حساب Google لبدء الربح!</p>
-    <button id="loginBtn">تسجيل الدخول باستخدام Google</button>
-  </div>
-  <div class="footer">
-    &copy; 2025 Am Rewards - جميع الحقوق محفوظة
-  </div>
 </body>
 </html>
