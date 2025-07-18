@@ -1,91 +1,133 @@
-<!-- ✨ Firebase Scripts -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import {
-    getFirestore, doc, getDoc, updateDoc, increment
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+<!DOCTYPE html>  <html lang="ar" dir="rtl">  
+<head>  
+  <meta charset="UTF-8" />  
+  <meta name="viewport" content="width=device-width, initial-scale=1" />  
+  <title>المهام اليومية | Am Rewards</title>  
+  <style>  
+    body {  
+      font-family: 'Tajawal', sans-serif;  
+      background: linear-gradient(to bottom right, #e6f2ff, #f8f9fa);  
+      margin: 0;  
+      padding: 20px;  
+    }  
+    h1, #point-value {  
+      text-align: center;  
+      color: #004085;  
+    }  
+    table {  
+      width: 100%;  
+      border-collapse: collapse;  
+      margin-top: 20px;  
+    }  
+    th, td {  
+      padding: 12px;  
+      text-align: center;  
+      font-size: 15px;  
+    }  
+    th {  
+      background-color: #d9edf7;  
+      color: #333;  
+    }  
+    td:nth-child(1) { background-color: #f0f8ff; }  
+    td:nth-child(2) { background-color: #f4fff0; }  
+    td:nth-child(3) { background-color: #fffbe6; }  
+    td:nth-child(4) { background-color: #e8fcff; }  
+    td:nth-child(5) { background-color: #f5f0fa; }  
+    td:nth-child(6) { background-color: #e9fffa; }  .task-btn {  
+  padding: 8px 14px;  
+  border: none;  
+  border-radius: 6px;  
+  color: white;  
+  font-weight: bold;  
+  cursor: pointer;  
+}  
+.task-btn[disabled] {  
+  background-color: #cccccc !important;  
+  cursor: not-allowed;  
+}  
+.btn-shortlink { background-color: #28a745; }  
+.btn-cpa { background-color: #17a2b8; }  
+.btn-ai { background-color: #6f42c1; }  
+.btn-games { background-color: #fd7e14; }  
+.btn-explore { background-color: #20c997; }  
+.btn-secret { background-color: #6610f2; }  
+.btn-gift { background-color: #ffc107; color: black; }  
+.btn-poll { background-color: #e83e8c; }  
+.btn-download { background-color: #007bff; }  
+.btn-test { background-color: #343a40; }  
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBO5HqF3-XBhOJJlZROecO4yAWrrJz1d3M",
-    authDomain: "am--rewards.firebaseapp.com",
-    projectId: "am--rewards",
-    storageBucket: "am--rewards.appspot.com",
-    messagingSenderId: "647933512566",
-    appId: "1:647933512566:web:b8ff3b759b121d00b4c3a0"
-  };
+.back-btn {  
+  margin-top: 30px;  
+  display: block;  
+  width: fit-content;  
+  margin-inline: auto;  
+  padding: 10px 20px;  
+  background-color: #6c757d;  
+  color: white;  
+  border: none;  
+  border-radius: 8px;  
+  text-decoration: none;  
+  font-weight: bold;  
+  text-align: center;  
+}  
+.back-btn:hover {  
+  background-color: #5a6268;  
+}
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  const tasks = [
-    { type: "🔗 روابط مختصرة", count: 60, pointsPerTask: 1.5, url: "shortlinks.html", class: "btn-shortlink" },
-    { type: "🤖 أدوات AI وتجريب منصات", count: 30, pointsPerTask: 4, url: "ai-tools.html", class: "btn-ai" },
-    { type: "📋 عروض CPA", count: 30, pointsPerTask: 10, url: "cpa-offers.html", class: "btn-cpa" },
-    { type: "📱 عروض تطبيقات", count: 20, pointsPerTask: 15, url: "promote-apps.html", class: "btn-explore" },
-    { type: "🌍 استكشاف مواقع", count: 30, pointsPerTask: 3, url: "explore.html", class: "btn-explore" },
-    { type: "📊 استطلاعات رأي (CPX وغيرها)", count: 10, pointsPerTask: 20, url: "surveys.html", class: "btn-poll" },
-    { type: "🎁 مكافأة إتمام جميع المهام", count: 1, pointsPerTask: 500, url: "#", class: "btn-gift", locked: true }
-  ];
-
-  const totalTasks = tasks.reduce((sum, task) => sum + task.count, 0);
-  const totalPoints = tasks.reduce((sum, task) => sum + (task.count * task.pointsPerTask), 0);
-  const totalEgp = (totalPoints * 0.07).toFixed(2);
-  document.getElementById("point-value").innerHTML =
-    `💰 قيمة النقطة = 0.07 جنيه | عدد المهام: ${totalTasks} | الربح اليومي: ${totalEgp} جنيه`;
-
-  const tbody = document.getElementById("tasksBody");
-
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "login.html";
-      return;
-    }
-
-    const userRef = doc(db, "users", user.uid);
-    const userSnap = await getDoc(userRef);
-
-    if (!userSnap.exists()) return;
-
-    const userData = userSnap.data();
-    const completedTasks = userData.completedTasks || 0;
-    const finalRewardGiven = userData.finalRewardGiven || false;
-
-    // ✅ إذا أتم 180 مهمة ولم يحصل على المكافأة
-    if (completedTasks >= 180 && !finalRewardGiven) {
-      await updateDoc(userRef, {
-        points: increment(500),
-        finalRewardGiven: true
-      });
-      alert("🎁 تم منحك 500 نقطة مكافأة لإتمام جميع المهام! ✅");
-      // فتح المكافأة
-      tasks[tasks.length - 1].locked = false;
-      tasks[tasks.length - 1].url = "final-reward.html";
-    } else if (completedTasks >= 180 && finalRewardGiven) {
-      // فتح المكافأة (للعرض فقط)
-      tasks[tasks.length - 1].locked = false;
-      tasks[tasks.length - 1].url = "final-reward.html";
-    }
-
-    // 🖊️ عرض المهام بعد تحديث الحالة
-    tasks.forEach(task => {
-      const totalPts = (task.pointsPerTask * task.count).toFixed(1);
-      const egp = (totalPts * 0.07).toFixed(2);
-      const isLocked = task.locked;
-      const btn = isLocked
-        ? `<button class="task-btn ${task.class}" disabled>🔒 غير متاحة بعد</button>`
-        : `<button class="task-btn ${task.class}" onclick="location.href='${task.url}'">ابدأ</button>`;
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${task.type}</td>
-        <td>${task.count}</td>
-        <td>${task.pointsPerTask}</td>
-        <td>${totalPts}</td>
-        <td>${egp} جنيه</td>
-        <td>${btn}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  });
-     </script>
+  </style>  
+</head>  
+<body>  
+  <h1>المهام اليومية - Am Rewards</h1>  
+  <div id="point-value"></div>    <table>  
+    <thead>  
+      <tr>  
+        <th>نوع المهمة</th>  
+        <th>عدد المهام</th>  
+        <th>نقاط لكل مهمة</th>  
+        <th>إجمالي النقاط</th>  
+        <th>القيمة بالجنيه</th>  
+        <th>ابدأ</th>  
+      </tr>  
+    </thead>  
+    <tbody id="tasksBody"></tbody>  
+  </table>    <div style="text-align: center; font-weight: bold; color: #007bff; margin-top: 20px;">  
+    🚀 يتم تحديث المهام يوميًا بمصادر جديدة!  
+  </div>  
+  <a class="back-btn" href="dashboard.html">⬅️ رجوع إلى لوحة التحكم</a>    <script>  
+    const tasks = [  
+      { type: "🔗 روابط مختصرة", count: 60, pointsPerTask: 1.5, url: "shortlinks.html", class: "btn-shortlink" },  
+      { type: "🤖 أدوات AI وتجريب منصات", count: 30, pointsPerTask: 4, url: "ai-tools.html", class: "btn-ai" },  
+      { type: "📋 عروض CPA", count: 30, pointsPerTask: 10, url: "cpa-offers.html", class: "btn-cpa" },  
+      { type: "📱 عروض تطبيقات", count: 20, pointsPerTask: 15, url: "promote-apps.html", class: "btn-explore" },  
+      { type: "🌍 استكشاف مواقع", count: 30, pointsPerTask: 3, url: "explore.html", class: "btn-explore" },  
+      { type: "📊 استطلاعات رأي (CPX وغيرها)", count: 10, pointsPerTask: 20, url: "surveys.html", class: "btn-poll" },  
+      { type: "🎁 مكافأة إتمام جميع المهام", count: 1, pointsPerTask: 500, url: "#", class: "btn-gift", locked: true }  
+    ];  
+  
+    const totalTasks = tasks.reduce((sum, task) => sum + task.count, 0);  
+    const totalPoints = tasks.reduce((sum, task) => sum + (task.count * task.pointsPerTask), 0);  
+    const totalEgp = (totalPoints * 0.07).toFixed(2);  
+    document.getElementById("point-value").innerHTML =  
+      `💰 قيمة النقطة = 0.07 جنيه | عدد المهام: ${totalTasks} | الربح اليومي: ${totalEgp} جنيه`;  
+  
+    const tbody = document.getElementById("tasksBody");  
+    tasks.forEach(task => {  
+      const totalPts = (task.pointsPerTask * task.count).toFixed(1);  
+      const egp = (totalPts * 0.07).toFixed(2);  
+      const isLocked = task.locked;  
+      const btn = isLocked  
+        ? `<button class="task-btn ${task.class}" disabled>🔒 غير متاحة بعد</button>`  
+        : `<button class="task-btn ${task.class}" onclick="location.href='${task.url}'">ابدأ</button>`;  
+      const tr = document.createElement("tr");  
+      tr.innerHTML = `  
+        <td>${task.type}</td>  
+        <td>${task.count}</td>  
+        <td>${task.pointsPerTask}</td>  
+        <td>${totalPts}</td>  
+        <td>${egp} جنيه</td>  
+        <td>${btn}</td>  
+      `;  
+      tbody.appendChild(tr);  
+    });  
+  </script>  </body>  
+</html>
