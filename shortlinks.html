@@ -1,159 +1,213 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <title>مهمة الروابط المختصرة | Am Rewards</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet" />
-    <style>
-      body {
-        font-family: "Tajawal", sans-serif;
-        background-color: #f5f5f5;
-        margin: 0;
-        padding: 0;
-      }
-      .container {
-        max-width: 600px;
-        margin: 40px auto;
-        background-color: white;
-        padding: 30px;
-        border-radius: 15px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        text-align: center;
-      }
-      h2 {
-        color: #4caf50;
-      }
-      .link-box {
-        background-color: #e8f5e9;
-        padding: 15px;
-        margin: 15px 0;
-        border-radius: 10px;
-        border: 1px solid #c8e6c9;
-      }
-      .link-box a {
-        display: inline-block;
-        margin-top: 10px;
-        padding: 10px 20px;
-        background-color: #4caf50;
-        color: white;
-        text-decoration: none;
-        border-radius: 5px;
-      }
-    </style>
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-      import {
-        getFirestore,
-        doc,
-        updateDoc,
-        arrayUnion,
-        increment,
-        getDoc,
-      } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-      import {
-        getAuth,
-        onAuthStateChanged,
-      } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+<!DOCTYPE html>  <html lang="ar" dir="rtl">    <head>        <meta charset="UTF-8" />          <title>مهمة الروابط المختصرة | Am Rewards</title>        
+  <meta name="viewport" content="width=device-width, initial-scale=1" />        
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">        
+  <style>        
+    body {        
+      font-family: 'Tajawal', sans-serif;        
+      background: linear-gradient(to bottom right, #e6f9ed, #ffffff);        
+      margin: 0;        
+      padding: 20px;        
+    }        
+    h2 {        
+      color: #28a745;        
+      text-align: center;        
+      font-size: 26px;        
+      margin-bottom: 10px;        
+    }        
+    .link-box {        
+      background: white;        
+      padding: 15px;        
+      border: 1px solid #d4d4d4;        
+      margin: 10px auto;        
+      max-width: 420px;        
+      border-radius: 12px;        
+      text-align: center;        
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);        
+    }        
+    .link-box button {        
+      background-color: #007bff;        
+      color: white;        
+      padding: 10px 16px;        
+      border: none;        
+      border-radius: 8px;        
+      cursor: pointer;        
+      font-weight: bold;        
+    }        
+    .counter, #user-points {        
+      text-align: center;        
+      margin: 15px auto;        
+      font-size: 18px;        
+      color: #333;        
+    }        
+    #user-points {        
+      background: #fff3cd;        
+      padding: 10px;        
+      border-radius: 10px;        
+      max-width: 320px;        
+      border: 1px solid #ffeeba;        
+    }        
+    .back-buttons {        
+      text-align: center;        
+      margin-top: 30px;        
+    }        
+    .back-buttons button {        
+      margin: 8px;        
+      background-color: #28a745;        
+      padding: 10px 20px;        
+      border: none;        
+      color: white;        
+      border-radius: 8px;        
+      font-weight: bold;        
+      cursor: pointer;        
+    }        
+  </style>        
+</head>        
+<body>        
+  <h2>مهمة الروابط المختصرة</h2>        
+  <div id="user-points">نقاطي: ...</div>        
+  <div class="counter" id="status">جاري تحميل الروابط...</div>        
+  <div id="links-container"></div>        
+  <div class="back-buttons">        
+    <a href="dashboard.html"><button>🔙 العودة إلى الصفحة الرئيسية</button></a>        
+    <a href="tasks.html"><button>🗂️ العودة إلى صفحة المهام</button></a>        
+  </div>        
+  <script type="module">        
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";        
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";        
+    import { getFirestore, doc, getDoc, updateDoc, increment, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";  const firebaseConfig = {        
+  apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",        
+  authDomain: "am--rewards.firebaseapp.com",        
+  projectId: "am--rewards"        
+};    const app = initializeApp(firebaseConfig);    
+const auth = getAuth(app);    
+const db = getFirestore(app);  const shortlinks = [  
+{ title: "رابط 1", url: "https://exe.io/uD3B6I" },  
+{ title: "رابط 2", url: "https://exe.io/PeFULHU" },  
+{ title: "رابط 3", url: "https://exe.io/OK9Kv" },  
+{ title: "رابط 4", url: "https://exe.io/CMLGX" },  
+{ title: "رابط 5", url: "https://exe.io/b3SxtV" },  
+{ title: "رابط 6", url: "https://exe.io/kFmSB" },  
+{ title: "رابط 7", url: "https://exe.io/VFtFt" },  
+{ title: "رابط 8", url: "https://exe.io/FBgm" },  
+{ title: "رابط 9", url: "https://exe.io/AU9eYMWG" },  
+{ title: "رابط 10", url: "https://exe.io/fsPYx9e8" },  
+{ title: "رابط 11", url: "https://exe.io/w3sJHf7e" },  
+{ title: "رابط 12", url: "https://exe.io/mYq3C5" },  
+{ title: "رابط 13", url: "https://exe.io/NVJ5EuA" },  
+{ title: "رابط 14", url: "https://exe.io/Tg5gIB7P" },  
+{ title: "رابط 15", url: "https://exe.io/ZXcPfB" },  
+{ title: "رابط 16", url: "https://exe.io/acnIp" },  
+{ title: "رابط 17", url: "https://exe.io/32B0AuJb" },  
+{ title: "رابط 18", url: "https://exe.io/V78w6AW" },  
+{ title: "رابط 19", url: "https://exe.io/tuY19" },  
+{ title: "رابط 20", url: "https://exe.io/4iOas" },  
+{ title: "رابط 21", url: "https://exe.io/TilcvxE" },  
+{ title: "رابط 22", url: "https://exe.io/KNh5AdCu" },  
+{ title: "رابط 23", url: "https://exe.io/gssob4l" },  
+{ title: "رابط 24", url: "https://exe.io/9ujgveBb" },  
+{ title: "رابط 25", url: "https://exe.io/tCEagaua" },  
+{ title: "رابط 26", url: "https://exe.io/KRPX8ctI" },  
+{ title: "رابط 27", url: "https://exe.io/v2CuX" },  
+{ title: "رابط 28", url: "https://exe.io/0aAEOhws" },  
+{ title: "رابط 29", url: "https://exe.io/j9jz4G" },  
+{ title: "رابط 30", url: "https://exe.io/pDRP4" },  
+{ title: "رابط 31", url: "https://exe.io/tC2gu6" },  
+{ title: "رابط 32", url: "https://exe.io/cMqtdJ" },  
+{ title: "رابط 33", url: "https://exe.io/mMh9ST" },  
+{ title: "رابط 34", url: "https://exe.io/QCRvrR" },  
+{ title: "رابط 35", url: "https://exe.io/OLSNpgv" },  
+{ title: "رابط 36", url: "https://exe.io/mMN6pMe" },  
+{ title: "رابط 37", url: "https://exe.io/YuLzGFl" },  
+{ title: "رابط 38", url: "https://exe.io/phK5nA" },  
+{ title: "رابط 39", url: "https://exe.io/WOh66f" },  
+{ title: "رابط 40", url: "https://exe.io/kgAfpHK" }  
+];  onAuthStateChanged(auth, user => {
+if (user) {
+const userId = user.uid;
+initShortLinks(userId);
+} else {
+alert("⚠️ يجب تسجيل الدخول أولاً.");
+window.location.href = "index.html";
+}
+});
 
-      const firebaseConfig = {
-        apiKey: "AIzaSyCY-Q9K1GzS8lvWb9ITmpj6bbPfQZHKefk",
-        authDomain: "am--rewards.firebaseapp.com",
-        projectId: "am--rewards",
-        storageBucket: "am--rewards.appspot.com",
-        messagingSenderId: "51585715948",
-        appId: "1:51585715948:web:9f5918fe3b68b2b453fb7e",
-      };
+function initShortLinks(userId) {
+const today = new Date().toISOString().slice(0, 10);
+const userProgressKey = shortlinks_progress_${userId}_${today};
+let completedLinks = [];
+try {
+const stored = JSON.parse(localStorage.getItem(userProgressKey));
+if (Array.isArray(stored)) completedLinks = stored;
+} catch (e) {
+completedLinks = [];
+}
 
-      const app = initializeApp(firebaseConfig);
-      const db = getFirestore(app);
-      const auth = getAuth(app);
+const justCompleted = localStorage.getItem("justCompletedLink");
+if (justCompleted !== null) {
+const completedIndex = parseInt(justCompleted);
+if (!completedLinks.includes(completedIndex)) {
+completedLinks.push(completedIndex);
+localStorage.setItem(userProgressKey, JSON.stringify(completedLinks));
+localStorage.removeItem("justCompletedLink");
 
-      const shortlinks = [
-        { title: "رابط 1", url: "https://exe.io/GXmF3F" },
-        { title: "رابط 2", url: "https://exe.io/NYY4L" },
-        { title: "رابط 3", url: "https://exe.io/sA8yK" },
-        { title: "رابط 4", url: "https://exe.io/b6pud9" },
-        { title: "رابط 5", url: "https://exe.io/mLfYLv" },
-        { title: "رابط 6", url: "https://exe.io/hjvvR" },
-        { title: "رابط 7", url: "https://exe.io/roaaW" },
-        { title: "رابط 8", url: "https://exe.io/EZzmEMe" },
-        { title: "رابط 9", url: "https://exe.io/GZNmGk" },
-        { title: "رابط 10", url: "https://exe.io/YO2Y1g" },
-        { title: "رابط 11", url: "https://exe.io/Bqv9r7W" },
-        { title: "رابط 12", url: "https://exe.io/8cD2i" },
-        { title: "رابط 13", url: "https://exe.io/MYAHf" },
-        { title: "رابط 14", url: "https://exe.io/gKRUGh" },
-        { title: "رابط 15", url: "https://exe.io/y6TT8h" },
-        { title: "رابط 16", url: "https://exe.io/BlY6H" },
-        { title: "رابط 17", url: "https://exe.io/3Q84s" },
-        { title: "رابط 18", url: "https://exe.io/MR1V6F" },
-        { title: "رابط 19", url: "https://exe.io/j7ndBi" },
-        { title: "رابط 20", url: "https://exe.io/yE9u3p6" },
-        { title: "رابط 21", url: "https://exe.io/HYoA4" },
-        { title: "رابط 22", url: "https://exe.io/tCWi5kM" },
-        { title: "رابط 23", url: "https://exe.io/mDnXvUO" },
-        { title: "رابط 24", url: "https://exe.io/BsbJTWx" },
-        { title: "رابط 25", url: "https://exe.io/PRg3TQ" },
-        { title: "رابط 26", url: "https://exe.io/VQVEgE" },
-        { title: "رابط 27", url: "https://exe.io/Wfx6p9" },
-        { title: "رابط 28", url: "https://exe.io/NBEFt" },
-        { title: "رابط 29", url: "https://exe.io/4w2GV" },
-        { title: "رابط 30", url: "https://exe.io/MHeoYh" },
-        { title: "رابط 31", url: "https://exe.io/GwTAKa" },
-        { title: "رابط 32", url: "https://exe.io/HHkU2" },
-        { title: "رابط 33", url: "https://exe.io/OAzEP" },
-        { title: "رابط 34", url: "https://exe.io/m0sTj" },
-        { title: "رابط 35", url: "https://exe.io/6MbtTA" },
-        { title: "رابط 36", url: "https://exe.io/w0U4V" },
-        { title: "رابط 37", url: "https://exe.io/ek8TD" },
-        { title: "رابط 38", url: "https://exe.io/8yboQOu" },
-      ];
+const userDocRef = doc(db, "users", userId);
+updateDoc(userDocRef, {
+points: increment(1)
+}).then(updateUserPoints);
 
-      onAuthStateChanged(auth, async (user) => {
-        if (user) {
-          const userRef = doc(db, "users", user.uid);
-          const userSnap = await getDoc(userRef);
-          const completedTasks = userSnap.exists()
-            ? userSnap.data().completedTasks || []
-            : [];
+const logRef = collection(db, "adminTaskLogs");
+addDoc(logRef, {
+userId,
+taskType: "shortlink",
+rewardToUser: 1,
+profitToAdmin: 0.15,
+date: new Date()
+});
 
-          const container = document.querySelector(".container");
+} else {
+localStorage.removeItem("justCompletedLink");
+updateUserPoints();
+}
 
-          shortlinks.forEach((link) => {
-            if (!completedTasks.includes(link.title)) {
-              const box = document.createElement("div");
-              box.className = "link-box";
-              box.innerHTML = `
-                <h3>${link.title}</h3>
-                <p>🪙 هذه المهمة تمنحك <strong>1.5</strong> نقطة</p>
-                <a href="${link.url}" target="_blank">فتح الرابط</a>
-              `;
-              box.querySelector("a").addEventListener("click", async () => {
-                await updateDoc(userRef, {
-                  points: increment(1.5),
-                  completedTasks: arrayUnion(link.title),
-                  taskHistory: arrayUnion({
-                    task: link.title,
-                    type: "shortlink",
-                    timestamp: new Date(),
-                    rewardToUser: 1.5,
-                  }),
-                });
-              });
-              container.appendChild(box);
-            }
-          });
-        } else {
-          window.location.href = "/login.html";
-        }
-      });
-    </script>
-  </head>
-  <body>
-    <div class="container">
-      <h2>مهمة الروابط المختصرة</h2>
-      <p>قم بفتح الروابط التالية لإتمام المهام وكسب النقاط</p>
-    </div>
-  </body>
+}
+
+function updateUserPoints() {
+const userDocRef = doc(db, "users", userId);
+getDoc(userDocRef).then(docSnap => {
+const data = docSnap.data();
+const points = data?.points || 0;
+document.getElementById("user-points").textContent = نقاطي: ${points} 🪙;
+});
+}
+
+const container = document.getElementById("links-container");
+const status = document.getElementById("status");
+
+const availableLinks = shortlinks.filter((_, i) => !completedLinks.includes(i));
+status.textContent = روابط مكتملة: ${completedLinks.length} / ${shortlinks.length};
+
+if (availableLinks.length === 0) {
+container.innerHTML = "<p style='text-align:center;'>✅ لقد أكملت جميع الروابط المختصرة اليوم!</p>";
+return;
+}
+
+availableLinks.forEach((item, index) => {
+const globalIndex = shortlinks.indexOf(item);
+const div = document.createElement("div");
+div.className = "link-box";
+div.innerHTML =     <p>${item.title}</p>     <p>🪙 هذه المهمة تمنحك <strong>1</strong> نقطة</p>     <button onclick="startRedirect(${globalIndex}, '${item.url}')">افتح الرابط</button>    ;
+container.appendChild(div);
+});
+
+updateUserPoints();
+}
+
+window.startRedirect = function(index, url) {
+localStorage.setItem("redirect_link", url);
+localStorage.setItem("redirect_index", index);
+window.location.href = "redirect.html";
+}
+
+  </script>        
+</body>        
 </html>
