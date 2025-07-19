@@ -1,155 +1,163 @@
-<!DOCTYPE html>  <html lang="ar" dir="rtl">  <head>  
-  <meta charset="UTF-8" />  
-  <title>مهمة الروابط المختصرة | Am Rewards</title>  
-  <meta name="viewport" content="width=device-width, initial-scale=1" />  
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">  
-  <style>  
-    body {  
-      font-family: 'Tajawal', sans-serif;  
-      background: linear-gradient(to bottom right, #e6f9ed, #ffffff);  
-      margin: 0;  
-      padding: 20px;  
-    }  
-    h2 {  
-      color: #28a745;  
-      text-align: center;  
-      font-size: 26px;  
-      margin-bottom: 10px;  
-    }  
-    .link-box {  
-      background: white;  
-      padding: 15px;  
-      border: 1px solid #d4d4d4;  
-      margin: 10px auto;  
-      max-width: 420px;  
-      border-radius: 12px;  
-      text-align: center;  
-      box-shadow: 0 4px 12px rgba(0,0,0,0.06);  
-    }  
-    .link-box button {  
-      background-color: #007bff;  
-      color: white;  
-      padding: 10px 16px;  
-      border: none;  
-      border-radius: 8px;  
-      cursor: pointer;  
-      font-weight: bold;  
-    }  
-    .counter, #user-points {  
-      text-align: center;  
-      margin: 15px auto;  
-      font-size: 18px;  
-      color: #333;  
-    }  
-    #user-points {  
-      background: #fff3cd;  
-      padding: 10px;  
-      border-radius: 10px;  
-      max-width: 320px;  
-      border: 1px solid #ffeeba;  
-    }  
-    .back-buttons {  
-      text-align: center;  
-      margin-top: 30px;  
-    }  
-    .back-buttons button {  
-      margin: 8px;  
-      background-color: #28a745;  
-      padding: 10px 20px;  
-      border: none;  
-      color: white;  
-      border-radius: 8px;  
-      font-weight: bold;  
-      cursor: pointer;  
-    }  
-  </style>  
-</head>  
-<body>  
-  <h2>مهمة الروابط المختصرة</h2>  
-  <div id="user-points">نقاطي: ...</div>  
-  <div class="counter" id="status">جاري تحميل الروابط...</div>  
-  <div id="links-container"></div>  
-  <div class="back-buttons">  
-    <a href="dashboard.html"><button>🔙 العودة إلى الصفحة الرئيسية</button></a>  
-    <a href="tasks.html"><button>🗂️ العودة إلى صفحة المهام</button></a>  
-  </div>  
-  <script type="module">  
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";  
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";  
-    import { getFirestore, doc, getDoc, updateDoc, increment, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";  const firebaseConfig = {  
-  apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",  
-  authDomain: "am--rewards.firebaseapp.com",  
-  projectId: "am--rewards"  
-};  
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>مهمة الروابط المختصرة | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f2f2f2;
+      color: #333;
+      text-align: center;
+    }
 
-const app = initializeApp(firebaseConfig);  
-const auth = getAuth(app);  
-const db = getFirestore(app);  
+    header {
+      background-color: #4CAF50;
+      padding: 10px;
+      color: white;
+      font-size: 24px;
+    }
 
-const shortlinks = [  
-  { title: "رابط 1", url: "https://exe.io/uD3B6I" },
-  { title: "رابط 2", url: "https://exe.io/PeFULHU" },
-  { title: "رابط 3", url: "https://exe.io/OK9Kv" },
-  { title: "رابط 4", url: "https://exe.io/CMLGX" },
-  { title: "رابط 5", url: "https://exe.io/b3SxtV" },
-  { title: "رابط 6", url: "https://exe.io/kFmSB" },
-  { title: "رابط 7", url: "https://exe.io/VFtFt" },
-  { title: "رابط 8", url: "https://exe.io/FBgm" },
-  { title: "رابط 9", url: "https://exe.io/AU9eYMWG" },
-  { title: "رابط 10", url: "https://exe.io/fsPYx9e8" },
-  { title: "رابط 11", url: "https://exe.io/w3sJHf7e" },
-  { title: "رابط 12", url: "https://exe.io/mYq3C5" },
-  { title: "رابط 13", url: "https://exe.io/NVJ5EuA" },
-  { title: "رابط 14", url: "https://exe.io/Tg5gIB7P" },
-  { title: "رابط 15", url: "https://exe.io/ZXcPfB" },
-  { title: "رابط 16", url: "https://exe.io/acnIp" },
-  { title: "رابط 17", url: "https://exe.io/32B0AuJb" },
-  { title: "رابط 18", url: "https://exe.io/V78w6AW" },
-  { title: "رابط 19", url: "https://exe.io/tuY19" },
-  { title: "رابط 20", url: "https://exe.io/4iOas" },
-  { title: "رابط 21", url: "https://exe.io/TilcvxE" },
-  { title: "رابط 22", url: "https://exe.io/KNh5AdCu" },
-  { title: "رابط 23", url: "https://exe.io/gssob4l" },
-  { title: "رابط 24", url: "https://exe.io/9ujgveBb" },
-  { title: "رابط 25", url: "https://exe.io/tCEagaua" },
-  { title: "رابط 26", url: "https://exe.io/KRPX8ctI" },
-  { title: "رابط 27", url: "https://exe.io/v2CuX" },
-  { title: "رابط 28", url: "https://exe.io/0aAEOhws" },
-  { title: "رابط 29", url: "https://exe.io/j9jz4G" },
-  { title: "رابط 30", url: "https://exe.io/pDRP4" },
-  { title: "رابط 31", url: "https://exe.io/tC2gu6" },
-  { title: "رابط 32", url: "https://exe.io/cMqtdJ" },
-  { title: "رابط 33", url: "https://exe.io/mMh9ST" },
-  { title: "رابط 34", url: "https://exe.io/QCRvrR" },
-  { title: "رابط 35", url: "https://exe.io/OLSNpgv" },
-  { title: "رابط 36", url: "https://exe.io/mMN6pMe" },
-  { title: "رابط 37", url: "https://exe.io/YuLzGFl" },
-  { title: "رابط 38", url: "https://exe.io/phK5nA" },
-  { title: "رابط 39", url: "https://exe.io/WOh66f" },
-  { title: "رابط 40", url: "https://exe.io/kgAfpHK" },
-  { title: "رابط 41", url: "https://exe.io/xOncop" },
-  { title: "رابط 42", url: "https://exe.io/u8ciAD2" },
-  { title: "رابط 43", url: "https://exe.io/jwSshK" },
-  { title: "رابط 44", url: "https://exe.io/niqZ9I" },
-  { title: "رابط 45", url: "https://exe.io/tzPrIs" },
-  { title: "رابط 46", url: "https://exe.io/QWol6qJ" },
-  { title: "رابط 47", url: "https://exe.io/f6wzf" },
-  { title: "رابط 48", url: "https://exe.io/KmVqMUvw" },
-  { title: "رابط 49", url: "https://exe.io/fgvWoVtX" },
-  { title: "رابط 50", url: "https://exe.io/UDd6N" },
-  { title: "رابط 51", url: "https://exe.io/6vctYa" },
-  { title: "رابط 52", url: "https://exe.io/KuHdLKay" },
-  { title: "رابط 53", url: "https://exe.io/t8LzID" },
-  { title: "رابط 54", url: "https://exe.io/oocqWm" },
-  { title: "رابط 55", url: "https://exe.io/63ll3g5N" },
-  { title: "رابط 56", url: "https://exe.io/XiZPuI" },
-  { title: "رابط 57", url: "https://exe.io/ZWwLtegF" },
-  { title: "رابط 58", url: "https://exe.io/EM7Vtj" },
-  { title: "رابط 59", url: "https://exe.io/KRPrH" },
-  { title: "رابط 60", url: "https://exe.io/8yboQOu" }
-];
-// الكود الباقي كما هو بدون تغيير
+    #links-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 20px;
+    }
 
-  </script>  
-</body>  
+    .link-box {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 250px;
+      margin: 10px;
+      padding: 15px;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+
+    .link-box:hover {
+      transform: scale(1.05);
+    }
+
+    .link-box h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+
+    .link-box button {
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .link-box button:hover {
+      background-color: #45a049;
+    }
+
+    #status {
+      margin: 10px;
+      font-size: 18px;
+      color: #4CAF50;
+    }
+  </style>
+</head>
+<body>
+  <header>مهمة الروابط المختصرة</header>
+  <div id="status">جاري التحميل...</div>
+  <div id="links-container"></div>
+
+  <script type="module">
+    const shortlinks = [
+      { title: "رابط رقم 1", url: "https://example.com/1" },
+      { title: "رابط رقم 2", url: "https://example.com/2" },
+      { title: "رابط رقم 3", url: "https://example.com/3" },
+      { title: "رابط رقم 4", url: "https://example.com/4" },
+      { title: "رابط رقم 5", url: "https://example.com/5" },
+      { title: "رابط رقم 6", url: "https://example.com/6" },
+      { title: "رابط رقم 7", url: "https://example.com/7" },
+      { title: "رابط رقم 8", url: "https://example.com/8" },
+      { title: "رابط رقم 9", url: "https://example.com/9" },
+      { title: "رابط رقم 10", url: "https://example.com/10" },
+      { title: "رابط رقم 11", url: "https://example.com/11" },
+      { title: "رابط رقم 12", url: "https://example.com/12" },
+      { title: "رابط رقم 13", url: "https://example.com/13" },
+      { title: "رابط رقم 14", url: "https://example.com/14" },
+      { title: "رابط رقم 15", url: "https://example.com/15" },
+      { title: "رابط رقم 16", url: "https://example.com/16" },
+      { title: "رابط رقم 17", url: "https://example.com/17" },
+      { title: "رابط رقم 18", url: "https://example.com/18" },
+      { title: "رابط رقم 19", url: "https://example.com/19" },
+      { title: "رابط رقم 20", url: "https://example.com/20" },
+      { title: "رابط رقم 21", url: "https://example.com/21" },
+      { title: "رابط رقم 22", url: "https://example.com/22" },
+      { title: "رابط رقم 23", url: "https://example.com/23" },
+      { title: "رابط رقم 24", url: "https://example.com/24" },
+      { title: "رابط رقم 25", url: "https://example.com/25" },
+      { title: "رابط رقم 26", url: "https://example.com/26" },
+      { title: "رابط رقم 27", url: "https://example.com/27" },
+      { title: "رابط رقم 28", url: "https://example.com/28" },
+      { title: "رابط رقم 29", url: "https://example.com/29" },
+      { title: "رابط رقم 30", url: "https://example.com/30" },
+      { title: "رابط رقم 31", url: "https://example.com/31" },
+      { title: "رابط رقم 32", url: "https://example.com/32" },
+      { title: "رابط رقم 33", url: "https://example.com/33" },
+      { title: "رابط رقم 34", url: "https://example.com/34" },
+      { title: "رابط رقم 35", url: "https://example.com/35" },
+      { title: "رابط رقم 36", url: "https://example.com/36" },
+      { title: "رابط رقم 37", url: "https://example.com/37" },
+      { title: "رابط رقم 38", url: "https://example.com/38" },
+      { title: "رابط رقم 39", url: "https://example.com/39" },
+      { title: "رابط رقم 40", url: "https://example.com/40" },
+      { title: "رابط رقم 41", url: "https://example.com/41" },
+      { title: "رابط رقم 42", url: "https://example.com/42" },
+      { title: "رابط رقم 43", url: "https://example.com/43" },
+      { title: "رابط رقم 44", url: "https://example.com/44" },
+      { title: "رابط رقم 45", url: "https://example.com/45" },
+      { title: "رابط رقم 46", url: "https://example.com/46" },
+      { title: "رابط رقم 47", url: "https://example.com/47" },
+      { title: "رابط رقم 48", url: "https://example.com/48" },
+      { title: "رابط رقم 49", url: "https://example.com/49" },
+      { title: "رابط رقم 50", url: "https://example.com/50" },
+      { title: "رابط رقم 51", url: "https://example.com/51" },
+      { title: "رابط رقم 52", url: "https://example.com/52" },
+      { title: "رابط رقم 53", url: "https://example.com/53" },
+      { title: "رابط رقم 54", url: "https://example.com/54" },
+      { title: "رابط رقم 55", url: "https://example.com/55" },
+      { title: "رابط رقم 56", url: "https://example.com/56" },
+      { title: "رابط رقم 57", url: "https://example.com/57" },
+      { title: "رابط رقم 58", url: "https://example.com/58" },
+      { title: "رابط رقم 59", url: "https://example.com/59" },
+      { title: "رابط رقم 60", url: "https://example.com/60" }
+    ];
+
+    const linksContainer = document.getElementById("links-container");
+    document.getElementById("status").textContent = `عدد المهام: ${shortlinks.length}`;
+
+    shortlinks.forEach((link, index) => {
+      const box = document.createElement("div");
+      box.className = "link-box";
+
+      box.innerHTML = `
+        <h3>${link.title}</h3>
+        <button onclick="startRedirect('${link.url}', ${index})">ابدأ المهمة</button>
+      `;
+
+      linksContainer.appendChild(box);
+    });
+
+    window.startRedirect = function(url, index) {
+      localStorage.setItem("redirect_link", url);
+      localStorage.setItem("redirect_index", index);
+      window.location.href = "redirect.html";
+    };
+  </script>
+</body>
 </html>
