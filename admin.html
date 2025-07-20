@@ -2,108 +2,128 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>صفحة الإدارة | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>لوحة الإدارة | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Tajawal&display=swap');
+
     body {
       font-family: 'Tajawal', sans-serif;
-      background-color: #f7f7f7;
-      color: #333;
+      background-color: #121212;
+      color: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #1f1f1f;
       padding: 20px;
       text-align: center;
+      font-size: 26px;
+      font-weight: bold;
+      border-bottom: 1px solid #333;
     }
-    h1 {
-      color: #2c3e50;
+
+    main {
+      padding: 20px;
     }
-    .stat {
-      background-color: #ffffff;
+
+    .card {
+      background-color: #1e1e1e;
+      border: 1px solid #333;
       border-radius: 12px;
       padding: 20px;
-      margin: 15px auto;
-      width: 90%;
-      max-width: 400px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin: 20px 0;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
     }
-    .stat h2 {
+
+    .card h2 {
       margin-bottom: 10px;
-      color: #27ae60;
+      font-size: 20px;
+      color: #00c8ff;
     }
-    .stat p {
-      font-size: 24px;
+
+    .value {
+      font-size: 32px;
       font-weight: bold;
+      color: #fff;
+    }
+
+    .label {
+      font-size: 16px;
+      color: #ccc;
     }
   </style>
-  <script type="module">
-    // Firebase config
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+</head>
+<body>
+  <header>لوحة الإدارة - Am Rewards</header>
+  <main>
+    <div class="card">
+      <h2>عدد المستخدمين:</h2>
+      <div class="value" id="userCount">...</div>
+    </div>
 
+    <div class="card">
+      <h2>المهام المنفذة:</h2>
+      <div class="value" id="taskCount">...</div>
+    </div>
+
+    <div class="card">
+      <h2>عدد السحوبات:</h2>
+      <div class="value" id="withdrawCount">...</div>
+    </div>
+
+    <div class="card">
+      <h2>إجمالي الأرباح:</h2>
+      <div class="value" id="totalProfit">...</div>
+    </div>
+  </main>
+
+  <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyD......", // ضع بياناتك هنا
+      apiKey: "AIzaSyDxEvWxXXXXXXX",
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
       storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "1077.......",
-      appId: "1:1077......."
+      messagingSenderId: "302308432282",
+      appId: "1:302308432282:web:72f6bXXXXXXX",
+      measurementId: "G-JCXXXXXX",
+      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    // تحديث عدد المستخدمين تلقائياً
-    const usersRef = collection(db, "users");
-    onSnapshot(usersRef, (snapshot) => {
-      document.getElementById("usersCount").textContent = snapshot.size;
-    });
-
-    // تحديث عدد المهام المنفذة تلقائياً
-    const tasksRef = collection(db, "completedTasks");
-    onSnapshot(tasksRef, (snapshot) => {
-      document.getElementById("completedTasks").textContent = snapshot.size;
-    });
-
-    // تحديث عدد السحوبات تلقائياً
-    const withdrawalsRef = collection(db, "withdrawals");
-    onSnapshot(withdrawalsRef, (snapshot) => {
-      document.getElementById("withdrawalsCount").textContent = snapshot.size;
-    });
-
-    // تحديث إجمالي الأرباح تلقائياً
-    onSnapshot(usersRef, (snapshot) => {
-      let total = 0;
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.earnedPoints) {
-          total += data.earnedPoints;
-        }
+    // تحديث البيانات تلقائيًا
+    const updateStats = () => {
+      db.ref('users').once('value', snapshot => {
+        const userCount = snapshot.numChildren();
+        document.getElementById('userCount').textContent = userCount;
       });
-      const profitEGP = (total * 0.08).toFixed(2);
-      document.getElementById("totalProfits").textContent = `${profitEGP} جنيه`;
-    });
+
+      db.ref('completedTasks').once('value', snapshot => {
+        const taskCount = snapshot.numChildren();
+        document.getElementById('taskCount').textContent = taskCount;
+      });
+
+      db.ref('withdrawals').once('value', snapshot => {
+        const withdrawCount = snapshot.numChildren();
+        document.getElementById('withdrawCount').textContent = withdrawCount;
+
+        let total = 0;
+        snapshot.forEach(child => {
+          const value = parseFloat(child.val().amount || 0);
+          total += value;
+        });
+        document.getElementById('totalProfit').textContent = total.toFixed(2) + ' EGP';
+      });
+    };
+
+    updateStats();
+    setInterval(updateStats, 10000); // كل 10 ثواني تحديث
   </script>
-</head>
-<body>
-  <h1>لوحة تحكم المدير</h1>
-
-  <div class="stat">
-    <h2>عدد المستخدمين</h2>
-    <p id="usersCount">0</p>
-  </div>
-
-  <div class="stat">
-    <h2>عدد المهام المنفذة</h2>
-    <p id="completedTasks">0</p>
-  </div>
-
-  <div class="stat">
-    <h2>عدد السحوبات</h2>
-    <p id="withdrawalsCount">0</p>
-  </div>
-
-  <div class="stat">
-    <h2>إجمالي الأرباح</h2>
-    <p id="totalProfits">0 جنيه</p>
-  </div>
-
 </body>
 </html>
