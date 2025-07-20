@@ -1,130 +1,130 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>صفحة المسؤول | Am Rewards</title>
+  <title>لوحة الإدارة | Am Rewards</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">
   <style>
     body {
-      background-color: #0e0e0e;
-      color: #ffffff;
       font-family: 'Tajawal', sans-serif;
+      background-color: #121212;
+      color: #f1f1f1;
       margin: 0;
       padding: 20px;
     }
-    h1 {
-      color: #00e0ff;
-      text-align: center;
-    }
-    .card {
-      background-color: #1c1c1c;
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: #1e1e1e;
       padding: 20px;
-      margin: 20px auto;
       border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,255,255,0.2);
-      max-width: 400px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.7);
+    }
+    h1, h3 {
       text-align: center;
     }
-    .logout-btn {
-      display: block;
-      margin: 30px auto;
-      padding: 10px 25px;
-      background-color: #ff4d4d;
+    #stats {
+      margin-top: 20px;
+    }
+    .stat {
+      background: #2a2a2a;
+      margin-bottom: 15px;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 18px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: crimson;
       color: white;
       border: none;
-      border-radius: 10px;
+      border-radius: 8px;
       cursor: pointer;
+      margin-top: 20px;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
     }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
 </head>
 <body>
-  <h1>لوحة تحكم المسؤول</h1>
-
-  <div class="card">
-    <h2>عدد المستخدمين</h2>
-    <p id="userCount">جارٍ التحميل...</p>
+  <div class="container">
+    <h1>لوحة تحكم الإدارة</h1>
+    <div id="authStatus">جارٍ التحقق من المستخدم...</div>
+    <div id="stats" style="display:none;">
+      <div class="stat" id="userCount">عدد المستخدمين: ...</div>
+      <div class="stat" id="taskCount">عدد المهام المنفذة: ...</div>
+      <div class="stat" id="withdrawalsToday">عدد السحوبات اليوم: ...</div>
+      <div class="stat" id="totalProfit">إجمالي الأرباح: ...</div>
+      <button onclick="logout()">تسجيل الخروج</button>
+    </div>
   </div>
 
-  <div class="card">
-    <h2>عدد المهام المنفذة</h2>
-    <p id="taskCount">جارٍ التحميل...</p>
-  </div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
-  <div class="card">
-    <h2>عدد السحوبات</h2>
-    <p id="withdrawCount">جارٍ التحميل...</p>
-  </div>
-
-  <div class="card">
-    <h2>إجمالي الأرباح (جنيه)</h2>
-    <p id="totalEarnings">جارٍ التحميل...</p>
-  </div>
-
-  <button class="logout-btn" onclick="logout()">تسجيل الخروج</button>
-
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-  <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyDlj-...",
+      apiKey: "AIzaSyAbuCVM5wl6Z6cNjCTCJ6z5sZsXt-lRI1M",
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
       storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "539032983245",
-      appId: "1:539032983245:web:e0431b99b3b648388e3b7e",
-      measurementId: "G-67VTE8R7PP",
+      messagingSenderId: "847623292916",
+      appId: "1:847623292916:web:a68e9e4896742f8f05a1f4",
+      measurementId: "G-B1Q15BNHHE",
       databaseURL: "https://am--rewards-default-rtdb.firebaseio.com"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.database();
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
 
-    const adminEmail = "amirfg992005@gmail.com";
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById("authStatus").innerHTML = `مرحبًا بك، ${user.email}`;
 
-    auth.onAuthStateChanged(user => {
-      if (!user || user.email !== adminEmail) {
-        alert("غير مصرح لك بالدخول هنا");
-        window.location.href = "index.html";
-        return;
+        if (user.email === "amirfg992005@gmail.com") {
+          document.getElementById("stats").style.display = "block";
+          loadStats();
+        } else {
+          document.getElementById("authStatus").innerHTML = "🚫 غير مصرح لك بالدخول.";
+        }
+      } else {
+        window.location.href = "login.html";
       }
-
-      // عدد المستخدمين
-      db.ref("users").once("value").then(snapshot => {
-        const count = snapshot.numChildren();
-        document.getElementById("userCount").innerText = count;
-      });
-
-      // عدد المهام المنفذة
-      db.ref("tasksDone").once("value").then(snapshot => {
-        const total = snapshot.val() || 0;
-        document.getElementById("taskCount").innerText = total;
-      });
-
-      // عدد السحوبات
-      db.ref("withdrawals").once("value").then(snapshot => {
-        const total = snapshot.numChildren();
-        document.getElementById("withdrawCount").innerText = total;
-      });
-
-      // إجمالي الأرباح
-      db.ref("users").once("value").then(snapshot => {
-        let totalPoints = 0;
-        snapshot.forEach(child => {
-          const points = child.val().points || 0;
-          totalPoints += points;
-        });
-        const totalEGP = (totalPoints * 0.07).toFixed(2);
-        document.getElementById("totalEarnings").innerText = totalEGP + " جنيه";
-      });
     });
 
     function logout() {
-      auth.signOut().then(() => {
-        window.location.href = "index.html";
+      signOut(auth).then(() => {
+        window.location.href = "login.html";
+      });
+    }
+
+    function loadStats() {
+      onValue(ref(db, "users"), (snapshot) => {
+        const userCount = snapshot.size || Object.keys(snapshot.val() || {}).length;
+        document.getElementById("userCount").innerText = `عدد المستخدمين: ${userCount}`;
+      });
+
+      onValue(ref(db, "tasksCompleted"), (snapshot) => {
+        const count = snapshot.val() || 0;
+        document.getElementById("taskCount").innerText = `عدد المهام المنفذة: ${count}`;
+      });
+
+      onValue(ref(db, "withdrawalsToday"), (snapshot) => {
+        const count = snapshot.val() || 0;
+        document.getElementById("withdrawalsToday").innerText = `عدد السحوبات اليوم: ${count}`;
+      });
+
+      onValue(ref(db, "totalProfit"), (snapshot) => {
+        const profit = snapshot.val() || 0;
+        const egp = (profit * 0.07).toFixed(2);
+        document.getElementById("totalProfit").innerText = `إجمالي الأرباح: ${egp} جنيه`;
       });
     }
   </script>
