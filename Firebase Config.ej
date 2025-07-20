@@ -1,5 +1,4 @@
 // firebase.js
-
 const firebaseConfig = {
   apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
   authDomain: "am--rewards.firebaseapp.com",
@@ -10,12 +9,35 @@ const firebaseConfig = {
   measurementId: "G-CV3GLT2TTJ"
 };
 
-// تهيئة Firebase
+// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
-
-// تعريف خدمات Firebase المستخدمة
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// للتأكد من التحميل
 console.log("Firebase initialized", auth, db);
+
+// عند تسجيل الدخول، احفظ المستخدم في Firestore لو مش موجود
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    const userRef = db.collection("users").doc(user.uid);
+
+    const doc = await userRef.get();
+
+    if (!doc.exists) {
+      // المستخدم جديد، أضف بياناته
+      await userRef.set({
+        uid: user.uid,
+        email: user.email || "",
+        name: user.displayName || "بدون اسم",
+        photoURL: user.photoURL || "",
+        points: 0,
+        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      console.log("🟢 تم تسجيل المستخدم الجديد في Firestore");
+    } else {
+      console.log("🔵 المستخدم موجود بالفعل في Firestore");
+    }
+  } else {
+    console.log("🟡 لم يتم تسجيل الدخول بعد");
+  }
+});
