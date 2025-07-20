@@ -1,117 +1,124 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <title>لوحة تحكم الأدمن | Am Rewards</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-    <style>
-      body {
-        font-family: "Tajawal", sans-serif;
-        background: #121212;
-        padding: 20px;
-        text-align: center;
-        color: #fff;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <title>صفحة المدير | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background-color: #f3f4f6;
+      padding: 30px;
+      text-align: center;
+      direction: rtl;
+    }
+    .card {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 0 10px #ccc;
+      padding: 30px;
+      margin: 20px auto;
+      width: 90%;
+      max-width: 500px;
+    }
+    h2 {
+      color: #333;
+    }
+    .stat {
+      font-size: 24px;
+      color: #2c3e50;
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
 
-      h1 {
-        color: #00d1ff;
-        margin-bottom: 30px;
-      }
+  <div class="card">
+    <h2>📊 إحصائيات موقع Am Rewards</h2>
+    <p class="stat">المستخدمين المسجلين: <span id="usersCount">...</span></p>
+    <p class="stat">مهام مكتملة اليوم: <span id="tasksToday">...</span></p>
+    <p class="stat">عمليات سحب اليوم: <span id="withdrawalsToday">...</span></p>
+    <p class="stat">إجمالي الأرباح: <span id="totalProfit">...</span> جنيه</p>
+  </div>
 
-      .stats-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 20px;
-        max-width: 1000px;
-        margin: auto;
-      }
+  <div id="notAdmin" class="card hidden">
+    <h2>🚫 غير مصرح بالدخول</h2>
+    <p>هذه الصفحة مخصصة فقط لصاحب الموقع.</p>
+  </div>
 
-      .stat-box {
-        background: #1e1e1e;
-        border-radius: 15px;
-        padding: 25px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-      }
+  <script type="module">
+    // استدعاء Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-      .stat-box p {
-        font-size: 1.2rem;
-        color: #ccc;
-      }
+    // بيانات Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.firebasestorage.app",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112",
+      measurementId: "G-CV3GLT2TTJ"
+    };
 
-      .stat-box span {
-        display: block;
-        font-size: 2rem;
-        margin-top: 10px;
-        color: #00ffae;
-        font-weight: bold;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>لوحة تحكم الأدمن</h1>
-    <div class="stats-container">
-      <div class="stat-box">
-        <p>عدد المستخدمين</p>
-        <span id="totalUsers">...</span>
-      </div>
-      <div class="stat-box">
-        <p>عدد المهام المنفذة</p>
-        <span id="totalTasks">...</span>
-      </div>
-      <div class="stat-box">
-        <p>عدد عمليات السحب</p>
-        <span id="totalWithdrawals">...</span>
-      </div>
-      <div class="stat-box">
-        <p>المبلغ الإجمالي المسحوب</p>
-        <span id="totalWithdrawnAmount">... EGP</span>
-      </div>
-      <div class="stat-box">
-        <p>صافي الأرباح</p>
-        <span id="totalProfitAfterWithdraw">... EGP</span>
-      </div>
-    </div>
+    // تهيئة Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    const provider = new GoogleAuthProvider();
 
-    <script>
-      const firebaseConfig = {
-        apiKey: "AIzaSyD6J9mFOVmWEbdTRFVEC97Z6XGKTiCjGkA",
-        authDomain: "am--rewards.firebaseapp.com",
-        databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
-        projectId: "am--rewards",
-        storageBucket: "am--rewards.appspot.com",
-        messagingSenderId: "181721478269",
-        appId: "1:181721478269:web:2d2d97f8f164ca0a0c13f0"
-      };
+    // تسجيل الدخول
+    onAuthStateChanged(auth, async (user) => {
+      if (user && user.email === "amirfg992005@gmail.com") {
+        document.querySelector(".card").classList.remove("hidden");
 
-      firebase.initializeApp(firebaseConfig);
-      const db = firebase.database();
+        try {
+          const snapshot = await get(ref(db));
+          const data = snapshot.val();
 
-      db.ref("users").once("value", (snapshot) => {
-        const users = snapshot.val();
-        const count = users ? Object.keys(users).length : 0;
-        document.getElementById("totalUsers").innerText = count;
-      });
+          let usersCount = 0;
+          let tasksToday = 0;
+          let withdrawalsToday = 0;
+          let totalProfit = 0;
 
-      db.ref("taskCompletions").once("value", (snapshot) => {
-        const tasks = snapshot.val();
-        let taskCount = 0;
-        if (tasks) {
-          for (let userId in tasks) {
-            taskCount += Object.keys(tasks[userId]).length;
+          if (data && data.users) {
+            usersCount = Object.keys(data.users).length;
+
+            const today = new Date().toISOString().split("T")[0];
+
+            Object.values(data.users).forEach(user => {
+              if (user.tasks && user.tasks[today]) {
+                tasksToday += user.tasks[today];
+              }
+              if (user.withdrawals && user.withdrawals[today]) {
+                withdrawalsToday += user.withdrawals[today];
+              }
+              if (user.totalProfit) {
+                totalProfit += user.totalProfit;
+              }
+            });
           }
-        }
-        document.getElementById("totalTasks").innerText = taskCount;
-      });
 
-      db.ref("siteStats").once("value", (snapshot) => {
-        const stats = snapshot.val();
-        document.getElementById("totalWithdrawals").innerText = stats?.totalWithdrawals || 0;
-        document.getElementById("totalWithdrawnAmount").innerText = `${stats?.totalWithdrawnAmount || 0} EGP`;
-        document.getElementById("totalProfitAfterWithdraw").innerText = `${stats?.totalProfitAfterWithdraw || 0} EGP`;
-      });
-    </script>
-  </body>
+          // عرض البيانات
+          document.getElementById("usersCount").innerText = usersCount;
+          document.getElementById("tasksToday").innerText = tasksToday;
+          document.getElementById("withdrawalsToday").innerText = withdrawalsToday;
+          document.getElementById("totalProfit").innerText = totalProfit.toFixed(2);
+
+        } catch (error) {
+          console.error("فشل تحميل البيانات:", error);
+        }
+
+      } else {
+        document.querySelector(".card").classList.add("hidden");
+        document.getElementById("notAdmin").classList.remove("hidden");
+        signInWithPopup(auth, provider);
+      }
+    });
+  </script>
+</body>
 </html>
