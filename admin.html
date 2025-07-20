@@ -1,84 +1,117 @@
-<!DOCTYPE html>  <html lang="ar" dir="rtl">  
-  <head>  
-    <meta charset="UTF-8" />  
-    <title>لوحة تحكم الأدمن | Am Rewards</title>  
-    <meta name="viewport" content="width=device-width, initial-scale=1" />  
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>  
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>  
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>  
-    <style>  
-      body {  
-        font-family: "Tajawal", sans-serif;  
-        background: #f4f4f4;  
-        padding: 20px;  
-        text-align: center;  
-      }  
-      h1 {  
-        color: #333;  
-      }  
-      .box {  
-        background: white;  
-        border-radius: 12px;  
-        padding: 20px;  
-        margin: 10px auto;  
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);  
-        max-width: 400px;  
-      }  
-    </style>  
-  </head>  
-  <body>  
-    <h1>لوحة تحكم الأدمن</h1>  <div class="box">  
-  <p id="totalUsers">عدد المستخدمين: ...</p>  
-  <p id="totalTasks">عدد المهام المنفذة: ...</p>  
-  <p id="totalWithdrawals">عدد عمليات السحب: ...</p>  
-  <p id="totalWithdrawnAmount">المبلغ الإجمالي المسحوب: ... EGP</p>  
-  <p id="totalProfitAfterWithdraw">صافي الأرباح: ... EGP</p>  
-</div>  
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <title>لوحة تحكم الأدمن | Am Rewards</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <style>
+      body {
+        font-family: "Tajawal", sans-serif;
+        background: #121212;
+        padding: 20px;
+        text-align: center;
+        color: #fff;
+      }
 
-<script>  
-  const firebaseConfig = {  
-    apiKey: "AIzaSyD6J9mFOVmWEbdTRFVEC97Z6XGKTiCjGkA",  
-    authDomain: "am--rewards.firebaseapp.com",  
-    databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",  
-    projectId: "am--rewards",  
-    storageBucket: "am--rewards.appspot.com",  
-    messagingSenderId: "181721478269",  
-    appId: "1:181721478269:web:2d2d97f8f164ca0a0c13f0"  
-  };  
+      h1 {
+        color: #00d1ff;
+        margin-bottom: 30px;
+      }
 
-  firebase.initializeApp(firebaseConfig);  
-  const db = firebase.database();  
+      .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 20px;
+        max-width: 1000px;
+        margin: auto;
+      }
 
-  // تحميل عدد المستخدمين  
-  db.ref("users").once("value", (snapshot) => {  
-    const users = snapshot.val();  
-    const count = users ? Object.keys(users).length : 0;  
-    document.getElementById("totalUsers").innerText = `عدد المستخدمين: ${count}`;  
-  });  
+      .stat-box {
+        background: #1e1e1e;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+      }
 
-  // تحميل عدد المهام  
-  db.ref("taskCompletions").once("value", (snapshot) => {  
-    const tasks = snapshot.val();  
-    let taskCount = 0;  
-    if (tasks) {  
-      for (let userId in tasks) {  
-        taskCount += Object.keys(tasks[userId]).length;  
-      }  
-    }  
-    document.getElementById("totalTasks").innerText = `عدد المهام المنفذة: ${taskCount}`;  
-  });  
+      .stat-box p {
+        font-size: 1.2rem;
+        color: #ccc;
+      }
 
-  // تحميل القيم المضافة من Firebase  
-  db.ref("siteStats").once("value", (snapshot) => {  
-    const stats = snapshot.val();  
-    document.getElementById("totalWithdrawals").innerText =  
-      `عدد عمليات السحب: ${stats?.totalWithdrawals || 0}`;  
-    document.getElementById("totalWithdrawnAmount").innerText =  
-      `المبلغ الإجمالي المسحوب: ${stats?.totalWithdrawnAmount || 0} EGP`;  
-    document.getElementById("totalProfitAfterWithdraw").innerText =  
-      `صافي الأرباح: ${stats?.totalProfitAfterWithdraw || 0} EGP`;  
-  });  
-</script>
+      .stat-box span {
+        display: block;
+        font-size: 2rem;
+        margin-top: 10px;
+        color: #00ffae;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>لوحة تحكم الأدمن</h1>
+    <div class="stats-container">
+      <div class="stat-box">
+        <p>عدد المستخدمين</p>
+        <span id="totalUsers">...</span>
+      </div>
+      <div class="stat-box">
+        <p>عدد المهام المنفذة</p>
+        <span id="totalTasks">...</span>
+      </div>
+      <div class="stat-box">
+        <p>عدد عمليات السحب</p>
+        <span id="totalWithdrawals">...</span>
+      </div>
+      <div class="stat-box">
+        <p>المبلغ الإجمالي المسحوب</p>
+        <span id="totalWithdrawnAmount">... EGP</span>
+      </div>
+      <div class="stat-box">
+        <p>صافي الأرباح</p>
+        <span id="totalProfitAfterWithdraw">... EGP</span>
+      </div>
+    </div>
 
-  </body>  
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyD6J9mFOVmWEbdTRFVEC97Z6XGKTiCjGkA",
+        authDomain: "am--rewards.firebaseapp.com",
+        databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
+        projectId: "am--rewards",
+        storageBucket: "am--rewards.appspot.com",
+        messagingSenderId: "181721478269",
+        appId: "1:181721478269:web:2d2d97f8f164ca0a0c13f0"
+      };
+
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+
+      db.ref("users").once("value", (snapshot) => {
+        const users = snapshot.val();
+        const count = users ? Object.keys(users).length : 0;
+        document.getElementById("totalUsers").innerText = count;
+      });
+
+      db.ref("taskCompletions").once("value", (snapshot) => {
+        const tasks = snapshot.val();
+        let taskCount = 0;
+        if (tasks) {
+          for (let userId in tasks) {
+            taskCount += Object.keys(tasks[userId]).length;
+          }
+        }
+        document.getElementById("totalTasks").innerText = taskCount;
+      });
+
+      db.ref("siteStats").once("value", (snapshot) => {
+        const stats = snapshot.val();
+        document.getElementById("totalWithdrawals").innerText = stats?.totalWithdrawals || 0;
+        document.getElementById("totalWithdrawnAmount").innerText = `${stats?.totalWithdrawnAmount || 0} EGP`;
+        document.getElementById("totalProfitAfterWithdraw").innerText = `${stats?.totalProfitAfterWithdraw || 0} EGP`;
+      });
+    </script>
+  </body>
 </html>
