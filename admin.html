@@ -1,130 +1,109 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>لوحة الإدارة | Am Rewards</title>
+  <title>لوحة تحكم الإدارة | Am Rewards</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet" />
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
-      background-color: #121212;
-      color: #f1f1f1;
-      margin: 0;
-      padding: 20px;
-    }
-    .container {
-      max-width: 600px;
-      margin: auto;
-      background: #1e1e1e;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.7);
-    }
-    h1, h3 {
+      background-color: #0d1117;
+      color: #ffffff;
       text-align: center;
+      padding: 30px;
     }
-    #stats {
-      margin-top: 20px;
+    h1 {
+      font-size: 30px;
+      color: #58a6ff;
     }
     .stat {
-      background: #2a2a2a;
-      margin-bottom: 15px;
-      padding: 15px;
-      border-radius: 8px;
-      font-size: 18px;
+      margin: 20px auto;
+      background-color: #161b22;
+      padding: 20px;
+      border-radius: 12px;
+      width: 300px;
+      box-shadow: 0 0 10px rgba(88, 166, 255, 0.2);
     }
-    button {
+    .logout {
+      margin-top: 40px;
       padding: 10px 20px;
-      background-color: crimson;
+      background-color: #ff5555;
       color: white;
       border: none;
       border-radius: 8px;
       cursor: pointer;
-      margin-top: 20px;
-      display: block;
-      margin-left: auto;
-      margin-right: auto;
+    }
+    .logout:hover {
+      background-color: #ff1e1e;
     }
   </style>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
 </head>
 <body>
-  <div class="container">
-    <h1>لوحة تحكم الإدارة</h1>
-    <div id="authStatus">جارٍ التحقق من المستخدم...</div>
-    <div id="stats" style="display:none;">
-      <div class="stat" id="userCount">عدد المستخدمين: ...</div>
-      <div class="stat" id="taskCount">عدد المهام المنفذة: ...</div>
-      <div class="stat" id="withdrawalsToday">عدد السحوبات اليوم: ...</div>
-      <div class="stat" id="totalProfit">إجمالي الأرباح: ...</div>
-      <button onclick="logout()">تسجيل الخروج</button>
-    </div>
-  </div>
+  <h1>لوحة تحكم الإدارة</h1>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+  <div class="stat" id="usersCount">عدد المستخدمين: ...</div>
+  <div class="stat" id="tasksDone">المهام المنفذة: ...</div>
+  <div class="stat" id="withdrawals">عدد السحوبات: ...</div>
+  <div class="stat" id="profits">إجمالي الأرباح (جنيه): ...</div>
 
+  <button class="logout" onclick="logout()">تسجيل الخروج</button>
+
+  <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyAbuCVM5wl6Z6cNjCTCJ6z5sZsXt-lRI1M",
+      apiKey: "AIzaSyDxGEb-MfWaShyYuFwRTJk-JbPHK7ekG7A",
       authDomain: "am--rewards.firebaseapp.com",
+      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
       projectId: "am--rewards",
       storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "847623292916",
-      appId: "1:847623292916:web:a68e9e4896742f8f05a1f4",
-      measurementId: "G-B1Q15BNHHE",
-      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com"
+      messagingSenderId: "102065999172",
+      appId: "1:102065999172:web:47ef04b1d7bd78ab69a2a4"
     };
+    firebase.initializeApp(firebaseConfig);
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getDatabase(app);
+    const adminEmail = "amirfg992005@gmail.com";
 
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        document.getElementById("authStatus").innerHTML = `مرحبًا بك، ${user.email}`;
-
-        if (user.email === "amirfg992005@gmail.com") {
-          document.getElementById("stats").style.display = "block";
-          loadStats();
-        } else {
-          document.getElementById("authStatus").innerHTML = "🚫 غير مصرح لك بالدخول.";
-        }
-      } else {
-        window.location.href = "login.html";
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user || user.email !== adminEmail) {
+        alert("غير مصرح لك بالدخول");
+        window.location.href = "index.html";
+        return;
       }
+
+      const db = firebase.database();
+
+      // تحديث عدد المستخدمين
+      firebase.database().ref("users").once("value", snapshot => {
+        const usersCount = snapshot.numChildren();
+        document.getElementById("usersCount").textContent = `عدد المستخدمين: ${usersCount}`;
+      });
+
+      // تحديث عدد المهام المنفذة
+      firebase.database().ref("tasks_done").once("value", snapshot => {
+        const count = snapshot.val() || 0;
+        document.getElementById("tasksDone").textContent = `المهام المنفذة: ${count}`;
+      });
+
+      // تحديث عدد السحوبات
+      firebase.database().ref("withdrawals").once("value", snapshot => {
+        const count = snapshot.val() || 0;
+        document.getElementById("withdrawals").textContent = `عدد السحوبات: ${count}`;
+      });
+
+      // تحديث إجمالي الأرباح
+      firebase.database().ref("total_earned").once("value", snapshot => {
+        const totalPoints = snapshot.val() || 0;
+        const totalEGP = (totalPoints * 0.07).toFixed(2); // سعر النقطة: 0.07
+        document.getElementById("profits").textContent = `إجمالي الأرباح (جنيه): ${totalEGP}`;
+      });
     });
 
     function logout() {
-      signOut(auth).then(() => {
-        window.location.href = "login.html";
-      });
-    }
-
-    function loadStats() {
-      onValue(ref(db, "users"), (snapshot) => {
-        const userCount = snapshot.size || Object.keys(snapshot.val() || {}).length;
-        document.getElementById("userCount").innerText = `عدد المستخدمين: ${userCount}`;
-      });
-
-      onValue(ref(db, "tasksCompleted"), (snapshot) => {
-        const count = snapshot.val() || 0;
-        document.getElementById("taskCount").innerText = `عدد المهام المنفذة: ${count}`;
-      });
-
-      onValue(ref(db, "withdrawalsToday"), (snapshot) => {
-        const count = snapshot.val() || 0;
-        document.getElementById("withdrawalsToday").innerText = `عدد السحوبات اليوم: ${count}`;
-      });
-
-      onValue(ref(db, "totalProfit"), (snapshot) => {
-        const profit = snapshot.val() || 0;
-        const egp = (profit * 0.07).toFixed(2);
-        document.getElementById("totalProfit").innerText = `إجمالي الأرباح: ${egp} جنيه`;
+      firebase.auth().signOut().then(() => {
+        window.location.href = "index.html";
       });
     }
   </script>
