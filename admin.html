@@ -1,118 +1,84 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8" />
-  <title>لوحة تحكم الأدمن | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet" />
-  <style>
-    body {
-      font-family: 'Tajawal', sans-serif;
-      margin: 20px;
-      background-color: #f4f4f4;
-    }
-    .card {
-      background-color: white;
-      border-radius: 10px;
-      padding: 20px;
-      margin-bottom: 15px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    .card h2 {
-      margin: 0 0 10px 0;
-      font-size: 18px;
-      color: #333;
-    }
-    .card p {
-      font-size: 24px;
-      margin: 0;
-      color: #2e7d32;
-    }
-  </style>
-</head>
-<body>
-  <h1>لوحة تحكم الأدمن</h1>
+<!DOCTYPE html>  <html lang="ar" dir="rtl">  
+  <head>  
+    <meta charset="UTF-8" />  
+    <title>لوحة تحكم الأدمن | Am Rewards</title>  
+    <meta name="viewport" content="width=device-width, initial-scale=1" />  
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>  
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>  
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>  
+    <style>  
+      body {  
+        font-family: "Tajawal", sans-serif;  
+        background: #f4f4f4;  
+        padding: 20px;  
+        text-align: center;  
+      }  
+      h1 {  
+        color: #333;  
+      }  
+      .box {  
+        background: white;  
+        border-radius: 12px;  
+        padding: 20px;  
+        margin: 10px auto;  
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);  
+        max-width: 400px;  
+      }  
+    </style>  
+  </head>  
+  <body>  
+    <h1>لوحة تحكم الأدمن</h1>  <div class="box">  
+  <p id="totalUsers">عدد المستخدمين: ...</p>  
+  <p id="totalTasks">عدد المهام المنفذة: ...</p>  
+  <p id="totalWithdrawals">عدد عمليات السحب: ...</p>  
+  <p id="totalWithdrawnAmount">المبلغ الإجمالي المسحوب: ... EGP</p>  
+  <p id="totalProfitAfterWithdraw">صافي الأرباح: ... EGP</p>  
+</div>  
 
-  <div class="card">
-    <h2>عدد المستخدمين:</h2>
-    <p id="userCount">...</p>
-  </div>
+<script>  
+  const firebaseConfig = {  
+    apiKey: "AIzaSyD6J9mFOVmWEbdTRFVEC97Z6XGKTiCjGkA",  
+    authDomain: "am--rewards.firebaseapp.com",  
+    databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",  
+    projectId: "am--rewards",  
+    storageBucket: "am--rewards.appspot.com",  
+    messagingSenderId: "181721478269",  
+    appId: "1:181721478269:web:2d2d97f8f164ca0a0c13f0"  
+  };  
 
-  <div class="card">
-    <h2>عدد المهام المنفذة:</h2>
-    <p id="taskCount">...</p>
-  </div>
+  firebase.initializeApp(firebaseConfig);  
+  const db = firebase.database();  
 
-  <div class="card">
-    <h2>عدد عمليات السحب:</h2>
-    <p id="totalWithdrawals">...</p>
-  </div>
+  // تحميل عدد المستخدمين  
+  db.ref("users").once("value", (snapshot) => {  
+    const users = snapshot.val();  
+    const count = users ? Object.keys(users).length : 0;  
+    document.getElementById("totalUsers").innerText = `عدد المستخدمين: ${count}`;  
+  });  
 
-  <div class="card">
-    <h2>المبلغ الإجمالي المسحوب:</h2>
-    <p id="totalWithdrawnAmount">...</p>
-  </div>
+  // تحميل عدد المهام  
+  db.ref("taskCompletions").once("value", (snapshot) => {  
+    const tasks = snapshot.val();  
+    let taskCount = 0;  
+    if (tasks) {  
+      for (let userId in tasks) {  
+        taskCount += Object.keys(tasks[userId]).length;  
+      }  
+    }  
+    document.getElementById("totalTasks").innerText = `عدد المهام المنفذة: ${taskCount}`;  
+  });  
 
-  <div class="card">
-    <h2>إجمالي الأرباح بعد السحب:</h2>
-    <p id="totalProfitAfterWithdraw">...</p>
-  </div>
+  // تحميل القيم المضافة من Firebase  
+  db.ref("siteStats").once("value", (snapshot) => {  
+    const stats = snapshot.val();  
+    document.getElementById("totalWithdrawals").innerText =  
+      `عدد عمليات السحب: ${stats?.totalWithdrawals || 0}`;  
+    document.getElementById("totalWithdrawnAmount").innerText =  
+      `المبلغ الإجمالي المسحوب: ${stats?.totalWithdrawnAmount || 0} EGP`;  
+    document.getElementById("totalProfitAfterWithdraw").innerText =  
+      `صافي الأرباح: ${stats?.totalProfitAfterWithdraw || 0} EGP`;  
+  });  
+</script>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyCjR...YOUR_API_KEY...",
-      authDomain: "am--rewards.firebaseapp.com",
-      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
-      projectId: "am--rewards",
-      storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const database = firebase.database();
-
-    const adminEmail = "amirfg992005@gmail.com";
-
-    auth.onAuthStateChanged(user => {
-      if (user && user.email === adminEmail) {
-        fetchStats();
-      } else {
-        alert("أنت غير مخول بالوصول إلى هذه الصفحة.");
-        window.location.href = "index.html";
-      }
-    });
-
-    function fetchStats() {
-      // عدد المستخدمين
-      database.ref("users").once("value", snapshot => {
-        document.getElementById("userCount").textContent = snapshot.numChildren();
-      });
-
-      // عدد المهام المنفذة
-      database.ref("tasksCompleted").once("value", snapshot => {
-        document.getElementById("taskCount").textContent = snapshot.val() || 0;
-      });
-
-      // عدد عمليات السحب
-      database.ref("totalWithdrawals").once("value", snapshot => {
-        document.getElementById("totalWithdrawals").textContent = snapshot.val() || 0;
-      });
-
-      // المبلغ الإجمالي المسحوب
-      database.ref("totalWithdrawnAmount").once("value", snapshot => {
-        document.getElementById("totalWithdrawnAmount").textContent = snapshot.val() + " جنيه";
-      });
-
-      // صافي الربح بعد السحب
-      database.ref("totalProfitAfterWithdraw").once("value", snapshot => {
-        document.getElementById("totalProfitAfterWithdraw").textContent = snapshot.val() + " جنيه";
-      });
-    }
-  </script>
-</body>
+  </body>  
 </html>
