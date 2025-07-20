@@ -2,110 +2,107 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>لوحة تحكم الإدارة | Am Rewards</title>
+  <title>لوحة تحكم المدير | Am Rewards</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet" />
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
-      background-color: #0d1117;
-      color: #ffffff;
+      background-color: #f7f7f7;
+      margin: 0;
+      padding: 0;
       text-align: center;
+    }
+    .container {
+      margin: 50px auto;
+      max-width: 500px;
       padding: 30px;
+      background-color: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
     h1 {
-      font-size: 30px;
-      color: #58a6ff;
+      color: #333;
     }
     .stat {
-      margin: 20px auto;
-      background-color: #161b22;
-      padding: 20px;
-      border-radius: 12px;
-      width: 300px;
-      box-shadow: 0 0 10px rgba(88, 166, 255, 0.2);
+      margin: 20px 0;
+      font-size: 1.3rem;
+      color: #444;
     }
-    .logout {
-      margin-top: 40px;
-      padding: 10px 20px;
-      background-color: #ff5555;
+    button {
+      padding: 12px 24px;
+      background-color: #e91e63;
       color: white;
       border: none;
       border-radius: 8px;
       cursor: pointer;
+      font-size: 1rem;
     }
-    .logout:hover {
-      background-color: #ff1e1e;
+    button:hover {
+      background-color: #c2185b;
     }
   </style>
 </head>
 <body>
-  <h1>لوحة تحكم الإدارة</h1>
+  <div class="container">
+    <h1>لوحة تحكم المدير</h1>
+    <div id="userCount" class="stat">جاري التحميل...</div>
+    <div id="taskCount" class="stat">جاري التحميل...</div>
+    <button onclick="logout()">تسجيل الخروج</button>
+  </div>
 
-  <div class="stat" id="usersCount">عدد المستخدمين: ...</div>
-  <div class="stat" id="tasksDone">المهام المنفذة: ...</div>
-  <div class="stat" id="withdrawals">عدد السحوبات: ...</div>
-  <div class="stat" id="profits">إجمالي الأرباح (جنيه): ...</div>
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  <button class="logout" onclick="logout()">تسجيل الخروج</button>
-
-  <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyDxGEb-MfWaShyYuFwRTJk-JbPHK7ekG7A",
+      apiKey: "AIzaSyBJv8x3jIer_yWyWSs9x-0sW5BDsDhV-RU",
       authDomain: "am--rewards.firebaseapp.com",
-      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
       projectId: "am--rewards",
       storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "102065999172",
-      appId: "1:102065999172:web:47ef04b1d7bd78ab69a2a4"
+      messagingSenderId: "92320567665",
+      appId: "1:92320567665:web:0804a45f84dd98a7e6aa90"
     };
-    firebase.initializeApp(firebaseConfig);
 
-    const adminEmail = "amirfg992005@gmail.com";
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-    firebase.auth().onAuthStateChanged(user => {
-      if (!user || user.email !== adminEmail) {
-        alert("غير مصرح لك بالدخول");
+    // تأكد من تسجيل دخول المدير فقط
+    onAuthStateChanged(auth, async (user) => {
+      if (user && user.email === "amirfg992005@gmail.com") {
+        try {
+          const usersSnapshot = await getDocs(collection(db, "users"));
+          const tasksSnapshot = await getDocs(collection(db, "completed_tasks"));
+
+          document.getElementById("userCount").textContent =
+            "عدد المستخدمين: " + usersSnapshot.size;
+          document.getElementById("taskCount").textContent =
+            "عدد المهام المنفذة: " + tasksSnapshot.size;
+        } catch (error) {
+          document.getElementById("userCount").textContent = "حدث خطأ في جلب البيانات";
+          document.getElementById("taskCount").textContent = "";
+        }
+      } else {
+        alert("غير مصرح لك بالدخول!");
         window.location.href = "index.html";
-        return;
       }
-
-      const db = firebase.database();
-
-      // تحديث عدد المستخدمين
-      firebase.database().ref("users").once("value", snapshot => {
-        const usersCount = snapshot.numChildren();
-        document.getElementById("usersCount").textContent = `عدد المستخدمين: ${usersCount}`;
-      });
-
-      // تحديث عدد المهام المنفذة
-      firebase.database().ref("tasks_done").once("value", snapshot => {
-        const count = snapshot.val() || 0;
-        document.getElementById("tasksDone").textContent = `المهام المنفذة: ${count}`;
-      });
-
-      // تحديث عدد السحوبات
-      firebase.database().ref("withdrawals").once("value", snapshot => {
-        const count = snapshot.val() || 0;
-        document.getElementById("withdrawals").textContent = `عدد السحوبات: ${count}`;
-      });
-
-      // تحديث إجمالي الأرباح
-      firebase.database().ref("total_earned").once("value", snapshot => {
-        const totalPoints = snapshot.val() || 0;
-        const totalEGP = (totalPoints * 0.07).toFixed(2); // سعر النقطة: 0.07
-        document.getElementById("profits").textContent = `إجمالي الأرباح (جنيه): ${totalEGP}`;
-      });
     });
 
-    function logout() {
-      firebase.auth().signOut().then(() => {
+    window.logout = function () {
+      signOut(auth).then(() => {
         window.location.href = "index.html";
       });
-    }
+    };
   </script>
 </body>
 </html>
