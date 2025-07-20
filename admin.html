@@ -2,94 +2,108 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>لوحة تحكم الأدمن | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>صفحة الإدارة | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
+      background-color: #f7f7f7;
+      color: #333;
       padding: 20px;
-      background-color: #f3f4f6;
-      color: #111;
+      text-align: center;
     }
     h1 {
-      color: #007bff;
+      color: #2c3e50;
     }
-    .card {
-      background-color: #fff;
-      padding: 20px;
-      margin: 15px 0;
+    .stat {
+      background-color: #ffffff;
       border-radius: 12px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin: 15px auto;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-    .value {
-      font-size: 28px;
-      color: #28a745;
+    .stat h2 {
+      margin-bottom: 10px;
+      color: #27ae60;
+    }
+    .stat p {
+      font-size: 24px;
+      font-weight: bold;
     }
   </style>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-</head>
-<body>
-  <h1>لوحة تحكم الأدمن</h1>
+  <script type="module">
+    // Firebase config
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  <div class="card">
-    <strong>عدد المستخدمين:</strong>
-    <div class="value" id="userCount">جاري التحميل...</div>
-  </div>
-
-  <div class="card">
-    <strong>عدد المهام المكتملة اليوم:</strong>
-    <div class="value" id="completedTasks">جاري التحميل...</div>
-  </div>
-
-  <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyD9-...",
+      apiKey: "AIzaSyD......", // ضع بياناتك هنا
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
       storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "4746...",
-      appId: "1:4746...:web:..."
+      messagingSenderId: "1077.......",
+      appId: "1:1077......."
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const auth = firebase.auth();
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-    const allowedEmail = "amirfg992005@gmail.com";
-
-    auth.onAuthStateChanged(user => {
-      if (user && user.email === allowedEmail) {
-        loadStats();
-      } else {
-        alert("غير مصرح لك بالدخول");
-        window.location.href = "/index.html";
-      }
+    // تحديث عدد المستخدمين تلقائياً
+    const usersRef = collection(db, "users");
+    onSnapshot(usersRef, (snapshot) => {
+      document.getElementById("usersCount").textContent = snapshot.size;
     });
 
-    function loadStats() {
-      // عدد المستخدمين
-      db.collection("users").get().then(snapshot => {
-        document.getElementById("userCount").textContent = snapshot.size;
+    // تحديث عدد المهام المنفذة تلقائياً
+    const tasksRef = collection(db, "completedTasks");
+    onSnapshot(tasksRef, (snapshot) => {
+      document.getElementById("completedTasks").textContent = snapshot.size;
+    });
+
+    // تحديث عدد السحوبات تلقائياً
+    const withdrawalsRef = collection(db, "withdrawals");
+    onSnapshot(withdrawalsRef, (snapshot) => {
+      document.getElementById("withdrawalsCount").textContent = snapshot.size;
+    });
+
+    // تحديث إجمالي الأرباح تلقائياً
+    onSnapshot(usersRef, (snapshot) => {
+      let total = 0;
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.earnedPoints) {
+          total += data.earnedPoints;
+        }
       });
-
-      // عدد المهام المكتملة اليوم
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const startOfDay = firebase.firestore.Timestamp.fromDate(today);
-
-      db.collection("tasksCompleted")
-        .where("timestamp", ">=", startOfDay)
-        .get()
-        .then(snapshot => {
-          document.getElementById("completedTasks").textContent = snapshot.size;
-        })
-        .catch(error => {
-          document.getElementById("completedTasks").textContent = "خطأ";
-          console.error(error);
-        });
-    }
+      const profitEGP = (total * 0.08).toFixed(2);
+      document.getElementById("totalProfits").textContent = `${profitEGP} جنيه`;
+    });
   </script>
+</head>
+<body>
+  <h1>لوحة تحكم المدير</h1>
+
+  <div class="stat">
+    <h2>عدد المستخدمين</h2>
+    <p id="usersCount">0</p>
+  </div>
+
+  <div class="stat">
+    <h2>عدد المهام المنفذة</h2>
+    <p id="completedTasks">0</p>
+  </div>
+
+  <div class="stat">
+    <h2>عدد السحوبات</h2>
+    <p id="withdrawalsCount">0</p>
+  </div>
+
+  <div class="stat">
+    <h2>إجمالي الأرباح</h2>
+    <p id="totalProfits">0 جنيه</p>
+  </div>
+
 </body>
 </html>
