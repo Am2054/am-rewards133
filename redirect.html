@@ -1,82 +1,74 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <title>تم تنفيذ المهمة | Am Rewards</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
-      body {
-        font-family: 'Tajawal', sans-serif;
-        background-color: #f7f7f7;
-        text-align: center;
-        padding: 50px;
+<head>
+  <meta charset="UTF-8">
+  <title>جارٍ التحويل... | Am Rewards</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script>
+    // تكوين Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.appspot.com",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112",
+      measurementId: "G-CV3GLT2TTJ"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+  </script>
+</head>
+<body>
+  <h3 style="text-align:center;">جاري التحويل...</h3>
+
+  <script>
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        // المستخدم غير مسجل دخول
+        window.location.href = "login.html";
+        return;
       }
-      .message {
-        font-size: 24px;
-        margin-bottom: 20px;
-        color: #333;
+
+      const userId = user.uid;
+      const taskId = "shortlink_task"; // اسم المهمة
+      const points = 1.5;
+
+      try {
+        const userRef = db.collection("users").doc(userId);
+
+        await db.runTransaction(async (transaction) => {
+          const userDoc = await transaction.get(userRef);
+          if (!userDoc.exists) {
+            throw "المستخدم غير موجود";
+          }
+
+          const userData = userDoc.data();
+          const completedTasks = userData.completedTasks || [];
+
+          if (!completedTasks.includes(taskId)) {
+            const newPoints = (userData.points || 0) + points;
+            const updatedTasks = [...completedTasks, taskId];
+
+            transaction.update(userRef, {
+              points: newPoints,
+              completedTasks: updatedTasks
+            });
+          }
+        });
+
+        // تحويل بعد النجاح
+        setTimeout(() => {
+          window.location.href = "dashboard.html";
+        }, 2000);
+      } catch (e) {
+        console.error("حدث خطأ:", e);
+        alert("حدث خطأ أثناء تسجيل النقاط");
       }
-    </style>
-    <script type="module">
-      // firebase import
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-      import {
-        getAuth,
-        onAuthStateChanged
-      } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-      import {
-        getFirestore,
-        doc,
-        getDoc,
-        setDoc,
-        updateDoc,
-        increment
-      } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-      const firebaseConfig = {
-        apiKey: "AIzaSyCrZKOqC2zDQdSeUCwNL5aFCxZQU3TgG6w",
-        authDomain: "am--rewards.firebaseapp.com",
-        projectId: "am--rewards",
-        storageBucket: "am--rewards.appspot.com",
-        messagingSenderId: "573370540871",
-        appId: "1:573370540871:web:1e4c31e00b6df98b45f4b5"
-      };
-
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const db = getFirestore(app);
-
-      onAuthStateChanged(auth, async (user) => {
-        if (!user) {
-          // لو مش مسجل دخول، يرجعه على صفحة تسجيل الدخول
-          window.location.href = "login.html";
-          return;
-        }
-
-        const uid = user.uid;
-        const userRef = doc(db, "users", uid);
-        const userSnap = await getDoc(userRef);
-
-        if (!userSnap.exists()) {
-          // لو المستخدم مش موجود في قاعدة البيانات، نعمله إدخال مبدئي
-          await setDoc(userRef, {
-            points: 1.5,
-            completedTasks: 1
-          });
-        } else {
-          // لو موجود نحدث النقاط وعدد المهام
-          await updateDoc(userRef, {
-            points: increment(1.5),
-            completedTasks: increment(1)
-          });
-        }
-
-        // عرض رسالة نجاح
-        document.getElementById("message").textContent = "تم تنفيذ المهمة وتمت إضافة 1.5 نقطة إلى رصيدك!";
-      });
-    </script>
-  </head>
-  <body>
-    <div class="message" id="message">جاري التحقق من المهمة...</div>
-  </body>
+    });
+  </script>
+</body>
 </html>
