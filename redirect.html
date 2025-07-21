@@ -2,73 +2,93 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>جارٍ التحويل... | Am Rewards</title>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-  <script>
-    // تكوين Firebase
+  <title>جاري التحويل | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background-color: #f7f7f7;
+      text-align: center;
+      padding: 40px;
+      color: #333;
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+    #countdown {
+      font-size: 40px;
+      font-weight: bold;
+      color: #d32f2f;
+      margin: 20px 0;
+    }
+    .message {
+      font-size: 24px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>سيتم تحويلك إلى الرابط تلقائيًا</h1>
+  <div id="countdown">10</div>
+  <div class="message" id="message"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
     const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      apiKey: "AIzaSyCUVkzv-4FXuWUXEtByL9WBZa9ESmBHYHY",
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
       storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "744783579735",
-      appId: "1:744783579735:web:45e00de9998893bbc9b112",
-      measurementId: "G-CV3GLT2TTJ"
+      messagingSenderId: "546828222797",
+      appId: "1:546828222797:web:dad2e0ff0ebefddf3ac5d4"
     };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-  </script>
-</head>
-<body>
-  <h3 style="text-align:center;">جاري التحويل...</h3>
 
-  <script>
-    auth.onAuthStateChanged(async (user) => {
-      if (!user) {
-        // المستخدم غير مسجل دخول
-        window.location.href = "login.html";
-        return;
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const params = new URLSearchParams(window.location.search);
+    const targetUrl = params.get("url");
+    const points = parseFloat(params.get("points")) || 1.5;
+
+    function redirect() {
+      if (targetUrl) {
+        window.location.href = targetUrl;
+      } else {
+        document.getElementById("message").innerText = "الرابط غير موجود.";
       }
+    }
 
-      const userId = user.uid;
-      const taskId = "shortlink_task"; // اسم المهمة
-      const points = 1.5;
-
-      try {
-        const userRef = db.collection("users").doc(userId);
-
-        await db.runTransaction(async (transaction) => {
-          const userDoc = await transaction.get(userRef);
-          if (!userDoc.exists) {
-            throw "المستخدم غير موجود";
-          }
-
-          const userData = userDoc.data();
-          const completedTasks = userData.completedTasks || [];
-
-          if (!completedTasks.includes(taskId)) {
-            const newPoints = (userData.points || 0) + points;
-            const updatedTasks = [...completedTasks, taskId];
-
-            transaction.update(userRef, {
-              points: newPoints,
-              completedTasks: updatedTasks
-            });
-          }
-        });
-
-        // تحويل بعد النجاح
-        setTimeout(() => {
-          window.location.href = "dashboard.html";
-        }, 2000);
-      } catch (e) {
-        console.error("حدث خطأ:", e);
-        alert("حدث خطأ أثناء تسجيل النقاط");
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userRef = doc(db, "users", user.uid);
+          await updateDoc(userRef, {
+            points: increment(points)
+          });
+        } catch (error) {
+          document.getElementById("message").innerText = "حدث خطأ أثناء احتساب النقاط.";
+        }
+      } else {
+        window.location.href = "login.html";
       }
     });
+
+    let seconds = 10;
+    const countdownEl = document.getElementById("countdown");
+    const countdownInterval = setInterval(() => {
+      seconds--;
+      countdownEl.innerText = seconds;
+      if (seconds <= 0) {
+        clearInterval(countdownInterval);
+        redirect();
+      }
+    }, 1000);
   </script>
 </body>
 </html>
