@@ -2,77 +2,81 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <title>جاري تحويلك...</title>
+    <title>تم تنفيذ المهمة | Am Rewards</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet" />
     <style>
       body {
         font-family: 'Tajawal', sans-serif;
+        background-color: #f7f7f7;
         text-align: center;
         padding: 50px;
-        background-color: #f8f9fa;
+      }
+      .message {
+        font-size: 24px;
+        margin-bottom: 20px;
         color: #333;
       }
-      .loader {
-        border: 6px solid #f3f3f3;
-        border-top: 6px solid #3498db;
-        border-radius: 50%;
-        width: 60px;
-        height: 60px;
-        animation: spin 1s linear infinite;
-        margin: 0 auto 20px;
-      }
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
     </style>
-  </head>
-  <body>
-    <div class="loader"></div>
-    <h2>جاري تحويلك إلى الرابط المختصر...</h2>
-    <p>يرجى الانتظار لحظة</p>
+    <script type="module">
+      // firebase import
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+      import {
+        getAuth,
+        onAuthStateChanged
+      } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+      import {
+        getFirestore,
+        doc,
+        getDoc,
+        setDoc,
+        updateDoc,
+        increment
+      } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    <!-- Firebase scripts -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-
-    <script>
-      // إعداد Firebase
       const firebaseConfig = {
-        apiKey: "AIzaSyC-nZJpftV5PqAHfC1FeGCkN9RAfZGCOPk",
+        apiKey: "AIzaSyCrZKOqC2zDQdSeUCwNL5aFCxZQU3TgG6w",
         authDomain: "am--rewards.firebaseapp.com",
         projectId: "am--rewards",
         storageBucket: "am--rewards.appspot.com",
-        messagingSenderId: "568594323423",
-        appId: "1:568594323423:web:8bc3f3bb0e3fe3213f6b64"
+        messagingSenderId: "573370540871",
+        appId: "1:573370540871:web:1e4c31e00b6df98b45f4b5"
       };
-      firebase.initializeApp(firebaseConfig);
 
-      // التحقق من تسجيل الدخول
-      firebase.auth().onAuthStateChanged(function(user) {
-        if (user) {
-          // المستخدم مسجل الدخول
-          const link = localStorage.getItem("redirect_link");
-          const index = localStorage.getItem("redirect_index");
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
 
-          if (!link || index === null) {
-            alert("⚠️ حدث خطأ في بيانات المهمة. يرجى العودة وإعادة المحاولة.");
-            window.location.href = "shortlinks.html";
-          } else {
-            setTimeout(() => {
-              localStorage.setItem("justCompletedLink", index);
-              localStorage.removeItem("redirect_index");
-              localStorage.removeItem("redirect_link");
-              window.location.href = link;
-            }, 1500); // فترة الانتظار
-          }
-
-        } else {
-          // المستخدم غير مسجل دخول - الرجوع
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          // لو مش مسجل دخول، يرجعه على صفحة تسجيل الدخول
           window.location.href = "login.html";
+          return;
         }
+
+        const uid = user.uid;
+        const userRef = doc(db, "users", uid);
+        const userSnap = await getDoc(userRef);
+
+        if (!userSnap.exists()) {
+          // لو المستخدم مش موجود في قاعدة البيانات، نعمله إدخال مبدئي
+          await setDoc(userRef, {
+            points: 1.5,
+            completedTasks: 1
+          });
+        } else {
+          // لو موجود نحدث النقاط وعدد المهام
+          await updateDoc(userRef, {
+            points: increment(1.5),
+            completedTasks: increment(1)
+          });
+        }
+
+        // عرض رسالة نجاح
+        document.getElementById("message").textContent = "تم تنفيذ المهمة وتمت إضافة 1.5 نقطة إلى رصيدك!";
       });
     </script>
+  </head>
+  <body>
+    <div class="message" id="message">جاري التحقق من المهمة...</div>
   </body>
 </html>
