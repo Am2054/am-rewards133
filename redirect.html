@@ -1,94 +1,86 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <title>جاري التحويل | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Tajawal', sans-serif;
-      background-color: #f7f7f7;
-      text-align: center;
-      padding: 40px;
-      color: #333;
-    }
-    h1 {
-      font-size: 28px;
-      margin-bottom: 20px;
-    }
-    #countdown {
-      font-size: 40px;
-      font-weight: bold;
-      color: #d32f2f;
-      margin: 20px 0;
-    }
-    .message {
-      font-size: 24px;
-      margin-top: 20px;
-    }
-  </style>
-</head>
-<body>
-  <h1>سيتم تحويلك إلى الرابط تلقائيًا</h1>
-  <div id="countdown">10</div>
-  <div class="message" id="message"></div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCUVkzv-4FXuWUXEtByL9WBZa9ESmBHYHY",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards",
-      storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "546828222797",
-      appId: "1:546828222797:web:dad2e0ff0ebefddf3ac5d4"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    const params = new URLSearchParams(window.location.search);
-    const targetUrl = params.get("url");
-    const points = parseFloat(params.get("points")) || 1.5;
-
-    function redirect() {
-      if (targetUrl) {
-        window.location.href = targetUrl;
-      } else {
-        document.getElementById("message").innerText = "الرابط غير موجود.";
+  <head>
+    <meta charset="UTF-8" />
+    <title>Redirect | Am Rewards</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <style>
+      body {
+        font-family: "Tajawal", sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #f4f4f4;
+        flex-direction: column;
+        text-align: center;
       }
-    }
+    </style>
+  </head>
+  <body>
+    <h2>جاري تحديث النقاط والرجوع...</h2>
+    <p id="dollarRate">سعر الدولار الآن: جاري التحميل...</p>
 
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const userRef = doc(db, "users", user.uid);
-          await updateDoc(userRef, {
-            points: increment(points)
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+        authDomain: "am--rewards.firebaseapp.com",
+        databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
+        projectId: "am--rewards",
+        storageBucket: "am--rewards.appspot.com",
+        messagingSenderId: "744783579735",
+        appId: "1:744783579735:web:45e00de9998893bbc9b112",
+        measurementId: "G-CV3GLT2TTJ"
+      };
+
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const database = firebase.database();
+
+      auth.onAuthStateChanged((user) => {
+        if (user) {
+          const userId = user.uid;
+          const userEmail = user.email;
+
+          // حفظ الإيميل في قاعدة البيانات
+          database.ref("users/" + userId + "/email").set(userEmail);
+
+          // تحديث النقاط تلقائيًا
+          const pointsToAdd = 1.5;
+          const userPointsRef = database.ref("users/" + userId + "/points");
+
+          userPointsRef.once("value").then((snapshot) => {
+            const currentPoints = snapshot.val() || 0;
+            const newPoints = currentPoints + pointsToAdd;
+
+            userPointsRef.set(newPoints).then(() => {
+              // بعد التحديث الرجوع للمهام
+              setTimeout(() => {
+                window.location.href = "tasks.html";
+              }, 1000);
+            });
           });
-        } catch (error) {
-          document.getElementById("message").innerText = "حدث خطأ أثناء احتساب النقاط.";
+        } else {
+          // لو المستخدم مش مسجل
+          window.location.href = "login.html";
         }
-      } else {
-        window.location.href = "login.html";
-      }
-    });
+      });
 
-    let seconds = 10;
-    const countdownEl = document.getElementById("countdown");
-    const countdownInterval = setInterval(() => {
-      seconds--;
-      countdownEl.innerText = seconds;
-      if (seconds <= 0) {
-        clearInterval(countdownInterval);
-        redirect();
-      }
-    }, 1000);
-  </script>
-</body>
+      // جلب سعر الدولار اللحظي
+      fetch("https://api.exchangerate-api.com/v4/latest/USD")
+        .then((res) => res.json())
+        .then((data) => {
+          const egpRate = data.rates.EGP;
+          document.getElementById("dollarRate").textContent =
+            "سعر الدولار الآن: " + egpRate.toFixed(2) + " جنيه مصري";
+        })
+        .catch((err) => {
+          document.getElementById("dollarRate").textContent =
+            "تعذر جلب سعر الدولار.";
+        });
+    </script>
+  </body>
 </html>
