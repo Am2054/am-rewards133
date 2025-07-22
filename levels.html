@@ -1,0 +1,57 @@
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyA....", // بياناتك هنا
+    authDomain: "am--rewards.firebaseapp.com",
+    projectId: "am--rewards",
+    storageBucket: "am--rewards.appspot.com",
+    messagingSenderId: "....",
+    appId: "...."
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  function getUserLevel(points) {
+    if (points >= 25000) return { level: 5, maxWithdraw: 250 };
+    if (points >= 20000) return { level: 4, maxWithdraw: 200 };
+    if (points >= 15000) return { level: 3, maxWithdraw: 175 };
+    if (points >= 10000) return { level: 2, maxWithdraw: 150 };
+    if (points >= 5000)  return { level: 1, maxWithdraw: 125 };
+    return { level: 0, maxWithdraw: 100 };
+  }
+
+  auth.onAuthStateChanged((user) => {
+    if (user) {
+      document.getElementById("user-email").textContent = "📧 " + user.email;
+
+      db.collection("users").doc(user.uid).get().then((doc) => {
+        if (doc.exists) {
+          const data = doc.data();
+          const points = data.points || 0;
+          const withdrawn = data.withdrawn || 0;
+          const balance = (points * 0.07).toFixed(2);
+
+          const levelData = getUserLevel(points);
+          const levelText = levelData.level === 0 ? "0 (مبتدئ)" : levelData.level;
+          const maxWithdraw = levelData.maxWithdraw;
+
+          document.getElementById("user-points").textContent = "🔢 نقاطي: " + points + " نقطة";
+          document.getElementById("user-balance").textContent = "💰 رصيدي: " + balance + " جنيه";
+          document.getElementById("user-withdrawn").textContent = "📤 المسحوب: " + withdrawn + " جنيه";
+          document.getElementById("user-level").textContent = "📈 المستوى: " + levelText + " (حد السحب: " + maxWithdraw + " جنيه)";
+        } else {
+          document.getElementById("user-points").textContent = "🔢 نقاطي: 0";
+          document.getElementById("user-balance").textContent = "💰 رصيدي: 0 جنيه";
+          document.getElementById("user-withdrawn").textContent = "📤 المسحوب: 0 جنيه";
+          document.getElementById("user-level").textContent = "📈 المستوى: غير محدد";
+        }
+      }).catch((error) => {
+        document.getElementById("user-points").textContent = "⚠️ خطأ في تحميل البيانات";
+      });
+
+    } else {
+      window.location.href = "login.html";
+    }
+  });
+</script>
