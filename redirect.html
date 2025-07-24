@@ -1,86 +1,73 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Redirect | Am Rewards</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
-    <style>
-      body {
-        font-family: "Tajawal", sans-serif;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        background-color: #f4f4f4;
-        flex-direction: column;
-        text-align: center;
-      }
-    </style>
-  </head>
-  <body>
-    <h2>جاري تحديث النقاط والرجوع...</h2>
-    <p id="dollarRate">سعر الدولار الآن: جاري التحميل...</p>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>جارٍ تحويلك...</title>
+  <style>
+    body {
+      font-family: "Tajawal", sans-serif;
+      text-align: center;
+      background-color: #f4f4f4;
+      padding: 50px;
+    }
+    #loading {
+      font-size: 24px;
+      margin-top: 50px;
+      color: #444;
+    }
+  </style>
+</head>
+<body>
 
-    <script>
-      const firebaseConfig = {
-        apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-        authDomain: "am--rewards.firebaseapp.com",
-        databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
-        projectId: "am--rewards",
-        storageBucket: "am--rewards.appspot.com",
-        messagingSenderId: "744783579735",
-        appId: "1:744783579735:web:45e00de9998893bbc9b112",
-        measurementId: "G-CV3GLT2TTJ"
-      };
+  <div id="loading">يرجى الانتظار، يتم تحويلك الآن...</div>
 
-      firebase.initializeApp(firebaseConfig);
-      const auth = firebase.auth();
-      const database = firebase.database();
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-      auth.onAuthStateChanged((user) => {
-        if (user) {
-          const userId = user.uid;
-          const userEmail = user.email;
+    const firebaseConfig = {
+      apiKey: "AIzaSyB-PQZ2tHf8yAb7hFwOTlV2LZRPZJbf7XM",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.appspot.com",
+      messagingSenderId: "267893578550",
+      appId: "1:267893578550:web:6bc96c2932cf3f9ea8b14a"
+    };
 
-          // حفظ الإيميل في قاعدة البيانات
-          database.ref("users/" + userId + "/email").set(userEmail);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-          // تحديث النقاط تلقائيًا
-          const pointsToAdd = 1.5;
-          const userPointsRef = database.ref("users/" + userId + "/points");
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const params = new URLSearchParams(window.location.search);
+        const link = params.get("url");
+        const points = parseFloat(params.get("points")) || 0;
 
-          userPointsRef.once("value").then((snapshot) => {
-            const currentPoints = snapshot.val() || 0;
-            const newPoints = currentPoints + pointsToAdd;
-
-            userPointsRef.set(newPoints).then(() => {
-              // بعد التحديث الرجوع للمهام
-              setTimeout(() => {
-                window.location.href = "tasks.html";
-              }, 1000);
+        if (link) {
+          try {
+            const userRef = doc(db, "users", user.uid);
+            await updateDoc(userRef, {
+              points: increment(points)
             });
-          });
-        } else {
-          // لو المستخدم مش مسجل
-          window.location.href = "login.html";
-        }
-      });
 
-      // جلب سعر الدولار اللحظي
-      fetch("https://api.exchangerate-api.com/v4/latest/USD")
-        .then((res) => res.json())
-        .then((data) => {
-          const egpRate = data.rates.EGP;
-          document.getElementById("dollarRate").textContent =
-            "سعر الدولار الآن: " + egpRate.toFixed(2) + " جنيه مصري";
-        })
-        .catch((err) => {
-          document.getElementById("dollarRate").textContent =
-            "تعذر جلب سعر الدولار.";
-        });
-    </script>
-  </body>
+            // تأخير بسيط للإحساس بالانتقال
+            setTimeout(() => {
+              window.location.href = link;
+            }, 1000);
+          } catch (error) {
+            document.getElementById("loading").innerText = "حدث خطأ أثناء تحديث النقاط.";
+          }
+        } else {
+          document.getElementById("loading").innerText = "الرابط غير صالح.";
+        }
+
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+  </script>
+</body>
 </html>
