@@ -3,71 +3,94 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>جارٍ تحويلك...</title>
+  <title>جاري التحويل...</title>
   <style>
     body {
-      font-family: "Tajawal", sans-serif;
+      font-family: 'Tajawal', sans-serif;
+      background-color: #f5f5f5;
       text-align: center;
-      background-color: #f4f4f4;
-      padding: 50px;
-    }
-    #loading {
-      font-size: 24px;
-      margin-top: 50px;
-      color: #444;
+      padding-top: 100px;
+      color: #333;
     }
   </style>
 </head>
 <body>
+  <h2>جاري تحويلك إلى الرابط المطلوب خلال 5 ثواني...</h2>
 
-  <div id="loading">يرجى الانتظار، يتم تحويلك الآن...</div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyB-PQZ2tHf8yAb7hFwOTlV2LZRPZJbf7XM",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards",
-      storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "267893578550",
-      appId: "1:267893578550:web:6bc96c2932cf3f9ea8b14a"
+  <script>
+    const links = {
+      1: "https://exe.io/uD3B6I",
+      2: "https://exe.io/PeFULHU",
+      3: "https://exe.io/OK9Kv",
+      4: "https://exe.io/CMLGX",
+      5: "https://exe.io/b3SxtV",
+      6: "https://exe.io/kFmSB",
+      7: "https://exe.io/VFtFt",
+      8: "https://exe.io/FBgm",
+      9: "https://exe.io/AU9eYMWG",
+      10: "https://exe.io/fsPYx9e8",
+      11: "https://exe.io/w3sJHf7e",
+      12: "https://exe.io/mYq3C5",
+      13: "https://exe.io/NVJ5EuA",
+      14: "https://exe.io/Tg5gIB7P",
+      15: "https://exe.io/ZXcPfB",
+      16: "https://exe.io/acnIp",
+      17: "https://exe.io/32B0AuJb",
+      18: "https://exe.io/V78w6AW",
+      19: "https://exe.io/tuY19",
+      20: "https://exe.io/4iOas",
+      21: "https://exe.io/TilcvxE",
+      22: "https://exe.io/KNh5AdCu",
+      23: "https://exe.io/gssob4l",
+      24: "https://exe.io/9ujgveBb",
+      25: "https://exe.io/tCEagaua",
+      26: "https://exe.io/KRPX8ctI",
+      27: "https://exe.io/v2CuX",
+      28: "https://exe.io/0aAEOhws",
+      29: "https://exe.io/j9jz4G",
+      30: "https://exe.io/pDRP4",
+      31: "https://exe.io/tC2gu6",
+      32: "https://exe.io/cMqtdJ",
+      33: "https://exe.io/mMh9ST",
+      34: "https://exe.io/QCRvrR",
+      35: "https://exe.io/OLSNpgv",
+      36: "https://exe.io/mMN6pMe",
+      37: "https://exe.io/YuLzGFl",
+      38: "https://exe.io/phK5nA",
+      39: "https://exe.io/WOh66f",
+      40: "https://exe.io/kgAfpHK",
+      41: "https://exe.io/xOncop",
+      42: "https://exe.io/u8ciAD2",
+      43: "https://exe.io/jwSshK",
+      44: "https://exe.io/niqZ9I",
+      45: "https://exe.io/tzPrIs",
+      46: "https://exe.io/QWol6qJ",
+      47: "https://exe.io/f6wzf",
+      48: "https://exe.io/KmVqMUvw",
+      49: "https://exe.io/fgvWoVtX",
+      50: "https://exe.io/UDd6N",
+      51: "https://exe.io/6vctYa",
+      52: "https://exe.io/KuHdLKay",
+      53: "https://exe.io/t8LzID",
+      54: "https://exe.io/oocqWm",
+      55: "https://exe.io/63ll3g5N",
+      56: "https://exe.io/XiZPuI",
+      57: "https://exe.io/ZWwLtegF",
+      58: "https://exe.io/EM7Vtj",
+      59: "https://exe.io/KRPrH",
+      60: "https://exe.io/8yboQOu"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    const params = new URLSearchParams(window.location.search);
+    const id = parseInt(params.get("id"));
 
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const params = new URLSearchParams(window.location.search);
-        const link = params.get("url");
-        const points = parseFloat(params.get("points")) || 0;
-
-        if (link) {
-          try {
-            const userRef = doc(db, "users", user.uid);
-            await updateDoc(userRef, {
-              points: increment(points)
-            });
-
-            // تأخير بسيط للإحساس بالانتقال
-            setTimeout(() => {
-              window.location.href = link;
-            }, 1000);
-          } catch (error) {
-            document.getElementById("loading").innerText = "حدث خطأ أثناء تحديث النقاط.";
-          }
-        } else {
-          document.getElementById("loading").innerText = "الرابط غير صالح.";
-        }
-
-      } else {
-        window.location.href = "login.html";
-      }
-    });
+    if (links[id]) {
+      setTimeout(() => {
+        window.location.href = links[id];
+      }, 5000);
+    } else {
+      document.body.innerHTML = "<h2>الرابط غير موجود أو غير صالح</h2>";
+    }
   </script>
 </body>
 </html>
