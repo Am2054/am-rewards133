@@ -1,171 +1,138 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>سحب الأرباح | Am Rewards</title>
-    <style>
-      body {
-        font-family: 'Tajawal', sans-serif;
-        background-color: #f5f5f5;
-        margin: 0;
-        padding: 20px;
-      }
+<!DOCTYPE html><html lang="ar" dir="rtl"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>سحب الأرباح | Am Rewards</title>
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background-color: #111;
+      color: #fff;
+      padding: 20px;
+    }h1 {
+  text-align: center;
+  margin-bottom: 30px;
+}
 
-      .container {
-        max-width: 500px;
-        margin: auto;
-        background: #fff;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      }
+.form-group {
+  margin-bottom: 20px;
+}
 
-      h2 {
-        text-align: center;
-        color: #4caf50;
-      }
+label {
+  display: block;
+  margin-bottom: 5px;
+}
 
-      input, button {
-        width: 100%;
-        padding: 10px;
-        margin: 10px 0;
-        border-radius: 5px;
-        border: 1px solid #ccc;
-        font-size: 16px;
-      }
+input,
+select,
+button {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  font-size: 16px;
+}
 
-      button {
-        background-color: #4caf50;
-        color: white;
-        border: none;
-        cursor: pointer;
-      }
+input,
+select {
+  background-color: #222;
+  color: #fff;
+}
 
-      button:hover {
-        background-color: #45a049;
-      }
+button {
+  background-color: #0f9d58;
+  color: white;
+  cursor: pointer;
+}
 
-      .message {
-        text-align: center;
-        font-weight: bold;
-        color: red;
-      }
+button:hover {
+  background-color: #0b7e46;
+}
 
-      .balance {
-        text-align: center;
-        font-size: 18px;
-        margin: 10px 0;
-        color: #333;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h2>سحب الأرباح</h2>
-      <input type="number" id="points" placeholder="أدخل عدد النقاط التي تريد سحبها">
-      <input type="text" id="phone" placeholder="رقم فودافون كاش">
-      <button onclick="withdraw()">طلب السحب</button>
-      <p id="message" class="message"></p>
-    </div>
+.balance {
+  text-align: center;
+  margin-bottom: 20px;
+}
 
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js";
-      import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-auth.js";
-      import { getFirestore, doc, getDoc, updateDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore.js";
-      import { firebaseConfig } from './config.js';
+.error {
+  color: red;
+  text-align: center;
+}
 
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const db = getFirestore(app);
-      let currentUser = null;
-      let currentPoints = 0;
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBszYz...",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.appspot.com",
+      messagingSenderId: "3697...",
+      appId: "1:3697...:web:..."
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();let userEmail = "";
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    userEmail = user.email;
+    const userDoc = await db.collection("users").doc(user.uid).get();
+    const points = userDoc.exists ? userDoc.data().points || 0 : 0;
+    document.getElementById("points").innerText = points + " نقطة";
+    document.getElementById("pointsHidden").value = points;
+  } else {
+    window.location.href = "login.html";
+  }
+});
 
-      onAuthStateChanged(auth, async (user) => {
-        if (user) {
-          currentUser = user;
-          const userRef = doc(db, "users", user.uid);
-          const snap = await getDoc(userRef);
-          if (snap.exists()) {
-            currentPoints = snap.data().points || 0;
+async function submitWithdrawal() {
+  const method = document.getElementById("method").value;
+  const number = document.getElementById("walletNumber").value;
+  const points = parseInt(document.getElementById("pointsHidden").value);
+  const minPoints = 357;
 
-            // ✅ إضافة عرض الرصيد الحالي
-            const balanceDiv = document.createElement("div");
-            balanceDiv.className = "balance";
-            balanceDiv.textContent = `رصيدك الحالي: ${currentPoints} نقطة`;
-            document.querySelector(".container").appendChild(balanceDiv);
-          }
-        } else {
-          window.location.href = "login.html";
-        }
-      });
+  if (!number || points < minPoints) {
+    document.getElementById("error").innerText = "يجب إدخال رقم محفظة وأن يكون لديك على الأقل 357 نقطة.";
+    return;
+  }
 
-      async function withdraw() {
-        const points = parseInt(document.getElementById("points").value);
-        const phone = document.getElementById("phone").value;
-        const messageEl = document.getElementById("message");
-        const button = document.querySelector("button");
+  const amount = (points * 0.07).toFixed(2);
+  await db.collection("withdrawRequests").add({
+    email: userEmail,
+    method,
+    number,
+    points,
+    amount,
+    timestamp: new Date()
+  });
 
-        messageEl.textContent = "";
+  alert("تم إرسال طلب السحب بنجاح");
+  window.location.reload();
+}
 
-        if (isNaN(points) || points < 1 || !phone) {
-          messageEl.textContent = "يرجى إدخال البيانات بشكل صحيح.";
-          return;
-        }
-
-        if (points > currentPoints) {
-          messageEl.textContent = "ليس لديك نقاط كافية.";
-          return;
-        }
-
-        const egp = points * 0.08;
-        if (egp < 25) {
-          messageEl.textContent = "الحد الأدنى للسحب هو 25 جنيه.";
-          return;
-        }
-
-        if (egp > 100) {
-          messageEl.textContent = "الحد الأقصى للسحب هو 100 جنيه في اليوم.";
-          return;
-        }
-
-        // ✅ تأكيد قبل الإرسال
-        const confirmSend = confirm(`هل أنت متأكد من سحب ${egp.toFixed(2)} جنيه إلى رقم ${phone}؟`);
-        if (!confirmSend) return;
-
-        // ✅ تعطيل الزر مؤقتًا أثناء التنفيذ
-        button.disabled = true;
-        button.textContent = "جاري الإرسال...";
-
-        try {
-          const fee = egp > 20 ? egp * 0.1 : 0;
-          const finalEgp = egp - fee;
-
-          const withdrawRef = doc(db, "withdrawRequests", `${currentUser.uid}_${Date.now()}`);
-          await setDoc(withdrawRef, {
-            uid: currentUser.uid,
-            points,
-            egp: finalEgp.toFixed(2),
-            phone,
-            timestamp: serverTimestamp()
-          });
-
-          const userRef = doc(db, "users", currentUser.uid);
-          await updateDoc(userRef, {
-            points: currentPoints - points
-          });
-
-          messageEl.style.color = "green";
-          messageEl.textContent = `تم تقديم طلب السحب بقيمة ${finalEgp.toFixed(2)} جنيه.`;
-        } catch (error) {
-          messageEl.style.color = "red";
-          messageEl.textContent = "حدث خطأ أثناء تنفيذ الطلب.";
-        }
-
-        // ✅ إعادة تفعيل الزر
-        button.disabled = false;
-        button.textContent = "طلب السحب";
-      }
-    </script>
-  </body>
-</html>
+  </script>
+</head><body>
+  <h1>سحب الأرباح</h1>
+  <div class="balance">
+    <p>رصيدك الحالي: <span id="points">جاري التحميل...</span></p>
+  </div>
+  <div class="form-group">
+    <label for="method">اختر وسيلة السحب:</label>
+    <select id="method">
+      <option value="vodafone">فودافون كاش</option>
+      <option value="etisalat">اتصالات كاش</option>
+      <option value="orange">أورنج كاش</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label for="walletNumber">رقم المحفظة:</label>
+    <input type="text" id="walletNumber" placeholder="أدخل رقم الهاتف المرتبط بالمحفظة">
+  </div>
+  <input type="hidden" id="pointsHidden" value="0">
+  <div class="form-group">
+    <button onclick="submitWithdrawal()">طلب سحب</button>
+  </div>
+  <p class="error" id="error"></p>
+</body></html>
