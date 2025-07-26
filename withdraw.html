@@ -1,23 +1,19 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>طلب السحب | Am Rewards</title>
+  <meta charset="UTF-8">
+  <title>سحب الأرباح | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
+      background-color: #121212;
+      color: #fff;
       font-family: 'Tajawal', sans-serif;
       padding: 20px;
-      background-color: #f9f9f9;
-      color: #333;
     }
-    .container {
-      max-width: 500px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 15px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
     }
     label {
       display: block;
@@ -26,61 +22,52 @@
     input, select, button {
       width: 100%;
       padding: 10px;
-      margin-top: 5px;
       border-radius: 10px;
-      border: 1px solid #ccc;
+      border: none;
+      margin-bottom: 15px;
       font-size: 16px;
     }
     button {
-      background-color: #2196f3;
+      background-color: #e91e63;
       color: white;
-      border: none;
-      margin-top: 20px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #d81b60;
     }
     .note {
-      margin-top: 15px;
-      color: #d32f2f;
+      color: #fbc02d;
       font-size: 14px;
-    }
-    .info {
-      margin-top: 10px;
-      font-size: 14px;
-      color: #555;
+      text-align: center;
+      margin-bottom: 20px;
     }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
 <body>
-  <div class="container">
-    <h2>طلب سحب الأرباح</h2>
-    
-    <label for="method">اختر وسيلة السحب:</label>
-    <select id="method">
-      <option value="vodafone_cash">فودافون كاش</option>
-      <option value="paypal">PayPal (1$)</option>
-    </select>
+  <h1>سحب الأرباح</h1>
+  <div id="points">جاري التحميل...</div>
 
-    <label for="account">رقم فودافون أو إيميل PayPal:</label>
-    <input type="text" id="account" placeholder="ادخل البيانات بدقة" />
+  <label for="amount">المبلغ المطلوب بالجنيه:</label>
+  <input type="number" id="amount" min="15" max="150" placeholder="مثال: 50">
 
-    <label for="amount">المبلغ المطلوب (جنيه):</label>
-    <input type="number" id="amount" placeholder="25 إلى 100 جنيه" />
+  <label for="vodafone">رقم فودافون كاش:</label>
+  <input type="text" id="vodafone" placeholder="010xxxxxxxx">
 
-    <button onclick="submitWithdrawal()">تأكيد طلب السحب</button>
-
-    <div class="info">
-      <strong>الحد الأدنى:</strong> 25 جنيه<br />
-      <strong>الحد الأقصى:</strong> 100 جنيه<br />
-      <span class="note">سيتم خصم 10% إذا تجاوز المبلغ 30 جنيه</span><br />
-      <span class="note">يُسمح بـ 3 سحوبات يوميًا فقط</span><br />
-      <span class="note">يُسمح بالسحب كل 12 ساعة</span>
-    </div>
+  <div class="note">
+    - الحد الأدنى للسحب: 15 جنيه<br>
+    - الحد الأقصى: 150 جنيه<br>
+    - سيتم خصم 10% إذا تجاوزت القيمة 30 جنيه<br>
+    - سيتم خصم النقاط تلقائيًا بعد الضغط على "سحب"
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
-    import { getDatabase, ref, get, push, set, child } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+  <button onclick="submitRequest()">سحب</button>
 
+  <p id="status"></p>
+
+  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
@@ -91,50 +78,72 @@
       appId: "1:744783579735:web:45e00de9998893bbc9b112",
       measurementId: "G-CV3GLT2TTJ"
     };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getDatabase(app);
+    let currentUser;
+    let currentPoints = 0;
 
-    let currentUser = null;
-
-    onAuthStateChanged(auth, (user) => {
+    auth.onAuthStateChanged(user => {
       if (user) {
         currentUser = user;
+        const uid = user.uid;
+        db.ref("users/" + uid + "/points").on("value", snap => {
+          currentPoints = snap.val() || 0;
+          document.getElementById("points").innerText = "نقاطك الحالية: " + currentPoints + " نقطة";
+        });
       } else {
         window.location.href = "login.html";
       }
     });
 
-    async function submitWithdrawal() {
-      const method = document.getElementById("method").value;
-      const account = document.getElementById("account").value.trim();
-      let amount = parseFloat(document.getElementById("amount").value.trim());
+    function submitRequest() {
+      const amount = parseFloat(document.getElementById("amount").value);
+      const phone = document.getElementById("vodafone").value.trim();
+      const status = document.getElementById("status");
 
-      if (!account || isNaN(amount) || amount < 25 || amount > 100) {
-        alert("الرجاء إدخال بيانات صحيحة ضمن الحدود المسموحة.");
+      if (isNaN(amount) || amount < 15 || amount > 150) {
+        status.innerText = "المبلغ غير صالح.";
+        return;
+      }
+      if (!/^01[0125][0-9]{8}$/.test(phone)) {
+        status.innerText = "رقم فودافون كاش غير صالح.";
         return;
       }
 
-      if (amount > 30) {
-        amount = amount - amount * 0.10;
+      const requiredPoints = amount / 0.08;
+      let discount = 0;
+      if (amount > 30) discount = amount * 0.1;
+
+      const netAmount = amount - discount;
+      const totalPoints = netAmount / 0.08;
+
+      if (currentPoints < totalPoints) {
+        status.innerText = "لا تملك نقاط كافية.";
+        return;
       }
 
-      const withdrawal = {
-        user: currentUser.uid,
+      status.innerText = "جاري المعالجة...";
+
+      // خصم النقاط
+      const newPoints = currentPoints - totalPoints;
+      db.ref("users/" + currentUser.uid).update({ points: newPoints });
+
+      // إرسال الطلب
+      const requestRef = db.ref("withdraw_requests").push();
+      requestRef.set({
+        uid: currentUser.uid,
         email: currentUser.email,
-        method,
-        account,
-        amount: amount.toFixed(2),
-        status: "قيد المراجعة",
+        amount: amount,
+        phone: phone,
+        netAmount: netAmount.toFixed(2),
+        deductedPoints: totalPoints.toFixed(2),
+        status: "جاري المعالجة",
         timestamp: Date.now()
-      };
+      });
 
-      const userWithdrawalsRef = ref(db, "withdrawals/" + currentUser.uid);
-      await push(userWithdrawalsRef, withdrawal);
-
-      alert("تم إرسال طلب السحب بنجاح! سيتم مراجعته خلال ساعات.");
-      window.location.href = "dashboard.html";
+      status.innerText = "تم إرسال الطلب وجاري المعالجة...";
     }
   </script>
 </body>
