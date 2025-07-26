@@ -1,105 +1,101 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>إنشاء حساب | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
-      background-color: #f2f2f2;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      background-color: #f4f4f4;
+      text-align: center;
+      padding: 40px;
     }
-    .container {
-      background: white;
+    .signup-container {
+      background-color: #fff;
       padding: 30px;
-      border-radius: 15px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      width: 90%;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
       max-width: 400px;
+      margin: auto;
     }
-    input {
-      width: 100%;
+    input, button {
+      width: 90%;
       padding: 10px;
-      margin: 8px 0;
-      border: 1px solid #ccc;
-      border-radius: 10px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
     }
     button {
-      width: 100%;
-      padding: 10px;
-      background-color: #28a745;
+      background-color: #00c853;
       color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
+      font-weight: bold;
       cursor: pointer;
-    }
-    button:hover {
-      background-color: #218838;
     }
   </style>
 </head>
 <body>
-  <div class="container">
+
+  <div class="signup-container">
     <h2>إنشاء حساب جديد</h2>
     <input type="text" id="name" placeholder="الاسم الكامل" required />
     <input type="email" id="email" placeholder="البريد الإلكتروني" required />
     <input type="password" id="password" placeholder="كلمة المرور" required />
-    <button onclick="signUp()">إنشاء الحساب</button>
+    <button onclick="signup()">إنشاء الحساب</button>
+    <p id="error" style="color:red;"></p>
   </div>
 
   <!-- Firebase SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
+  <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyC9Uw3...YourAPIKey...",
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
+      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
       projectId: "am--rewards",
-      storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "123456789",
-      appId: "1:123456789:web:abc123"
+      storageBucket: "am--rewards.firebasestorage.app",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112",
+      measurementId: "G-CV3GLT2TTJ"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-    window.signUp = async function () {
-      const name = document.getElementById('name').value.trim();
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value.trim();
+    function signup() {
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
 
       if (!name || !email || !password) {
-        alert("يرجى ملء جميع الحقول");
+        document.getElementById("error").innerText = "الرجاء ملء جميع الحقول.";
         return;
       }
 
-      try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+      auth.createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          const uid = userCredential.user.uid;
 
-        await setDoc(doc(db, "users", user.uid), {
-          name: name,
-          email: email,
-          points: 0,
-          createdAt: new Date()
+          return db.collection("users").doc(uid).set({
+            name: name,
+            email: email,
+            points: 0,
+            level: 1,
+            joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        })
+        .then(() => {
+          window.location.href = "dashboard.html";
+        })
+        .catch((error) => {
+          document.getElementById("error").innerText = error.message;
         });
-
-        alert("تم إنشاء الحساب بنجاح!");
-        window.location.href = "dashboard.html";
-
-      } catch (error) {
-        alert("حدث خطأ: " + error.message);
-      }
-    };
+    }
   </script>
 </body>
-      </html>
+</html>
