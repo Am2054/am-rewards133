@@ -2,172 +2,140 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>السحب | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>طلب السحب | Am Rewards</title>
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
-      background-color: #121212;
-      color: white;
-      margin: 0;
       padding: 20px;
+      background-color: #f9f9f9;
+      color: #333;
     }
     .container {
       max-width: 500px;
       margin: auto;
-      background-color: #1e1e1e;
-      border-radius: 15px;
+      background: white;
       padding: 20px;
-      box-shadow: 0 0 10px #000;
+      border-radius: 15px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
     }
-    h2, label {
-      color: #f2f2f2;
+    label {
+      display: block;
+      margin: 15px 0 5px;
     }
     input, select, button {
       width: 100%;
       padding: 10px;
-      margin: 10px 0;
-      border-radius: 8px;
-      border: none;
+      margin-top: 5px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
       font-size: 16px;
     }
     button {
-      background-color: #00c853;
+      background-color: #2196f3;
       color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .points {
-      background-color: #333;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 15px;
-      text-align: center;
-      font-size: 18px;
+      border: none;
+      margin-top: 20px;
     }
     .note {
+      margin-top: 15px;
+      color: #d32f2f;
       font-size: 14px;
-      color: #ccc;
-      margin-top: 5px;
+    }
+    .info {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #555;
     }
   </style>
 </head>
 <body>
-
-<div class="container">
-  <h2>طلب سحب الرصيد</h2>
-
-  <div class="points" id="userPoints">جاري التحميل...</div>
-
-  <label>اختر وسيلة السحب:</label>
-  <select id="method">
-    <option value="Vodafone Cash">فودافون كاش</option>
-    <option value="Etisalat Cash">اتصالات كاش</option>
-    <option value="Orange Cash">أورانج كاش</option>
-  </select>
-
-  <label>رقم المحفظة:</label>
-  <input type="tel" id="phone" placeholder="مثال: 01012345678" required />
-
-  <label>المبلغ بالجنيه:</label>
-  <input type="number" id="amount" min="15" max="150" required />
-  <div class="note">الحد الأدنى: 15 جنيه | الحد الأقصى: 150 جنيه</div>
-
-  <button onclick="submitWithdraw()">طلب سحب</button>
-</div>
-
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-    authDomain: "am--rewards.firebaseapp.com",
-    databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
-    projectId: "am--rewards",
-    storageBucket: "am--rewards.firebasestorage.app",
-    messagingSenderId: "744783579735",
-    appId: "1:744783579735:web:45e00de9998893bbc9b112",
-    measurementId: "G-CV3GLT2TTJ"
-  };
-
-  firebase.initializeApp(firebaseConfig);
-
-  let userId, userPoints = 0;
-
-  firebase.auth().onAuthStateChanged(user => {
-    if (user) {
-      userId = user.uid;
-      loadPoints();
-    } else {
-      window.location.href = "login.html";
-    }
-  });
-
-  function loadPoints() {
-    firebase.database().ref("users/" + userId + "/points").on("value", snap => {
-      userPoints = snap.val() || 0;
-      document.getElementById("userPoints").innerText = "رصيدك الحالي: " + userPoints + " نقطة";
-    });
-  }
-
-  async function submitWithdraw() {
-    const method = document.getElementById("method").value;
-    const phone = document.getElementById("phone").value.trim();
-    const amount = parseFloat(document.getElementById("amount").value);
-
-    const withdrawLimit = 3;
-    const withdrawRef = firebase.database().ref("withdrawals/" + userId);
-    const now = new Date();
-    const todayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
-
-    if (!phone || isNaN(amount) || amount < 15 || amount > 150) {
-      alert("برجاء إدخال البيانات بشكل صحيح.");
-      return;
-    }
-
-    const pointsNeeded = Math.ceil(amount / 0.08);
-    if (userPoints < pointsNeeded) {
-      alert("رصيدك لا يكفي للسحب.");
-      return;
-    }
-
-    const snapshot = await withdrawRef.child(todayKey).once("value");
-    const todayWithdrawals = snapshot.val() || [];
+  <div class="container">
+    <h2>طلب سحب الأرباح</h2>
     
-    if (todayWithdrawals.length >= withdrawLimit) {
-      alert("لقد وصلت إلى الحد الأقصى لعدد السحوبات اليوم.");
-      return;
-    }
+    <label for="method">اختر وسيلة السحب:</label>
+    <select id="method">
+      <option value="vodafone_cash">فودافون كاش</option>
+      <option value="paypal">PayPal (1$)</option>
+    </select>
 
-    const finalAmount = amount >= 30 ? (amount * 0.9).toFixed(2) : amount;
+    <label for="account">رقم فودافون أو إيميل PayPal:</label>
+    <input type="text" id="account" placeholder="ادخل البيانات بدقة" />
 
-    const withdrawalData = {
-      method,
-      phone,
-      originalAmount: amount,
-      finalAmount,
-      time: now.toLocaleTimeString(),
-      date: todayKey,
-      uid: userId
+    <label for="amount">المبلغ المطلوب (جنيه):</label>
+    <input type="number" id="amount" placeholder="25 إلى 100 جنيه" />
+
+    <button onclick="submitWithdrawal()">تأكيد طلب السحب</button>
+
+    <div class="info">
+      <strong>الحد الأدنى:</strong> 25 جنيه<br />
+      <strong>الحد الأقصى:</strong> 100 جنيه<br />
+      <span class="note">سيتم خصم 10% إذا تجاوز المبلغ 30 جنيه</span><br />
+      <span class="note">يُسمح بـ 3 سحوبات يوميًا فقط</span><br />
+      <span class="note">يُسمح بالسحب كل 12 ساعة</span>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+    import { getDatabase, ref, get, push, set, child } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.appspot.com",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112",
+      measurementId: "G-CV3GLT2TTJ"
     };
 
-    // Save to admin review
-    await firebase.database().ref("admin/withdrawRequests").push(withdrawalData);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
 
-    // Deduct points
-    await firebase.database().ref("users/" + userId + "/points").set(userPoints - pointsNeeded);
+    let currentUser = null;
 
-    // Track today’s withdrawals
-    todayWithdrawals.push(withdrawalData);
-    await withdrawRef.child(todayKey).set(todayWithdrawals);
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUser = user;
+      } else {
+        window.location.href = "login.html";
+      }
+    });
 
-    alert("تم إرسال طلب السحب بنجاح! سيتم مراجعته خلال دقائق.");
-    location.reload();
-  }
-</script>
+    async function submitWithdrawal() {
+      const method = document.getElementById("method").value;
+      const account = document.getElementById("account").value.trim();
+      let amount = parseFloat(document.getElementById("amount").value.trim());
 
+      if (!account || isNaN(amount) || amount < 25 || amount > 100) {
+        alert("الرجاء إدخال بيانات صحيحة ضمن الحدود المسموحة.");
+        return;
+      }
+
+      if (amount > 30) {
+        amount = amount - amount * 0.10;
+      }
+
+      const withdrawal = {
+        user: currentUser.uid,
+        email: currentUser.email,
+        method,
+        account,
+        amount: amount.toFixed(2),
+        status: "قيد المراجعة",
+        timestamp: Date.now()
+      };
+
+      const userWithdrawalsRef = ref(db, "withdrawals/" + currentUser.uid);
+      await push(userWithdrawalsRef, withdrawal);
+
+      alert("تم إرسال طلب السحب بنجاح! سيتم مراجعته خلال ساعات.");
+      window.location.href = "dashboard.html";
+    }
+  </script>
 </body>
 </html>
