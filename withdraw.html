@@ -1,152 +1,173 @@
-<!DOCTYPE html><html lang="ar" dir="rtl">
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>سحب الأرباح | Am Rewards</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>السحب | Am Rewards</title>
   <style>
     body {
+      font-family: 'Tajawal', sans-serif;
       background-color: #121212;
       color: white;
-      font-family: 'Tajawal', sans-serif;
-      text-align: center;
+      margin: 0;
       padding: 20px;
     }
-    h1 {
-      margin-bottom: 10px;
-    }
-    .points {
-      margin-bottom: 20px;
-      font-size: 18px;
-      color: #0f0;
-    }
-    .withdraw-section {
+    .container {
+      max-width: 500px;
+      margin: auto;
       background-color: #1e1e1e;
-      padding: 15px;
-      margin-bottom: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 5px #333;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 0 10px #000;
     }
-    input, button {
+    h2, label {
+      color: #f2f2f2;
+    }
+    input, select, button {
+      width: 100%;
       padding: 10px;
-      width: 80%;
-      margin-top: 10px;
+      margin: 10px 0;
       border-radius: 8px;
       border: none;
       font-size: 16px;
     }
     button {
-      background-color: #2196f3;
+      background-color: #00c853;
       color: white;
+      font-weight: bold;
       cursor: pointer;
     }
-    button:hover {
-      background-color: #0d8af0;
+    .points {
+      background-color: #333;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      text-align: center;
+      font-size: 18px;
     }
-    .message {
-      margin-top: 15px;
-      color: #f39c12;
-    }
-    .status {
-      margin-top: 15px;
-      font-size: 15px;
-      color: #999;
+    .note {
+      font-size: 14px;
+      color: #ccc;
+      margin-top: 5px;
     }
   </style>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, updateDoc, serverTimestamp, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";const firebaseConfig = {
-  apiKey: "AIzaSyDdTr6cPMLP4XdJLb5brk0_zlfnBODMiZw",
-  authDomain: "am--rewards.firebaseapp.com",
-  projectId: "am--rewards",
-  storageBucket: "am--rewards.appspot.com",
-  messagingSenderId: "719402381134",
-  appId: "1:719402381134:web:7a6bb1f3aa46de92c13cd6"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-let currentUserId = null;
-let withdrawalCount = 0;
-
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    currentUserId = user.uid;
-    const userDoc = await getDoc(doc(db, 'users', currentUserId));
-    if (userDoc.exists()) {
-      const data = userDoc.data();
-      const points = data.points || 0;
-      document.getElementById('points').innerText = `نقاطك الحالية: ${points}`;
-
-      const q = query(collection(db, 'withdrawals'), where('userId', '==', currentUserId));
-      const querySnapshot = await getDocs(q);
-      const today = new Date().toDateString();
-      withdrawalCount = querySnapshot.docs.filter(doc => new Date(doc.data().timestamp?.toDate()).toDateString() === today).length;
-
-      if (withdrawalCount >= 3) {
-        document.getElementById('message').innerText = 'لقد استهلكت جميع مرات السحب لليوم (3 مرات).';
-      }
-    }
-  } else {
-    window.location.href = "login.html";
-  }
-});
-
-async function sendRequest(method) {
-  const phone = document.getElementById(`${method}-phone`).value;
-  const msg = document.getElementById('message');
-
-  if (!phone) return msg.innerText = 'يرجى إدخال رقم الهاتف';
-
-  const userDoc = await getDoc(doc(db, 'users', currentUserId));
-  const data = userDoc.data();
-  let points = data.points || 0;
-  let egp = points * 0.07;
-
-  if (points < 215) return msg.innerText = 'الحد الأدنى للسحب هو 15 جنيه (215 نقطة).';
-  if (egp > 150) return msg.innerText = 'الحد الأقصى للسحب هو 150 جنيه.';
-  if (withdrawalCount >= 3) return msg.innerText = 'لا يمكنك السحب أكثر من 3 مرات يومياً.';
-
-  if (egp > 30) egp = egp - (egp * 0.1);
-
-  await addDoc(collection(db, 'withdrawals'), {
-    userId: currentUserId,
-    method,
-    phone,
-    points,
-    egp,
-    timestamp: serverTimestamp(),
-    status: 'قيد المراجعة'
-  });
-
-  await updateDoc(doc(db, 'users', currentUserId), {
-    points: 0
-  });
-
-  msg.innerText = `✅ تم إرسال طلبك (${method}) بنجاح، سيتم مراجعته خلال وقت قصير.`;
-  document.getElementById('status').innerText = `🕓 حالة الطلب: قيد المراجعة`;
-}
-window.sendRequest = sendRequest;
-
-  </script>
 </head>
 <body>
-  <h1>سحب الأرباح</h1>
-  <div class="points" id="points">جارٍ التحميل...</div>  <div class="withdraw-section">
-    <h2>فودافون كاش</h2>
-    <input type="text" id="vodafone-phone" placeholder="رقم فودافون كاش">
-    <button onclick="sendRequest('vodafone')">سحب</button>
-  </div>  <div class="withdraw-section">
-    <h2>اتصالات كاش</h2>
-    <input type="text" id="etisalat-phone" placeholder="رقم اتصالات كاش">
-    <button onclick="sendRequest('etisalat')">سحب</button>
-  </div>  <div class="withdraw-section">
-    <h2>أورنج كاش</h2>
-    <input type="text" id="orange-phone" placeholder="رقم أورنج كاش">
-    <button onclick="sendRequest('orange')">سحب</button>
-  </div>  <div class="message" id="message"></div>
-  <div class="status" id="status"></div>
+
+<div class="container">
+  <h2>طلب سحب الرصيد</h2>
+
+  <div class="points" id="userPoints">جاري التحميل...</div>
+
+  <label>اختر وسيلة السحب:</label>
+  <select id="method">
+    <option value="Vodafone Cash">فودافون كاش</option>
+    <option value="Etisalat Cash">اتصالات كاش</option>
+    <option value="Orange Cash">أورانج كاش</option>
+  </select>
+
+  <label>رقم المحفظة:</label>
+  <input type="tel" id="phone" placeholder="مثال: 01012345678" required />
+
+  <label>المبلغ بالجنيه:</label>
+  <input type="number" id="amount" min="15" max="150" required />
+  <div class="note">الحد الأدنى: 15 جنيه | الحد الأقصى: 150 جنيه</div>
+
+  <button onclick="submitWithdraw()">طلب سحب</button>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+    authDomain: "am--rewards.firebaseapp.com",
+    databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
+    projectId: "am--rewards",
+    storageBucket: "am--rewards.firebasestorage.app",
+    messagingSenderId: "744783579735",
+    appId: "1:744783579735:web:45e00de9998893bbc9b112",
+    measurementId: "G-CV3GLT2TTJ"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+
+  let userId, userPoints = 0;
+
+  firebase.auth().onAuthStateChanged(user => {
+    if (user) {
+      userId = user.uid;
+      loadPoints();
+    } else {
+      window.location.href = "login.html";
+    }
+  });
+
+  function loadPoints() {
+    firebase.database().ref("users/" + userId + "/points").on("value", snap => {
+      userPoints = snap.val() || 0;
+      document.getElementById("userPoints").innerText = "رصيدك الحالي: " + userPoints + " نقطة";
+    });
+  }
+
+  async function submitWithdraw() {
+    const method = document.getElementById("method").value;
+    const phone = document.getElementById("phone").value.trim();
+    const amount = parseFloat(document.getElementById("amount").value);
+
+    const withdrawLimit = 3;
+    const withdrawRef = firebase.database().ref("withdrawals/" + userId);
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+
+    if (!phone || isNaN(amount) || amount < 15 || amount > 150) {
+      alert("برجاء إدخال البيانات بشكل صحيح.");
+      return;
+    }
+
+    const pointsNeeded = Math.ceil(amount / 0.08);
+    if (userPoints < pointsNeeded) {
+      alert("رصيدك لا يكفي للسحب.");
+      return;
+    }
+
+    const snapshot = await withdrawRef.child(todayKey).once("value");
+    const todayWithdrawals = snapshot.val() || [];
+    
+    if (todayWithdrawals.length >= withdrawLimit) {
+      alert("لقد وصلت إلى الحد الأقصى لعدد السحوبات اليوم.");
+      return;
+    }
+
+    const finalAmount = amount >= 30 ? (amount * 0.9).toFixed(2) : amount;
+
+    const withdrawalData = {
+      method,
+      phone,
+      originalAmount: amount,
+      finalAmount,
+      time: now.toLocaleTimeString(),
+      date: todayKey,
+      uid: userId
+    };
+
+    // Save to admin review
+    await firebase.database().ref("admin/withdrawRequests").push(withdrawalData);
+
+    // Deduct points
+    await firebase.database().ref("users/" + userId + "/points").set(userPoints - pointsNeeded);
+
+    // Track today’s withdrawals
+    todayWithdrawals.push(withdrawalData);
+    await withdrawRef.child(todayKey).set(todayWithdrawals);
+
+    alert("تم إرسال طلب السحب بنجاح! سيتم مراجعته خلال دقائق.");
+    location.reload();
+  }
+</script>
+
 </body>
 </html>
