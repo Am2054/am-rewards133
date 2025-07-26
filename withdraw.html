@@ -1,174 +1,152 @@
-<!DOCTYPE html>  <html lang="ar" dir="rtl">    <head>        <meta charset="UTF-8" />      
-  <meta name="viewport" content="width=device-width, initial-scale=1" />      
-  <title>سحب الأرباح | Am Rewards</title>      
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet" />      
-  <style>      
-    body {      
-      font-family: 'Tajawal', sans-serif;      
-      background: linear-gradient(135deg, #e6f9ff, #fff);      
-      margin: 0;      
-      padding: 20px;      
-      display: flex;      
-      justify-content: center;      
-    }      
-    .container {      
-      background: #fff;      
-      border-radius: 16px;      
-      padding: 25px;      
-      max-width: 450px;      
-      width: 100%;      
-      box-shadow: 0 0 15px rgba(0,0,0,0.1);      
-      border: 2px solid #17a2b8;      
-    }      
-    h2 {      
-      color: #17a2b8;      
-      text-align: center;      
-      margin-bottom: 20px;      
-    }      
-    label {      
-      font-weight: bold;      
-      margin-top: 12px;      
-      display: block;      
-      text-align: right;      
-    }      
-    input, button {      
-      width: 100%;      
-      padding: 12px;      
-      margin: 10px 0;      
-      border-radius: 10px;      
-      font-size: 16px;      
-      box-sizing: border-box;      
-    }      
-    input {      
-      border: 1px solid #ccc;      
-    }      
-    button {      
-      background: #17a2b8;      
-      color: white;      
-      font-weight: bold;      
-      border: none;      
-      cursor: pointer;      
-    }      
-    button:hover {      
-      background: #138496;      
-    }      
-    .note {      
-      font-size: 14px;      
-      color: #dc3545;      
-      margin-top: 10px;      
-      text-align: center;      
-    }      
-    .success {      
-      color: green;      
-      text-align: center;      
-    }      
-    .balance {      
-      text-align: center;      
-      margin-top: 15px;      
-      font-weight: bold;      
-      color: #007bff;      
-    }      
-  </style>      
-</head>      
-<body>      
-  <div class="container">      
-    <h2>سحب الأرباح عبر فودافون كاش</h2>      
-    <label for="points">أدخل عدد النقاط:</label>      
-    <input type="number" id="points" placeholder="مثال: 1000" min="0" oninput="calculateEGP()" />  <label for="phone">رقم فودافون كاش:</label>      
-<input type="text" id="phone" placeholder="مثال: 010xxxxxxxx" />    <div class="balance" id="convertedAmount">= 0 جنيه بعد الخصم</div>    <button onclick="requestWithdrawal()">طلب السحب</button>  <p class="note">✅ الحد الأدنى للسحب 15 جنيه.        
-🚫 الحد الأقصى اليومي 130 جنيه (3 مرات).        
-⚠️ يتم خصم 10% من المبلغ إذا تجاوز 20 جنيه.</p>    <p id="message" class="note"></p>    </div>    <script type="module">      
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";      
-    import {      
-      getFirestore, doc, getDoc, updateDoc, addDoc, collection, serverTimestamp, query, where, getDocs      
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";      
-    import {      
-      getAuth, onAuthStateChanged      
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";    const firebaseConfig = {      
-  apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",      
-  authDomain: "am--rewards.firebaseapp.com",      
-  projectId: "am--rewards"      
-};      const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+<!DOCTYPE html><html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>سحب الأرباح | Am Rewards</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: white;
+      font-family: 'Tajawal', sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    .points {
+      margin-bottom: 20px;
+      font-size: 18px;
+      color: #0f0;
+    }
+    .withdraw-section {
+      background-color: #1e1e1e;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 5px #333;
+    }
+    input, button {
+      padding: 10px;
+      width: 80%;
+      margin-top: 10px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+    }
+    button {
+      background-color: #2196f3;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0d8af0;
+    }
+    .message {
+      margin-top: 15px;
+      color: #f39c12;
+    }
+    .status {
+      margin-top: 15px;
+      font-size: 15px;
+      color: #999;
+    }
+  </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, updateDoc, serverTimestamp, collection, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";const firebaseConfig = {
+  apiKey: "AIzaSyDdTr6cPMLP4XdJLb5brk0_zlfnBODMiZw",
+  authDomain: "am--rewards.firebaseapp.com",
+  projectId: "am--rewards",
+  storageBucket: "am--rewards.appspot.com",
+  messagingSenderId: "719402381134",
+  appId: "1:719402381134:web:7a6bb1f3aa46de92c13cd6"
+};
+
+const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
-const pointValue = 0.07;
-let currentUser, currentPoints = 0;
+let currentUserId = null;
+let withdrawalCount = 0;
 
-onAuthStateChanged(auth, async user => {
-if (!user) return window.location.href = "login.html";
-currentUser = user;
-const snap = await getDoc(doc(db, "users", user.uid));
-if (snap.exists()) currentPoints = snap.data().points || 0;
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    currentUserId = user.uid;
+    const userDoc = await getDoc(doc(db, 'users', currentUserId));
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      const points = data.points || 0;
+      document.getElementById('points').innerText = `نقاطك الحالية: ${points}`;
+
+      const q = query(collection(db, 'withdrawals'), where('userId', '==', currentUserId));
+      const querySnapshot = await getDocs(q);
+      const today = new Date().toDateString();
+      withdrawalCount = querySnapshot.docs.filter(doc => new Date(doc.data().timestamp?.toDate()).toDateString() === today).length;
+
+      if (withdrawalCount >= 3) {
+        document.getElementById('message').innerText = 'لقد استهلكت جميع مرات السحب لليوم (3 مرات).';
+      }
+    }
+  } else {
+    window.location.href = "login.html";
+  }
 });
 
-window.calculateEGP = () => {
-const pts = parseInt(document.getElementById("points").value) || 0;
-let egp = pts * pointValue;
-if (egp > 20) egp *= 0.90;
-document.getElementById("convertedAmount").textContent = = ${egp.toFixed(2)} جنيه بعد الخصم;
-};
+async function sendRequest(method) {
+  const phone = document.getElementById(`${method}-phone`).value;
+  const msg = document.getElementById('message');
 
-async function checkWithdrawLimit() {
-const today = new Date();
-today.setHours(0, 0, 0, 0);
-const q = query(collection(db, "withdrawRequests"),
-where("uid", "==", currentUser.uid),
-where("createdAt", ">=", serverTimestamp())
-);
-const snap = await getDocs(q);
-let total = 0, count = 0;
-snap.forEach(doc => {
-const d = doc.data();
-total += parseFloat(d.amountEGP || 0);
-count += 1;
-});
-return { total, count };
+  if (!phone) return msg.innerText = 'يرجى إدخال رقم الهاتف';
+
+  const userDoc = await getDoc(doc(db, 'users', currentUserId));
+  const data = userDoc.data();
+  let points = data.points || 0;
+  let egp = points * 0.07;
+
+  if (points < 215) return msg.innerText = 'الحد الأدنى للسحب هو 15 جنيه (215 نقطة).';
+  if (egp > 150) return msg.innerText = 'الحد الأقصى للسحب هو 150 جنيه.';
+  if (withdrawalCount >= 3) return msg.innerText = 'لا يمكنك السحب أكثر من 3 مرات يومياً.';
+
+  if (egp > 30) egp = egp - (egp * 0.1);
+
+  await addDoc(collection(db, 'withdrawals'), {
+    userId: currentUserId,
+    method,
+    phone,
+    points,
+    egp,
+    timestamp: serverTimestamp(),
+    status: 'قيد المراجعة'
+  });
+
+  await updateDoc(doc(db, 'users', currentUserId), {
+    points: 0
+  });
+
+  msg.innerText = `✅ تم إرسال طلبك (${method}) بنجاح، سيتم مراجعته خلال وقت قصير.`;
+  document.getElementById('status').innerText = `🕓 حالة الطلب: قيد المراجعة`;
 }
+window.sendRequest = sendRequest;
 
-window.requestWithdrawal = async () => {
-const pts = parseInt(document.getElementById("points").value);
-const phone = document.getElementById("phone").value.trim();
-const msg = document.getElementById("message");
-
-if (!pts || pts <= 0) return msg.textContent = "❌ أدخل عدد نقاط صحيح.";
-if (!phone || !/^01[0-9]{9}$/.test(phone)) return msg.textContent = "❌ أدخل رقم فودافون كاش صحيح.";
-const egpRaw = pts * pointValue;
-const egp = egpRaw > 20 ? egpRaw * 0.9 : egpRaw;
-
-if (egp < 15) return msg.textContent = "❌ الحد الأدنى للسحب هو 15 جنيه.";
-if (egp > 130) return msg.textContent = "❌ الحد الأقصى للسحب هو 130 جنيه.";
-
-const { total, count } = await checkWithdrawLimit();
-if (count >= 3) return msg.textContent = "❌ وصلت لحد السحب اليومي (3 مرات).";
-if ((total + egp) > 130) return msg.textContent = "❌ مجموع سحوباتك اليوم تجاوز 130 جنيه.";
-
-if (pts > currentPoints) return msg.textContent = "❌ لا تملك نقاط كافية.";
-
-try {
-await addDoc(collection(db, "withdrawRequests"), {
-uid: currentUser.uid,
-userEmail: currentUser.email,
-phone,
-points: pts,
-amountEGP: egp.toFixed(2),
-status: "pending",
-createdAt: serverTimestamp()
-});
-
-await updateDoc(doc(db, "users", currentUser.uid), {      
-  points: currentPoints - pts      
-});      
-
-msg.textContent = "✅ تم إرسال طلب السحب وسيتم مراجعته خلال 24 ساعة.";      
-msg.classList.add("success");
-
-} catch (err) {
-console.error(err);
-msg.textContent = "❌ حدث خطأ أثناء إرسال الطلب.";
-}
-};
-
-</script>  </body>
-
+  </script>
+</head>
+<body>
+  <h1>سحب الأرباح</h1>
+  <div class="points" id="points">جارٍ التحميل...</div>  <div class="withdraw-section">
+    <h2>فودافون كاش</h2>
+    <input type="text" id="vodafone-phone" placeholder="رقم فودافون كاش">
+    <button onclick="sendRequest('vodafone')">سحب</button>
+  </div>  <div class="withdraw-section">
+    <h2>اتصالات كاش</h2>
+    <input type="text" id="etisalat-phone" placeholder="رقم اتصالات كاش">
+    <button onclick="sendRequest('etisalat')">سحب</button>
+  </div>  <div class="withdraw-section">
+    <h2>أورنج كاش</h2>
+    <input type="text" id="orange-phone" placeholder="رقم أورنج كاش">
+    <button onclick="sendRequest('orange')">سحب</button>
+  </div>  <div class="message" id="message"></div>
+  <div class="status" id="status"></div>
+</body>
 </html>
