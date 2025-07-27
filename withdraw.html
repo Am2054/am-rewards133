@@ -1,150 +1,173 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<!DOCTYPE html><html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>سحب الأرباح | Am Rewards</title>
+  <title>طلب سحب الأرباح</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
-      background-color: #121212;
-      color: #fff;
-      font-family: 'Tajawal', sans-serif;
+      margin: 0;
+      font-family: 'Cairo', sans-serif;
+      background-color: #111;
+      color: white;
       padding: 20px;
     }
-    h1 {
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background-color: #1e1e1e;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    h2 {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 25px;
     }
     label {
       display: block;
-      margin: 15px 0 5px;
+      margin-top: 15px;
     }
     input, select, button {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
+      margin-top: 8px;
       border-radius: 10px;
       border: none;
-      margin-bottom: 15px;
       font-size: 16px;
     }
-    button {
-      background-color: #e91e63;
+    input, select {
+      background-color: #2c2c2c;
       color: white;
-      cursor: pointer;
     }
-    button:hover {
-      background-color: #d81b60;
+    button {
+      background-color: #4caf50;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 20px;
     }
     .note {
-      color: #fbc02d;
       font-size: 14px;
-      text-align: center;
+      color: #ccc;
+      margin-top: 10px;
+    }
+    .balance-box {
+      background-color: #333;
+      padding: 15px;
+      border-radius: 10px;
       margin-bottom: 20px;
+      text-align: center;
+    }
+    .success-msg {
+      color: #ffeb3b;
+      text-align: center;
+      margin-top: 15px;
     }
   </style>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
 <body>
-  <h1>سحب الأرباح</h1>
-  <div id="points">جاري التحميل...</div>
+  <div class="container">
+    <h2>💸 طلب سحب الأرباح</h2><div class="balance-box">
+  رصيدك الحالي: <strong id="current-balance">0</strong> جنيه
+</div>
 
-  <label for="amount">المبلغ المطلوب بالجنيه:</label>
-  <input type="number" id="amount" min="15" max="150" placeholder="مثال: 50">
+<label for="method">طريقة الدفع:</label>
+<select id="method">
+  <option value="vodafone">فودافون كاش</option>
+</select>
 
-  <label for="vodafone">رقم فودافون كاش:</label>
-  <input type="text" id="vodafone" placeholder="010xxxxxxxx">
+<label for="phone">رقم المحفظة:</label>
+<input type="text" id="phone" placeholder="ادخل رقم فودافون كاش">
 
-  <div class="note">
-    - الحد الأدنى للسحب: 15 جنيه<br>
-    - الحد الأقصى: 150 جنيه<br>
-    - سيتم خصم 10% إذا تجاوزت القيمة 30 جنيه<br>
-    - سيتم خصم النقاط تلقائيًا بعد الضغط على "سحب"
-  </div>
+<label for="amount">المبلغ المطلوب (جنيه):</label>
+<input type="number" id="amount" placeholder="من 15 إلى 150">
 
-  <button onclick="submitRequest()">سحب</button>
+<button onclick="submitWithdrawal()">سحب</button>
 
-  <p id="status"></p>
+<div class="note">
+  الحد الأدنى: 15 جنيه | الحد الأقصى: 150 جنيه<br>
+  يتم خصم 10% إذا تجاوز المبلغ 30 جنيه.<br>
+  يمكن السحب 3 مرات يوميًا.
+</div>
 
-  <script>
+<div class="success-msg" id="message"></div>
+
+  </div>  <!-- Firebase SDK -->  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>  <script>
+    const POINT_VALUE_EGP = 0.07;
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
-      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
-      projectId: "am--rewards",
-      storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "744783579735",
-      appId: "1:744783579735:web:45e00de9998893bbc9b112",
-      measurementId: "G-CV3GLT2TTJ"
+      projectId: "am--rewards"
     };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-    const db = firebase.database();
+    const db = firebase.firestore();
 
-    let currentUser;
+    let userDocRef;
+    let currentEGP = 0;
     let currentPoints = 0;
 
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        currentUser = user;
-        const uid = user.uid;
-        db.ref("users/" + uid + "/points").on("value", snap => {
-          currentPoints = snap.val() || 0;
-          document.getElementById("points").innerText = "نقاطك الحالية: " + currentPoints + " نقطة";
-        });
-      } else {
-        window.location.href = "login.html";
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        window.location.href = 'login.html';
+        return;
       }
+      userDocRef = db.collection('users').doc(user.uid);
+      const doc = await userDocRef.get();
+      const data = doc.data();
+      const totalPoints = data.points || 0;
+      const withdrawn = data.withdrawn || 0;
+      const totalEGP = totalPoints * POINT_VALUE_EGP;
+      const withdrawnEGP = withdrawn * POINT_VALUE_EGP;
+      currentEGP = totalEGP - withdrawnEGP;
+      currentPoints = totalPoints;
+      document.getElementById('current-balance').textContent = currentEGP.toFixed(2);
     });
 
-    function submitRequest() {
-      const amount = parseFloat(document.getElementById("amount").value);
-      const phone = document.getElementById("vodafone").value.trim();
-      const status = document.getElementById("status");
+    async function submitWithdrawal() {
+      const amount = parseFloat(document.getElementById('amount').value);
+      const phone = document.getElementById('phone').value;
+      const method = document.getElementById('method').value;
+      const msg = document.getElementById('message');
+      msg.textContent = '';
 
-      if (isNaN(amount) || amount < 15 || amount > 150) {
-        status.innerText = "المبلغ غير صالح.";
-        return;
-      }
-      if (!/^01[0125][0-9]{8}$/.test(phone)) {
-        status.innerText = "رقم فودافون كاش غير صالح.";
-        return;
-      }
-
-      const requiredPoints = amount / 0.08;
-      let discount = 0;
-      if (amount > 30) discount = amount * 0.1;
-
-      const netAmount = amount - discount;
-      const totalPoints = netAmount / 0.08;
-
-      if (currentPoints < totalPoints) {
-        status.innerText = "لا تملك نقاط كافية.";
+      if (!amount || amount < 15 || amount > 150) {
+        msg.textContent = '❌ المبلغ يجب أن يكون بين 15 و 150 جنيه';
         return;
       }
 
-      status.innerText = "جاري المعالجة...";
+      if (!phone || phone.length < 10) {
+        msg.textContent = '❌ يرجى إدخال رقم صحيح';
+        return;
+      }
 
-      // خصم النقاط
-      const newPoints = currentPoints - totalPoints;
-      db.ref("users/" + currentUser.uid).update({ points: newPoints });
+      let finalAmount = amount;
+      if (amount > 30) finalAmount *= 0.9;
 
-      // إرسال الطلب
-      const requestRef = db.ref("withdraw_requests").push();
-      requestRef.set({
-        uid: currentUser.uid,
-        email: currentUser.email,
-        amount: amount,
-        phone: phone,
-        netAmount: netAmount.toFixed(2),
-        deductedPoints: totalPoints.toFixed(2),
-        status: "جاري المعالجة",
-        timestamp: Date.now()
+      const requiredPoints = Math.ceil(finalAmount / POINT_VALUE_EGP);
+      if (currentPoints < requiredPoints) {
+        msg.textContent = '❌ لا يوجد نقاط كافية للسحب';
+        return;
+      }
+
+      await userDocRef.update({
+        withdrawn: firebase.firestore.FieldValue.increment(requiredPoints),
+        points: firebase.firestore.FieldValue.increment(-requiredPoints)
       });
 
-      status.innerText = "تم إرسال الطلب وجاري المعالجة...";
+      await db.collection("withdraw_requests").add({
+        uid: auth.currentUser.uid,
+        phone,
+        method,
+        amount,
+        afterDiscount: finalAmount,
+        status: 'جاري المعالجة',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      msg.textContent = '✅ تم إرسال الطلب بنجاح - جاري المعالجة';
+      document.getElementById('amount').value = '';
+      document.getElementById('phone').value = '';
     }
-  </script>
-</body>
-</html>
+  </script></body>
+  </html>
