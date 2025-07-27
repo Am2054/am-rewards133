@@ -10,42 +10,60 @@
       font-family: 'Tajawal', sans-serif;
       background: linear-gradient(to bottom right, #f5faff, #ffffff);
       padding: 20px;
+      direction: rtl;
     }
+
     .contact-box {
-      max-width: 500px;
+      max-width: 520px;
       margin: auto;
       background-color: white;
-      padding: 25px;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
     }
+
     h2 {
       text-align: center;
       color: #007bff;
-      margin-bottom: 20px;
+      margin-bottom: 25px;
+      font-size: 24px;
     }
+
     input, textarea, select, button {
       width: 100%;
       padding: 12px;
       margin: 10px 0;
       border: 1px solid #ccc;
       border-radius: 10px;
-      font-size: 15px;
+      font-size: 16px;
+      box-sizing: border-box;
     }
+
     button {
       background-color: #007bff;
       color: white;
       border: none;
       font-weight: bold;
       cursor: pointer;
+      transition: background 0.3s ease;
     }
+
     button:hover {
       background-color: #0056b3;
     }
+
     .success {
       color: green;
       text-align: center;
-      margin-top: 10px;
+      margin-top: 15px;
+      font-size: 15px;
+    }
+
+    .error {
+      color: red;
+      text-align: center;
+      margin-top: 15px;
+      font-size: 15px;
     }
   </style>
 </head>
@@ -56,6 +74,7 @@
     <input type="text" id="name" placeholder="الاسم الكامل">
     <input type="email" id="email" placeholder="البريد الإلكتروني">
     <select id="category">
+      <option value="" disabled selected>اختر نوع الرسالة</option>
       <option value="مشكلة في السحب">مشكلة في السحب</option>
       <option value="اقتراح">اقتراح</option>
       <option value="خطأ في النقاط">خطأ في النقاط</option>
@@ -63,7 +82,7 @@
     </select>
     <textarea id="message" placeholder="اكتب رسالتك هنا..." rows="5"></textarea>
     <button onclick="sendMessage()">إرسال الرسالة</button>
-    <div id="status" class="success"></div>
+    <div id="status"></div>
   </div>
 
   <!-- Firebase -->
@@ -87,9 +106,9 @@
       const message = document.getElementById("message").value.trim();
       const statusDiv = document.getElementById("status");
 
-      if (!name || !email || !message) {
-        statusDiv.textContent = "❌ يرجى تعبئة جميع الحقول.";
-        statusDiv.style.color = "red";
+      if (!name || !email || !category || !message) {
+        statusDiv.textContent = "❌ يرجى تعبئة جميع الحقول بشكل صحيح.";
+        statusDiv.className = "error";
         return;
       }
 
@@ -101,14 +120,16 @@
           message,
           timestamp: serverTimestamp()
         });
-        statusDiv.textContent = "✅ تم إرسال رسالتك بنجاح، سيتم الرد قريبًا.";
-        statusDiv.style.color = "green";
+        statusDiv.textContent = "✅ تم إرسال رسالتك بنجاح، سنقوم بالرد عليك قريبًا.";
+        statusDiv.className = "success";
+
         document.getElementById("name").value = "";
         document.getElementById("email").value = "";
+        document.getElementById("category").value = "";
         document.getElementById("message").value = "";
       } catch (error) {
-        statusDiv.textContent = "❌ حدث خطأ أثناء الإرسال.";
-        statusDiv.style.color = "red";
+        statusDiv.textContent = "❌ حدث خطأ أثناء إرسال الرسالة، حاول مرة أخرى.";
+        statusDiv.className = "error";
       }
     };
   </script>
