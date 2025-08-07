@@ -15,7 +15,7 @@
   </style>
 </head>
 <body>
-  <h2>جاري تحويلك إلى الرابط المطلوب خلال 5 ثواني...</h2>
+  <h2 id="message">جاري تحويلك إلى الرابط المطلوب خلال 5 ثواني...</h2>
 
   <script>
     const links = {
@@ -81,15 +81,21 @@
       60: "https://exe.io/8yboQOu"
     };
 
+    const messageElement = document.getElementById("message");
     const params = new URLSearchParams(window.location.search);
-    const id = parseInt(params.get("id"));
+    const idParam = params.get("id");
+    const id = parseInt(idParam, 10);
 
-    if (links[id]) {
+    if (!idParam) {
+      messageElement.textContent = "لم يتم العثور على المعرف المطلوب في الرابط.";
+    } else if (isNaN(id)) {
+      messageElement.textContent = "المعرف غير صالح. يجب أن يكون رقمًا.";
+    } else if (!links[id]) {
+      messageElement.textContent = "الرابط غير موجود أو غير صالح.";
+    } else {
       setTimeout(() => {
         window.location.href = links[id];
       }, 5000);
-    } else {
-      document.body.innerHTML = "<h2>الرابط غير موجود أو غير صالح</h2>";
     }
   </script>
 </body>
