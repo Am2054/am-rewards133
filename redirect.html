@@ -2,139 +2,76 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>روابط مختصرة</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>جارٍ التحويل...</title>
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
-      background-color: #f5f5f5;
-      color: #333;
+      background-color: #121212;
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
       text-align: center;
       padding: 20px;
     }
-
-    h1 {
+    h2 {
+      color: #4caf50;
+      margin-bottom: 20px;
+      font-size: 26px;
+    }
+    p {
+      font-size: 20px;
       margin-bottom: 30px;
     }
-
-    .buttons-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-      gap: 10px;
-      max-width: 500px;
-      margin: 0 auto;
-    }
-
-    button {
-      padding: 10px;
-      font-size: 16px;
-      border: none;
-      border-radius: 5px;
-      background-color: #2196F3;
-      color: white;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-
-    button:hover {
-      background-color: #0b7dda;
-    }
-
-    .message {
-      margin-top: 30px;
-      font-size: 18px;
+    .countdown {
+      font-size: 48px;
+      font-weight: bold;
+      color: #81c784;
     }
   </style>
 </head>
 <body>
 
-  <h1>اختر الرابط المختصر</h1>
-
-  <div class="buttons-container" id="buttonsContainer"></div>
-
-  <div class="message" id="messageBox"></div>
+  <h2>جارٍ التحويل إلى الرابط المختصر</h2>
+  <p>سيتم التحويل تلقائيًا خلال</p>
+  <div class="countdown" id="countdown">5</div>
 
   <script>
-    const links = {
-      1: "https://exe.io/uD3B6I",
-      2: "https://exe.io/PeFULHU",
-      3: "https://exe.io/OK9Kv",
-      4: "https://exe.io/CMLGX",
-      5: "https://exe.io/b3SxtV",
-      6: "https://exe.io/kFmSB",
-      7: "https://exe.io/VFtFt",
-      8: "https://exe.io/FBgm",
-      9: "https://exe.io/AU9eYMWG",
-      10: "https://exe.io/fsPYx9e8",
-      11: "https://exe.io/w3sJHf7e",
-      12: "https://exe.io/mYq3C5",
-      13: "https://exe.io/NVJ5EuA",
-      14: "https://exe.io/Tg5gIB7P",
-      15: "https://exe.io/ZXcPfB",
-      16: "https://exe.io/acnIp",
-      17: "https://exe.io/32B0AuJb",
-      18: "https://exe.io/V78w6AW",
-      19: "https://exe.io/tuY19",
-      20: "https://exe.io/4iOas",
-      21: "https://exe.io/TilcvxE",
-      22: "https://exe.io/KNh5AdCu",
-      23: "https://exe.io/gssob4l",
-      24: "https://exe.io/9ujgveBb",
-      25: "https://exe.io/tCEagaua",
-      26: "https://exe.io/KRPX8ctI",
-      27: "https://exe.io/v2CuX",
-      28: "https://exe.io/0aAEOhws",
-      29: "https://exe.io/j9jz4G",
-      30: "https://exe.io/pDRP4",
-      31: "https://exe.io/tC2gu6",
-      32: "https://exe.io/cMqtdJ",
-      33: "https://exe.io/mMh9ST",
-      34: "https://exe.io/QCRvrR",
-      35: "https://exe.io/OLSNpgv",
-      36: "https://exe.io/mMN6pMe",
-      37: "https://exe.io/YuLzGFl",
-      38: "https://exe.io/phK5nA",
-      39: "https://exe.io/WOh66f",
-      40: "https://exe.io/kgAfpHK",
-      41: "https://exe.io/xOncop",
-      42: "https://exe.io/u8ciAD2",
-      43: "https://exe.io/jwSshK",
-      44: "https://exe.io/niqZ9I",
-      45: "https://exe.io/tzPrIs",
-      46: "https://exe.io/QWol6qJ",
-      47: "https://exe.io/f6wzf",
-      48: "https://exe.io/KmVqMUvw",
-      49: "https://exe.io/fgvWoVtX",
-      50: "https://exe.io/UDd6N",
-      51: "https://exe.io/6vctYa",
-      52: "https://exe.io/KuHdLKay",
-      53: "https://exe.io/t8LzID",
-      54: "https://exe.io/oocqWm",
-      55: "https://exe.io/63ll3g5N",
-      56: "https://exe.io/XiZPuI",
-      57: "https://exe.io/ZWwLtegF",
-      58: "https://exe.io/EM7Vtj",
-      59: "https://exe.io/KRPrH",
-      60: "https://exe.io/8yboQOu"
-    };
+    const countdownEl = document.getElementById('countdown');
+    let countdown = 5;
 
-    const buttonsContainer = document.getElementById("buttonsContainer");
-    const messageBox = document.getElementById("messageBox");
+    // استرجاع الرابط ورقم المهمة من localStorage
+    const redirectLink = localStorage.getItem('redirect_link');
+    const redirectIndex = localStorage.getItem('redirect_index');
 
-    for (let i = 1; i <= 60; i++) {
-      const btn = document.createElement("button");
-      btn.innerText = i;
-      btn.onclick = () => {
-        if (links[i]) {
-          messageBox.innerText = `جاري تحويلك خلال 5 ثواني إلى الرابط رقم ${i}...`;
+    if (!redirectLink || redirectIndex === null) {
+      alert("لا يوجد رابط للتحويل إليه.");
+      window.location.href = "tasks.html";
+    } else {
+      // بدء العد التنازلي
+      const interval = setInterval(() => {
+        countdown--;
+        countdownEl.textContent = countdown;
+
+        if (countdown === 0) {
+          clearInterval(interval);
+
+          // فتح الرابط في نافذة جديدة (اختياري: يمكنك تغييره حسب الرغبة)
+          window.open(redirectLink, '_blank');
+
+          // حفظ المهمة المنجزة ليتم تسجيلها عند العودة
+          localStorage.setItem('justCompletedLink', redirectIndex);
+
+          // العودة إلى صفحة المهام بعد ثانية واحدة (أو أي مدة تريدها)
           setTimeout(() => {
-            window.location.href = links[i];
-          }, 5000);
-        } else {
-          messageBox.innerText = "الرابط غير موجود.";
+            window.location.href = "tasks.html";
+          }, 1000);
         }
-      };
-      buttonsContainer.appendChild(btn);
+      }, 1000);
     }
   </script>
 
