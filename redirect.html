@@ -2,78 +2,61 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>جارٍ التحويل...</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
-      font-family: 'Tajawal', sans-serif;
       background-color: #121212;
-      color: #e0e0e0;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
+      color: #eee;
+      font-family: 'Tajawal', sans-serif;
       text-align: center;
-      padding: 20px;
-    }
-    h2 {
-      color: #4caf50;
-      margin-bottom: 20px;
-      font-size: 26px;
-    }
-    p {
-      font-size: 20px;
-      margin-bottom: 30px;
+      padding: 40px;
     }
     .countdown {
       font-size: 48px;
-      font-weight: bold;
-      color: #81c784;
+      margin-top: 20px;
+      color: #1DB954;
+    }
+    .message {
+      font-size: 20px;
+      margin-top: 10px;
+      color: #eee;
     }
   </style>
 </head>
 <body>
-
-  <h2>جارٍ التحويل إلى الرابط المختصر</h2>
-  <p>سيتم التحويل تلقائيًا خلال</p>
+  <h1>جارٍ التحويل للرابط المختصر...</h1>
   <div class="countdown" id="countdown">5</div>
+  <div class="message" id="message">يرجى الانتظار قليلاً.</div>
 
   <script>
     const countdownEl = document.getElementById('countdown');
-    let countdown = 5;
+    const messageEl = document.getElementById('message');
 
-    // استرجاع الرابط ورقم المهمة من localStorage
+    // جلب الرابط من localStorage
     const redirectLink = localStorage.getItem('redirect_link');
-    const redirectIndex = localStorage.getItem('redirect_index');
 
-    if (!redirectLink || redirectIndex === null) {
-      alert("لا يوجد رابط للتحويل إليه.");
-      window.location.href = "tasks.html";
+    if (!redirectLink) {
+      messageEl.textContent = "❌ لا يوجد رابط للتحويل.";
+      countdownEl.style.display = 'none';
     } else {
-      // بدء العد التنازلي
+      let countdown = 5;
       const interval = setInterval(() => {
         countdown--;
         countdownEl.textContent = countdown;
 
         if (countdown === 0) {
           clearInterval(interval);
-
-          // فتح الرابط في نافذة جديدة (اختياري: يمكنك تغييره حسب الرغبة)
+          messageEl.textContent = "يتم الآن تحويلك...";
+          // فتح الرابط في نافذة جديدة
           window.open(redirectLink, '_blank');
-
-          // حفظ المهمة المنجزة ليتم تسجيلها عند العودة
-          localStorage.setItem('justCompletedLink', redirectIndex);
-
-          // العودة إلى صفحة المهام بعد ثانية واحدة (أو أي مدة تريدها)
-          setTimeout(() => {
-            window.location.href = "tasks.html";
-          }, 1000);
+          // حذف الرابط من localStorage لتجنب مشاكل التحويل لاحقاً
+          localStorage.removeItem('redirect_link');
+          // رجوع للصفحة السابقة (صفحة المهام)
+          window.location.href = 'tasks.html'; 
         }
       }, 1000);
     }
   </script>
-
 </body>
 </html>
