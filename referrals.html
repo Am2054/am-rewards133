@@ -2,160 +2,50 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>الإحالات | Am Rewards</title>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal&display=swap" rel="stylesheet" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
-      margin: 0;
       font-family: 'Tajawal', sans-serif;
       background-color: #121212;
-      color: #e0e0e0;
+      color: #eee;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
       padding: 20px;
       text-align: center;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
     }
-    .referral-box {
+    .container {
+      max-width: 450px;
       background: #1e1e1e;
-      border-radius: 12px;
-      padding: 30px;
-      margin: auto;
-      max-width: 480px;
-      box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+      padding: 30px 25px;
+      border-radius: 15px;
+      box-shadow: 0 0 15px #00e5ff88;
+      user-select: none;
     }
     h1 {
-      margin-bottom: 10px;
+      color: #00e5ff;
+      margin-bottom: 20px;
       font-size: 28px;
-      color: #4caf50;
     }
-    p.message {
+    p {
       font-size: 18px;
-      margin: 15px 0 30px;
-      color: #a5d6a7;
+      line-height: 1.5;
+      color: #ccc;
     }
-    h2 {
+    .emoji {
+      font-size: 50px;
       margin-bottom: 15px;
-      color: #81c784;
-    }
-    input[type="text"] {
-      width: 100%;
-      padding: 12px;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      background-color: #2a2a2a;
-      color: #e0e0e0;
-      user-select: all;
-    }
-    button {
-      margin-top: 15px;
-      background-color: #4caf50;
-      color: white;
-      padding: 12px 25px;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    button:hover {
-      background-color: #388e3c;
-    }
-    .info {
-      margin-top: 25px;
-      font-size: 17px;
-      color: #b0b0b0;
-    }
-    .info span {
-      color: #81c784;
-      font-weight: bold;
-    }
-    .copy-message {
-      margin-top: 12px;
-      font-size: 15px;
-      color: #66bb6a;
-      height: 20px;
-      min-height: 20px;
     }
   </style>
 </head>
 <body>
-  <div class="referral-box" role="region" aria-label="نظام الإحالات">
+  <div class="container" role="main" aria-label="صفحة الإحالات">
+    <div class="emoji">⏳</div>
     <h1>نظام الإحالات</h1>
-    <p class="message">هتكسب <strong>10%</strong> من ربح كل إحالة نشطة</p>
-
-    <h2>رابط الإحالة الخاص بك:</h2>
-    <input type="text" id="referralLink" readonly disabled aria-label="رابط الإحالة الخاص بك" />
-    <button id="copyButton" aria-label="نسخ رابط الإحالة">نسخ الرابط</button>
-    <div class="copy-message" id="copyMessage" aria-live="polite" role="status"></div>
-
-    <div class="info" aria-live="polite">
-      <p>عدد الأشخاص الذين قاموا بالتسجيل عن طريقك: <span id="referralCount">0</span></p>
-      <p>النقاط المكتسبة من الإحالات: <span id="referralPoints">0</span></p>
-    </div>
+    <p>سيتم توفير نظام الإحالات قريبًا إن شاء الله.<br />شكراً لصبركم وثقتكم في <strong>Am Rewards</strong>!</p>
   </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards",
-      storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "134081937894",
-      appId: "1:134081937894:web:b6dbdc67c4fc04b4cb1086",
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth();
-    const db = getFirestore();
-
-    const referralInput = document.getElementById("referralLink");
-    const copyButton = document.getElementById("copyButton");
-    const copyMessage = document.getElementById("copyMessage");
-    const referralCount = document.getElementById("referralCount");
-    const referralPoints = document.getElementById("referralPoints");
-
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const uid = user.uid;
-        const link = `${location.origin}/signup.html?ref=${uid}`;
-        referralInput.value = link;
-        referralInput.disabled = false;
-
-        const userRef = doc(db, "users", uid);
-        const userSnap = await getDoc(userRef);
-
-        if (userSnap.exists()) {
-          const data = userSnap.data();
-          referralCount.textContent = data.referrals || 0;
-          referralPoints.textContent = data.referralPoints ? data.referralPoints.toFixed(2) : "0";
-        }
-      } else {
-        // لو المستخدم مش مسجل دخول
-        referralInput.value = "";
-        referralInput.disabled = true;
-        referralCount.textContent = "0";
-        referralPoints.textContent = "0";
-      }
-    });
-
-    copyButton.onclick = () => {
-      referralInput.select();
-      referralInput.setSelectionRange(0, 99999);
-      navigator.clipboard.writeText(referralInput.value).then(() => {
-        copyMessage.textContent = "تم نسخ الرابط بنجاح!";
-        setTimeout(() => (copyMessage.textContent = ""), 3000);
-      }).catch(() => {
-        copyMessage.textContent = "فشل في النسخ، حاول مرة أخرى.";
-      });
-    };
-  </script>
 </body>
 </html>
