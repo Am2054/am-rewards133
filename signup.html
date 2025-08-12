@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>إنشاء حساب | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
@@ -32,18 +32,33 @@
       color: white;
       font-weight: bold;
       cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:disabled {
+      background-color: #a5d6a7;
+      cursor: not-allowed;
+    }
+    #success {
+      color: green;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    #error {
+      color: red;
+      margin-top: 15px;
     }
   </style>
 </head>
 <body>
-
   <div class="signup-container">
     <h2>إنشاء حساب جديد</h2>
     <input type="text" id="name" placeholder="الاسم الكامل" required />
     <input type="email" id="email" placeholder="البريد الإلكتروني" required />
     <input type="password" id="password" placeholder="كلمة المرور" required />
-    <button onclick="signup()">إنشاء الحساب</button>
-    <p id="error" style="color:red;"></p>
+    <input type="password" id="confirmPassword" placeholder="تأكيد كلمة المرور" required />
+    <button id="signupBtn" onclick="signup()">إنشاء الحساب</button>
+    <p id="error"></p>
+    <p id="success"></p>
   </div>
 
   <!-- Firebase SDK -->
@@ -67,15 +82,44 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
+    function validateEmail(email) {
+      // تحقق بسيط من صيغة البريد الإلكتروني
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return re.test(email);
+    }
+
     function signup() {
       const name = document.getElementById("name").value.trim();
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
 
-      if (!name || !email || !password) {
-        document.getElementById("error").innerText = "الرجاء ملء جميع الحقول.";
+      const errorElem = document.getElementById("error");
+      const successElem = document.getElementById("success");
+      const btn = document.getElementById("signupBtn");
+
+      errorElem.textContent = "";
+      successElem.textContent = "";
+
+      if (!name || !email || !password || !confirmPassword) {
+        errorElem.textContent = "الرجاء ملء جميع الحقول.";
         return;
       }
+      if (!validateEmail(email)) {
+        errorElem.textContent = "الرجاء إدخال بريد إلكتروني صالح.";
+        return;
+      }
+      if (password.length < 6) {
+        errorElem.textContent = "كلمة المرور يجب أن تكون 6 أحرف على الأقل.";
+        return;
+      }
+      if (password !== confirmPassword) {
+        errorElem.textContent = "كلمة المرور وتأكيدها غير متطابقين.";
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "جاري إنشاء الحساب...";
 
       auth.createUserWithEmailAndPassword(email, password)
         .then((userCredential) => {
@@ -90,10 +134,15 @@
           });
         })
         .then(() => {
-          window.location.href = "dashboard.html";
+          successElem.textContent = "✅ تم إنشاء الحساب بنجاح! جاري تحويلك...";
+          setTimeout(() => {
+            window.location.href = "dashboard.html";
+          }, 2000);
         })
         .catch((error) => {
-          document.getElementById("error").innerText = error.message;
+          errorElem.textContent = error.message;
+          btn.disabled = false;
+          btn.textContent = "إنشاء الحساب";
         });
     }
   </script>
