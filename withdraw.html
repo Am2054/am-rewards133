@@ -1,99 +1,202 @@
-<!DOCTYPE html><html lang="ar" dir="rtl">
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>طلب سحب الأرباح</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <title>طلب سحب الأرباح | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
   <style>
-    body {
-      margin: 0;
-      font-family: 'Cairo', sans-serif;
-      background-color: #111;
-      color: white;
-      padding: 20px;
+    :root{
+      --bg:#0b0f14; --panel:#121821; --muted:#9aa4b2; --text:#e8eef6; --brand:#10b981; --brand-2:#22d3ee; --danger:#ef4444; --accent:#6366f1;
     }
-    .container {
-      max-width: 500px;
-      margin: auto;
-      background-color: #1e1e1e;
-      padding: 30px;
-      border-radius: 15px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:'Cairo',sans-serif; background:radial-gradient(1000px 500px at 80% -20%, #0f172a33, transparent), linear-gradient(180deg,#0b0f14 0%, #0a121a 100%);
+      color:var(--text); min-height:100vh; padding:24px;
     }
-    h2 {
-      text-align: center;
-      margin-bottom: 25px;
+    .wrap{max-width:720px; margin:0 auto}
+    .card{
+      background:linear-gradient(180deg,#0f1621 0%, #0e141d 100%); border:1px solid #243140; box-shadow:0 10px 40px rgba(0,0,0,.4);
+      border-radius:18px; padding:22px;
     }
-    label {
-      display: block;
-      margin-top: 15px;
+    h1{margin:0 0 12px; font-size:26px; font-weight:800}
+    .sub{color:var(--muted); margin-bottom:18px}
+    .balance{
+      display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:12px 0 18px;
     }
-    input, select, button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 8px;
-      border-radius: 10px;
-      border: none;
-      font-size: 16px;
+    .pill{
+      background:#0c121a; border:1px solid #1f2a36; border-radius:14px; padding:14px;
     }
-    input, select {
-      background-color: #2c2c2c;
-      color: white;
+    .pill .label{color:var(--muted); font-size:14px}
+    .pill .val{font-weight:800; font-size:20px; margin-top:4px}
+    .mt{margin-top:14px}
+    label{display:block; margin:12px 0 6px; color:#cdd6e1; font-weight:700}
+    input, select{
+      width:100%; padding:12px 14px; border-radius:12px; border:1px solid #233140; background:#0b1219; color:var(--text); font-size:16px; outline:none;
     }
-    button {
-      background-color: #4caf50;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 20px;
+    input::placeholder{color:#6b7280}
+    .row{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+    .help{color:var(--muted); font-size:13px; margin-top:6px}
+    .calc{
+      display:flex; gap:12px; flex-wrap:wrap; margin-top:14px;
     }
-    .note {
-      font-size: 14px;
-      color: #ccc;
-      margin-top: 10px;
+    .chip{
+      background:#0b1219; border:1px dashed #2a3a4d; border-radius:12px; padding:10px 12px; font-size:14px;
     }
-    .balance-box {
-      background-color: #333;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-      text-align: center;
+    .note{margin-top:14px; color:#aab4c2; font-size:14px; line-height:1.8}
+    .hint{margin-top:8px; color:#93c5fd; font-size:13px}
+    .divider{height:1px; background:#1e2a38; margin:18px 0}
+    button{
+      width:100%; padding:14px; border:none; border-radius:12px; background:linear-gradient(90deg,var(--brand) 0%, var(--brand-2) 100%);
+      color:#002d2a; font-weight:900; font-size:16px; cursor:pointer; box-shadow:0 10px 30px rgba(16,185,129,.25);
+      transition:transform .08s ease;
     }
-    .success-msg {
-      color: #ffeb3b;
-      text-align: center;
-      margin-top: 15px;
+    button:active{transform:translateY(1px)}
+    .danger{background:linear-gradient(90deg,#ef4444,#f59e0b); color:#111}
+    .warn{color:#f59e0b}
+    .center{text-align:center}
+    .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    .method-box{display:none}
+    .show{display:block}
+    .footer{
+      margin-top:14px; display:grid; grid-template-columns:1fr 1fr; gap:10px; color:var(--muted); font-size:13px;
     }
+    /* Confirm Modal */
+    .modal{
+      position:fixed; inset:0; display:none; place-items:center; background:rgba(0,0,0,.6); z-index:50;
+    }
+    .modal.show{display:grid}
+    .modal .inner{
+      width:min(520px,92vw); background:var(--panel); border:1px solid #233140; border-radius:16px; padding:18px;
+    }
+    .modal h3{margin:0 0 10px; font-size:20px}
+    .modal p{margin:6px 0; color:#c7d2fe}
+    .modal .grid-2{margin-top:12px}
+    .muted{color:var(--muted)}
+    .success{color:#34d399; margin-top:10px}
+    .error{color:#fca5a5; margin-top:10px}
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>💸 طلب سحب الأرباح</h2><div class="balance-box">
-  رصيدك الحالي: <strong id="current-balance">0</strong> جنيه
-</div>
+  <div class="wrap">
+    <div class="card">
+      <h1>💸 طلب سحب الأرباح</h1>
+      <div class="sub">تحويل نقاطك إلى أرباحك بلمسة واحدة — مع خصم 10% رسوم خدمة.</div>
 
-<label for="method">طريقة الدفع:</label>
-<select id="method">
-  <option value="vodafone">فودافون كاش</option>
-</select>
+      <!-- أرصدة -->
+      <div class="balance">
+        <div class="pill">
+          <div class="label">رصيدك بالنقاط</div>
+          <div class="val" id="pointsVal">0 نقطة</div>
+        </div>
+        <div class="pill">
+          <div class="label">يعادل (جنيه / دولار)</div>
+          <div class="val"><span id="egpVal">0</span> جم · <span id="usdVal">0</span> $</div>
+          <div class="help">سعر الدولار الحالى: <span id="usdRate">—</span> جم</div>
+        </div>
+      </div>
 
-<label for="phone">رقم المحفظة:</label>
-<input type="text" id="phone" placeholder="ادخل رقم فودافون كاش">
+      <!-- اختيار الطريقة -->
+      <div class="row mt">
+        <div>
+          <label for="method">طريقة الدفع</label>
+          <select id="method">
+            <option value="vodafone">فودافون كاش (EGP)</option>
+            <option value="paypal">PayPal (USD)</option>
+          </select>
+        </div>
+        <div>
+          <label for="amount">المبلغ المطلوب</label>
+          <input type="number" id="amount" step="0.01" placeholder="المبلغ (EGP أو $)">
+          <div class="help" id="limitsHelp">الحدود حسب الطريقة المختارة.</div>
+        </div>
+      </div>
 
-<label for="amount">المبلغ المطلوب (جنيه):</label>
-<input type="number" id="amount" placeholder="من 15 إلى 150">
+      <!-- مدخلات بحسب الطريقة -->
+      <div id="box-vodafone" class="method-box show">
+        <label for="wallet">رقم محفظة فودافون كاش</label>
+        <input type="text" id="wallet" placeholder="01xxxxxxxxx">
+      </div>
 
-<button onclick="submitWithdrawal()">سحب</button>
+      <div id="box-paypal" class="method-box">
+        <label for="paypalEmail">بريد PayPal</label>
+        <input type="email" id="paypalEmail" placeholder="example@email.com">
+        <div class="hint">تأكد أن حسابك يستقبل أموالًا.</div>
+      </div>
 
-<div class="note">
-  الحد الأدنى: 15 جنيه | الحد الأقصى: 150 جنيه<br>
-  يتم خصم 10% إذا تجاوز المبلغ 30 جنيه.<br>
-  يمكن السحب 3 مرات يوميًا.
-</div>
+      <!-- حساب الخصم -->
+      <div class="calc">
+        <div class="chip">خصم الخدمة 10%: <span id="feeVal">0</span></div>
+        <div class="chip">سيصلك: <strong id="netVal">0</strong></div>
+        <div class="chip">النقاط المطلوبة: <span id="needPts">0</span></div>
+      </div>
 
-<div class="success-msg" id="message"></div>
+      <div class="divider"></div>
 
-  </div>  <!-- Firebase SDK -->  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>  <script>
-    const POINT_VALUE_EGP = 0.07;
+      <!-- ملخص القيود اليومية -->
+      <div class="grid-2">
+        <div class="pill">
+          <div class="label">المتبقي عدد الطلبات اليوم (الطريقة المختارة)</div>
+          <div class="val" id="leftCount">—</div>
+          <div class="help">حد أقصى 3 طلبات لكل طريقة يوميًا</div>
+        </div>
+        <div class="pill">
+          <div class="label">المتبقي من الحد الأقصى اليومي</div>
+          <div class="val" id="leftCap">—</div>
+          <div class="help" id="capHelp">—</div>
+        </div>
+      </div>
+
+      <div id="msg" class="error" style="display:none;"></div>
+      <div id="ok" class="success" style="display:none;"></div>
+
+      <div class="mt">
+        <button id="submitBtn" onclick="openConfirm()">إرسال الطلب</button>
+      </div>
+
+      <div class="note">
+        • حد أدنى: <strong>20 جنيه</strong> لفودافون كاش، <strong>$0.50</strong> لبايبال.<br>
+        • حد أقصى يومي: <strong>150 جنيه</strong> لفودافون كاش، <strong>$3</strong> لبايبال — لا يتجاوز إجمالي طلباتك هذا الحد.<br>
+        • تُخصم رسوم خدمة <strong>10%</strong> من المبلغ المطلوب. الحسابات تتم آليًا.
+      </div>
+
+      <div class="footer">
+        <div>يتم تسجيل جميع الطلبات لعرضها في صفحة الإدارة.</div>
+        <div class="center">🤝 شكراً لاستخدامك Am Rewards</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة تأكيد -->
+  <div class="modal" id="confirmModal" role="dialog" aria-modal="true">
+    <div class="inner">
+      <h3>تأكيد طلب السحب</h3>
+      <p class="muted">يرجى مراجعة التفاصيل قبل الإرسال:</p>
+      <p>الطريقة: <strong id="c_method">—</strong></p>
+      <p>المطلوب: <strong id="c_gross">—</strong></p>
+      <p>الخصم (10%): <strong id="c_fee">—</strong></p>
+      <p>سيصلك: <strong id="c_net">—</strong></p>
+      <p>النقاط المخصومة: <strong id="c_pts">—</strong></p>
+      <div class="grid-2">
+        <button class="danger" onclick="closeConfirm()">رجوع</button>
+        <button onclick="submitWithdrawal()">تأكيد الإرسال</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    // --- الإعدادات الأساسية ---
+    const POINT_VALUE_EGP = 0.07; // قيمة النقطة بالجنيه
+    const LIMITS = {
+      vodafone: {min: 20, maxDaily: 150, maxCount: 3, currency: 'EGP', label: 'فودافون كاش'},
+      paypal:   {min: 0.5, maxDaily: 3,  maxCount: 3, currency: 'USD', label: 'PayPal'}
+    };
+
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
@@ -101,73 +204,340 @@
     };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-    const db = firebase.firestore();
+    const db   = firebase.firestore();
 
-    let userDocRef;
-    let currentEGP = 0;
-    let currentPoints = 0;
+    // عناصر DOM
+    const pointsVal = document.getElementById('pointsVal');
+    const egpVal    = document.getElementById('egpVal');
+    const usdVal    = document.getElementById('usdVal');
+    const usdRateEl = document.getElementById('usdRate');
 
-    auth.onAuthStateChanged(async (user) => {
-      if (!user) {
-        window.location.href = 'login.html';
+    const methodSel = document.getElementById('method');
+    const amountInp = document.getElementById('amount');
+    const walletInp = document.getElementById('wallet');
+    const ppEmail   = document.getElementById('paypalEmail');
+
+    const boxVod = document.getElementById('box-vodafone');
+    const boxPP  = document.getElementById('box-paypal');
+
+    const feeVal  = document.getElementById('feeVal');
+    const netVal  = document.getElementById('netVal');
+    const needPts = document.getElementById('needPts');
+
+    const leftCount = document.getElementById('leftCount');
+    const leftCap   = document.getElementById('leftCap');
+    const capHelp   = document.getElementById('capHelp');
+
+    const msg = document.getElementById('msg');
+    const ok  = document.getElementById('ok');
+    const limitsHelp = document.getElementById('limitsHelp');
+
+    // تأكيد
+    const modal = document.getElementById('confirmModal');
+    const c_method = document.getElementById('c_method');
+    const c_gross  = document.getElementById('c_gross');
+    const c_fee    = document.getElementById('c_fee');
+    const c_net    = document.getElementById('c_net');
+    const c_pts    = document.getElementById('c_pts');
+
+    // متغيرات حالة
+    let usdRate = null;       // سعر $ بالدولار (EGP per USD)
+    let userRef = null;
+    let userData = null;
+    let todayStats = { // لكل طريقة
+      vodafone: {count:0, total:0},
+      paypal:   {count:0, total:0}
+    };
+
+    // جلب سعر الدولار (بدون مفاتيح)
+    async function fetchUsdRate(){
+      try{
+        // نجلب سعر USD مقابل EGP
+        const res = await fetch('https://api.exchangerate.host/latest?base=USD&symbols=EGP');
+        const data = await res.json();
+        usdRate = data && data.rates && data.rates.EGP ? Number(data.rates.EGP) : null;
+        usdRateEl.textContent = usdRate ? usdRate.toFixed(2) + ' جم' : '—';
+        updateView(); // بعد التحديث
+      }catch(e){
+        usdRateEl.textContent = 'تعذر التحديث';
+      }
+    }
+
+    function fmt(n){
+      return (Math.round(n * 100) / 100).toFixed(2);
+    }
+
+    function updateLimitsHelp(){
+      const m = methodSel.value;
+      const L = LIMITS[m];
+      limitsHelp.textContent =
+        (m==='vodafone'
+          ? `الحد الأدنى ${L.min} جم — الحد الأقصى اليومي ${L.maxDaily} جم — بحد ${L.maxCount} طلبات`
+          : `الحد الأدنى $${L.min} — الحد الأقصى اليومي $${L.maxDaily} — بحد ${L.maxCount} طلبات`);
+      capHelp.textContent =
+        (m==='vodafone'
+          ? 'الحد الأقصى اليومي: 150 جنيه'
+          : 'الحد الأقصى اليومي: 3 دولار');
+    }
+
+    function switchMethodUI(){
+      const m = methodSel.value;
+      boxVod.classList.toggle('show', m==='vodafone');
+      boxPP.classList.toggle('show',  m==='paypal');
+      amountInp.value = '';
+      calc();
+      updateDailyLeftUI();
+      updateLimitsHelp();
+    }
+
+    function pointsToEGP(pts){
+      return pts * POINT_VALUE_EGP;
+    }
+    function egpToPoints(egp){
+      return Math.ceil(egp / POINT_VALUE_EGP);
+    }
+
+    function updateView(){
+      if(!userData) return;
+      const pts = Number(userData.points||0);
+      pointsVal.textContent = `${pts} نقطة`;
+      const egp = pointsToEGP(pts);
+      egpVal.textContent = fmt(egp);
+      if(usdRate){
+        const usd = egp / usdRate;
+        usdVal.textContent = fmt(usd);
+      } else {
+        usdVal.textContent = '—';
+      }
+    }
+
+    function calc(){
+      hideAlerts();
+      const m = methodSel.value;
+      const L = LIMITS[m];
+      const gross = Number(amountInp.value || 0);
+      if(!gross || gross <= 0){
+        feeVal.textContent = '0';
+        netVal.textContent = '0';
+        needPts.textContent = '0';
         return;
       }
-      userDocRef = db.collection('users').doc(user.uid);
-      const doc = await userDocRef.get();
-      const data = doc.data();
-      const totalPoints = data.points || 0;
-      const withdrawn = data.withdrawn || 0;
-      const totalEGP = totalPoints * POINT_VALUE_EGP;
-      const withdrawnEGP = withdrawn * POINT_VALUE_EGP;
-      currentEGP = totalEGP - withdrawnEGP;
-      currentPoints = totalPoints;
-      document.getElementById('current-balance').textContent = currentEGP.toFixed(2);
+      // خصم 10%
+      const fee = gross * 0.10;
+      const net = gross - fee;
+
+      // النقاط المطلوبة: نحول "الصافي" إلى جنيه أولًا
+      let neededPoints;
+      if(m==='vodafone'){
+        // المبلغ بالجنيه
+        neededPoints = egpToPoints(net);
+      }else{
+        // المبلغ بالدولار -> نحوله لجنيه بسعر اليوم
+        if(!usdRate){ neededPoints = NaN; }
+        else{
+          const egp = net * usdRate;
+          neededPoints = egpToPoints(egp);
+        }
+      }
+
+      feeVal.textContent = (m==='vodafone' ? fmt(fee) + ' جم' : '$' + fmt(fee));
+      netVal.textContent = (m==='vodafone' ? fmt(net) + ' جم' : '$' + fmt(net));
+      needPts.textContent = isNaN(neededPoints) ? '—' : neededPoints;
+    }
+
+    function hideAlerts(){ msg.style.display='none'; ok.style.display='none'; }
+    function showErr(t){ msg.textContent=t; msg.style.display='block'; }
+    function showOk(t){ ok.textContent=t; ok.style.display='block'; }
+
+    function openConfirm(){
+      hideAlerts();
+      // تحقق مبدئي قبل التأكيد
+      const m = methodSel.value;
+      const L = LIMITS[m];
+      const gross = Number(amountInp.value || 0);
+      if(m==='vodafone'){
+        if(!walletInp.value || walletInp.value.trim().length < 10) return showErr('❌ يرجى إدخال رقم محفظة صحيح');
+      }else{
+        if(!ppEmail.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ppEmail.value)) return showErr('❌ يرجى إدخال بريد PayPal صحيح');
+      }
+      if(!gross || gross < L.min) return showErr(`❌ الحد الأدنى لهذه الطريقة هو ${m==='vodafone' ? (L.min+' جنيه') : ('$'+L.min)}`);
+
+      // خصم وNet
+      const fee = gross * 0.10;
+      const net = gross - fee;
+
+      // تحقق من سعر الدولار لبايبال
+      if(m==='paypal' && !usdRate) return showErr('❌ لم نتمكن من تحديث سعر الدولار الآن. أعد المحاولة بعد لحظات.');
+
+      // تحقق من النقاط المتاحة
+      let neededPts;
+      if(m==='vodafone'){
+        neededPts = egpToPoints(net);
+      }else{
+        const egp = net * usdRate;
+        neededPts = egpToPoints(egp);
+      }
+      const userPts = Number(userData?.points || 0);
+      if(neededPts > userPts) return showErr('❌ لا توجد نقاط كافية لهذا السحب.');
+
+      // تحقق من القيود اليومية: العدد + السقف المالي
+      const usedCount = todayStats[m].count;
+      const usedTotal = todayStats[m].total; // نجمع بالقيمة حسب عملة الطريقة
+      if(usedCount >= L.maxCount) return showErr('❌ وصلت للحد الأقصى لعدد طلبات اليوم لهذه الطريقة (3).');
+      if(usedTotal + gross > L.maxDaily){
+        const left = Math.max(L.maxDaily - usedTotal, 0);
+        return showErr(`❌ المتاح لك اليوم لا يتجاوز ${m==='vodafone' ? (fmt(left)+' جنيه') : ('$'+fmt(left))}.`);
+      }
+
+      // املأ نافذة التأكيد
+      c_method.textContent = L.label + (m==='vodafone' ? ' (EGP)' : ' (USD)');
+      c_gross.textContent  = m==='vodafone' ? (fmt(gross)+' جنيه') : ('$'+fmt(gross));
+      c_fee.textContent    = m==='vodafone' ? (fmt(fee)+' جنيه')  : ('$'+fmt(fee));
+      c_net.textContent    = m==='vodafone' ? (fmt(net)+' جنيه')   : ('$'+fmt(net));
+      c_pts.textContent    = neededPts;
+
+      modal.classList.add('show');
+    }
+    function closeConfirm(){ modal.classList.remove('show'); }
+
+    async function submitWithdrawal(){
+      // جمع القيم النهائية كما في التأكيد
+      const m = methodSel.value;
+      const L = LIMITS[m];
+      const gross = Number(amountInp.value || 0);
+      const fee = gross * 0.10;
+      const net = gross - fee;
+
+      // حساب النقاط المطلوبة مرة أخرى
+      let neededPts;
+      let netInEGP;
+      if(m==='vodafone'){
+        neededPts = egpToPoints(net);
+        netInEGP = net;
+      }else{
+        const egp = net * usdRate;
+        netInEGP = egp;
+        neededPts = egpToPoints(egp);
+      }
+
+      const uid = auth.currentUser.uid;
+
+      // تنفيذ: خصم النقاط + تسجيل الطلب
+      try{
+        // خصم النقاط من وثيقة المستخدم
+        await userRef.update({
+          points: firebase.firestore.FieldValue.increment(-neededPts),
+          withdrawn: firebase.firestore.FieldValue.increment(neededPts)
+        });
+
+        // سجل الطلب للإدارة
+        await db.collection('withdraw_requests').add({
+          uid,
+          method: m,
+          currency: L.currency,                    // 'EGP' أو 'USD'
+          amountRequested: gross,                  // المبلغ الذي أدخله المستخدم (قبل الخصم)
+          fee: Number(fmt(fee)),
+          amountAfterFee: Number(fmt(net)),
+          // تحويل الصافي إلى جنيه لتوحيد التقارير:
+          netInEGP: Number(fmt(netInEGP)),
+          // بيانات التواصل
+          wallet: m==='vodafone' ? walletInp.value.trim() : null,
+          paypalEmail: m==='paypal' ? ppEmail.value.trim() : null,
+          status: 'جاري المعالجة',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // تحديث واجهة القيود اليومية
+        todayStats[m].count += 1;
+        todayStats[m].total += gross;
+
+        showOk('✅ تم إرسال الطلب بنجاح — جاري المعالجة.');
+        closeConfirm();
+        // تفريغ الحقول
+        amountInp.value = '';
+        if(m==='vodafone') walletInp.value = '';
+        if(m==='paypal')  ppEmail.value = '';
+        calc();
+        updateDailyLeftUI();
+        // تحديث عرض الرصيد من المستخدم بعد الخصم
+        await reloadUser();
+      }catch(e){
+        console.error(e);
+        showErr('❌ حدث خطأ أثناء الإرسال. حاول مرة أخرى.');
+      }
+    }
+
+    function updateDailyLeftUI(){
+      const m = methodSel.value;
+      const L = LIMITS[m];
+      const usedC = todayStats[m].count;
+      const usedT = todayStats[m].total;
+      leftCount.textContent = `${Math.max(L.maxCount - usedC, 0)} / ${L.maxCount}`;
+      const leftAmount = Math.max(L.maxDaily - usedT, 0);
+      leftCap.textContent = m==='vodafone' ? `${fmt(leftAmount)} جم` : `$${fmt(leftAmount)}`;
+    }
+
+    function startOfToday(){
+      const d = new Date();
+      d.setHours(0,0,0,0);
+      return d;
+    }
+    function endOfToday(){
+      const d = new Date();
+      d.setHours(23,59,59,999);
+      return d;
+    }
+
+    async function loadTodayStats(uid){
+      // نجلب لكل طريقة على حدة
+      for(const m of ['vodafone','paypal']){
+        const L = LIMITS[m];
+        const qs = await db.collection('withdraw_requests')
+          .where('uid','==', uid)
+          .where('method','==', m)
+          .where('createdAt','>=', startOfToday())
+          .where('createdAt','<=', endOfToday())
+          .get();
+
+        let count=0, total=0;
+        qs.forEach(doc => {
+          const x = doc.data();
+          // نجمع على أساس "amountRequested" بعملة الطريقة
+          total += Number(x.amountRequested || 0);
+          count += 1;
+        });
+        todayStats[m] = {count, total};
+      }
+      updateDailyLeftUI();
+    }
+
+    async function reloadUser(){
+      const snap = await userRef.get();
+      userData = snap.data() || {};
+      updateView();
+    }
+
+    // أحداث
+    methodSel.addEventListener('change', switchMethodUI);
+    amountInp.addEventListener('input', calc);
+    walletInp.addEventListener('input', hideAlerts);
+    ppEmail.addEventListener('input', hideAlerts);
+
+    // بداية الجلسة
+    auth.onAuthStateChanged(async (user)=>{
+      if(!user){ window.location.href='index.html'; return; }
+      userRef = db.collection('users').doc(user.uid);
+      await reloadUser();
+      await fetchUsdRate();
+      await loadTodayStats(user.uid);
+      switchMethodUI();
+      calc();
     });
 
-    async function submitWithdrawal() {
-      const amount = parseFloat(document.getElementById('amount').value);
-      const phone = document.getElementById('phone').value;
-      const method = document.getElementById('method').value;
-      const msg = document.getElementById('message');
-      msg.textContent = '';
-
-      if (!amount || amount < 15 || amount > 150) {
-        msg.textContent = '❌ المبلغ يجب أن يكون بين 15 و 150 جنيه';
-        return;
-      }
-
-      if (!phone || phone.length < 10) {
-        msg.textContent = '❌ يرجى إدخال رقم صحيح';
-        return;
-      }
-
-      let finalAmount = amount;
-      if (amount > 30) finalAmount *= 0.9;
-
-      const requiredPoints = Math.ceil(finalAmount / POINT_VALUE_EGP);
-      if (currentPoints < requiredPoints) {
-        msg.textContent = '❌ لا يوجد نقاط كافية للسحب';
-        return;
-      }
-
-      await userDocRef.update({
-        withdrawn: firebase.firestore.FieldValue.increment(requiredPoints),
-        points: firebase.firestore.FieldValue.increment(-requiredPoints)
-      });
-
-      await db.collection("withdraw_requests").add({
-        uid: auth.currentUser.uid,
-        phone,
-        method,
-        amount,
-        afterDiscount: finalAmount,
-        status: 'جاري المعالجة',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      msg.textContent = '✅ تم إرسال الطلب بنجاح - جاري المعالجة';
-      document.getElementById('amount').value = '';
-      document.getElementById('phone').value = '';
-    }
-  </script></body>
-  </html>
+    // إغلاق المودال بالنقر خارج المحتوى
+    modal.addEventListener('click', (e)=>{ if(e.target===modal) closeConfirm(); });
+    function closeOnEsc(e){ if(e.key==='Escape') closeConfirm(); }
+    window.addEventListener('keydown', closeOnEsc);
+  </script>
+</body>
+          </html>
