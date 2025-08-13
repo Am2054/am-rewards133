@@ -1,232 +1,256 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8">
   <title>طلب سحب الأرباح | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    :root{
-      --bg:#0b0f14; --panel:#121821; --muted:#9aa4b2; --text:#e8eef6;
-      --brand:#10b981; --brand-2:#22d3ee; --danger:#ef4444; --accent:#6366f1;
-      --warning:#f59e0b;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0; font-family:'Cairo',sans-serif;
-      background:radial-gradient(1000px 500px at 80% -20%, #0f172a33, transparent),
-                 linear-gradient(180deg,#0b0f14,#0a121a);
-      color:var(--text); min-height:100vh; padding:24px;
-    }
-    .wrap{max-width:720px; margin:0 auto}
-    .card{
-      background:linear-gradient(180deg,#0f1621,#0e141d);
-      border:1px solid #243140; box-shadow:0 10px 40px rgba(0,0,0,.4);
-      border-radius:18px; padding:22px;
-    }
-    h1{margin:0 0 12px; font-size:26px; font-weight:800}
-    .sub{color:var(--muted); margin-bottom:16px}
-    .alert{
-      background:var(--warning); padding:12px; border-radius:8px; margin-bottom:16px;
-      color:#000; font-weight:700; font-size:14px;
-    }
-    .status{
-      margin-top:14px; font-size:15px; padding:10px; border-radius:8px;
-      text-align:center;
-    }
-    .status.pending{background:#2196f3;}
-    .status.paid{background:#4caf50;}
-    .balance{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px}
-    .pill{background:#0c121a; border:1px solid #1f2a36; border-radius:14px; padding:14px}
-    .pill .label{color:var(--muted); font-size:14px}
-    .pill .val{font-weight:800; font-size:20px; margin-top:4px}
-    label{display:block; margin:12px 0 6px; font-weight:700}
-    input, select, .chip{width:100%; padding:12px; margin-top:6px; border-radius:8px;
-      border:1px solid #233140; background:#0b1219; color:var(--text); font-size:15px;}
-    .chip{border-style:dashed; margin-top:14px;}
-    .divider{height:1px; background:#1e2a38; margin:18px 0}
-    button{
-      width:100%; padding:14px; border:none; border-radius:12px;
-      background:linear-gradient(90deg,var(--brand),var(--brand-2));
-      color:#001e1b; font-weight:900; font-size:16px;
-      cursor:pointer; box-shadow:0 8px 20px rgba(16,185,129,.25);
-      transition:transform .08s ease;
-    }
-    button:active{transform:translateY(2px)}
-    .modal{position:fixed; inset:0; display:none; place-items:center; background:rgba(0,0,0,.6); z-index:50}
-    .modal.show{display:grid}
-    .modal .inner{background:var(--panel); border-radius:12px; padding:18px; width:90%; max-width:480px}
-    .modal h3{margin-bottom:10px}
-    .modal p{margin:6px 0; color:var(--muted)}
-    .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
-    .error{color:var(--danger); font-size:14px; margin-top:10px}
+    body { font-family: 'Cairo', sans-serif; background:#f5f5f5; margin:0; padding:0; }
+    .container { max-width:600px; margin:50px auto; background:#fff; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
+    h1 { text-align:center; margin-bottom:20px; }
+    label { display:block; margin:10px 0 5px; }
+    input, select, button { width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:5px; }
+    .wallet-box { display:none; margin-bottom:10px; }
+    .wallet-box.show { display:block; }
+    .info { display:flex; justify-content:space-between; margin-bottom:10px; }
+    .info div { width:48%; background:#f0f0f0; padding:10px; border-radius:5px; text-align:center; }
+    #confirmModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; }
+    #confirmModal.show { display:flex; }
+    .modal-content { background:#fff; padding:20px; border-radius:10px; max-width:400px; width:90%; }
+    .modal-content h2 { text-align:center; margin-bottom:20px; }
+    .modal-content div { margin-bottom:10px; }
+    .modal-buttons { display:flex; justify-content:space-between; }
+    .modal-buttons button { width:48%; }
+    .msg { color:red; text-align:center; margin-bottom:10px; }
+    .ok { color:green; text-align:center; margin-bottom:10px; }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>💸 طلب سحب الأرباح</h1>
-      <div class="sub">نخصم 10% رسوم خدمة، وتُعالج الطلبات خلال 0–24 ساعة.</div>
-      
-      <!-- إنذار زمني -->
-      <div class="alert">⏳ ملاحظة: عملية السحب تستغرق من 0 إلى 24 ساعة للمراجعة.</div>
-      
-      <!-- الحالة الافتراضية -->
-      <div id="reqStatus" class="status pending" style="display:none;">جاري المعالجة...</div>
+  <div class="container">
+    <h1>طلب سحب الأرباح</h1>
+    <div class="info">
+      <div>رصيدك: <span id="pointsVal">0</span></div>
+      <div>ما يعادل: <span id="egpVal">0.00</span> جم</div>
+    </div>
 
-      <!-- الرصيد -->
-      <div class="balance">
-        <div class="pill">
-          <div class="label">رصيدك بالنقاط</div>
-          <div class="val" id="pointsVal">0</div>
-        </div>
-        <div class="pill">
-          <div class="label">ما يعادله (جنيه / دولار)</div>
-          <div class="val"><span id="egpVal">0</span> جم · <span id="usdVal">0</span> $</div>
-          <div class="help">سعر الدولار: <span id="usdRate">—</span> جم</div>
-        </div>
-      </div>
+    <label for="methodSel">اختر طريقة الدفع</label>
+    <select id="methodSel">
+      <option value="vodafone">فودافون كاش</option>
+      <option value="etisalat">اتصالات كاش</option>
+      <option value="orange">اورنج كاش</option>
+    </select>
 
-      <!-- نموذج السحب -->
-      <label for="method">طريقة الدفع</label>
-      <select id="method">
-        <option value="vodafone">فودافون كاش (EGP)</option>
-        <option value="paypal">PayPal (USD)</option>
-      </select>
-      <label for="amount">المبلغ المطلوب</label>
-      <input type="number" id="amount" step="0.01" placeholder="EGP أو $">
-      <div class="help" id="limitsHelp">الحدود حسب الطريقة.</div>
-      
-      <div id="box-vodafone" class="method-box show">
-        <label for="wallet">رقم محفظة فودافون</label>
-        <input type="text" id="wallet" placeholder="01xxxxxxxxx">
-      </div>
-      <div id="box-paypal" class="method-box">
-        <label for="paypalEmail">بريد PayPal</label>
-        <input type="email" id="paypalEmail" placeholder="example@email.com">
-      </div>
+    <div id="box-vodafone" class="wallet-box show">
+      <label>رقم محفظة فودافون</label>
+      <input type="text" id="walletVod" placeholder="ادخل رقم المحفظة">
+    </div>
+    <div id="box-etisalat" class="wallet-box">
+      <label>رقم محفظة اتصالات</label>
+      <input type="text" id="walletEts" placeholder="ادخل رقم المحفظة">
+    </div>
+    <div id="box-orange" class="wallet-box">
+      <label>رقم محفظة اورنج</label>
+      <input type="text" id="walletOrg" placeholder="ادخل رقم المحفظة">
+    </div>
 
-      <div class="chip">رسوم 10%: <span id="feeVal">0</span></div>
-      <div class="chip">سيصلك: <span id="netVal">0</span></div>
-      <div class="chip">النقاط المطلوبة: <span id="needPts">0</span></div>
+    <label>المبلغ المراد سحبه</label>
+    <input type="number" id="amountInp" placeholder="ادخل المبلغ">
 
-      <div class="divider"></div>
+    <div class="info">
+      <div>الخصم: <span id="feeVal">0.00</span> جم</div>
+      <div>صافي المبلغ: <span id="netVal">0.00</span> جم</div>
+    </div>
+    <div>النقاط المطلوبة: <span id="needPts">0</span></div>
+    <div>الحد المتبقي اليومي: <span id="leftCap">0</span></div>
+    <div>عدد الطلبات المتبقية: <span id="leftCount">0</span></div>
 
-      <!-- الطلبات المتبقية -->
-      <div class="grid-2">
-        <div class="pill">
-          <div class="label">طلبات اليوم المتبقية</div>
-          <div class="val" id="leftCount">—</div>
-        </div>
-        <div class="pill">
-          <div class="label">المبلغ المتبقي اليوم</div>
-          <div class="val" id="leftCap">—</div>
-        </div>
-      </div>
+    <button id="confirmBtn">تأكيد السحب</button>
 
-      <div id="msg" class="error" style="display:none;"></div>
-      <button onclick="openConfirm()">إرسال الطلب</button>
+    <div class="msg" id="msg"></div>
+    <div class="ok" id="ok"></div>
+  </div>
 
-      <div class="note">
-        • الحد الأدنى: 20 جم (فودافون) – $0.50 (PayPal).<br>
-        • الحد الأقصى يوميًا: 150 جم / 3$.
+  <div id="confirmModal">
+    <div class="modal-content">
+      <h2>تأكيد طلب السحب</h2>
+      <div>طريقة الدفع: <span id="c_method"></span></div>
+      <div>المبلغ الإجمالي: <span id="c_gross"></span></div>
+      <div>الخصم: <span id="c_fee"></span></div>
+      <div>صافي المبلغ: <span id="c_net"></span></div>
+      <div>النقاط المستخدمة: <span id="c_pts"></span></div>
+      <div class="modal-buttons">
+        <button onclick="submitWithdrawal()">تأكيد</button>
+        <button onclick="closeConfirm()">إلغاء</button>
       </div>
     </div>
   </div>
 
-  <!-- Confirm Modal -->
-  <div class="modal" id="confirmModal">
-    <div class="inner">
-      <h3>تأكيد السحب</h3>
-      <p>راجع المعلومات قبل الإرسال:</p>
-      <p>الطريقة: <strong id="c_method">—</strong></p>
-      <p>المبلغ: <strong id="c_gross">—</strong></p>
-      <p>الخصم 10%: <strong id="c_fee">—</strong></p>
-      <p>تصل إليك: <strong id="c_net">—</strong></p>
-      <p>النقاط المطلوبة: <strong id="c_pts">—</strong></p>
-      <div class="grid-2">
-        <button class="danger" onclick="closeConfirm()">رجوع</button>
-        <button onclick="submitWithdrawal()">تأكيد وارسال</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- سكربت Firebase & JS -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script>
-    const POINT_VALUE_EGP = 0.07;
-    const LIMITS = {
-      vodafone: {min:20, maxDaily:150, maxCount:3, currency:'EGP',label:'فودافون'},
-      paypal: {min:0.5, maxDaily:3, maxCount:3, currency:'USD',label:'PayPal'}
-    };
+    // إعداد Firebase
     const firebaseConfig = {
-      apiKey: "...", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards"
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.firebasestorage.app",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112",
+      measurementId: "G-CV3GLT2TTJ"
     };
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth(), db = firebase.firestore();
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-    // DOM elements...
-    const statusDiv = document.getElementById('reqStatus');
-    // (plus other elements as in your original script)
+    const POINT_VALUE_EGP = 0.07; // قيمة النقطة بالجيبه
+    const LIMITS = {
+      vodafone: { label:'فودافون كاش', min:25, maxDaily:100, maxCount:3 },
+      etisalat: { label:'اتصالات كاش', min:25, maxDaily:100, maxCount:3 },
+      orange: { label:'اورنج كاش', min:25, maxDaily:100, maxCount:3 }
+    };
 
-    let usdRate = null, userRef, userData=null, todayStats={vodafone:{count:0,total:0},paypal:{count:0,total:0}};
+    const methodSel = document.getElementById('methodSel');
+    const amountInp = document.getElementById('amountInp');
+    const pointsVal = document.getElementById('pointsVal');
+    const egpVal = document.getElementById('egpVal');
 
-    function fmt(n){return (Math.round((+n||0)*100)/100).toFixed(2);}
-    function pointsToEGP(pts){return pts*POINT_VALUE_EGP;}
-    function egpToPoints(egp){return Math.ceil((+egp||0)/POINT_VALUE_EGP);}
-    function showError(msg){ msgDiv.textContent=msg; msgDiv.style.display='block'; }
-    function hideError(){ msgDiv.style.display='none'; }
+    const walletVod = document.getElementById('walletVod');
+    const walletEts = document.getElementById('walletEts');
+    const walletOrg = document.getElementById('walletOrg');
 
-    async function fetchUsdRate(){ try{
-      const resp=await fetch('https://api.exchangerate.host/latest?base=USD&symbols=EGP');
-      const data=await resp.json(); usdRate=data.rates.EGP||null;
-      document.getElementById('usdRate').textContent=usdRate?fmt(usdRate):'—';
-      updateBalances();
-    }catch(e){ document.getElementById('usdRate').textContent='تعذر التحديث'; }}
+    const boxVodafone = document.getElementById('box-vodafone');
+    const boxEtisalat = document.getElementById('box-etisalat');
+    const boxOrange = document.getElementById('box-orange');
 
-    function updateBalances(){
-      if(!userData) return;
-      const pts=Number(userData.points||0);
-      document.getElementById('pointsVal').textContent=pts+'';
-      const egp=pointsToEGP(pts);
-      document.getElementById('egpVal').textContent=fmt(egp);
-      document.getElementById('usdVal').textContent= usdRate?fmt(egp/usdRate):'—';
-    }
+    const feeVal = document.getElementById('feeVal');
+    const netVal = document.getElementById('netVal');
+    const needPts = document.getElementById('needPts');
 
-    async function loadLatestRequestStatus(uid){
-      const snap = await db.collection('withdraw_requests')
-        .where('uid','==',uid)
-        .orderBy('createdAt','desc')
-        .limit(1)
-        .get();
-      if(snap.empty){
-        statusDiv.style.display='none';
-        return;
+    const leftCount = document.getElementById('leftCount');
+    const leftCap = document.getElementById('leftCap');
+
+    const msg = document.getElementById('msg');
+    const ok = document.getElementById('ok');
+
+    const confirmModal = document.getElementById('confirmModal');
+    const c_method = document.getElementById('c_method');
+    const c_gross = document.getElementById('c_gross');
+    const c_fee = document.getElementById('c_fee');
+    const c_net = document.getElementById('c_net');
+    const c_pts = document.getElementById('c_pts');
+
+    let userData = null;
+
+    function updateDisplay() {
+      if (!userData) return;
+      const points = userData.points || 0;
+      pointsVal.textContent = points + ' نقطة';
+      const egp = points * POINT_VALUE_EGP;
+      egpVal.textContent = egp.toFixed(2);
+
+      const method = methodSel.value;
+      const limit = LIMITS[method];
+
+      const withdrawalsToday = userData.withdrawals?.filter(w => w.method === method && isToday(new Date(w.date))) || [];
+      const withdrawnAmountToday = withdrawalsToday.reduce((acc,w)=>acc+w.amount,0);
+      const leftAmount = limit.maxDaily - withdrawnAmountToday;
+      const leftRequests = limit.maxCount - withdrawalsToday.length;
+
+      leftCount.textContent = leftRequests>0?leftRequests:0;
+      leftCap.textContent = leftAmount>0?leftAmount.toFixed(2)+' جم':'0.00 جم';
+
+      const amt = parseFloat(amountInp.value);
+      if(isNaN(amt)||amt<limit.min||amt>leftAmount||leftRequests<=0){
+        feeVal.textContent='0.00'; netVal.textContent='0.00'; needPts.textContent='0'; return;
       }
-      const st = snap.docs[0].data().status;
-      statusDiv.style.display='block';
-      statusDiv.textContent = st==='تم الدفع'?'تم الدفع':'جاري المعالجة...';
-      statusDiv.className = 'status ' + (st==='تم الدفع'?'paid':'pending');
+      const fee = amt*0.10;
+      const net = amt - fee;
+      const neededPoints = Math.ceil(amt/POINT_VALUE_EGP);
+      feeVal.textContent=fee.toFixed(2); netVal.textContent=net.toFixed(2); needPts.textContent=neededPoints;
     }
 
-    // Rest of your JS logic (switchMethodUI, calc, openConfirm, submitWithdrawal, etc.),
-    // plus call to loadLatestRequestStatus(user.uid) after auth success.
+    function isToday(date){ const now=new Date(); return date.getDate()===now.getDate() && date.getMonth()===now.getMonth() && date.getFullYear()===now.getFullYear(); }
 
-    auth.onAuthStateChanged(async user=>{
-      if(!user) return window.location.href='login.html';
-      userRef = db.collection('users').doc(user.uid);
-      const snap = await userRef.get(); userData=snap.data();
-      updateBalances();
-      await fetchUsdRate();
-      await loadLatestRequestStatus(user.uid);
-      // also loadTodayStats(), switchMethodUI(), calc(), etc.
+    methodSel.addEventListener('change',()=>{
+      const val=methodSel.value;
+      boxVodafone.classList.toggle('show',val==='vodafone');
+      boxEtisalat.classList.toggle('show',val==='etisalat');
+      boxOrange.classList.toggle('show',val==='orange');
+      updateDisplay();
     });
 
-    // And in submitWithdrawal(), after adding request to Firestore,
-    // call loadLatestRequestStatus(user.uid) to refresh status immediately.
+    amountInp.addEventListener('input',updateDisplay);
+    methodSel.addEventListener('change',updateDisplay);
 
+    document.getElementById('confirmBtn').addEventListener('click',()=>openConfirm());
+
+    function openConfirm(){
+      msg.style.display='none'; ok.style.display='none';
+      if(!userData){ msg.textContent='يرجى تسجيل الدخول أولاً.'; msg.style.display='block'; return; }
+
+      const method = methodSel.value;
+      const limit = LIMITS[method];
+      const amt = parseFloat(amountInp.value);
+      if(isNaN(amt)){ msg.textContent='يرجى إدخال مبلغ صالح.'; msg.style.display='block'; return; }
+      if(amt<limit.min){ msg.textContent=`الحد الأدنى للسحب هو ${limit.min} جنيه.`; msg.style.display='block'; return; }
+      if(userData.points*POINT_VALUE_EGP<amt){ msg.textContent='رصيدك غير كافٍ.'; msg.style.display='block'; return; }
+
+      const withdrawalsToday = userData.withdrawals?.filter(w=>w.method===method && isToday(new Date(w.date)))||[];
+      const withdrawnAmountToday = withdrawalsToday.reduce((acc,w)=>acc+w.amount,0);
+      const leftAmount = limit.maxDaily-withdrawnAmountToday;
+      const leftRequests = limit.maxCount-withdrawalsToday.length;
+      if(amt>leftAmount){ msg.textContent=`الحد الأقصى المتبقي للسحب اليومي هو ${leftAmount.toFixed(2)} جنيه.`; msg.style.display='block'; return; }
+      if(leftRequests<=0){ msg.textContent='وصلت الحد الأقصى لعدد الطلبات اليوم.'; msg.style.display='block'; return; }
+
+      let walletNumber=''; if(method==='vodafone') walletNumber=walletVod.value.trim();
+      else if(method==='etisalat') walletNumber=walletEts.value.trim();
+      else if(method==='orange') walletNumber=walletOrg.value.trim();
+      if(!walletNumber.match(/^01[0-9]{9}$/)){ msg.textContent='يرجى إدخال رقم محفظة صالح (11 رقم يبدأ بـ01).'; msg.style.display='block'; return; }
+
+      const fee = amt*0.10; const net = amt-fee; const neededPoints = Math.ceil(amt/POINT_VALUE_EGP);
+      c_method.textContent=limit.label; c_gross.textContent=amt.toFixed(2)+' جم';
+      c_fee.textContent=fee.toFixed(2)+' جم'; c_net.textContent=net.toFixed(2)+' جم'; c_pts.textContent=neededPoints+' نقطة';
+      confirmModal.classList.add('show');
+    }
+
+    function closeConfirm(){ confirmModal.classList.remove('show'); }
+
+    async function submitWithdrawal(){
+      const method = methodSel.value; const limit=LIMITS[method]; const amt=parseFloat(amountInp.value);
+      const fee=amt*0.10; const net=amt-fee; const neededPoints=Math.ceil(amt/POINT_VALUE_EGP);
+      let walletNumber=''; if(method==='vodafone') walletNumber=walletVod.value.trim();
+      else if(method==='etisalat') walletNumber=walletEts.value.trim();
+      else if(method==='orange') walletNumber=walletOrg.value.trim();
+      if(!userData){ msg.textContent='يرجى تسجيل الدخول أولاً.'; msg.style.display='block'; confirmModal.classList.remove('show'); return; }
+
+      try{
+        const userRef=db.collection('users').doc(userData.uid); const userDoc=await userRef.get();
+        if(!userDoc.exists){ msg.textContent='حصل خطأ، بيانات المستخدم غير موجودة.'; msg.style.display='block'; confirmModal.classList.remove('show'); return; }
+        const currentPoints=userDoc.data().points||0; if(currentPoints<neededPoints){ msg.textContent='رصيدك غير كافٍ.'; msg.style.display='block'; confirmModal.classList.remove('show'); return; }
+
+        const withdrawalData={ uid:userData.uid, method:method, wallet:walletNumber, amount:amt, fee:fee, net:net, pointsUsed:neededPoints, date:new Date().toISOString(), status:'pending' };
+
+        await db.runTransaction(async t=>{ const doc=await t.get(userRef); const pts=doc.data().points||0; if(pts<neededPoints) throw 'رصيد النقاط غير كافٍ'; t.update(userRef,{points:pts-neededPoints}); const withdrawalsRef=userRef.collection('withdrawals'); t.set(withdrawalsRef.doc(),withdrawalData); });
+
+        ok.textContent='تم إرسال طلب السحب بنجاح. سيتم المعالجة خلال 24 ساعة.'; ok.style.display='block'; msg.style.display='none';
+        userData.points-=neededPoints; userData.withdrawals.push(withdrawalData); updateDisplay();
+        confirmModal.classList.remove('show'); amountInp.value=''; walletVod.value=''; walletEts.value=''; walletOrg.value='';
+      } catch(error){ msg.textContent='حدث خطأ أثناء إرسال الطلب: '+error; msg.style.display='block'; confirmModal.classList.remove('show'); }
+    }
+
+    auth.onAuthStateChanged(async user=>{
+      if(user){
+        const userRef=db.collection('users').doc(user.uid); const doc=await userRef.get();
+        if(!doc.exists){ await userRef.set({points:1500,withdrawals:[]}); userData={uid:user.uid,points:1500,withdrawals:[]}; }
+        else userData={uid:user.uid,...doc.data()};
+        updateDisplay();
+      } else auth.signInAnonymously().catch(console.error);
+    });
+
+    window.onload=()=>{ updateDisplay(); };
   </script>
 </body>
-  </html> 
+  </html>
