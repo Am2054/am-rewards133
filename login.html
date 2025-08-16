@@ -25,19 +25,20 @@
       overflow: hidden;
     }
 
-    /* خلفية متحركة */
+    /* خلفية ثابتة مع نقوش كثيفة وألوان محسنة */
     body::before {
       content: "";
       position: absolute;
       width: 200%;
       height: 200%;
-      background: repeating-radial-gradient(circle, rgba(0,188,212,0.08) 2px, transparent 4px);
-      animation: moveBg 20s linear infinite;
+      background: repeating-radial-gradient(
+        circle,
+        rgba(0,188,212,0.15) 1px,
+        transparent 3px,
+        rgba(255,255,255,0.05) 4px,
+        transparent 6px
+      );
       z-index: -1;
-    }
-    @keyframes moveBg {
-      from { transform: translate(0,0); }
-      to { transform: translate(-200px,-200px); }
     }
 
     .form-box {
@@ -140,14 +141,12 @@
 
     let isLogin = true;
 
-    // ✅ عرض الرسائل جوة الصندوق
     function showMessage(text, type="success") {
       const msg = document.getElementById("msg");
       msg.textContent = text;
       msg.className = "message " + type;
     }
 
-    // ✅ تغيير بين login / signup
     window.toggleMode = function () {
       isLogin = !isLogin;
       document.getElementById("login-form").classList.toggle("hidden", !isLogin);
@@ -157,7 +156,6 @@
       document.getElementById("msg").textContent = "";
     };
 
-    // ✅ تسجيل الدخول
     window.login = async function () {
       const email = document.getElementById("login-email").value.trim();
       const password = document.getElementById("login-password").value.trim();
@@ -178,7 +176,6 @@
         const result = await signInWithEmailAndPassword(auth, email, password);
         const uid = result.user.uid;
 
-        // تحقق من بيانات Firestore
         const userRef = doc(db, "users", uid);
         const snapshot = await getDoc(userRef);
 
@@ -205,7 +202,6 @@
       }
     };
 
-    // ✅ إنشاء حساب
     window.signup = async function () {
       const email = document.getElementById("signup-email").value.trim();
       const password = document.getElementById("signup-password").value.trim();
@@ -222,7 +218,6 @@
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const uid = userCredential.user.uid;
 
-        // إنشاء document للمستخدم
         await setDoc(doc(db, "users", uid), {
           email: email,
           points: 0,
@@ -247,4 +242,4 @@
     };
   </script>
 </body>
-  </html>
+</html>
