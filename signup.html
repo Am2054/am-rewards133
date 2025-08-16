@@ -1,24 +1,150 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<title>اختبار الحقول</title>
-<style>
-body { font-family: sans-serif; background:#222; color:#fff; display:flex; justify-content:center; align-items:center; height:100vh; margin:0; }
-.container { background:#333; padding:20px; border-radius:10px; width:300px; text-align:center; }
-input, button { width:90%; margin:5px 0; padding:10px; border-radius:5px; border:none; }
-</style>
+  <meta charset="UTF-8">
+  <title>إنشاء حساب | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: #0d0d0d;
+      color: #eee;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .signup-container {
+      background: #1e1e1e;
+      padding: 25px 30px;
+      border-radius: 15px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+    h2 { margin-bottom: 20px; color: #00e5ff; }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 12px;
+      border-radius: 10px;
+      border: 1px solid #333;
+      font-size: 16px;
+      outline: none;
+      background: #111;
+      color: #eee;
+    }
+    button { cursor: pointer; border: none; }
+    button:hover { opacity: 0.9; }
+    #success { color: #00e676; font-weight: bold; margin-top: 10px; }
+    #error { color: #ff5252; font-weight: bold; margin-top: 10px; }
+  </style>
 </head>
 <body>
-<div class="container">
-<h2>إنشاء حساب جديد</h2>
-<input type="text" placeholder="الاسم الكامل">
-<input type="email" placeholder="البريد الإلكتروني">
-<input type="tel" placeholder="رقم الهاتف">
-<input type="password" placeholder="كلمة المرور">
-<input type="password" placeholder="تأكيد كلمة المرور">
-<button>إنشاء الحساب</button>
-</div>
+  <div class="signup-container">
+    <h2>إنشاء حساب جديد</h2>
+
+    <input type="text" id="name" placeholder="الاسم الكامل" required>
+    <input type="tel" id="phone" placeholder="رقم الهاتف (مصر فقط)" required>
+    <input type="email" id="email" placeholder="البريد الإلكتروني" required>
+    <input type="password" id="password" placeholder="كلمة المرور" required>
+    <input type="password" id="confirmPassword" placeholder="تأكيد كلمة المرور" required>
+
+    <button id="signupBtn" onclick="signup()">إنشاء الحساب</button>
+    <p id="error"></p>
+    <p id="success"></p>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    function validateEgyptianPhone(phone) {
+      return /^(010|011|012|015)[0-9]{8}$/.test(phone);
+    }
+
+    async function signup() {
+      const name = document.getElementById("name").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+
+      const errorElem = document.getElementById("error");
+      const successElem = document.getElementById("success");
+      const btn = document.getElementById("signupBtn");
+      errorElem.textContent = "";
+      successElem.textContent = "";
+
+      if (!name || !phone || !email || !password || !confirmPassword) {
+        errorElem.textContent = "⚠️ الرجاء ملء جميع الحقول.";
+        return;
+      }
+      if (!validateEgyptianPhone(phone)) {
+        errorElem.textContent = "⚠️ رقم الهاتف يجب أن يكون مصري صحيح.";
+        return;
+      }
+      if (password.length < 6) {
+        errorElem.textContent = "⚠️ كلمة المرور يجب أن تكون 6 أحرف على الأقل.";
+        return;
+      }
+      if (password !== confirmPassword) {
+        errorElem.textContent = "⚠️ كلمة المرور وتأكيدها غير متطابقين.";
+        return;
+      }
+
+      // التحقق من الدولة عبر IP
+      try {
+        const res = await fetch("https://ipapi.co/json/");
+        const data = await res.json();
+        if (data.country_code !== "EG") {
+          errorElem.textContent = "❌ التسجيل متاح فقط داخل مصر.";
+          return;
+        }
+      } catch {
+        errorElem.textContent = "⚠️ تعذر التحقق من الموقع الجغرافي.";
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "جاري إنشاء الحساب...";
+
+      try {
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        const uid = userCredential.user.uid;
+
+        await db.collection("users").doc(uid).set({
+          name: name,
+          phone: phone,
+          email: email,
+          points: 0,
+          withdrawn: 0,
+          level: 1,
+          joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        successElem.textContent = "✅ تم إنشاء الحساب بنجاح! جاري تحويلك...";
+        setTimeout(() => { window.location.href = "dashboard.html"; }, 2000);
+
+      } catch (error) {
+        errorElem.textContent = "❌ " + error.message;
+        btn.disabled = false;
+        btn.textContent = "إنشاء الحساب";
+      }
+    }
+  </script>
 </body>
-</html>
-                                                                                        </html>
+  </html>
