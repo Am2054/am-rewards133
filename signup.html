@@ -155,26 +155,20 @@
       btn.textContent = "جاري إنشاء الحساب...";
 
       try {
-        // تحقق إذا البريد موجود مسبقًا
-        const emailCheck = await db.collection("users").where("email", "==", email).get();
-        if (!emailCheck.empty) {
-          errorElem.textContent = "❌ هذا البريد مستخدم بالفعل.";
-          btn.disabled = false;
-          btn.textContent = "إنشاء الحساب";
-          return;
-        }
-
-        // السماح بالإيميل الخاص بك مرة واحدة فقط
-        if (email === "amirfg992005@gmail.com" && !emailCheck.empty) {
-          errorElem.textContent = "❌ تم استخدام هذا البريد مسبقًا.";
-          btn.disabled = false;
-          btn.textContent = "إنشاء الحساب";
-          return;
-        }
-
+        // إنشاء الحساب
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
         const uid = userCredential.user.uid;
 
+        // منع تكرار استخدام بريد الأدمن
+        if (email === "amirfg992005@gmail.com" && !userCredential.additionalUserInfo.isNewUser) {
+          errorElem.textContent = "❌ هذا البريد تم استخدامه بالفعل.";
+          await userCredential.user.delete();
+          btn.disabled = false;
+          btn.textContent = "إنشاء الحساب";
+          return;
+        }
+
+        // تخزين بيانات المستخدم في Firestore
         await db.collection("users").doc(uid).set({
           name: name,
           email: email,
