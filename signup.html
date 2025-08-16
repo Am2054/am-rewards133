@@ -5,47 +5,88 @@
   <title>إنشاء حساب | Am Rewards</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+
     body {
-      font-family: 'Tajawal', sans-serif;
-      background-color: #f4f4f4;
+      font-family: 'Cairo', sans-serif;
+      background-color: #121212;
+      color: #f0f0f0;
       text-align: center;
       padding: 40px;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      /* نقش خفيف في الخلفية */
+      background-image: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 25px 25px;
     }
+
     .signup-container {
-      background-color: #fff;
+      background: rgba(30, 30, 30, 0.95);
       padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      max-width: 400px;
-      margin: auto;
+      border-radius: 15px;
+      box-shadow: 0 0 25px rgba(0, 188, 212, 0.4);
+      max-width: 420px;
+      width: 100%;
+      animation: fadeIn 0.8s ease-in-out;
     }
+
+    h2 {
+      margin-bottom: 20px;
+      color: #00bcd4;
+    }
+
     input, button {
       width: 90%;
-      padding: 10px;
+      padding: 12px;
       margin: 10px 0;
-      border: 1px solid #ddd;
-      border-radius: 8px;
+      border: none;
+      border-radius: 10px;
       font-size: 16px;
+      outline: none;
+      transition: 0.3s ease;
     }
+
+    input {
+      background-color: #1e1e1e;
+      color: #f0f0f0;
+      border: 1px solid #333;
+    }
+    input:focus {
+      border-color: #00bcd4;
+      box-shadow: 0 0 8px #00bcd4;
+    }
+
     button {
-      background-color: #00c853;
+      background: linear-gradient(135deg, #00c853, #4caf50);
       color: white;
       font-weight: bold;
       cursor: pointer;
-      transition: background-color 0.3s ease;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+    button:hover {
+      transform: scale(1.05);
     }
     button:disabled {
-      background-color: #a5d6a7;
+      background: #555;
       cursor: not-allowed;
+      transform: none;
     }
+
     #success {
-      color: green;
+      color: #00e676;
       margin-top: 15px;
       font-weight: bold;
     }
     #error {
-      color: red;
+      color: #ff5252;
       margin-top: 15px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
@@ -70,12 +111,7 @@
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
-      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
       projectId: "am--rewards",
-      storageBucket: "am--rewards.firebasestorage.app",
-      messagingSenderId: "744783579735",
-      appId: "1:744783579735:web:45e00de9998893bbc9b112",
-      measurementId: "G-CV3GLT2TTJ"
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -83,8 +119,7 @@
     const db = firebase.firestore();
 
     function validateEmail(email) {
-      // تحقق بسيط من صيغة البريد الإلكتروني
-      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const re = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
       return re.test(email);
     }
 
@@ -102,19 +137,36 @@
       successElem.textContent = "";
 
       if (!name || !email || !password || !confirmPassword) {
-        errorElem.textContent = "الرجاء ملء جميع الحقول.";
+        errorElem.textContent = "⚠️ الرجاء ملء جميع الحقول.";
         return;
       }
       if (!validateEmail(email)) {
-        errorElem.textContent = "الرجاء إدخال بريد إلكتروني صالح.";
+        errorElem.textContent = "⚠️ البريد الإلكتروني غير صالح.";
         return;
       }
       if (password.length < 6) {
-        errorElem.textContent = "كلمة المرور يجب أن تكون 6 أحرف على الأقل.";
+        errorElem.textContent = "⚠️ كلمة المرور يجب أن تكون 6 أحرف على الأقل.";
         return;
       }
       if (password !== confirmPassword) {
-        errorElem.textContent = "كلمة المرور وتأكيدها غير متطابقين.";
+        errorElem.textContent = "⚠️ كلمة المرور وتأكيدها غير متطابقين.";
+        return;
+      }
+
+      // منع بعض الكلمات من اليوزر
+      const bannedWords = ["admin", "owner", "test", "fake", "bot"];
+      if (bannedWords.some(word => email.toLowerCase().includes(word))) {
+        errorElem.textContent = "❌ لا يمكنك استخدام هذا البريد.";
+        return;
+      }
+
+      // باسورد لا يحتوي على الاسم أو الإيميل
+      if (password.toLowerCase().includes(email.split("@")[0].toLowerCase())) {
+        errorElem.textContent = "❌ كلمة المرور لا يجب أن تحتوي على البريد.";
+        return;
+      }
+      if (password.toLowerCase().includes(name.toLowerCase())) {
+        errorElem.textContent = "❌ كلمة المرور لا يجب أن تحتوي على اسمك.";
         return;
       }
 
@@ -129,6 +181,7 @@
             name: name,
             email: email,
             points: 0,
+            withdrawn: 0,
             level: 1,
             joinedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
@@ -140,7 +193,7 @@
           }, 2000);
         })
         .catch((error) => {
-          errorElem.textContent = error.message;
+          errorElem.textContent = "❌ " + error.message;
           btn.disabled = false;
           btn.textContent = "إنشاء الحساب";
         });
