@@ -1,63 +1,113 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>إنشاء حساب | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+
     body {
       font-family: 'Cairo', sans-serif;
       background: #0d0d0d;
-      color: #eee;
+      color: #f0f0f0;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      margin: 0;
+      min-height: 100vh;
     }
+
     .signup-container {
-      background: #1e1e1e;
-      padding: 25px 30px;
-      border-radius: 15px;
+      background: rgba(20, 20, 20, 0.95);
+      padding: 30px;
+      border-radius: 20px;
+      max-width: 420px;
       width: 100%;
-      max-width: 400px;
+      box-shadow: 0 0 25px rgba(0, 188, 212, 0.4);
       text-align: center;
     }
-    h2 { margin-bottom: 20px; color: #00e5ff; }
-    input, button {
-      width: 100%;
+
+    h2 {
+      margin-bottom: 20px;
+      color: #00e5ff;
+      text-shadow: 0 0 10px #00e5ff;
+    }
+
+    .signup-container input {
+      display: block;
+      width: 90%;
+      margin: 10px auto;
       padding: 12px;
-      margin-bottom: 12px;
       border-radius: 10px;
       border: 1px solid #333;
+      background-color: rgba(30,30,30,0.95);
+      color: #f0f0f0;
       font-size: 16px;
       outline: none;
-      background: #111;
-      color: #eee;
+      box-sizing: border-box;
     }
-    button { cursor: pointer; border: none; }
-    button:hover { opacity: 0.9; }
-    #success { color: #00e676; font-weight: bold; margin-top: 10px; }
-    #error { color: #ff5252; font-weight: bold; margin-top: 10px; }
+
+    .signup-container input:focus {
+      border-color: #00e5ff;
+      box-shadow: 0 0 12px #00e5ff;
+    }
+
+    button {
+      display: block;
+      width: 90%;
+      margin: 15px auto;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      background: linear-gradient(135deg, #00c853, #4caf50);
+      color: white;
+      transition: 0.3s ease;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px #00e676;
+    }
+
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    #success {
+      color: #00e676;
+      margin-top: 15px;
+      font-weight: bold;
+      text-shadow: 0 0 8px #00e676;
+    }
+
+    #error {
+      color: #ff5252;
+      margin-top: 15px;
+      font-weight: bold;
+      text-shadow: 0 0 8px #ff1744;
+    }
   </style>
 </head>
 <body>
   <div class="signup-container">
     <h2>إنشاء حساب جديد</h2>
 
-    <input type="text" id="name" placeholder="الاسم الكامل" required>
-    <input type="tel" id="phone" placeholder="رقم الهاتف (مصر فقط)" required>
-    <input type="email" id="email" placeholder="البريد الإلكتروني" required>
-    <input type="password" id="password" placeholder="كلمة المرور" required>
-    <input type="password" id="confirmPassword" placeholder="تأكيد كلمة المرور" required>
+    <input type="text" id="name" placeholder="الاسم الكامل" required />
+    <input type="email" id="email" placeholder="البريد الإلكتروني" required />
+    <input type="password" id="password" placeholder="كلمة المرور" required />
+    <input type="password" id="confirmPassword" placeholder="تأكيد كلمة المرور" required />
 
     <button id="signupBtn" onclick="signup()">إنشاء الحساب</button>
     <p id="error"></p>
     <p id="success"></p>
   </div>
 
-  <!-- Firebase -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -68,17 +118,13 @@
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
     };
+
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    function validateEgyptianPhone(phone) {
-      return /^(010|011|012|015)[0-9]{8}$/.test(phone);
-    }
-
     async function signup() {
       const name = document.getElementById("name").value.trim();
-      const phone = document.getElementById("phone").value.trim();
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
       const confirmPassword = document.getElementById("confirmPassword").value;
@@ -86,36 +132,22 @@
       const errorElem = document.getElementById("error");
       const successElem = document.getElementById("success");
       const btn = document.getElementById("signupBtn");
+
       errorElem.textContent = "";
       successElem.textContent = "";
 
-      if (!name || !phone || !email || !password || !confirmPassword) {
+      if (!name || !email || !password || !confirmPassword) {
         errorElem.textContent = "⚠️ الرجاء ملء جميع الحقول.";
         return;
       }
-      if (!validateEgyptianPhone(phone)) {
-        errorElem.textContent = "⚠️ رقم الهاتف يجب أن يكون مصري صحيح.";
-        return;
-      }
+
       if (password.length < 6) {
         errorElem.textContent = "⚠️ كلمة المرور يجب أن تكون 6 أحرف على الأقل.";
         return;
       }
+
       if (password !== confirmPassword) {
         errorElem.textContent = "⚠️ كلمة المرور وتأكيدها غير متطابقين.";
-        return;
-      }
-
-      // التحقق من الدولة عبر IP
-      try {
-        const res = await fetch("https://ipapi.co/json/");
-        const data = await res.json();
-        if (data.country_code !== "EG") {
-          errorElem.textContent = "❌ التسجيل متاح فقط داخل مصر.";
-          return;
-        }
-      } catch {
-        errorElem.textContent = "⚠️ تعذر التحقق من الموقع الجغرافي.";
         return;
       }
 
@@ -123,12 +155,28 @@
       btn.textContent = "جاري إنشاء الحساب...";
 
       try {
+        // تحقق إذا البريد موجود مسبقًا
+        const emailCheck = await db.collection("users").where("email", "==", email).get();
+        if (!emailCheck.empty) {
+          errorElem.textContent = "❌ هذا البريد مستخدم بالفعل.";
+          btn.disabled = false;
+          btn.textContent = "إنشاء الحساب";
+          return;
+        }
+
+        // السماح بالإيميل الخاص بك مرة واحدة فقط
+        if (email === "amirfg992005@gmail.com" && !emailCheck.empty) {
+          errorElem.textContent = "❌ تم استخدام هذا البريد مسبقًا.";
+          btn.disabled = false;
+          btn.textContent = "إنشاء الحساب";
+          return;
+        }
+
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
         const uid = userCredential.user.uid;
 
         await db.collection("users").doc(uid).set({
           name: name,
-          phone: phone,
           email: email,
           points: 0,
           withdrawn: 0,
@@ -141,6 +189,7 @@
 
       } catch (error) {
         errorElem.textContent = "❌ " + error.message;
+      } finally {
         btn.disabled = false;
         btn.textContent = "إنشاء الحساب";
       }
