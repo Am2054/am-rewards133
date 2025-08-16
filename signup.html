@@ -19,7 +19,7 @@
       overflow: hidden;
     }
 
-    /* 🔥 خلفية متحركة */
+    /* خلفية متحركة */
     body::before {
       content: "";
       position: absolute;
@@ -36,40 +36,16 @@
       to { transform: translate(-100px,-100px); }
     }
 
-    /* ✅ صندوق التسجيل */
+    /* صندوق التسجيل */
     .signup-container {
       position: relative;
       z-index: 1;
-      background: rgba(20, 20, 20, 0.9);
+      background: rgba(20, 20, 20, 0.95);
       padding: 30px;
       border-radius: 20px;
       max-width: 420px;
       width: 100%;
       box-shadow: 0 0 25px rgba(0, 188, 212, 0.4);
-      animation: float 6s ease-in-out infinite;
-      overflow: hidden;
-    }
-
-    /* 🌈 إطار متدرج متحرك */
-    .signup-container::before {
-      content: "";
-      position: absolute;
-      top: -2px; left: -2px; right: -2px; bottom: -2px;
-      background: linear-gradient(270deg, #00e5ff, #ff4081, #76ff03, #00e5ff);
-      background-size: 600% 600%;
-      border-radius: 20px;
-      z-index: -1;
-      animation: gradientBorder 10s ease infinite;
-    }
-    @keyframes gradientBorder {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    @keyframes float {
-      0%,100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
     }
 
     h2 {
@@ -78,38 +54,45 @@
       text-shadow: 0 0 10px #00e5ff;
     }
 
-    input, button {
+    .signup-container input {
+      display: block;
       width: 90%;
+      margin: 10px auto;
       padding: 12px;
-      margin: 10px 0;
-      border: none;
       border-radius: 10px;
+      border: 1px solid #333;
+      background-color: #1e1e1e;
+      color: #f0f0f0;
       font-size: 16px;
       outline: none;
       transition: 0.3s ease;
     }
 
-    input {
-      background-color: #1e1e1e;
-      color: #f0f0f0;
-      border: 1px solid #333;
-    }
-    input:focus {
+    .signup-container input:focus {
       border-color: #00e5ff;
       box-shadow: 0 0 12px #00e5ff;
     }
 
     button {
-      background: linear-gradient(135deg, #00c853, #4caf50);
-      color: white;
+      display: block;
+      width: 90%;
+      margin: 15px auto;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      font-size: 16px;
       font-weight: bold;
       cursor: pointer;
+      background: linear-gradient(135deg, #00c853, #4caf50);
+      color: white;
       transition: 0.3s ease;
     }
+
     button:hover {
       transform: scale(1.05);
       box-shadow: 0 0 15px #00e676;
     }
+
     button:disabled {
       background: #555;
       cursor: not-allowed;
@@ -122,21 +105,51 @@
       font-weight: bold;
       text-shadow: 0 0 8px #00e676;
     }
+
     #error {
       color: #ff5252;
       margin-top: 15px;
+      font-weight: bold;
       text-shadow: 0 0 8px #ff1744;
+    }
+
+    /* أيقونة العلم بجانب حقل الهاتف */
+    .phone-wrapper {
+      position: relative;
+      width: 90%;
+      margin: 10px auto;
+    }
+
+    .phone-wrapper input {
+      width: 100%;
+      padding-left: 40px;
+      box-sizing: border-box;
+    }
+
+    .phone-wrapper .flag {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 20px;
     }
   </style>
 </head>
 <body>
   <div class="signup-container">
     <h2>إنشاء حساب جديد</h2>
+
     <input type="text" id="name" placeholder="الاسم الكامل" required />
     <input type="email" id="email" placeholder="البريد الإلكتروني" required />
+
+    <div class="phone-wrapper">
+      <span class="flag">🇪🇬</span>
+      <input type="tel" id="phone" placeholder="رقم الهاتف (مصر فقط)" required />
+    </div>
+
     <input type="password" id="password" placeholder="كلمة المرور" required />
     <input type="password" id="confirmPassword" placeholder="تأكيد كلمة المرور" required />
-    <input type="tel" id="phone" placeholder="رقم الهاتف (مصر فقط)" required />
+
     <button id="signupBtn" onclick="signup()">إنشاء الحساب</button>
     <p id="error"></p>
     <p id="success"></p>
@@ -159,7 +172,7 @@
     const db = firebase.firestore();
 
     function validateEmail(email) {
-      const re = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       return re.test(email);
     }
 
@@ -203,7 +216,7 @@
         return;
       }
 
-      // ✅ التحقق من الـ IP
+      // التحقق من الدولة عبر IP
       try {
         const res = await fetch("https://ipapi.co/json/");
         const data = await res.json();
@@ -234,9 +247,7 @@
         })
         .then(() => {
           successElem.textContent = "✅ تم إنشاء الحساب بنجاح! جاري تحويلك...";
-          setTimeout(() => {
-            window.location.href = "dashboard.html";
-          }, 2000);
+          setTimeout(() => { window.location.href = "dashboard.html"; }, 2000);
         })
         .catch((error) => {
           errorElem.textContent = "❌ " + error.message;
@@ -246,4 +257,4 @@
     }
   </script>
 </body>
-      </html>
+</html>
