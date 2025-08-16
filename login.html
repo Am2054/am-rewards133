@@ -7,26 +7,37 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
     :root {
-      --light-bg: #f0f8ff;
-      --dark-bg: #121212;
-      --light-text: #023047;
+      --dark-bg: #0d0d0d;
       --dark-text: #eeeeee;
-      --light-box: #ffffff;
       --dark-box: #1e1e1e;
-      --light-shadow: rgba(0,0,0,0.1);
-      --dark-shadow: rgba(255,255,255,0.1);
       --glow: 0 0 15px #00bcd4;
     }
 
     body {
       font-family: 'Cairo', sans-serif;
-      background-color: var(--dark-bg);
+      background: radial-gradient(circle at top left, #0d0d0d, #121212, #1a1a1a);
       color: var(--dark-text);
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
       margin: 0;
+      overflow: hidden;
+    }
+
+    /* خلفية متحركة */
+    body::before {
+      content: "";
+      position: absolute;
+      width: 200%;
+      height: 200%;
+      background: repeating-radial-gradient(circle, rgba(0,188,212,0.08) 2px, transparent 4px);
+      animation: moveBg 20s linear infinite;
+      z-index: -1;
+    }
+    @keyframes moveBg {
+      from { transform: translate(0,0); }
+      to { transform: translate(-200px,-200px); }
     }
 
     .form-box {
@@ -37,9 +48,12 @@
       box-shadow: var(--glow);
       width: 100%;
       max-width: 400px;
+      text-align: center;
+      position: relative;
+      z-index: 1;
     }
 
-    h2 { text-align: center; }
+    h2 { margin-bottom: 20px; }
 
     input, button {
       width: 100%;
@@ -47,38 +61,53 @@
       margin-bottom: 15px;
       border-radius: 10px;
       font-size: 1rem;
-      border: 1px solid #ccc;
+      border: 1px solid #444;
+      background: #111;
+      color: #eee;
     }
 
-    .login-btn { background-color: #219ebc; color: white; }
-    .signup-btn { background-color: #fb8500; color: white; }
+    .login-btn { background-color: #219ebc; color: white; border: none; }
+    .signup-btn { background-color: #fb8500; color: white; border: none; }
 
     .switcher {
       background: none;
       border: none;
-      color: #ccc;
+      color: #aaa;
       text-decoration: underline;
       cursor: pointer;
       margin-top: 10px;
     }
 
     .hidden { display: none; }
+
+    /* رسائل */
+    .message {
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+    .error { color: #ff5252; }
+    .success { color: #00e676; }
   </style>
 </head>
-<body class="dark-mode">
+<body>
   <div class="form-box">
     <h2 id="form-title">تسجيل الدخول إلى Am Rewards</h2>
+
+    <div id="msg" class="message"></div>
+
     <div id="login-form">
       <input type="email" id="login-email" placeholder="البريد الإلكتروني" />
       <input type="password" id="login-password" placeholder="كلمة المرور" />
       <button class="login-btn" id="login-btn" onclick="login()">تسجيل الدخول</button>
     </div>
+
     <div id="signup-form" class="hidden">
       <input type="email" id="signup-email" placeholder="البريد الإلكتروني" />
       <input type="password" id="signup-password" placeholder="كلمة المرور" />
       <input type="password" id="signup-confirm" placeholder="تأكيد كلمة المرور" />
       <button class="signup-btn" id="signup-btn" onclick="signup()">إنشاء الحساب</button>
     </div>
+
     <button class="switcher" onclick="toggleMode()">أو أنشئ حساب جديد</button>
   </div>
 
@@ -111,6 +140,13 @@
 
     let isLogin = true;
 
+    // ✅ عرض الرسائل جوة الصندوق
+    function showMessage(text, type="success") {
+      const msg = document.getElementById("msg");
+      msg.textContent = text;
+      msg.className = "message " + type;
+    }
+
     // ✅ تغيير بين login / signup
     window.toggleMode = function () {
       isLogin = !isLogin;
@@ -118,6 +154,7 @@
       document.getElementById("signup-form").classList.toggle("hidden", isLogin);
       document.getElementById("form-title").textContent = isLogin ? "تسجيل الدخول إلى Am Rewards" : "إنشاء حساب جديد في Am Rewards";
       document.querySelector(".switcher").textContent = isLogin ? "أو أنشئ حساب جديد" : "أو سجّل الدخول";
+      document.getElementById("msg").textContent = "";
     };
 
     // ✅ تسجيل الدخول
@@ -126,7 +163,7 @@
       const password = document.getElementById("login-password").value.trim();
       const btn = document.getElementById("login-btn");
 
-      if (!email || !password) return alert("يرجى إدخال البريد وكلمة المرور");
+      if (!email || !password) return showMessage("يرجى إدخال البريد وكلمة المرور", "error");
 
       if (email === "owner@am.com" && password === "AmOwner@2025") {
         window.location.href = "admin.html";
@@ -141,27 +178,29 @@
         const result = await signInWithEmailAndPassword(auth, email, password);
         const uid = result.user.uid;
 
-        // ✅ تحقق أن المستخدم له بيانات في Firestore
+        // تحقق من بيانات Firestore
         const userRef = doc(db, "users", uid);
         const snapshot = await getDoc(userRef);
 
         if (!snapshot.exists()) {
-          alert("⚠️ الحساب غير موجود في النظام، برجاء التسجيل أولاً.");
+          showMessage("⚠️ الحساب غير موجود في النظام، برجاء التسجيل أولاً.", "error");
           btn.textContent = "تسجيل الدخول";
           btn.disabled = false;
           return;
         }
 
-        window.location.href = "dashboard.html";
+        showMessage("✅ تم تسجيل الدخول بنجاح!", "success");
+        setTimeout(()=> window.location.href = "dashboard.html", 1500);
+
       } catch (error) {
         btn.textContent = "تسجيل الدخول";
         btn.disabled = false;
         if (error.code === "auth/user-not-found") {
-          alert("الحساب غير موجود. برجاء التسجيل أولاً.");
+          showMessage("الحساب غير موجود. برجاء التسجيل أولاً.", "error");
         } else if (error.code === "auth/wrong-password") {
-          alert("كلمة المرور غير صحيحة.");
+          showMessage("كلمة المرور غير صحيحة.", "error");
         } else {
-          alert("خطأ: " + error.message);
+          showMessage("خطأ: " + error.message, "error");
         }
       }
     };
@@ -173,8 +212,8 @@
       const confirm = document.getElementById("signup-confirm").value.trim();
       const btn = document.getElementById("signup-btn");
 
-      if (!email || !password || !confirm) return alert("يرجى تعبئة جميع الحقول");
-      if (password !== confirm) return alert("كلمة المرور وتأكيدها غير متطابقين");
+      if (!email || !password || !confirm) return showMessage("يرجى تعبئة جميع الحقول", "error");
+      if (password !== confirm) return showMessage("كلمة المرور وتأكيدها غير متطابقين", "error");
 
       try {
         btn.textContent = "جاري التسجيل...";
@@ -183,7 +222,7 @@
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const uid = userCredential.user.uid;
 
-        // ✅ إنشاء document للمستخدم
+        // إنشاء document للمستخدم
         await setDoc(doc(db, "users", uid), {
           email: email,
           points: 0,
@@ -191,17 +230,18 @@
           joinedAt: new Date()
         });
 
-        alert("✅ تم إنشاء الحساب بنجاح!");
-        window.location.href = "dashboard.html";
+        showMessage("✅ تم إنشاء الحساب بنجاح!", "success");
+        setTimeout(()=> window.location.href = "dashboard.html", 1500);
+
       } catch (error) {
         btn.textContent = "إنشاء الحساب";
         btn.disabled = false;
         if (error.code === "auth/email-already-in-use") {
-          alert("هذا البريد مستخدم بالفعل.");
+          showMessage("هذا البريد مستخدم بالفعل.", "error");
         } else if (error.code === "auth/weak-password") {
-          alert("كلمة المرور ضعيفة.");
+          showMessage("كلمة المرور ضعيفة.", "error");
         } else {
-          alert("خطأ: " + error.message);
+          showMessage("خطأ: " + error.message, "error");
         }
       }
     };
