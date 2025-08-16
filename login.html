@@ -111,6 +111,7 @@
 
     let isLogin = true;
 
+    // ✅ تغيير بين login / signup
     window.toggleMode = function () {
       isLogin = !isLogin;
       document.getElementById("login-form").classList.toggle("hidden", !isLogin);
@@ -119,6 +120,7 @@
       document.querySelector(".switcher").textContent = isLogin ? "أو أنشئ حساب جديد" : "أو سجّل الدخول";
     };
 
+    // ✅ تسجيل الدخول
     window.login = async function () {
       const email = document.getElementById("login-email").value.trim();
       const password = document.getElementById("login-password").value.trim();
@@ -139,11 +141,15 @@
         const result = await signInWithEmailAndPassword(auth, email, password);
         const uid = result.user.uid;
 
-        // تأكيد وجود بيانات المستخدم أو تحديثها
+        // ✅ تحقق أن المستخدم له بيانات في Firestore
         const userRef = doc(db, "users", uid);
         const snapshot = await getDoc(userRef);
+
         if (!snapshot.exists()) {
-          await setDoc(userRef, { points: 0, withdrawn: 0 });
+          alert("⚠️ الحساب غير موجود في النظام، برجاء التسجيل أولاً.");
+          btn.textContent = "تسجيل الدخول";
+          btn.disabled = false;
+          return;
         }
 
         window.location.href = "dashboard.html";
@@ -151,7 +157,7 @@
         btn.textContent = "تسجيل الدخول";
         btn.disabled = false;
         if (error.code === "auth/user-not-found") {
-          alert("الحساب غير موجود.");
+          alert("الحساب غير موجود. برجاء التسجيل أولاً.");
         } else if (error.code === "auth/wrong-password") {
           alert("كلمة المرور غير صحيحة.");
         } else {
@@ -160,6 +166,7 @@
       }
     };
 
+    // ✅ إنشاء حساب
     window.signup = async function () {
       const email = document.getElementById("signup-email").value.trim();
       const password = document.getElementById("signup-password").value.trim();
@@ -169,16 +176,6 @@
       if (!email || !password || !confirm) return alert("يرجى تعبئة جميع الحقول");
       if (password !== confirm) return alert("كلمة المرور وتأكيدها غير متطابقين");
 
-      const bannedWords = ["admin", "owner", "test", "fake", "bot"];
-      if (bannedWords.some(word => email.toLowerCase().includes(word))) {
-        return alert("لا يمكنك استخدام هذا البريد.");
-      }
-
-      const emailPart = email.split("@")[0];
-      if (password.toLowerCase().includes(emailPart.toLowerCase())) {
-        return alert("كلمة المرور لا يجب أن تحتوي على جزء من البريد.");
-      }
-
       try {
         btn.textContent = "جاري التسجيل...";
         btn.disabled = true;
@@ -186,9 +183,12 @@
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const uid = userCredential.user.uid;
 
+        // ✅ إنشاء document للمستخدم
         await setDoc(doc(db, "users", uid), {
+          email: email,
           points: 0,
-          withdrawn: 0
+          withdrawn: 0,
+          joinedAt: new Date()
         });
 
         alert("✅ تم إنشاء الحساب بنجاح!");
@@ -207,4 +207,4 @@
     };
   </script>
 </body>
-</html>
+  </html>
