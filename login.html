@@ -6,86 +6,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
-    :root {
-      --dark-bg: #0d0d0d;
-      --dark-text: #eeeeee;
-      --dark-box: #1e1e1e;
-      --glow: 0 0 15px #00bcd4;
-    }
-
     body {
       font-family: 'Cairo', sans-serif;
-      background: radial-gradient(circle at top left, #0d0d0d, #121212, #1a1a1a);
-      color: var(--dark-text);
+      background: #0d0d0d;
+      color: #eee;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
       margin: 0;
-      overflow: hidden;
     }
-
-    /* خلفية ثابتة مع نقوش كثيفة وألوان محسنة */
-    body::before {
-      content: "";
-      position: absolute;
-      width: 200%;
-      height: 200%;
-      background: repeating-radial-gradient(
-        circle,
-        rgba(0,188,212,0.15) 1px,
-        transparent 3px,
-        rgba(255,255,255,0.05) 4px,
-        transparent 6px
-      );
-      z-index: -1;
-    }
-
     .form-box {
-      background: var(--dark-box);
-      color: inherit;
-      padding: 30px;
+      background: #1e1e1e;
+      padding: 25px 30px;
       border-radius: 15px;
-      box-shadow: var(--glow);
       width: 100%;
       max-width: 400px;
       text-align: center;
-      position: relative;
-      z-index: 1;
     }
-
-    h2 { margin-bottom: 20px; }
-
+    h2 { margin-bottom: 20px; color: #00e5ff; }
     input, button {
       width: 100%;
       padding: 12px;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
       border-radius: 10px;
-      font-size: 1rem;
-      border: 1px solid #444;
+      border: 1px solid #333;
+      font-size: 16px;
+      outline: none;
       background: #111;
       color: #eee;
     }
-
-    .login-btn { background-color: #219ebc; color: white; border: none; }
-    .signup-btn { background-color: #fb8500; color: white; border: none; }
-
-    .switcher {
-      background: none;
-      border: none;
-      color: #aaa;
-      text-decoration: underline;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-
+    button { cursor: pointer; border: none; }
+    .login-btn { background: #219ebc; color: white; }
+    .signup-btn { background: #fb8500; color: white; }
+    .switcher { background: none; border: none; color: #aaa; text-decoration: underline; cursor: pointer; margin-top: 8px; }
     .hidden { display: none; }
-
-    /* رسائل */
-    .message {
-      font-weight: bold;
-      margin-bottom: 15px;
-    }
+    .message { font-weight: bold; margin-bottom: 12px; }
     .error { color: #ff5252; }
     .success { color: #00e676; }
   </style>
@@ -93,7 +49,6 @@
 <body>
   <div class="form-box">
     <h2 id="form-title">تسجيل الدخول إلى Am Rewards</h2>
-
     <div id="msg" class="message"></div>
 
     <div id="login-form">
@@ -103,6 +58,8 @@
     </div>
 
     <div id="signup-form" class="hidden">
+      <input type="text" id="signup-name" placeholder="الاسم الكامل" />
+      <input type="tel" id="signup-phone" placeholder="رقم الهاتف (مصر فقط)" />
       <input type="email" id="signup-email" placeholder="البريد الإلكتروني" />
       <input type="password" id="signup-password" placeholder="كلمة المرور" />
       <input type="password" id="signup-confirm" placeholder="تأكيد كلمة المرور" />
@@ -126,7 +83,8 @@
       getFirestore,
       doc,
       setDoc,
-      getDoc
+      getDoc,
+      serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -134,13 +92,11 @@
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
     };
-
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
     let isLogin = true;
-
     function showMessage(text, type="success") {
       const msg = document.getElementById("msg");
       msg.textContent = text;
@@ -156,11 +112,14 @@
       document.getElementById("msg").textContent = "";
     };
 
+    function validateEgyptianPhone(phone) {
+      return /^(010|011|012|015)[0-9]{8}$/.test(phone);
+    }
+
     window.login = async function () {
       const email = document.getElementById("login-email").value.trim();
       const password = document.getElementById("login-password").value.trim();
       const btn = document.getElementById("login-btn");
-
       if (!email || !password) return showMessage("يرجى إدخال البريد وكلمة المرور", "error");
 
       if (email === "owner@am.com" && password === "AmOwner@2025") {
@@ -171,58 +130,62 @@
       try {
         btn.textContent = "جاري الدخول...";
         btn.disabled = true;
-
         await setPersistence(auth, browserLocalPersistence);
         const result = await signInWithEmailAndPassword(auth, email, password);
         const uid = result.user.uid;
-
-        const userRef = doc(db, "users", uid);
-        const snapshot = await getDoc(userRef);
-
+        const snapshot = await getDoc(doc(db, "users", uid));
         if (!snapshot.exists()) {
-          showMessage("⚠️ الحساب غير موجود في النظام، برجاء التسجيل أولاً.", "error");
+          showMessage("⚠️ الحساب غير موجود، برجاء التسجيل أولاً.", "error");
           btn.textContent = "تسجيل الدخول";
           btn.disabled = false;
           return;
         }
-
         showMessage("✅ تم تسجيل الدخول بنجاح!", "success");
         setTimeout(()=> window.location.href = "dashboard.html", 1500);
-
       } catch (error) {
         btn.textContent = "تسجيل الدخول";
         btn.disabled = false;
-        if (error.code === "auth/user-not-found") {
-          showMessage("الحساب غير موجود. برجاء التسجيل أولاً.", "error");
-        } else if (error.code === "auth/wrong-password") {
-          showMessage("كلمة المرور غير صحيحة.", "error");
-        } else {
-          showMessage("خطأ: " + error.message, "error");
-        }
+        showMessage(error.message, "error");
       }
     };
 
     window.signup = async function () {
+      const name = document.getElementById("signup-name").value.trim();
+      const phone = document.getElementById("signup-phone").value.trim();
       const email = document.getElementById("signup-email").value.trim();
       const password = document.getElementById("signup-password").value.trim();
       const confirm = document.getElementById("signup-confirm").value.trim();
       const btn = document.getElementById("signup-btn");
 
-      if (!email || !password || !confirm) return showMessage("يرجى تعبئة جميع الحقول", "error");
+      if (!name || !phone || !email || !password || !confirm)
+        return showMessage("يرجى تعبئة جميع الحقول", "error");
       if (password !== confirm) return showMessage("كلمة المرور وتأكيدها غير متطابقين", "error");
+      if (!validateEgyptianPhone(phone)) return showMessage("رقم الهاتف يجب أن يكون مصري صحيح", "error");
 
       try {
         btn.textContent = "جاري التسجيل...";
         btn.disabled = true;
 
+        // التحقق من الدولة عبر IP
+        const res = await fetch("https://ipapi.co/json/");
+        const data = await res.json();
+        if (data.country_code !== "EG") {
+          showMessage("❌ التسجيل متاح فقط داخل مصر.", "error");
+          btn.textContent = "إنشاء الحساب";
+          btn.disabled = false;
+          return;
+        }
+
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const uid = userCredential.user.uid;
-
         await setDoc(doc(db, "users", uid), {
+          name: name,
+          phone: phone,
           email: email,
           points: 0,
           withdrawn: 0,
-          joinedAt: new Date()
+          level: 1,
+          joinedAt: serverTimestamp()
         });
 
         showMessage("✅ تم إنشاء الحساب بنجاح!", "success");
@@ -231,13 +194,7 @@
       } catch (error) {
         btn.textContent = "إنشاء الحساب";
         btn.disabled = false;
-        if (error.code === "auth/email-already-in-use") {
-          showMessage("هذا البريد مستخدم بالفعل.", "error");
-        } else if (error.code === "auth/weak-password") {
-          showMessage("كلمة المرور ضعيفة.", "error");
-        } else {
-          showMessage("خطأ: " + error.message, "error");
-        }
+        showMessage(error.message, "error");
       }
     };
   </script>
