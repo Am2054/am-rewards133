@@ -9,32 +9,73 @@
 
     body {
       font-family: 'Cairo', sans-serif;
-      background-color: #121212;
+      background: #0d0d0d;
       color: #f0f0f0;
       text-align: center;
-      padding: 40px;
       min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      /* نقش خفيف في الخلفية */
-      background-image: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
-      background-size: 25px 25px;
+      overflow: hidden;
     }
 
+    /* 🔥 خلفية متحركة */
+    body::before {
+      content: "";
+      position: absolute;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(0,188,212,0.15) 2%, transparent 2%) 0 0,
+                  radial-gradient(circle, rgba(255,255,255,0.08) 2%, transparent 2%) 25px 25px;
+      background-size: 50px 50px;
+      animation: moveBg 20s linear infinite;
+      z-index: 0;
+    }
+    @keyframes moveBg {
+      from { transform: translate(0,0); }
+      to { transform: translate(-100px,-100px); }
+    }
+
+    /* ✅ صندوق التسجيل */
     .signup-container {
-      background: rgba(30, 30, 30, 0.95);
+      position: relative;
+      z-index: 1;
+      background: rgba(20, 20, 20, 0.9);
       padding: 30px;
-      border-radius: 15px;
-      box-shadow: 0 0 25px rgba(0, 188, 212, 0.4);
+      border-radius: 20px;
       max-width: 420px;
       width: 100%;
-      animation: fadeIn 0.8s ease-in-out;
+      box-shadow: 0 0 25px rgba(0, 188, 212, 0.4);
+      animation: float 6s ease-in-out infinite;
+      overflow: hidden;
+    }
+
+    /* 🌈 إطار متدرج متحرك */
+    .signup-container::before {
+      content: "";
+      position: absolute;
+      top: -2px; left: -2px; right: -2px; bottom: -2px;
+      background: linear-gradient(270deg, #00e5ff, #ff4081, #76ff03, #00e5ff);
+      background-size: 600% 600%;
+      border-radius: 20px;
+      z-index: -1;
+      animation: gradientBorder 10s ease infinite;
+    }
+    @keyframes gradientBorder {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
     }
 
     h2 {
       margin-bottom: 20px;
-      color: #00bcd4;
+      color: #00e5ff;
+      text-shadow: 0 0 10px #00e5ff;
     }
 
     input, button {
@@ -54,8 +95,8 @@
       border: 1px solid #333;
     }
     input:focus {
-      border-color: #00bcd4;
-      box-shadow: 0 0 8px #00bcd4;
+      border-color: #00e5ff;
+      box-shadow: 0 0 12px #00e5ff;
     }
 
     button {
@@ -63,10 +104,11 @@
       color: white;
       font-weight: bold;
       cursor: pointer;
-      transition: background 0.3s ease, transform 0.2s ease;
+      transition: 0.3s ease;
     }
     button:hover {
       transform: scale(1.05);
+      box-shadow: 0 0 15px #00e676;
     }
     button:disabled {
       background: #555;
@@ -78,15 +120,12 @@
       color: #00e676;
       margin-top: 15px;
       font-weight: bold;
+      text-shadow: 0 0 8px #00e676;
     }
     #error {
       color: #ff5252;
       margin-top: 15px;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+      text-shadow: 0 0 8px #ff1744;
     }
   </style>
 </head>
@@ -97,6 +136,7 @@
     <input type="email" id="email" placeholder="البريد الإلكتروني" required />
     <input type="password" id="password" placeholder="كلمة المرور" required />
     <input type="password" id="confirmPassword" placeholder="تأكيد كلمة المرور" required />
+    <input type="tel" id="phone" placeholder="رقم الهاتف (مصر فقط)" required />
     <button id="signupBtn" onclick="signup()">إنشاء الحساب</button>
     <p id="error"></p>
     <p id="success"></p>
@@ -123,11 +163,17 @@
       return re.test(email);
     }
 
-    function signup() {
+    function validateEgyptianPhone(phone) {
+      const regex = /^(010|011|012|015)[0-9]{8}$/;
+      return regex.test(phone);
+    }
+
+    async function signup() {
       const name = document.getElementById("name").value.trim();
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
       const confirmPassword = document.getElementById("confirmPassword").value;
+      const phone = document.getElementById("phone").value.trim();
 
       const errorElem = document.getElementById("error");
       const successElem = document.getElementById("success");
@@ -136,12 +182,16 @@
       errorElem.textContent = "";
       successElem.textContent = "";
 
-      if (!name || !email || !password || !confirmPassword) {
+      if (!name || !email || !password || !confirmPassword || !phone) {
         errorElem.textContent = "⚠️ الرجاء ملء جميع الحقول.";
         return;
       }
       if (!validateEmail(email)) {
         errorElem.textContent = "⚠️ البريد الإلكتروني غير صالح.";
+        return;
+      }
+      if (!validateEgyptianPhone(phone)) {
+        errorElem.textContent = "⚠️ التسجيل متاح فقط بأرقام مصرية صحيحة.";
         return;
       }
       if (password.length < 6) {
@@ -153,20 +203,16 @@
         return;
       }
 
-      // منع بعض الكلمات من اليوزر
-      const bannedWords = ["admin", "owner", "test", "fake", "bot"];
-      if (bannedWords.some(word => email.toLowerCase().includes(word))) {
-        errorElem.textContent = "❌ لا يمكنك استخدام هذا البريد.";
-        return;
-      }
-
-      // باسورد لا يحتوي على الاسم أو الإيميل
-      if (password.toLowerCase().includes(email.split("@")[0].toLowerCase())) {
-        errorElem.textContent = "❌ كلمة المرور لا يجب أن تحتوي على البريد.";
-        return;
-      }
-      if (password.toLowerCase().includes(name.toLowerCase())) {
-        errorElem.textContent = "❌ كلمة المرور لا يجب أن تحتوي على اسمك.";
+      // ✅ التحقق من الـ IP
+      try {
+        const res = await fetch("https://ipapi.co/json/");
+        const data = await res.json();
+        if (data.country_code !== "EG") {
+          errorElem.textContent = "❌ التسجيل متاح فقط داخل مصر.";
+          return;
+        }
+      } catch {
+        errorElem.textContent = "⚠️ تعذر التحقق من الموقع الجغرافي.";
         return;
       }
 
@@ -176,10 +222,10 @@
       auth.createUserWithEmailAndPassword(email, password)
         .then((userCredential) => {
           const uid = userCredential.user.uid;
-
           return db.collection("users").doc(uid).set({
             name: name,
             email: email,
+            phone: phone,
             points: 0,
             withdrawn: 0,
             level: 1,
@@ -200,4 +246,4 @@
     }
   </script>
 </body>
-</html>
+      </html>
