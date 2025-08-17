@@ -135,13 +135,14 @@
         const result = await signInWithEmailAndPassword(auth, email, password);
         const uid = result.user.uid;
 
-        // لو الحساب مش موجود في Firestore → نضيفه أوتوماتيك
-        const snapshot = await getDoc(doc(db, "users", uid));
+        // تأكد أن الحساب له وثيقة في Firestore
+        const ref = doc(db, "users", uid);
+        const snapshot = await getDoc(ref);
         if (!snapshot.exists()) {
-          await setDoc(doc(db, "users", uid), {
+          await setDoc(ref, {
             email: email,
-            name: result.user.displayName || "مستخدم جديد",
-            phone: result.user.phoneNumber || "",
+            name: "مستخدم جديد",
+            phone: "",
             points: 0,
             withdrawn: 0,
             level: 1,
@@ -176,15 +177,6 @@
         btn.textContent = "جاري التسجيل...";
         btn.disabled = true;
 
-        const res = await fetch("https://ipapi.co/json/");
-        const data = await res.json();
-        if (data.country_code !== "EG") {
-          showMessage("❌ التسجيل متاح فقط داخل مصر.", "error");
-          btn.textContent = "إنشاء الحساب";
-          btn.disabled = false;
-          return;
-        }
-
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const uid = userCredential.user.uid;
 
@@ -209,4 +201,4 @@
     };
   </script>
 </body>
-  </html>
+        </html>
