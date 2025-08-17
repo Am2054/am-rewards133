@@ -84,10 +84,6 @@
       doc,
       setDoc,
       getDoc,
-      query,
-      where,
-      collection,
-      getDocs,
       serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -107,27 +103,6 @@
       msg.className = "message " + type;
     }
 
-    // رسائل الأخطاء بالعربي
-    function getArabicError(error) {
-      const code = error.code;
-      switch(code) {
-        case "auth/email-already-in-use":
-          return "⚠️ البريد الإلكتروني مستخدم بالفعل.";
-        case "auth/invalid-email":
-          return "⚠️ البريد الإلكتروني غير صالح.";
-        case "auth/weak-password":
-          return "⚠️ كلمة المرور ضعيفة (يجب أن تكون 6 أحرف أو أكثر).";
-        case "auth/user-not-found":
-          return "⚠️ المستخدم غير موجود.";
-        case "auth/wrong-password":
-          return "⚠️ كلمة المرور غير صحيحة.";
-        case "auth/too-many-requests":
-          return "⚠️ تم حظر المحاولات مؤقتًا بسبب محاولات فاشلة كثيرة.";
-        default:
-          return "❌ حدث خطأ: " + error.message;
-      }
-    }
-
     window.toggleMode = function () {
       isLogin = !isLogin;
       document.getElementById("login-form").classList.toggle("hidden", !isLogin);
@@ -141,11 +116,12 @@
       return /^(010|011|012|015)[0-9]{8}$/.test(phone);
     }
 
+    // تسجيل الدخول
     window.login = async function () {
       const email = document.getElementById("login-email").value.trim();
       const password = document.getElementById("login-password").value.trim();
       const btn = document.getElementById("login-btn");
-      if (!email || !password) return showMessage("⚠️ يرجى إدخال البريد وكلمة المرور", "error");
+      if (!email || !password) return showMessage("يرجى إدخال البريد وكلمة المرور", "error");
 
       if (email === "owner@am.com" && password === "AmOwner@2025") {
         window.location.href = "admin.html";
@@ -158,22 +134,31 @@
         await setPersistence(auth, browserLocalPersistence);
         const result = await signInWithEmailAndPassword(auth, email, password);
         const uid = result.user.uid;
+
+        // لو الحساب مش موجود في Firestore → نضيفه أوتوماتيك
         const snapshot = await getDoc(doc(db, "users", uid));
         if (!snapshot.exists()) {
-          showMessage("⚠️ الحساب غير موجود، برجاء التسجيل أولاً.", "error");
-          btn.textContent = "تسجيل الدخول";
-          btn.disabled = false;
-          return;
+          await setDoc(doc(db, "users", uid), {
+            email: email,
+            name: result.user.displayName || "مستخدم جديد",
+            phone: result.user.phoneNumber || "",
+            points: 0,
+            withdrawn: 0,
+            level: 1,
+            joinedAt: serverTimestamp()
+          });
         }
+
         showMessage("✅ تم تسجيل الدخول بنجاح!", "success");
         setTimeout(()=> window.location.href = "dashboard.html", 1500);
       } catch (error) {
         btn.textContent = "تسجيل الدخول";
         btn.disabled = false;
-        showMessage(getArabicError(error), "error");
+        showMessage(error.message, "error");
       }
     };
 
+    // إنشاء حساب
     window.signup = async function () {
       const name = document.getElementById("signup-name").value.trim();
       const phone = document.getElementById("signup-phone").value.trim();
@@ -183,29 +168,18 @@
       const btn = document.getElementById("signup-btn");
 
       if (!name || !phone || !email || !password || !confirm)
-        return showMessage("⚠️ يرجى تعبئة جميع الحقول", "error");
-      if (password !== confirm) return showMessage("⚠️ كلمة المرور وتأكيدها غير متطابقين", "error");
-      if (!validateEgyptianPhone(phone)) return showMessage("⚠️ رقم الهاتف يجب أن يكون مصري صحيح", "error");
+        return showMessage("يرجى تعبئة جميع الحقول", "error");
+      if (password !== confirm) return showMessage("كلمة المرور وتأكيدها غير متطابقين", "error");
+      if (!validateEgyptianPhone(phone)) return showMessage("رقم الهاتف يجب أن يكون مصري صحيح", "error");
 
       try {
         btn.textContent = "جاري التسجيل...";
         btn.disabled = true;
 
-        // التحقق من الدولة عبر IP
         const res = await fetch("https://ipapi.co/json/");
         const data = await res.json();
         if (data.country_code !== "EG") {
           showMessage("❌ التسجيل متاح فقط داخل مصر.", "error");
-          btn.textContent = "إنشاء الحساب";
-          btn.disabled = false;
-          return;
-        }
-
-        // تحقق عدم تكرار الهاتف
-        const phoneQuery = query(collection(db, "users"), where("phone", "==", phone));
-        const phoneSnap = await getDocs(phoneQuery);
-        if (!phoneSnap.empty) {
-          showMessage("⚠️ رقم الهاتف مسجل بالفعل.", "error");
           btn.textContent = "إنشاء الحساب";
           btn.disabled = false;
           return;
@@ -230,9 +204,9 @@
       } catch (error) {
         btn.textContent = "إنشاء الحساب";
         btn.disabled = false;
-        showMessage(getArabicError(error), "error");
+        showMessage(error.message, "error");
       }
     };
   </script>
 </body>
-        </html>
+  </html>
