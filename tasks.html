@@ -21,6 +21,17 @@
       margin: 0;
       font-size: 24px;
     }
+    .points-box {
+      text-align: center;
+      background: #1f2937;
+      padding: 15px;
+      margin: 15px auto;
+      border-radius: 10px;
+      font-size: 18px;
+      max-width: 400px;
+      border: 2px solid #4f46e5;
+      box-shadow: 0 0 12px rgba(79,70,229,0.4);
+    }
     .task-container {
       max-width: 900px;
       margin: 20px auto;
@@ -55,11 +66,31 @@
     .start-btn:hover {
       background-color: #059669;
     }
+    .back-btn {
+      display: block;
+      margin: 30px auto;
+      background-color: #4f46e5;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.3s;
+    }
+    .back-btn:hover {
+      background-color: #6366f1;
+    }
   </style>
 </head>
 <body>
 
 <h1>المهام اليومية</h1>
+
+<!-- عرض النقاط -->
+<div class="points-box">
+  نقاطك الحالية: <strong id="userPoints">0</strong>
+</div>
 
 <div class="task-container">
 
@@ -95,7 +126,44 @@
 
 </div>
 
+<!-- زر العودة -->
+<button class="back-btn" onclick="window.location.href='dashboard.html'">⬅️ العودة للوحة التحكم</button>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+    authDomain: "am--rewards.firebaseapp.com",
+    projectId: "am--rewards",
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  let currentUser;
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentUser = user;
+      listenToPoints();
+    } else {
+      window.location.href = "index.html"; // يرجع لتسجيل الدخول لو مش مسجل
+    }
+  });
+
+  function listenToPoints() {
+    db.collection("users").doc(currentUser.uid)
+      .onSnapshot(doc => {
+        if (doc.exists) {
+          document.getElementById("userPoints").textContent = doc.data().points || 0;
+        }
+      });
+  }
+
   function startTask(link) {
     window.location.href = link;
   }
