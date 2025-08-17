@@ -153,20 +153,20 @@ button#confirmBtn:hover { background:#00bcd4; }
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
-const firebaseConfig = {
-  apiKey:"AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-  authDomain:"am--rewards.firebaseapp.com",
-  projectId:"am--rewards"
+const firebaseConfig = { 
+  apiKey:"AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
+  authDomain:"am--rewards.firebaseapp.com", 
+  projectId:"am--rewards" 
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
 const POINT_VALUE_EGP = 0.07;
-const LIMITS = {
-  vodafone:{label:'فودافون كاش',min:20,maxDaily:200,maxCount:3},
-  etisalat:{label:'اتصالات كاش',min:20,maxDaily:200,maxCount:3},
-  orange:{label:'اورنج كاش',min:20,maxDaily:200,maxCount:3}
+const LIMITS = { 
+  vodafone:{label:'فودافون كاش',min:20,maxDaily:200,maxCount:3}, 
+  etisalat:{label:'اتصالات كاش',min:20,maxDaily:200,maxCount:3}, 
+  orange:{label:'اورنج كاش',min:20,maxDaily:200,maxCount:3} 
 };
 
 const methodSel=document.getElementById('methodSel');
@@ -199,9 +199,26 @@ const c_fee=document.getElementById('c_fee');
 const c_net=document.getElementById('c_net');
 const c_pts=document.getElementById('c_pts');
 
-let userData={points:1500, withdrawals:[]}; // استبدل بالبيانات الحقيقية من Firebase بعد تسجيل الدخول
+let userData=null;
+let userId=null;
 
 function isToday(date){ const now=new Date(); return date.getDate()===now.getDate() && date.getMonth()===now.getMonth() && date.getFullYear()===now.getFullYear(); }
+
+// تحميل بيانات المستخدم من Firebase
+auth.onAuthStateChanged(user=>{
+  if(user){
+    userId=user.uid;
+    db.collection('users').doc(userId).get().then(doc=>{
+      if(doc.exists){
+        userData=doc.data();
+        if(!userData.withdrawals) userData.withdrawals=[];
+        updateDisplay();
+      }
+    });
+  } else {
+    msg.textContent='يرجى تسجيل الدخول أولاً.'; msg.style.display='block';
+  }
+});
 
 function updateDisplay(){
   if(!userData) return;
@@ -241,16 +258,14 @@ document.getElementById('confirmBtn').addEventListener('click',()=>openConfirm()
 
 function openConfirm(){
   msg.style.display='none'; ok.style.display='none';
-  const method=methodSel.value; const limit=LIMITS[method]; const amt=parseFloat(amountInp.value);
-  let wallet='';
-  if(method==='vodafone') wallet=walletVod.value.trim();
-  if(method==='etisalat') wallet=walletEts.value.trim();
-  if(method==='orange') wallet=walletOrg.value.trim();
-  if(!wallet){ msg.textContent='الرجاء إدخال رقم المحفظة.'; msg.style.display='block'; return; }
+  if(!userData){ msg.textContent='يرجى تسجيل الدخول أولاً.'; msg.style.display='block'; return; }
 
+  const method=methodSel.value; 
+  const limit=LIMITS[method]; 
+  const amt=parseFloat(amountInp.value);
   if(isNaN(amt)){ msg.textContent='يرجى إدخال مبلغ صالح.'; msg.style.display='block'; return; }
   if(amt<limit.min){ msg.textContent=`الحد الأدنى للسحب هو ${limit.min} جنيه.`; msg.style.display='block'; return; }
-  const points=userData.points||0; if(points*POINT_VALUE_EGP<amt){ msg.textContent='رصيدك غير كافٍ.'; msg.style.display='block'; return; }
+  if(userData.points*POINT_VALUE_EGP<amt){ msg.textContent='رصيدك غير كافٍ.'; msg.style.display='block'; return; }
 
   const withdrawalsToday=userData.withdrawals?.filter(w=>w.method===method && isToday(new Date(w.date)))||[];
   const withdrawnAmountToday=withdrawalsToday.reduce((acc,w)=>acc+w.amount,0);
@@ -272,37 +287,28 @@ function closeConfirm(){ confirmModal.classList.remove('show'); }
 function submitWithdrawal(){
   const method=methodSel.value;
   const amt=parseFloat(amountInp.value);
-  const wallet = method==='vodafone'? walletVod.value.trim() : method==='etisalat'? walletEts.value.trim() : walletOrg.value.trim();
-  const pointsUsed=Math.ceil(amt/POINT_VALUE_EGP);
   const fee=amt*0.10;
+  const net=amt-fee;
+  const ptsUsed=Math.ceil(amt/POINT_VALUE_EGP);
+  const wallet=(method==='vodafone'?walletVod.value:method==='etisalat'?walletEts.value:walletOrg.value);
 
-  const userId = auth.currentUser?.uid || 'demoUser'; // استبدل بالـ UID الحقيقي بعد تسجيل الدخول
+  if(!wallet){ msg.textContent='يرجى إدخال رقم المحفظة.'; msg.style.display='block'; return; }
 
-  db.collection('withdrawals').add({
-    userId,
-    method,
-    wallet,
-    amount: amt,
-    fee,
-    netAmount: amt-fee,
-    pointsUsed,
-    status:'pending',
-    date:new Date()
-  }).then(()=>{
-    userData.points -= pointsUsed;
-    userData.withdrawals.push({method,amount:amt,date:new Date()});
-    ok.textContent='تم تقديم طلب السحب بنجاح!';
-    ok.style.display='block';
-    amountInp.value=''; updateDisplay();
-    confirmModal.classList.remove('show');
-  }).catch(err=>{
-    msg.textContent='حدث خطأ، حاول مرة أخرى.'; msg.style.display='block';
-    console.error(err);
-  });
+  const withdrawalData = { method, amount: amt, fee, net, pts: ptsUsed, wallet, date: new Date() };
+
+  db.collection('users').doc(userId).collection('withdrawals').add(withdrawalData)
+    .then(()=>{
+      userData.points -= ptsUsed;
+      userData.withdrawals.push(withdrawalData);
+      db.collection('users').doc(userId).update({ points: userData.points })
+        .then(()=>{ updateDisplay(); });
+      ok.textContent='تم تقديم طلب السحب بنجاح!'; ok.style.display='block';
+      amountInp.value=''; confirmModal.classList.remove('show');
+    })
+    .catch(err=>{ msg.textContent='حدث خطأ، حاول مرة أخرى.'; msg.style.display='block'; console.error(err); });
 }
 
 updateDisplay();
 </script>
-
 </body>
-  </html>
+    </html>
