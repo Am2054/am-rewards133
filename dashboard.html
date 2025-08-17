@@ -103,16 +103,28 @@
 
       let data;
       if (!docSnap.exists) {
-        // لو مفيش بيانات → نحفظ بيانات أساسية
+        // حساب جديد ملوش بيانات → نحفظ بيانات مبدئية
         data = { name: user.displayName || user.email, email: user.email, points: 0, withdrawn: 0 };
         await userRef.set(data);
       } else {
         data = docSnap.data();
+
+        // لو مفيش اسم → نطلبه من المستخدم ونخزنه
+        if (!data.name || data.name.trim() === "") {
+          const newName = prompt("من فضلك أدخل اسمك:");
+          if (newName && newName.trim() !== "") {
+            await userRef.update({ name: newName.trim() });
+            data.name = newName.trim();
+          } else {
+            data.name = user.email;
+          }
+        }
       }
 
-      // الاسم يظهر أولاً
+      // الاسم
       document.getElementById("user-name").textContent = data.name || user.displayName || user.email;
 
+      // الحسابات
       const totalPoints = data.points || 0;
       const withdrawnPoints = data.withdrawn || 0;
       const totalEGP = totalPoints * POINT_VALUE_EGP;
@@ -135,4 +147,4 @@
     }
   </script>
 </body>
-    </html>
+</html>
