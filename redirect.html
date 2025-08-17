@@ -29,29 +29,82 @@
   <div class="countdown" id="countdown">5</div>
   <div class="message" id="message">يرجى الانتظار قليلاً.</div>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, updateDoc, increment, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
     const countdownEl = document.getElementById('countdown');
     const messageEl = document.getElementById('message');
-
     const redirectLink = localStorage.getItem('redirect_link');
+    const redirectIndex = localStorage.getItem('redirect_index');
 
-    if (!redirectLink) {
+    if (!redirectLink || redirectIndex === null) {
       messageEl.textContent = "❌ لا يوجد رابط للتحويل.";
       countdownEl.style.display = 'none';
     } else {
-      let countdown = 5;
-      const interval = setInterval(() => {
-        countdown--;
-        countdownEl.textContent = countdown;
-
-        if (countdown === 0) {
-          clearInterval(interval);
-          messageEl.textContent = "يتم الآن تحويلك...";
-          localStorage.removeItem('redirect_link');
-          // هنا نوجه نفس الصفحة للرابط مباشرةً
-          window.location.href = redirectLink;
+      onAuthStateChanged(auth, user => {
+        if (!user) {
+          alert("⚠️ يجب تسجيل الدخول أولاً.");
+          window.location.href = "index.html";
+          return;
         }
-      }, 1000);
+
+        const userId = user.uid;
+        const today = new Date().toISOString().slice(0, 10);
+        const userProgressKey = `shortlinks_progress_${userId}_${today}`;
+        let completedLinks = [];
+        try {
+          const stored = JSON.parse(localStorage.getItem(userProgressKey));
+          if (Array.isArray(stored)) completedLinks = stored;
+        } catch (e) {
+          completedLinks = [];
+        }
+
+        // إضافة الرابط إذا لم يكن مكتملًا
+        const idx = parseInt(redirectIndex);
+        if (!completedLinks.includes(idx)) {
+          completedLinks.push(idx);
+          localStorage.setItem(userProgressKey, JSON.stringify(completedLinks));
+
+          const userDocRef = doc(db, "users", userId);
+          updateDoc(userDocRef, { points: increment(3) });
+
+          const logRef = collection(db, "adminTaskLogs");
+          addDoc(logRef, {
+            userId,
+            taskType: "shortlink",
+            rewardToUser: 3,
+            date: new Date()
+          });
+        }
+
+        // العد التنازلي والتحويل
+        let countdown = 5;
+        const interval = setInterval(() => {
+          countdown--;
+          countdownEl.textContent = countdown;
+
+          if (countdown === 0) {
+            clearInterval(interval);
+            messageEl.textContent = "يتم الآن تحويلك...";
+            localStorage.removeItem('redirect_link');
+            localStorage.removeItem('redirect_index');
+            window.location.href = redirectLink;
+          }
+        }, 1000);
+
+      });
     }
   </script>
 </body>
