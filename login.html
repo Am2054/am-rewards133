@@ -84,6 +84,10 @@
       doc,
       setDoc,
       getDoc,
+      query,
+      where,
+      collection,
+      getDocs,
       serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -103,6 +107,27 @@
       msg.className = "message " + type;
     }
 
+    // رسائل الأخطاء بالعربي
+    function getArabicError(error) {
+      const code = error.code;
+      switch(code) {
+        case "auth/email-already-in-use":
+          return "⚠️ البريد الإلكتروني مستخدم بالفعل.";
+        case "auth/invalid-email":
+          return "⚠️ البريد الإلكتروني غير صالح.";
+        case "auth/weak-password":
+          return "⚠️ كلمة المرور ضعيفة (يجب أن تكون 6 أحرف أو أكثر).";
+        case "auth/user-not-found":
+          return "⚠️ المستخدم غير موجود.";
+        case "auth/wrong-password":
+          return "⚠️ كلمة المرور غير صحيحة.";
+        case "auth/too-many-requests":
+          return "⚠️ تم حظر المحاولات مؤقتًا بسبب محاولات فاشلة كثيرة.";
+        default:
+          return "❌ حدث خطأ: " + error.message;
+      }
+    }
+
     window.toggleMode = function () {
       isLogin = !isLogin;
       document.getElementById("login-form").classList.toggle("hidden", !isLogin);
@@ -120,7 +145,7 @@
       const email = document.getElementById("login-email").value.trim();
       const password = document.getElementById("login-password").value.trim();
       const btn = document.getElementById("login-btn");
-      if (!email || !password) return showMessage("يرجى إدخال البريد وكلمة المرور", "error");
+      if (!email || !password) return showMessage("⚠️ يرجى إدخال البريد وكلمة المرور", "error");
 
       if (email === "owner@am.com" && password === "AmOwner@2025") {
         window.location.href = "admin.html";
@@ -145,7 +170,7 @@
       } catch (error) {
         btn.textContent = "تسجيل الدخول";
         btn.disabled = false;
-        showMessage(error.message, "error");
+        showMessage(getArabicError(error), "error");
       }
     };
 
@@ -158,9 +183,9 @@
       const btn = document.getElementById("signup-btn");
 
       if (!name || !phone || !email || !password || !confirm)
-        return showMessage("يرجى تعبئة جميع الحقول", "error");
-      if (password !== confirm) return showMessage("كلمة المرور وتأكيدها غير متطابقين", "error");
-      if (!validateEgyptianPhone(phone)) return showMessage("رقم الهاتف يجب أن يكون مصري صحيح", "error");
+        return showMessage("⚠️ يرجى تعبئة جميع الحقول", "error");
+      if (password !== confirm) return showMessage("⚠️ كلمة المرور وتأكيدها غير متطابقين", "error");
+      if (!validateEgyptianPhone(phone)) return showMessage("⚠️ رقم الهاتف يجب أن يكون مصري صحيح", "error");
 
       try {
         btn.textContent = "جاري التسجيل...";
@@ -176,15 +201,14 @@
           return;
         }
 
-        // السماح بإنشاء حساب amirfg992005@gmail.com مرة واحدة فقط
-        if (email === "amirfg992005@gmail.com") {
-          const query = await getDoc(doc(db, "users", "amirfg992005"));
-          if (query.exists()) {
-            showMessage("⚠️ هذا الإيميل مستخدم بالفعل.", "error");
-            btn.textContent = "إنشاء الحساب";
-            btn.disabled = false;
-            return;
-          }
+        // تحقق عدم تكرار الهاتف
+        const phoneQuery = query(collection(db, "users"), where("phone", "==", phone));
+        const phoneSnap = await getDocs(phoneQuery);
+        if (!phoneSnap.empty) {
+          showMessage("⚠️ رقم الهاتف مسجل بالفعل.", "error");
+          btn.textContent = "إنشاء الحساب";
+          btn.disabled = false;
+          return;
         }
 
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -206,9 +230,9 @@
       } catch (error) {
         btn.textContent = "إنشاء الحساب";
         btn.disabled = false;
-        showMessage(error.message, "error");
+        showMessage(getArabicError(error), "error");
       }
     };
   </script>
 </body>
-  </html>
+        </html>
