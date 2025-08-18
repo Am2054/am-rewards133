@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>تمت المهمة ✅</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      background-color: #121212;
+      color: #eee;
+      font-family: 'Tajawal', sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+    .message {
+      font-size: 22px;
+      margin-top: 20px;
+      color: #1DB954;
+    }
+  </style>
+</head>
+<body>
+  <h1>✅ تمت إضافة النقاط</h1>
+  <div class="message" id="message">جاري التحديث...</div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, updateDoc, increment, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const messageEl = document.getElementById('message');
+
+    // اقرأ رقم الرابط من ?i=
+    const params = new URLSearchParams(window.location.search);
+    const linkIndex = params.get("i");
+
+    if (!linkIndex) {
+      messageEl.textContent = "❌ لم يتم التعرف على الرابط.";
+    } else {
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          messageEl.textContent = "⚠️ يجب تسجيل الدخول أولاً.";
+          return;
+        }
+
+        const userId = user.uid;
+        const today = new Date().toISOString().slice(0, 10);
+        const userProgressKey = `shortlinks_progress_${userId}_${today}`;
+        let completedLinks = [];
+        try {
+          const stored = JSON.parse(localStorage.getItem(userProgressKey));
+          if (Array.isArray(stored)) completedLinks = stored;
+        } catch (e) {
+          completedLinks = [];
+        }
+
+        if (!completedLinks.includes(linkIndex)) {
+          completedLinks.push(linkIndex);
+          localStorage.setItem(userProgressKey, JSON.stringify(completedLinks));
+
+          const userDocRef = doc(db, "users", userId);
+          await updateDoc(userDocRef, { points: increment(3) });
+
+          const logRef = collection(db, "adminTaskLogs");
+          await addDoc(logRef, {
+            userId,
+            taskType: "shortlink",
+            rewardToUser: 3,
+            linkIndex,
+            date: new Date()
+          });
+
+          messageEl.textContent = `🎉 تمت إضافة 3 نقاط لرابط ${linkIndex}`;
+        } else {
+          messageEl.textContent = "✔️ لقد أكملت هذا الرابط من قبل اليوم.";
+        }
+      });
+    }
+  </script>
+</body>
+</html>
