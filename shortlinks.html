@@ -18,8 +18,6 @@
     .back-buttons button { background-color: #4caf50; border: none; color: #121212; padding: 12px 24px; margin: 8px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; transition: background-color 0.3s; }
     .back-buttons button:hover { background-color: #388e3c; }
     a { text-decoration: none; }
-    .timer { font-size: 15px; color: #fbc02d; margin-top: 6px; }
-    #refresh { margin: 20px auto; display: inline-block; }
   </style>
 </head>
 <body>
@@ -27,8 +25,6 @@
   <div id="user-points">نقاطي: ...</div>
   <div id="status">جاري تحميل الروابط...</div>
   <div id="links-container"></div>
-
-  <button id="refresh">🔄 تحديث المؤقتات</button>
 
   <div class="back-buttons">
     <a href="dashboard.html"><button>🔙 العودة إلى الصفحة الرئيسية</button></a>
@@ -38,7 +34,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, updateDoc, increment, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, updateDoc, increment, collection, addDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -51,7 +47,6 @@
     const db = getFirestore(app);
 
     const POINTS_PER_LINK = 3; // عدد النقاط لكل رابط
-    const DAY_MS = 24 * 60 * 60 * 1000;
 
     const shortlinks = [
       { title: "رابط 1", url: "https://swiftlnx.com/KBXq" },
@@ -63,108 +58,86 @@
       { title: "رابط 7", url: "https://short-jambo.ink/UHpAEM" }
     ];
 
-    let userCompleted = {};
-    let currentUserId = null;
-
     onAuthStateChanged(auth, user => {
       if (user) {
-        currentUserId = user.uid;
-        initShortLinks();
+        initShortLinks(user.uid);
       } else {
         alert("⚠️ يجب تسجيل الدخول أولاً.");
         window.location.href = "index.html";
       }
     });
 
-    async function initShortLinks() {
-      const userDocRef = doc(db, "users", currentUserId);
+    async function initShortLinks(userId) {
+      const userDocRef = doc(db, "users", userId);
       const userSnap = await getDoc(userDocRef);
 
+      let completedLinks = {};
       if (userSnap.exists()) {
-        userCompleted = userSnap.data().completedLinks || {};
+        completedLinks = userSnap.data().completedLinks || {};
       }
 
-      renderLinks();
-      updateUserPoints();
-    }
-
-    function renderLinks() {
-      const container = document.getElementById("links-container");
-      container.innerHTML = "";
       const now = Date.now();
+      const container = document.getElementById("links-container");
+      const status = document.getElementById("status");
 
-      shortlinks.forEach((item, i) => {
-        const lastTime = userCompleted[i];
-        const diff = lastTime ? now - lastTime : DAY_MS + 1;
-        const available = diff >= DAY_MS;
+      const availableLinks = shortlinks.filter((_, i) => {
+        if (completedLinks[i]) {
+          const diff = now - completedLinks[i]; // الفرق بالمللي ثانية
+          if (diff < 24 * 60 * 60 * 1000) {
+            return false; // لسه ما كملتش 24 ساعة
+          }
+        }
+        return true;
+      });
 
+      status.textContent = `روابط متاحة: ${availableLinks.length} / ${shortlinks.length}`;
+
+      if (availableLinks.length === 0) {
+        container.innerHTML = "<p style='text-align:center;'>✅ لا توجد روابط متاحة الآن، ارجع بعد 24 ساعة.</p>";
+        return;
+      }
+
+      availableLinks.forEach((item, index) => {
+        const globalIndex = shortlinks.indexOf(item);
         const div = document.createElement("div");
         div.className = "link-box";
-
-        if (available) {
-          div.innerHTML = `
-            <p>${item.title}</p>
-            <p>🪙 تمنحك <strong>${POINTS_PER_LINK}</strong> نقطة</p>
-            <button onclick="startRedirect(${i}, '${item.url}')">افتح الرابط</button>
-          `;
-        } else {
-          const remaining = DAY_MS - diff;
-          div.innerHTML = `
-            <p>${item.title}</p>
-            <p class="timer" id="timer-${i}">⏳ متبقي: ...</p>
-          `;
-          startTimer(`timer-${i}`, remaining);
-        }
-
+        div.innerHTML = `
+          <p>${item.title}</p>
+          <p>🪙 هذه المهمة تمنحك <strong>${POINTS_PER_LINK}</strong> نقطة</p>
+          <button onclick="startRedirect(${globalIndex}, '${item.url}')">افتح الرابط</button>
+        `;
         container.appendChild(div);
       });
+
+      updateUserPoints(userId);
     }
 
-    function startTimer(elementId, ms) {
-      const el = document.getElementById(elementId);
-      function update() {
-        const hours = Math.floor(ms / (1000 * 60 * 60));
-        const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((ms % (1000 * 60)) / 1000);
-        el.textContent = `⏳ متبقي: ${hours}س ${minutes}د ${seconds}ث`;
-
-        if (ms <= 0) {
-          el.textContent = "✅ متاح الآن، حدّث الصفحة";
-          clearInterval(interval);
-        }
-        ms -= 1000;
-      }
-      update();
-      const interval = setInterval(update, 1000);
-    }
-
-    async function updateUserPoints() {
-      const userDocRef = doc(db, "users", currentUserId);
+    async function updateUserPoints(userId) {
+      const userDocRef = doc(db, "users", userId);
       const userSnap = await getDoc(userDocRef);
       const points = userSnap.data()?.points || 0;
       document.getElementById("user-points").textContent = `نقاطي: ${points} 🪙`;
     }
 
     window.startRedirect = async function(index, url) {
-      const userDocRef = doc(db, "users", currentUserId);
+      const userId = auth.currentUser.uid;
+      const userDocRef = doc(db, "users", userId);
 
       await updateDoc(userDocRef, {
         points: increment(POINTS_PER_LINK),
-        [`completedLinks.${index}`]: Date.now()
+        [`completedLinks.${index}`]: Date.now() // نسجل وقت الإنجاز
       });
 
       const logRef = collection(db, "adminTaskLogs");
       await addDoc(logRef, {
-        userId: currentUserId,
+        userId,
         taskType: "shortlink",
         rewardToUser: POINTS_PER_LINK,
         date: new Date()
       });
 
-      window.location.href = url;
+      window.location.href = url; // يروح للرابط
     };
-
-    document.getElementById("refresh").addEventListener("click", renderLinks);
   </script>
 </body>
 </html>
