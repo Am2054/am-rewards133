@@ -90,7 +90,7 @@ button#confirmBtn:hover { background:#00bcd4; }
 <body>
 
 <div class="container">
-  <h1>طلب سحب الأرباح</h1>
+  <h1>💸 طلب سحب الأرباح</h1>
 
   <div class="info">
     <div>رصيدك: <span id="pointsVal">0</span></div>
@@ -204,7 +204,6 @@ let userId=null;
 
 function isToday(date){ const now=new Date(); return date.getDate()===now.getDate() && date.getMonth()===now.getMonth() && date.getFullYear()===now.getFullYear(); }
 
-// تحميل بيانات المستخدم من Firebase
 auth.onAuthStateChanged(user=>{
   if(user){
     userId=user.uid;
@@ -294,21 +293,33 @@ function submitWithdrawal(){
 
   if(!wallet){ msg.textContent='يرجى إدخال رقم المحفظة.'; msg.style.display='block'; return; }
 
-  const withdrawalData = { method, amount: amt, fee, net, pts: ptsUsed, wallet, date: new Date() };
+  const withdrawalData = { method, amount: amt, fee, net, pts: ptsUsed, wallet, userId, status:"pending", date:firebase.firestore.FieldValue.serverTimestamp() };
 
-  db.collection('users').doc(userId).collection('withdrawals').add(withdrawalData)
-    .then(()=>{
-      userData.points -= ptsUsed;
-      userData.withdrawals.push(withdrawalData);
-      db.collection('users').doc(userId).update({ points: userData.points })
-        .then(()=>{ updateDisplay(); });
-      ok.textContent='تم تقديم طلب السحب بنجاح!'; ok.style.display='block';
-      amountInp.value=''; confirmModal.classList.remove('show');
-    })
-    .catch(err=>{ msg.textContent='حدث خطأ، حاول مرة أخرى.'; msg.style.display='block'; console.error(err); });
+  const userRef=db.collection('users').doc(userId);
+  const userWithdrawalsRef=userRef.collection('withdrawals');
+  const mainWithdrawalsRef=db.collection('withdrawals');
+
+  db.runTransaction(async (transaction)=>{
+    const userSnap=await transaction.get(userRef);
+    if(!userSnap.exists) throw "المستخدم غير موجود";
+
+    const currentPts=userSnap.data().points||0;
+    if(currentPts<ptsUsed) throw "رصيدك غير كافٍ";
+
+    transaction.update(userRef,{ points: firebase.firestore.FieldValue.increment(-ptsUsed) });
+    transaction.set(userWithdrawalsRef.doc(), withdrawalData);
+    transaction.set(mainWithdrawalsRef.doc(), withdrawalData);
+  }).then(()=>{
+    ok.textContent='تم تقديم طلب السحب بنجاح!'; ok.style.display='block';
+    amountInp.value=''; confirmModal.classList.remove('show');
+    updateDisplay();
+  }).catch(err=>{
+    console.error(err);
+    msg.textContent="حدث خطأ: "+err; msg.style.display='block';
+  });
 }
 
 updateDisplay();
 </script>
 </body>
-    </html>
+  </html>
