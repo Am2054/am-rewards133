@@ -1,67 +1,89 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>جارٍ التحويل...</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body {
-      background-color: #121212;
-      color: #eee;
-      font-family: 'Tajawal', sans-serif;
-      text-align: center;
-      padding: 40px;
+    body { 
+      background: #121212; 
+      color: #e0e0e0; 
+      font-family: 'Tajawal', sans-serif; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      height: 100vh; 
+      text-align: center; 
     }
-    .countdown {
-      font-size: 48px;
-      margin-top: 20px;
-      color: #1DB954;
+    .box {
+      background: #1e1e1e; 
+      padding: 30px; 
+      border-radius: 12px; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+      max-width: 400px;
     }
-    .message {
-      font-size: 20px;
-      margin-top: 10px;
-      color: #eee;
-    }
+    h2 { color: #4caf50; }
   </style>
 </head>
 <body>
-  <h1>جارٍ التحويل للرابط المختصر...</h1>
-  <div class="countdown" id="countdown">5</div>
-  <div class="message" id="message">يرجى الانتظار قليلاً.</div>
+  <div class="box">
+    <h2>🔗 جاري تحويلك للرابط...</h2>
+    <p id="msg">من فضلك انتظر ثوانٍ قليلة...</p>
+  </div>
 
-  <script>
-    const countdownEl = document.getElementById('countdown');
-    const messageEl = document.getElementById('message');
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, updateDoc, increment, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const redirectLink = localStorage.getItem('redirect_link');  // رابط SwiftLnx
-    const redirectIndex = localStorage.getItem('redirect_index'); // رقم الرابط
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards"
+    };
 
-    if (!redirectLink || redirectIndex === null) {
-      messageEl.textContent = "❌ لا يوجد رابط للتحويل.";
-      countdownEl.style.display = 'none';
-    } else {
-      let countdown = 5;
-      const interval = setInterval(() => {
-        countdown--;
-        countdownEl.textContent = countdown;
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-        if (countdown === 0) {
-          clearInterval(interval);
-          messageEl.textContent = "يتم الآن تحويلك...";
+    const POINTS_PER_LINK = 3;
 
-          // جهز رابط SwiftLnx مع return
-          const returnUrl = encodeURIComponent(`${window.location.origin}/success.html?i=${redirectIndex}`);
-          const finalUrl = `${redirectLink}?return=${returnUrl}`;
+    async function handleRedirect() {
+      const data = JSON.parse(localStorage.getItem("pendingLink"));
+      if (!data) {
+        document.getElementById("msg").textContent = "⚠️ لا يوجد رابط للمتابعة!";
+        return;
+      }
 
-          // امسح من localStorage
-          localStorage.removeItem('redirect_link');
-          localStorage.removeItem('redirect_index');
+      const user = auth.currentUser;
+      if (!user) {
+        document.getElementById("msg").textContent = "⚠️ يجب تسجيل الدخول!";
+        return;
+      }
 
-          // التحويل
-          window.location.href = finalUrl;
-        }
-      }, 1000);
+      const userDocRef = doc(db, "users", user.uid);
+
+      // ✅ تسجيل النقاط عند الرجوع هنا
+      await updateDoc(userDocRef, {
+        points: increment(POINTS_PER_LINK),
+        [`completedLinks.${data.index}`]: Date.now()
+      });
+
+      // تسجيل في سجل المهام
+      const logRef = collection(db, "adminTaskLogs");
+      await addDoc(logRef, {
+        userId: user.uid,
+        taskType: "shortlink",
+        rewardToUser: POINTS_PER_LINK,
+        date: new Date()
+      });
+
+      // بعد ثانيتين نفتح الرابط
+      setTimeout(() => {
+        window.location.href = data.url;
+      }, 2000);
     }
+
+    handleRedirect();
   </script>
 </body>
 </html>
