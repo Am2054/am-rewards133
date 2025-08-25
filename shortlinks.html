@@ -34,7 +34,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, updateDoc, increment, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -46,9 +46,8 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    const POINTS_PER_LINK = 3; // عدد النقاط لكل رابط
+    const POINTS_PER_LINK = 3;
 
-    // ✅ الروابط الجديدة
     const shortlinks = [
       { title: "رابط 1", url: "https://swiftlnx.com/Lzt3c" },
       { title: "رابط 2", url: "https://exe.io/qEJR4" },
@@ -75,67 +74,67 @@
         completedLinks = userSnap.data().completedLinks || {};
       }
 
-      const now = Date.now();
       const container = document.getElementById("links-container");
-      const status = document.getElementById("status");
+      container.innerHTML = "";
 
-      const availableLinks = shortlinks.filter((_, i) => {
-        if (completedLinks[i]) {
-          const diff = now - completedLinks[i]; // الفرق بالمللي ثانية
-          if (diff < 24 * 60 * 60 * 1000) {
-            return false; // لسه ما كملتش 24 ساعة
-          }
-        }
-        return true;
-      });
-
-      status.textContent = `روابط متاحة: ${availableLinks.length} / ${shortlinks.length}`;
-
-      if (availableLinks.length === 0) {
-        container.innerHTML = "<p style='text-align:center;'>✅ لا توجد روابط متاحة الآن، ارجع بعد 24 ساعة.</p>";
-        return;
-      }
-
-      availableLinks.forEach((item, index) => {
-        const globalIndex = shortlinks.indexOf(item);
+      shortlinks.forEach((item, index) => {
         const div = document.createElement("div");
         div.className = "link-box";
-        div.innerHTML = `
-          <p>${item.title}</p>
-          <p>🪙 هذه المهمة تمنحك <strong>${POINTS_PER_LINK}</strong> نقطة</p>
-          <button onclick="startRedirect(${globalIndex}, '${item.url}')">افتح الرابط</button>
-        `;
-        container.appendChild(div);
-      });
 
-      updateUserPoints(userId);
+        const lastDone = completedLinks[index];
+        const now = Date.now();
+
+        if (lastDone && now - lastDone < 24 * 60 * 60 * 1000) {
+          const endTime = lastDone + 24 * 60 * 60 * 1000;
+          const timerEl = document.createElement("p");
+          timerEl.style.color = "#ff9800";
+          div.innerHTML = `<p>${item.title}</p>
+                           <p>🪙 ${POINTS_PER_LINK} نقطة</p>`;
+          div.appendChild(timerEl);
+          container.appendChild(div);
+
+          updateTimer(timerEl, endTime, () => {
+            div.innerHTML = `
+              <p>${item.title}</p>
+              <p>🪙 ${POINTS_PER_LINK} نقطة</p>
+              <button onclick="goToRedirect(${index}, '${item.url}')">افتح الرابط</button>
+            `;
+          });
+        } else {
+          div.innerHTML = `
+            <p>${item.title}</p>
+            <p>🪙 ${POINTS_PER_LINK} نقطة</p>
+            <button onclick="goToRedirect(${index}, '${item.url}')">افتح الرابط</button>
+          `;
+          container.appendChild(div);
+        }
+      });
     }
 
-    async function updateUserPoints(userId) {
-      const userDocRef = doc(db, "users", userId);
-      const userSnap = await getDoc(userDocRef);
-      const points = userSnap.data()?.points || 0;
-      document.getElementById("user-points").textContent = `نقاطي: ${points} 🪙`;
+    function updateTimer(element, endTime, onFinish) {
+      function tick() {
+        const now = Date.now();
+        const diff = endTime - now;
+
+        if (diff <= 0) {
+          element.textContent = "✅ الرابط متاح الآن!";
+          if (onFinish) onFinish();
+          return;
+        }
+
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        element.textContent = `⏳ متبقي: ${hours} س ${minutes} د ${seconds} ث`;
+        setTimeout(tick, 1000);
+      }
+      tick();
     }
 
-    window.startRedirect = async function(index, url) {
-      const userId = auth.currentUser.uid;
-      const userDocRef = doc(db, "users", userId);
-
-      await updateDoc(userDocRef, {
-        points: increment(POINTS_PER_LINK),
-        [`completedLinks.${index}`]: Date.now() // نسجل وقت الإنجاز
-      });
-
-      const logRef = collection(db, "adminTaskLogs");
-      await addDoc(logRef, {
-        userId,
-        taskType: "shortlink",
-        rewardToUser: POINTS_PER_LINK,
-        date: new Date()
-      });
-
-      window.location.href = url; // يروح للرابط المختصر
+    window.goToRedirect = function(index, url) {
+      localStorage.setItem("pendingLink", JSON.stringify({ index, url }));
+      window.location.href = "redirect.html";
     };
   </script>
 </body>
