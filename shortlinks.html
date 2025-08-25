@@ -34,7 +34,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -59,6 +59,17 @@
     onAuthStateChanged(auth, user => {
       if (user) {
         initShortLinks(user.uid);
+
+        // ✅ تحديث النقاط لحظياً من Firestore
+        const userDocRef = doc(db, "users", user.uid);
+        onSnapshot(userDocRef, (snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            document.getElementById("user-points").textContent =
+              `نقاطي: ${data.points || 0}`;
+          }
+        });
+
       } else {
         alert("⚠️ يجب تسجيل الدخول أولاً.");
         window.location.href = "index.html";
@@ -109,6 +120,8 @@
           container.appendChild(div);
         }
       });
+
+      document.getElementById("status").textContent = "✅ اختر أي رابط متاح";
     }
 
     function updateTimer(element, endTime, onFinish) {
@@ -132,7 +145,7 @@
       tick();
     }
 
-    // ✅ يوجّه لصفحة redirect.html مع تخزين بيانات الرابط
+    // ✅ الانتقال لصفحة redirect.html
     window.goToRedirect = function(index, url) {
       localStorage.setItem("pendingLink", JSON.stringify({ index, url }));
       window.location.href = "redirect.html";
