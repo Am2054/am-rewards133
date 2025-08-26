@@ -1,179 +1,144 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>مهمة الروابط المختصرة | Am Rewards</title>
-  <style>
-    body { font-family: 'Tajawal', sans-serif; background-color: #121212; color: #e0e0e0; margin: 0; padding: 20px; text-align: center; }
-    h2 { color: #4caf50; font-size: 28px; margin-bottom: 20px; }
-    .link-box { background: #1e1e1e; padding: 15px; border: 1px solid #333; margin: 12px auto; max-width: 420px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.7); transition: background-color 0.3s; }
-    .link-box:hover { background-color: #2a2a2a; }
-    .link-box p { margin: 8px 0; font-size: 17px; }
-    .link-box button { background-color: #4caf50; color: #121212; border: none; padding: 10px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; transition: background-color 0.3s; }
-    .link-box button:hover { background-color: #388e3c; }
-    #user-points { background: #263238; padding: 12px 20px; border-radius: 10px; display: inline-block; margin: 0 auto 20px; font-size: 20px; border: 1px solid #37474f; }
-    #status { font-size: 18px; margin-bottom: 15px; color: #81c784; }
-    .back-buttons { margin-top: 35px; }
-    .back-buttons button { background-color: #4caf50; border: none; color: #121212; padding: 12px 24px; margin: 8px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; transition: background-color 0.3s; }
-    .back-buttons button:hover { background-color: #388e3c; }
-    a { text-decoration: none; }
-  </style>
-</head>
-<body>
-  <h2>مهمة الروابط المختصرة</h2>
-  <div id="user-points">نقاطي: ...</div>
-  <div id="status">جاري تحميل الروابط...</div>
-  <div id="links-container"></div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, doc, getDoc, updateDoc, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  <div class="back-buttons">
-    <a href="dashboard.html"><button>🔙 العودة إلى الصفحة الرئيسية</button></a>
-    <a href="tasks.html"><button>🗂️ العودة إلى صفحة المهام</button></a>
-  </div>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+    authDomain: "am--rewards.firebaseapp.com",
+    projectId: "am--rewards"
+  };
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards"
-    };
+  const POINTS_PER_LINK = 3;
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+  const shortlinks = [
+    { title: "رابط 1", url: "https://swiftlnx.com/Lzt3c" },
+    { title: "رابط 2", url: "https://exe.io/qEJR4" },
+    { title: "رابط 3", url: "https://yshorten.com/woSf" },
+    { title: "رابط 4", url: "https://oii.la/7o245qg" },
+    { title: "رابط 5", url: "https://short-jambo.ink/oBRa" }
+  ];
 
-    const POINTS_PER_LINK = 3;
+  let currentUser;
 
-    const shortlinks = [
-      { title: "رابط 1", url: "https://swiftlnx.com/Lzt3c" },
-      { title: "رابط 2", url: "https://exe.io/qEJR4" },
-      { title: "رابط 3", url: "https://yshorten.com/woSf" },
-      { title: "رابط 4", url: "https://oii.la/7o245qg" },
-      { title: "رابط 5", url: "https://short-jambo.ink/oBRa" }
-    ];
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      currentUser = user;
+      initShortLinks(user.uid);
 
-    let currentUser;
+      const userDocRef = doc(db, "users", user.uid);
+      onSnapshot(userDocRef, (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          document.getElementById("user-points").textContent =
+            `نقاطي: ${data.points || 0}`;
+        }
+      });
 
-    onAuthStateChanged(auth, user => {
-      if (user) {
-        currentUser = user;
-        initShortLinks(user.uid);
+      checkReturnFromLink(user.uid);
 
-        const userDocRef = doc(db, "users", user.uid);
-        onSnapshot(userDocRef, (snap) => {
-          if (snap.exists()) {
-            const data = snap.data();
-            document.getElementById("user-points").textContent =
-              `نقاطي: ${data.points || 0}`;
-          }
-        });
+    } else {
+      alert("⚠️ يجب تسجيل الدخول أولاً.");
+      window.location.href = "index.html";
+    }
+  });
 
-        checkReturnFromLink(user.uid);
+  async function initShortLinks(userId) {
+    const userDocRef = doc(db, "users", userId);
+    const userSnap = await getDoc(userDocRef);
 
-      } else {
-        alert("⚠️ يجب تسجيل الدخول أولاً.");
-        window.location.href = "index.html";
-      }
-    });
+    let completedLinks = {};
+    if (userSnap.exists()) {
+      completedLinks = userSnap.data().completedLinks || {};
+    }
 
-    async function initShortLinks(userId) {
-      const userDocRef = doc(db, "users", userId);
-      const userSnap = await getDoc(userDocRef);
+    const container = document.getElementById("links-container");
+    container.innerHTML = "";
 
-      let completedLinks = {};
-      if (userSnap.exists()) {
-        completedLinks = userSnap.data().completedLinks || {};
-      }
+    shortlinks.forEach((item, index) => {
+      const div = document.createElement("div");
+      div.className = "link-box";
 
-      const container = document.getElementById("links-container");
-      container.innerHTML = "";
+      const lastDone = completedLinks[index];
+      const now = Date.now();
 
-      shortlinks.forEach((item, index) => {
-        const div = document.createElement("div");
-        div.className = "link-box";
+      if (lastDone && now - lastDone < 24 * 60 * 60 * 1000) {
+        const endTime = lastDone + 24 * 60 * 60 * 1000;
+        const timerEl = document.createElement("p");
+        timerEl.style.color = "#ff9800";
+        div.innerHTML = `<p>${item.title}</p><p>🪙 ${POINTS_PER_LINK} نقطة</p>`;
+        div.appendChild(timerEl);
+        container.appendChild(div);
 
-        const lastDone = completedLinks[index];
-        const now = Date.now();
-
-        if (lastDone && now - lastDone < 24 * 60 * 60 * 1000) {
-          const endTime = lastDone + 24 * 60 * 60 * 1000;
-          const timerEl = document.createElement("p");
-          timerEl.style.color = "#ff9800";
-          div.innerHTML = `<p>${item.title}</p><p>🪙 ${POINTS_PER_LINK} نقطة</p>`;
-          div.appendChild(timerEl);
-          container.appendChild(div);
-
-          updateTimer(timerEl, endTime, () => {
-            div.innerHTML = `
-              <p>${item.title}</p>
-              <p>🪙 ${POINTS_PER_LINK} نقطة</p>
-              <button onclick="goToLink(${index}, '${item.url}')">افتح الرابط</button>
-            `;
-          });
-        } else {
+        updateTimer(timerEl, endTime, () => {
           div.innerHTML = `
             <p>${item.title}</p>
             <p>🪙 ${POINTS_PER_LINK} نقطة</p>
             <button onclick="goToLink(${index}, '${item.url}')">افتح الرابط</button>
           `;
-          container.appendChild(div);
-        }
-      });
-
-      document.getElementById("status").textContent = "✅ اختر أي رابط متاح";
-    }
-
-    function updateTimer(element, endTime, onFinish) {
-      function tick() {
-        const now = Date.now();
-        const diff = endTime - now;
-
-        if (diff <= 0) {
-          element.textContent = "✅ الرابط متاح الآن!";
-          if (onFinish) onFinish();
-          return;
-        }
-
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-        element.textContent = `⏳ متبقي: ${hours} س ${minutes} د ${seconds} ث`;
-        setTimeout(tick, 1000);
+        });
+      } else {
+        div.innerHTML = `
+          <p>${item.title}</p>
+          <p>🪙 ${POINTS_PER_LINK} نقطة</p>
+          <button onclick="goToLink(${index}, '${item.url}')">افتح الرابط</button>
+        `;
+        container.appendChild(div);
       }
-      tick();
+    });
+
+    document.getElementById("status").textContent = "✅ اختر أي رابط متاح";
+  }
+
+  function updateTimer(element, endTime, onFinish) {
+    function tick() {
+      const now = Date.now();
+      const diff = endTime - now;
+
+      if (diff <= 0) {
+        element.textContent = "✅ الرابط متاح الآن!";
+        if (onFinish) onFinish();
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      element.textContent = `⏳ متبقي: ${hours} س ${minutes} د ${seconds} ث`;
+      setTimeout(tick, 1000);
     }
+    tick();
+  }
 
-    // فتح الرابط وتسجيله كـ pending
-    window.goToLink = function(index, url) {
-      localStorage.setItem("pendingLink", JSON.stringify({ index, url }));
-      window.open(url, "_blank");
-    };
+  // فتح الرابط وتسجيله كـ pending
+  window.goToLink = function(index, url) {
+    localStorage.setItem("pendingLink", JSON.stringify({ index, url }));
+    window.open(url, "_blank");
+  };
 
-    // ✅ التحقق عند الرجوع
-    async function checkReturnFromLink(userId) {
-      const pending = localStorage.getItem("pendingLink");
-      if (!pending) return;
+  // ✅ التحقق عند الرجوع
+  async function checkReturnFromLink(userId) {
+    const pending = localStorage.getItem("pendingLink");
+    if (!pending) return;
 
-      const { index } = JSON.parse(pending);
-      const userRef = doc(db, "users", userId);
+    const { index } = JSON.parse(pending);
+    const userRef = doc(db, "users", userId);
 
-      await updateDoc(userRef, {
-        points: (await getDoc(userRef)).data().points + POINTS_PER_LINK,
-        [`completedLinks.${index}`]: Date.now()
-      });
+    await updateDoc(userRef, {
+      points: increment(POINTS_PER_LINK),  // ⬅️ هنا التعديل الأساسي
+      [`completedLinks.${index}`]: Date.now()
+    });
 
-      alert(`🎉 تم إضافة ${POINTS_PER_LINK} نقطة لحسابك!`);
+    alert(`🎉 تم إضافة ${POINTS_PER_LINK} نقطة لحسابك!`);
 
-      localStorage.removeItem("pendingLink");
+    localStorage.removeItem("pendingLink");
 
-      // إعادة تحميل القائمة لتختفي الأزرار
-      initShortLinks(userId);
-    }
-  </script>
-</body>
-  </html>
+    // إعادة تحميل القائمة لتختفي الأزرار
+    initShortLinks(userId);
+  }
+        </script>
