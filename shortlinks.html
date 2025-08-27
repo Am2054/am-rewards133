@@ -68,7 +68,7 @@
       currentUser = user;
       const userDocRef = doc(db, "users", user.uid);
 
-      // تحديث النقاط مباشرة عند أي تغيير
+      // مراقبة البيانات وتحديث النقاط مباشرة
       onSnapshot(userDocRef, snap => {
         if (snap.exists()) {
           const data = snap.data();
@@ -158,15 +158,18 @@
       const userRef = doc(db, "users", userId);
 
       try {
+        // تحديث النقاط في Firestore أولاً
         await updateDoc(userRef, {
           points: increment(POINTS_PER_LINK),
           [`completedLinks.${index}`]: Date.now()
         });
 
-        // تحديث مباشر للنقاط على الصفحة
-        const pointsEl = document.getElementById("user-points");
-        const currentPoints = parseInt(pointsEl.textContent.replace(/\D/g, '')) || 0;
-        pointsEl.textContent = `نقاطي: ${currentPoints + POINTS_PER_LINK}`;
+        // جلب القيمة الجديدة مباشرة من Firestore بعد التحديث
+        const snap = await getDoc(userRef);
+        if (snap.exists()) {
+          const newPoints = snap.data().points || 0;
+          document.getElementById("user-points").textContent = `نقاطي: ${newPoints}`;
+        }
 
         alert(`🎉 تم إضافة ${POINTS_PER_LINK} نقطة لحسابك!`);
       } catch (err) {
