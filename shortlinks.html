@@ -9,7 +9,7 @@
     h2 { color: #4caf50; font-size: 28px; margin-bottom: 20px; }
     .link-box { background: #1e1e1e; padding: 15px; border: 1px solid #333; margin: 12px auto; max-width: 420px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.7); transition: background-color 0.3s; }
     .link-box:hover { background-color: #2a2a2a; }
-    .link-box p { margin: 8px 0; font-size: 17px; }
+    .link-box p { margin: 6px 0; font-size: 16px; }
     .link-box button { background-color: #4caf50; color: #121212; border: none; padding: 10px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; transition: background-color 0.3s; }
     .link-box button:hover { background-color: #388e3c; }
     #user-points { background: #263238; padding: 12px 20px; border-radius: 10px; display: inline-block; margin: 0 auto 20px; font-size: 20px; border: 1px solid #37474f; }
@@ -34,7 +34,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, updateDoc, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -48,17 +48,18 @@
 
     const POINTS_PER_LINK = 3;
 
+    // كل رابط الآن يحتوي على عنوان + نوع المهمة
     const shortlinks = [
-      { title: "رابط 1", url: "https://swiftlnx.com/Lzt3c" },
-      { title: "رابط 2", url: "https://exe.io/qEJR4" },
-      { title: "رابط 3", url: "https://yshorten.com/woSf" },
-      { title: "رابط 4", url: "https://oii.la/7o245qg" },
-      { title: "رابط 5", url: "https://short-jambo.ink/oBRa" }
+      { title: "رابط 1", url: "https://swiftlnx.com/Lzt3c", type: "روابط مختصرة" },
+      { title: "رابط 2", url: "https://exe.io/qEJR4", type: "روابط مختصرة" },
+      { title: "رابط 3", url: "https://yshorten.com/woSf", type: "روابط مختصرة" },
+      { title: "رابط 4", url: "https://oii.la/7o245qg", type: "روابط مختصرة" },
+      { title: "رابط 5", url: "https://short-jambo.ink/oBRa", type: "روابط مختصرة" }
     ];
 
     let currentUser;
 
-    onAuthStateChanged(auth, user => {
+    onAuthStateChanged(auth, async user => {
       if (!user) {
         alert("⚠️ يجب تسجيل الدخول أولاً.");
         window.location.href = "index.html";
@@ -67,6 +68,12 @@
 
       currentUser = user;
       const userDocRef = doc(db, "users", user.uid);
+
+      // إنشاء البيانات الافتراضية للحساب الجديد إذا لم توجد
+      const userSnap = await getDoc(userDocRef);
+      if (!userSnap.exists()) {
+        await setDoc(userDocRef, { points: 0, completedLinks: {} });
+      }
 
       // مراقبة البيانات وتحديث النقاط مباشرة
       onSnapshot(userDocRef, snap => {
@@ -100,20 +107,20 @@
           const endTime = lastDone + 24 * 60 * 60 * 1000;
           const timerEl = document.createElement("p");
           timerEl.style.color = "#ff9800";
-          div.innerHTML = `<p>${item.title}</p><p>🪙 ${POINTS_PER_LINK} نقطة</p>`;
+          div.innerHTML = `<p>${item.title} - ${item.type}</p><p>🪙 ${POINTS_PER_LINK} نقطة</p>`;
           div.appendChild(timerEl);
           container.appendChild(div);
 
           updateTimer(timerEl, endTime, () => {
             div.innerHTML = `
-              <p>${item.title}</p>
+              <p>${item.title} - ${item.type}</p>
               <p>🪙 ${POINTS_PER_LINK} نقطة</p>
               <button onclick="goToLink(${index}, '${item.url}')">افتح الرابط</button>
             `;
           });
         } else {
           div.innerHTML = `
-            <p>${item.title}</p>
+            <p>${item.title} - ${item.type}</p>
             <p>🪙 ${POINTS_PER_LINK} نقطة</p>
             <button onclick="goToLink(${index}, '${item.url}')">افتح الرابط</button>
           `;
@@ -158,13 +165,11 @@
       const userRef = doc(db, "users", userId);
 
       try {
-        // تحديث النقاط في Firestore أولاً
         await updateDoc(userRef, {
           points: increment(POINTS_PER_LINK),
           [`completedLinks.${index}`]: Date.now()
         });
 
-        // جلب القيمة الجديدة مباشرة من Firestore بعد التحديث
         const snap = await getDoc(userRef);
         if (snap.exists()) {
           const newPoints = snap.data().points || 0;
