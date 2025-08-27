@@ -74,12 +74,13 @@
     <button class="logout" onclick="logout()">تسجيل خروج</button>
   </div>
 
-  <!-- Firebase -->
+  <!-- Firebase (Compat v9.23.0 مثل عندك) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
   <script>
+    // ⚙️ إعداداتك الأصلية
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
@@ -89,60 +90,99 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    const POINT_VALUE_EGP = 0.07; // قيمة النقطة
+    // ثابت التحويل للنقطة
+    const POINT_VALUE_EGP = 0.07;
 
-    async function updateBalance() {
-      const user = auth.currentUser;
-      if (!user) {
-        window.location.href = "index.html";
-        return;
-      }
+    // تفعيل لوج التجربة
+    const DEBUG = true;
+    const log = (...args) => DEBUG && console.log(...args);
 
-      const userRef = db.collection("users").doc(user.uid);
-      const docSnap = await userRef.get();
-
-      let data;
-      if (!docSnap.exists) {
-        // بيانات مبدئية للحساب الجديد
-        data = { 
-          name: user.displayName || user.email, 
-          email: user.email, 
-          points: 0, 
-          withdrawn: 0, 
-          completedLinks: {}  // ✅ إضافة حقل مهم للمهمات
-        };
-        await userRef.set(data);
-      } else {
-        data = docSnap.data();
-        // ✅ إذا لم يكن completedLinks موجود، أضفه دون مسح أي بيانات
-        if (!data.completedLinks) {
-          await userRef.update({ completedLinks: {} });
-          data.completedLinks = {};
-        }
-      }
-
-      // عرض الاسم
-      document.getElementById("user-name").textContent = data.name || user.displayName || user.email;
-
-      // الحسابات
-      const totalPoints = data.points || 0;
+    // دالة حساب وإظهار الأرصدة
+    function renderDashboard(data, user) {
+      const name = data.name || user.displayName || user.email || "مستخدم";
+      const totalPoints = typeof data.points === 'number' ? data.points : 0;
+      const withdrawnEGP = typeof data.withdrawn === 'number' ? data.withdrawn : 0;
       const totalEGP = totalPoints * POINT_VALUE_EGP;
-      const withdrawnEGP = data.withdrawn || 0;
       const currentEGP = totalEGP - withdrawnEGP;
 
+      document.getElementById("user-name").textContent = name;
       document.getElementById("total-points").textContent = totalPoints;
       document.getElementById("total-egp").textContent = totalEGP.toFixed(2);
       document.getElementById("withdrawn-egp").textContent = withdrawnEGP.toFixed(2);
       document.getElementById("current-egp").textContent = currentEGP.toFixed(2);
     }
 
-    auth.onAuthStateChanged((user) => {
-      if (user) updateBalance();
-      else window.location.href = "index.html";
+    // ضمان وجود الحقول الأساسية بدون حذف بيانات
+    async function ensureUserDoc(user) {
+      const userRef = db.collection("users").doc(user.uid);
+      const snap = await userRef.get();
+      let data;
+
+      if (!snap.exists) {
+        log("🆕 إنشاء مستند جديد للمستخدم");
+        data = {
+          name: user.displayName || user.email || "مستخدم",
+          email: user.email || "",
+          points: 0,
+          withdrawn: 0,        // بالجنيه
+          completedLinks: {}   // مهم لمهام الروابط المختصرة
+        };
+        await userRef.set(data);
+        return data;
+      } else {
+        data = snap.data() || {};
+        const patch = {};
+        if (!("name" in data) || !data.name) patch.name = user.displayName || user.email || "مستخدم";
+        if (!("email" in data) || !data.email) patch.email = user.email || "";
+        if (typeof data.points !== "number") patch.points = 0;
+        if (typeof data.withdrawn !== "number") patch.withdrawn = 0;
+        if (!data.completedLinks || typeof data.completedLinks !== "object") patch.completedLinks = {};
+
+        if (Object.keys(patch).length) {
+          log("🩹 تصحيح/استكمال حقول المستخدم:", patch);
+          await userRef.update(patch);
+          data = { ...data, ...patch };
+        }
+        return data;
+      }
+    }
+
+    // متابعة التغييرات لحظيًا
+    function subscribeToUser(user) {
+      const userRef = db.collection("users").doc(user.uid);
+      return userRef.onSnapshot((doc) => {
+        if (doc.exists) {
+          const data = doc.data();
+          log("📡 تحديث لحظي لبيانات المستخدم:", data);
+          renderDashboard(data, user);
+        }
+      }, (err) => {
+        console.error("⚠️ خطأ في onSnapshot:", err);
+      });
+    }
+
+    // دخول/خروج
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        log("🚪 غير مسجل دخول → تحويل إلى صفحة الدخول");
+        window.location.href = "index.html";
+        return;
+      }
+      try {
+        log("✅ تم تسجيل الدخول:", user.email);
+        const data = await ensureUserDoc(user);
+        renderDashboard(data, user);
+        // اشترك في التحديثات اللحظية
+        subscribeToUser(user);
+      } catch (e) {
+        console.error("❌ خطأ أثناء تهيئة بيانات المستخدم:", e);
+      }
     });
 
     function logout() {
-      auth.signOut().then(() => { window.location.href = "index.html"; });
+      auth.signOut().then(() => {
+        window.location.href = "index.html";
+      });
     }
   </script>
 </body>
