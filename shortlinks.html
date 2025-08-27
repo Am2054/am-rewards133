@@ -48,7 +48,6 @@
 
     const POINTS_PER_LINK = 3;
 
-    // كل رابط الآن يحتوي على عنوان + نوع المهمة
     const shortlinks = [
       { title: "رابط 1", url: "https://swiftlnx.com/Lzt3c", type: "روابط مختصرة" },
       { title: "رابط 2", url: "https://exe.io/qEJR4", type: "روابط مختصرة" },
@@ -69,13 +68,13 @@
       currentUser = user;
       const userDocRef = doc(db, "users", user.uid);
 
-      // إنشاء البيانات الافتراضية للحساب الجديد إذا لم توجد
+      // التأكد أن مستند المستخدم موجود، وإذا لم يكن موجودًا يتم إنشاؤه
       const userSnap = await getDoc(userDocRef);
       if (!userSnap.exists()) {
         await setDoc(userDocRef, { points: 0, completedLinks: {} });
       }
 
-      // مراقبة البيانات وتحديث النقاط مباشرة
+      // تحديث النقاط مباشرة عند أي تغيير
       onSnapshot(userDocRef, snap => {
         if (snap.exists()) {
           const data = snap.data();
@@ -84,14 +83,15 @@
         }
       });
 
-      checkReturnFromLink(user.uid);
+      // نفذ التحقق من الرابط المفتوح سابقًا قبل رسم الروابط
+      await checkReturnFromLink(user.uid);
       initShortLinks(user.uid);
     });
 
     async function initShortLinks(userId) {
       const userDocRef = doc(db, "users", userId);
       const userSnap = await getDoc(userDocRef);
-      let completedLinks = userSnap.exists() ? userSnap.data().completedLinks || {} : {};
+      const completedLinks = userSnap.exists() ? userSnap.data().completedLinks || {} : {};
 
       const container = document.getElementById("links-container");
       container.innerHTML = "";
@@ -100,7 +100,7 @@
         const div = document.createElement("div");
         div.className = "link-box";
 
-        const lastDone = completedLinks[index];
+        const lastDone = completedLinks[index] || 0;
         const now = Date.now();
 
         if (lastDone && now - lastDone < 24 * 60 * 60 * 1000) {
@@ -170,6 +170,7 @@
           [`completedLinks.${index}`]: Date.now()
         });
 
+        // تحديث النقاط فورًا بعد الإضافة
         const snap = await getDoc(userRef);
         if (snap.exists()) {
           const newPoints = snap.data().points || 0;
