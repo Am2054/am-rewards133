@@ -103,16 +103,22 @@
 
       let data;
       if (!docSnap.exists) {
-        // بيانات مبدئية
+        // بيانات مبدئية للحساب الجديد
         data = { 
           name: user.displayName || user.email, 
           email: user.email, 
           points: 0, 
-          withdrawn: 0 // 🟢 بالجنيه مش بالنقاط
+          withdrawn: 0, 
+          completedLinks: {}  // ✅ إضافة حقل مهم للمهمات
         };
         await userRef.set(data);
       } else {
         data = docSnap.data();
+        // ✅ إذا لم يكن completedLinks موجود، أضفه دون مسح أي بيانات
+        if (!data.completedLinks) {
+          await userRef.update({ completedLinks: {} });
+          data.completedLinks = {};
+        }
       }
 
       // عرض الاسم
@@ -121,7 +127,7 @@
       // الحسابات
       const totalPoints = data.points || 0;
       const totalEGP = totalPoints * POINT_VALUE_EGP;
-      const withdrawnEGP = data.withdrawn || 0; // 🟢 بالجنيه
+      const withdrawnEGP = data.withdrawn || 0;
       const currentEGP = totalEGP - withdrawnEGP;
 
       document.getElementById("total-points").textContent = totalPoints;
@@ -140,4 +146,4 @@
     }
   </script>
 </body>
-  </html>
+  </html>      
