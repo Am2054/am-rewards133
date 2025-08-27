@@ -59,35 +59,32 @@
     let currentUser;
 
     onAuthStateChanged(auth, user => {
-      if (user) {
-        currentUser = user;
-        initShortLinks(user.uid);
-
-        const userDocRef = doc(db, "users", user.uid);
-        onSnapshot(userDocRef, (snap) => {
-          if (snap.exists()) {
-            const data = snap.data();
-            document.getElementById("user-points").textContent =
-              `نقاطي: ${data.points || 0}`;
-          }
-        });
-
-        checkReturnFromLink(user.uid);
-
-      } else {
+      if (!user) {
         alert("⚠️ يجب تسجيل الدخول أولاً.");
         window.location.href = "index.html";
+        return;
       }
+
+      currentUser = user;
+      const userDocRef = doc(db, "users", user.uid);
+
+      // تحديث النقاط مباشرة عند أي تغيير
+      onSnapshot(userDocRef, snap => {
+        if (snap.exists()) {
+          const data = snap.data();
+          const points = data.points || 0;
+          document.getElementById("user-points").textContent = `نقاطي: ${points}`;
+        }
+      });
+
+      checkReturnFromLink(user.uid);
+      initShortLinks(user.uid);
     });
 
     async function initShortLinks(userId) {
       const userDocRef = doc(db, "users", userId);
       const userSnap = await getDoc(userDocRef);
-
-      let completedLinks = {};
-      if (userSnap.exists()) {
-        completedLinks = userSnap.data().completedLinks || {};
-      }
+      let completedLinks = userSnap.exists() ? userSnap.data().completedLinks || {} : {};
 
       const container = document.getElementById("links-container");
       container.innerHTML = "";
@@ -148,13 +145,11 @@
       tick();
     }
 
-    // فتح الرابط وتسجيله كـ pending
     window.goToLink = function(index, url) {
       localStorage.setItem("pendingLink", JSON.stringify({ index, url }));
       window.open(url, "_blank");
     };
 
-    // ✅ التحقق عند الرجوع مع حفظ النقاط بشكل ثابت
     async function checkReturnFromLink(userId) {
       const pending = localStorage.getItem("pendingLink");
       if (!pending) return;
@@ -162,14 +157,24 @@
       const { index } = JSON.parse(pending);
       const userRef = doc(db, "users", userId);
 
-      await updateDoc(userRef, {
-        points: increment(POINTS_PER_LINK),
-        [`completedLinks.${index}`]: Date.now()   // ✅ تحديث المفتاح المحدد بدون حذف القديم
-      });
+      try {
+        await updateDoc(userRef, {
+          points: increment(POINTS_PER_LINK),
+          [`completedLinks.${index}`]: Date.now()
+        });
 
-      alert(`🎉 تم إضافة ${POINTS_PER_LINK} نقطة لحسابك!`);
+        // تحديث مباشر للنقاط على الصفحة
+        const pointsEl = document.getElementById("user-points");
+        const currentPoints = parseInt(pointsEl.textContent.replace(/\D/g, '')) || 0;
+        pointsEl.textContent = `نقاطي: ${currentPoints + POINTS_PER_LINK}`;
+
+        alert(`🎉 تم إضافة ${POINTS_PER_LINK} نقطة لحسابك!`);
+      } catch (err) {
+        console.error("خطأ في تحديث النقاط:", err);
+      }
+
       localStorage.removeItem("pendingLink");
     }
   </script>
 </body>
-  </html>
+</html>
