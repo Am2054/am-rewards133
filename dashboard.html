@@ -1,141 +1,176 @@
-<!DOCTYPE html> 
-<html lang="ar" dir="rtl">  
-<head>  
-  <meta charset="UTF-8" />  
-  <title>لوحة التحكم | Am Rewards</title>  
-  <meta name="viewport" content="width=device-width, initial-scale=1" />  
-  <style>  
-    @import url('https://fonts.googleapis.com/css2?family=Cairo&display=swap');  
-    body {  
-      margin: 0;  
-      font-family: 'Cairo', sans-serif;  
-      background-color: #121212;  
-      color: #eee;  
-      direction: rtl;  
-      display: flex;  
-      justify-content: center;  
-      align-items: center;  
-      height: 100vh;  
-      padding: 20px;  
-    }  
-    .container {  
-      background-color: #1e1e1e;  
-      padding: 40px 30px;  
-      border-radius: 20px;  
-      max-width: 420px;  
-      width: 100%;  
-      box-shadow:  
-        0 0 10px rgba(0, 255, 255, 0.2),  
-        0 0 20px rgba(0, 255, 255, 0.15),  
-        0 0 30px rgba(0, 255, 255, 0.1);  
-      text-align: center;  
-      border: 2px solid #00e5ff;  
-    }  
-    .heart { font-size: 45px; color: #00e5ff; animation: beat 1s infinite alternate; }  
-    @keyframes beat { to { transform: scale(1.15); } }  
-    h1 { font-size: 30px; margin-bottom: 15px; color: #00e5ff; }  
-    .info { background-color: #111; padding: 18px; border-radius: 15px; margin: 18px 0; font-size: 18px; line-height: 1.8; box-shadow: inset 0 0 10px #00e5ff44; }  
-    .info strong { color: #00e5ff; font-size: 20px; }  
-    .links a { display: block; background-color: #4caf50; color: #fff; font-weight: 700; margin: 12px 0; padding: 14px; border-radius: 12px; text-decoration: none; font-size: 17px; box-shadow: 0 0 8px #4caf50; transition: background-color 0.3s ease, box-shadow 0.3s ease; }  
-    .links a:hover { background-color: #388e3c; box-shadow: 0 0 15px #388e3c; color: #000; }  
-    .links a.referral { background-color: #ffd600; color: #333; box-shadow: 0 0 8px #ffd600; }  
-    .links a.referral:hover { background-color: #fff176; box-shadow: 0 0 15px #fff176; color: #000; }  
-    .links a.about { background-color: #ba68c8; color: #fff; box-shadow: 0 0 8px #ba68c8; }  
-    .links a.about:hover { background-color: #ce93d8; box-shadow: 0 0 15px #ce93d8; color: #000; }  
-    .links a.terms { background-color: #607d8b; color: #eee; box-shadow: 0 0 8px #607d8b; }  
-    .links a.terms:hover { background-color: #90a4ae; box-shadow: 0 0 15px #90a4ae; color: #000; }  
-    .links a.contact { background-color: #ff7043; color: white; font-weight: 700; box-shadow: 0 0 8px #ff7043; }  
-    .links a.contact:hover { background-color: #ffab91; box-shadow: 0 0 15px #ffab91; color: #000; }  
-    button.logout { margin-top: 25px; background-color: #d32f2f; border: none; color: white; font-size: 17px; padding: 14px 30px; border-radius: 15px; cursor: pointer; box-shadow: 0 0 10px #d32f2f; transition: background-color 0.3s ease, box-shadow 0.3s ease; }  
-    button.logout:hover { background-color: #ff5252; box-shadow: 0 0 20px #ff5252; }  
-    .quick-task { background-color: #00acc1; color: white; font-weight: bold; padding: 14px; margin-top: 12px; border: none; border-radius: 15px; cursor: pointer; font-size: 18px; box-shadow: 0 0 10px #00acc1; transition: background-color 0.3s ease, box-shadow 0.3s ease; }  
-    .quick-task:hover { background-color: #00e5ff; box-shadow: 0 0 20px #00e5ff; color: #000; }  
-  </style>  
-</head>  
-<body>  
-  <div class="container">  
-    <div class="heart">❤️</div>  
-    <h1>مرحبًا، <span id="user-name">...</span></h1>  
-    <div class="info">  
-      <p>إجمالي النقاط: <strong id="total-points">0</strong> نقطة</p>  
-      <p>ما يعادل: <strong id="total-egp">0</strong> جنيه مصري</p>  
-      <p>الرصيد المسحوب: <strong id="withdrawn-egp">0</strong> جنيه</p>  
-      <p>الرصيد الحالي: <strong id="current-egp">0</strong> جنيه</p>  
-    </div>  
-    <button class="quick-task" onclick="window.location.href='tasks.html'">🎯 نفذ مهمة الآن</button>  
-    <div class="links">  
-      <a href="tasks.html">📝 المهام</a>  
-      <a href="withdraw.html">💸 طلب سحب الأرباح</a>  
-      <a href="referrals.html" class="referral">👥 الإحالات</a>  
-      <a href="about.html" class="about">ℹ️ من نحن</a>  
-      <a href="terms.html" class="terms">📜 سياسة الاستخدام</a>  
-      <a href="contact.html" class="contact">📞 تواصل معنا</a>  
-    </div>  
-    <button class="logout" onclick="logout()">تسجيل خروج</button>  
-  </div>    <!-- Firebase -->    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>    <script>  
-    const firebaseConfig = {  
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",  
-      authDomain: "am--rewards.firebaseapp.com",  
-      projectId: "am--rewards",  
-    };  
-    firebase.initializeApp(firebaseConfig);  
-    const auth = firebase.auth();  
-    const db = firebase.firestore();  
-  
-    const POINT_VALUE_EGP = 0.07; // قيمة النقطة  
-  
-    async function updateBalance() {  
-      const user = auth.currentUser;  
-      if (!user) {  
-        window.location.href = "index.html";  
-        return;  
-      }  
-  
-      const userRef = db.collection("users").doc(user.uid);  
-      const docSnap = await userRef.get();  
-  
-      let data;  
-      if (!docSnap.exists) {  
-        // بيانات مبدئية للحساب الجديد  
-        data = {   
-          name: user.displayName || user.email,   
-          email: user.email,   
-          points: 0,   
-          withdrawn: 0,   
-          completedLinks: {}  // ✅ إضافة حقل مهم للمهمات  
-        };  
-        await userRef.set(data);  
-      } else {  
-        data = docSnap.data();  
-        // ✅ إذا لم يكن completedLinks موجود، أضفه دون مسح أي بيانات  
-        if (!data.completedLinks) {  
-          await userRef.update({ completedLinks: {} });  
-          data.completedLinks = {};  
-        }  
-      }  
-  
-      // عرض الاسم  
-      document.getElementById("user-name").textContent = data.name || user.displayName || user.email;  
-  
-      // الحسابات  
-      const totalPoints = data.points || 0;  
-      const totalEGP = totalPoints * POINT_VALUE_EGP;  
-      const withdrawnEGP = data.withdrawn || 0;  
-      const currentEGP = totalEGP - withdrawnEGP;  
-  
-      document.getElementById("total-points").textContent = totalPoints;  
-      document.getElementById("total-egp").textContent = totalEGP.toFixed(2);  
-      document.getElementById("withdrawn-egp").textContent = withdrawnEGP.toFixed(2);  
-      document.getElementById("current-egp").textContent = currentEGP.toFixed(2);  
-    }  
-  
-    auth.onAuthStateChanged((user) => {  
-      if (user) updateBalance();  
-      else window.location.href = "index.html";  
-    });  
-  
-    function logout() {  
-      auth.signOut().then(() => { window.location.href = "index.html"; });  
-    }  
-  </script>  </body>  
-                                   </html>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>لوحة التحكم | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo&display=swap');
+    body {
+      margin: 0;
+      font-family: 'Cairo', sans-serif;
+      background-color: #121212;
+      color: #eee;
+      direction: rtl;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      background-color: #1e1e1e;
+      padding: 40px 30px;
+      border-radius: 20px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow:
+        0 0 10px rgba(0, 255, 255, 0.2),
+        0 0 20px rgba(0, 255, 255, 0.15),
+        0 0 30px rgba(0, 255, 255, 0.1);
+      text-align: center;
+      border: 2px solid #00e5ff;
+    }
+    .heart { font-size: 45px; color: #00e5ff; animation: beat 1s infinite alternate; }
+    @keyframes beat { to { transform: scale(1.15); } }
+    h1 { font-size: 30px; margin-bottom: 15px; color: #00e5ff; }
+    .info { background-color: #111; padding: 18px; border-radius: 15px; margin: 18px 0; font-size: 18px; line-height: 1.8; box-shadow: inset 0 0 10px #00e5ff44; }
+    .info strong { color: #00e5ff; font-size: 20px; }
+    .links a { display: block; background-color: #4caf50; color: #fff; font-weight: 700; margin: 12px 0; padding: 14px; border-radius: 12px; text-decoration: none; font-size: 17px; box-shadow: 0 0 8px #4caf50; transition: background-color 0.3s ease, box-shadow 0.3s ease; }
+    .links a:hover { background-color: #388e3c; box-shadow: 0 0 15px #388e3c; color: #000; }
+    .links a.referral { background-color: #ffd600; color: #333; box-shadow: 0 0 8px #ffd600; }
+    .links a.referral:hover { background-color: #fff176; box-shadow: 0 0 15px #fff176; color: #000; }
+    .links a.about { background-color: #ba68c8; color: #fff; box-shadow: 0 0 8px #ba68c8; }
+    .links a.about:hover { background-color: #ce93d8; box-shadow: 0 0 15px #ce93d8; color: #000; }
+    .links a.terms { background-color: #607d8b; color: #eee; box-shadow: 0 0 8px #607d8b; }
+    .links a.terms:hover { background-color: #90a4ae; box-shadow: 0 0 15px #90a4ae; color: #000; }
+    .links a.contact { background-color: #ff7043; color: white; font-weight: 700; box-shadow: 0 0 8px #ff7043; }
+    .links a.contact:hover { background-color: #ffab91; box-shadow: 0 0 15px #ffab91; color: #000; }
+    button.logout { margin-top: 25px; background-color: #d32f2f; border: none; color: white; font-size: 17px; padding: 14px 30px; border-radius: 15px; cursor: pointer; box-shadow: 0 0 10px #d32f2f; transition: background-color 0.3s ease, box-shadow 0.3s ease; }
+    button.logout:hover { background-color: #ff5252; box-shadow: 0 0 20px #ff5252; }
+    .quick-task { background-color: #00acc1; color: white; font-weight: bold; padding: 14px; margin-top: 12px; border: none; border-radius: 15px; cursor: pointer; font-size: 18px; box-shadow: 0 0 10px #00acc1; transition: background-color 0.3s ease, box-shadow 0.3s ease; }
+    .quick-task:hover { background-color: #00e5ff; box-shadow: 0 0 20px #00e5ff; color: #000; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="heart">❤️</div>
+    <h1>مرحبًا، <span id="user-name">...</span></h1>
+    <div class="info">
+      <p>إجمالي النقاط: <strong id="total-points">0</strong> نقطة</p>
+      <p>ما يعادل: <strong id="total-egp">0</strong> جنيه مصري</p>
+      <p>الرصيد المسحوب: <strong id="withdrawn-egp">0</strong> جنيه</p>
+      <p>الرصيد الحالي: <strong id="current-egp">0</strong> جنيه</p>
+    </div>
+    <button class="quick-task" onclick="window.location.href='tasks.html'">🎯 نفذ مهمة الآن</button>
+    <div class="links">
+      <a href="tasks.html">📝 المهام</a>
+      <a href="withdraw.html">💸 طلب سحب الأرباح</a>
+      <a href="referrals.html" class="referral">👥 الإحالات</a>
+      <a href="about.html" class="about">ℹ️ من نحن</a>
+      <a href="terms.html" class="terms">📜 سياسة الاستخدام</a>
+      <a href="contact.html" class="contact">📞 تواصل معنا</a>
+    </div>
+    <button class="logout" onclick="logout()">تسجيل خروج</button>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    // ⚙️ إعدادات Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // ✅ ثابت موحد لقيمة النقطة (0.07 جنيه)
+    const POINT_VALUE_EGP = 0.07;
+
+    // 📊 تحديث واجهة المستخدم
+    function renderDashboard(data, user) {
+      const name = data.name || user.displayName || user.email || "مستخدم";
+      const totalPoints = typeof data.points === 'number' ? data.points : 0;
+      const withdrawnEGP = typeof data.withdrawn === 'number' ? data.withdrawn : 0;
+      const totalEGP = totalPoints * POINT_VALUE_EGP;
+      const currentEGP = totalEGP - withdrawnEGP;
+
+      document.getElementById("user-name").textContent = name;
+      document.getElementById("total-points").textContent = totalPoints;
+      document.getElementById("total-egp").textContent = totalEGp.toFixed(2);
+      document.getElementById("withdrawn-egp").textContent = withdrawnEGP.toFixed(2);
+      document.getElementById("current-egp").textContent = currentEGP.toFixed(2);
+    }
+
+    // 🔄 تأكيد أو إنشاء مستند المستخدم
+    async function ensureUserDoc(user) {
+      const userRef = db.collection("users").doc(user.uid);
+      const snap = await userRef.get();
+      let data;
+
+      if (!snap.exists) {
+        data = {
+          name: user.displayName || user.email || "مستخدم",
+          email: user.email || "",
+          points: 0,
+          withdrawn: 0,
+          completedLinks: {}
+        };
+        await userRef.set(data);
+        return data;
+      } else {
+        data = snap.data() || {};
+        const patch = {};
+        if (!("name" in data)) patch.name = user.displayName || user.email || "مستخدم";
+        if (!("email" in data)) patch.email = user.email || "";
+        if (typeof data.points !== "number") patch.points = 0;
+        if (typeof data.withdrawn !== "number") patch.withdrawn = 0;
+        if (!data.completedLinks) patch.completedLinks = {};
+
+        if (Object.keys(patch).length) {
+          await userRef.update(patch);
+          data = { ...data, ...patch };
+        }
+        return data;
+      }
+    }
+
+    // 👂 متابعة التغييرات لحظيًا
+    function subscribeToUser(user) {
+      const userRef = db.collection("users").doc(user.uid);
+      return userRef.onSnapshot((doc) => {
+        if (doc.exists) {
+          renderDashboard(doc.data(), user);
+        }
+      });
+    }
+
+    // 🚪 تسجيل الدخول والخروج
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
+      try {
+        const data = await ensureUserDoc(user);
+        renderDashboard(data, user);
+        subscribeToUser(user);
+      } catch (e) {
+        console.error("❌ خطأ أثناء جلب البيانات:", e);
+      }
+    });
+
+    function logout() {
+      auth.signOut().then(() => {
+        window.location.href = "index.html";
+      });
+    }
+  </script>
+</body>
+  </html>
