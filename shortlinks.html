@@ -7,12 +7,11 @@
   <style>
     body { font-family: 'Tajawal', sans-serif; background-color: #121212; color: #e0e0e0; margin: 0; padding: 20px; text-align: center; }
     h2 { color: #4caf50; font-size: 28px; margin-bottom: 20px; }
-    .link-box { background: #1e1e1e; padding: 15px; border: 1px solid #333; margin: 12px auto; max-width: 420px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.7); transition: background-color 0.3s; position: relative;}
+    .link-box { background: #1e1e1e; padding: 15px; border: 1px solid #333; margin: 12px auto; max-width: 420px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.7); transition: background-color 0.3s; }
     .link-box:hover { background-color: #2a2a2a; }
     .link-box p { margin: 6px 0; font-size: 16px; }
     .link-box button { background-color: #4caf50; color: #121212; border: none; padding: 10px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; transition: background-color 0.3s; }
     .link-box button:hover { background-color: #388e3c; }
-    .points-added { color: #ffd600; font-weight: bold; margin-left: 8px; }
     #user-points { background: #263238; padding: 12px 20px; border-radius: 10px; display: inline-block; margin: 0 auto 20px; font-size: 20px; border: 1px solid #37474f; }
     #status { font-size: 18px; margin-bottom: 15px; color: #81c784; }
     .back-buttons { margin-top: 35px; }
@@ -123,8 +122,7 @@
     function renderButton(div, item, index) {
       div.innerHTML = `
         <p>${item.title}</p>
-        <button onclick="goToLink(${index}, '${item.url}', this)">افتح الرابط</button>
-        <span class="points-added"></span>
+        <button onclick="goToLink(${index}, '${item.url}')">افتح الرابط</button>
       `;
     }
 
@@ -149,29 +147,30 @@
       tick();
     }
 
-    window.goToLink = async function(index, url, btn) {
+    window.goToLink = async function(index, url) {
       if (!currentUser) return;
 
       const userRef = doc(db, "users", currentUser.uid);
       const snap = await getDoc(userRef);
       const completedLinks = snap.exists() ? snap.data().completedLinks || {} : {};
 
+      // تحقق 24 ساعة قبل منح النقاط
       if (completedLinks[index] && Date.now() - completedLinks[index] < 24 * 60 * 60 * 1000) {
         alert("⚠️ لقد فتحت هذا الرابط بالفعل اليوم!");
         return;
       }
 
+      // تحديث النقاط ووقت الفتح
       await updateDoc(userRef, {
         points: increment(POINTS_PER_LINK),
         [`completedLinks.${index}`]: Date.now()
       });
 
-      // عرض النقاط المكتسبة بجانب الزر مباشرة
-      const pointsSpan = btn.nextElementSibling;
-      pointsSpan.textContent = `+${POINTS_PER_LINK}`;
-      setTimeout(() => pointsSpan.textContent = "", 3000);
+      alert(`🎉 تم إضافة ${POINTS_PER_LINK} نقطة لحسابك!`);
 
       window.open(url, "_blank");
+
+      // إعادة تحميل الروابط لتحديث المؤقت
       initShortLinks(currentUser.uid);
     };
   </script>
