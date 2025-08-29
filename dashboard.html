@@ -59,7 +59,7 @@
   <div class="card">
     <p><strong>الاسم:</strong> <span id="userName">...</span></p>
     <p><strong>الإيميل:</strong> <span id="userEmail">...</span></p>
-    <p><strong>رقم الهاتف:</strong> <span id="userPhone">-</span></p>
+    <p><strong>الهاتف:</strong> <span id="userPhone">-</span></p>
     <p><strong>النقاط:</strong> <span id="userPoints">0</span></p>
     <p><strong>النقاط الإضافية:</strong> <span id="bonusPoint">0</span></p>
     <p><strong>الرصيد المسحوب اليوم:</strong> <span id="dailyWithdrawAmount">0</span> EGP</p>
@@ -78,62 +78,47 @@
   </div>
   <div class="logout" onclick="logout()">🚪 تسجيل خروج</div>
 
-  <!-- Firebase CDN v8 -->
+  <!-- Firebase v8 -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-  <script src="firebase.js"></script>
-
   <script>
-    const defaultUserData = {
-      bonusPoint: 0,
-      completedAds: {},
-      completedApps: {},
-      completedGames: {},
-      completedLinks: {},
-      completedSurveys: {},
-      completedVideos: {},
-      dailyWithdrawAmount: 0,
-      email: "",
-      fee: 0,
-      isBanned: false,
-      joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      lastWithdrawlDate: "",
-      method: "",
-      name: "",
-      phone: "",
-      points: 0,
-      pointsUsed: 0,
-      totalWithdrawn: 0,
-      wallet: ""
+    // نفس الإعدادات من firebase.js
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.appspot.com",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112",
+      measurementId: "G-CV3GLT2TTJ"
     };
 
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // المستخدم الحالي
     auth.onAuthStateChanged(async (user) => {
       if (user) {
         const userRef = db.collection("users").doc(user.uid);
-        const snap = await userRef.get();
+        const docSnap = await userRef.get();
 
-        if (!snap.exists) {
-          await userRef.set({
-            ...defaultUserData,
-            uid: user.uid,
-            email: user.email || "",
-            name: user.displayName || "مستخدم",
-            phone: user.phoneNumber || ""
-          });
-          renderData({ ...defaultUserData, email: user.email, name: user.displayName, phone: user.phoneNumber });
+        if (docSnap.exists) {
+          const data = docSnap.data();
+          renderData(data, user);
         } else {
-          renderData(snap.data());
+          console.log("⚠️ المستخدم مالوش وثيقة");
         }
       } else {
         window.location.href = "index.html";
       }
     });
 
-    function renderData(data) {
-      document.getElementById("userName").textContent = data.name || "مستخدم";
-      document.getElementById("userEmail").textContent = data.email || "غير محدد";
-      document.getElementById("userPhone").textContent = data.phone || "-";
+    function renderData(data, user) {
+      document.getElementById("userName").textContent = data.name || user.displayName || "مستخدم";
+      document.getElementById("userEmail").textContent = data.email || user.email || "غير محدد";
+      document.getElementById("userPhone").textContent = data.phone || user.phoneNumber || "غير محدد";
       document.getElementById("userPoints").textContent = data.points ?? 0;
       document.getElementById("bonusPoint").textContent = data.bonusPoint ?? 0;
       document.getElementById("dailyWithdrawAmount").textContent = data.dailyWithdrawAmount ?? 0;
