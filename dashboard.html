@@ -59,6 +59,7 @@
   <div class="card">
     <p><strong>الاسم:</strong> <span id="userName">...</span></p>
     <p><strong>الإيميل:</strong> <span id="userEmail">...</span></p>
+    <p><strong>رقم الهاتف:</strong> <span id="userPhone">-</span></p>
     <p><strong>النقاط:</strong> <span id="userPoints">0</span></p>
     <p><strong>النقاط الإضافية:</strong> <span id="bonusPoint">0</span></p>
     <p><strong>الرصيد المسحوب اليوم:</strong> <span id="dailyWithdrawAmount">0</span> EGP</p>
@@ -92,6 +93,7 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // البيانات الافتراضية
     const defaultUserData = {
       bonusPoint: 0,
       completedAds: {},
@@ -115,6 +117,7 @@
       wallet: ""
     };
 
+    // التحقق من تسجيل الدخول
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         const userRef = doc(db, "users", user.uid);
@@ -141,14 +144,18 @@
           });
           renderData(defaultUserData, user);
         }
+
       } else {
-        window.location.href = "index.html";
+        // لو مش عامل تسجيل دخول -> يروح صفحة login
+        window.location.href = "login.html";
       }
     });
 
+    // عرض البيانات في الصفحة
     function renderData(data, user) {
       document.getElementById("userName").textContent = data.name || user.displayName || "مستخدم";
       document.getElementById("userEmail").textContent = data.email || user.email || "غير محدد";
+      document.getElementById("userPhone").textContent = data.phone || user.phoneNumber || "-";
       document.getElementById("userPoints").textContent = data.points ?? 0;
       document.getElementById("bonusPoint").textContent = data.bonusPoint ?? 0;
       document.getElementById("dailyWithdrawAmount").textContent = data.dailyWithdrawAmount ?? 0;
@@ -157,9 +164,10 @@
       document.getElementById("wallet").textContent = data.wallet || "-";
     }
 
+    // تسجيل خروج
     function logout() {
-      signOut(auth).then(() => window.location.href = "index.html");
+      signOut(auth).then(() => window.location.href = "login.html");
     }
   </script>
 </body>
-  </html>  
+  </html>
