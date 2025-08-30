@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -56,35 +56,34 @@ const shortlinks=[
 ];
 
 let currentUser;
-let openedWindow = null;
-let openedLinkIndex = null;
+let openedWindow=null;
+let openedLinkIndex=null;
 
 onAuthStateChanged(auth, async user=>{
-  if(!user){alert("⚠️ يجب تسجيل الدخول أولاً."); window.location.href="index.html"; return;}
+  if(!user){
+    alert("⚠️ يجب تسجيل الدخول أولاً."); 
+    window.location.href="index.html"; 
+    return;
+  }
   currentUser=user;
   const userRef=doc(db,"users",user.uid);
+
+  // إنشاء المستخدم لو مش موجود
   const snap=await getDoc(userRef);
   if(!snap.exists()){
-    await setDoc(userRef,{
-      points:0,
-      completedLinks:{}
-    });
+    await setDoc(userRef,{points:0,completedLinks:{}});
   }
 
+  // snapshot = تحميل فوري + تحديث لحظي
   onSnapshot(userRef,snap=>{
-    const data=snap.data();
-    const points=data?.points??0;
+    const data=snap.data() || {};
+    const points=data.points ?? 0;
     document.getElementById("user-points").textContent=`نقاطي: ${points}`;
+    renderLinks(data.completedLinks || {});
   });
-
-  renderLinks();
 });
 
-async function renderLinks(){
-  const userRef=doc(db,"users",currentUser.uid);
-  const snap=await getDoc(userRef);
-  const completedLinks=snap.exists()?snap.data().completedLinks||{}:{};
-
+function renderLinks(completedLinks={}){
   const container=document.getElementById("links-container");
   container.innerHTML="";
 
@@ -95,8 +94,8 @@ async function renderLinks(){
     const lastDone=completedLinks[index]||0;
     const now=Date.now();
 
-    if(lastDone && now - lastDone < LINK_COOLDOWN){
-      const endTime=lastDone + LINK_COOLDOWN;
+    if(lastDone && now-lastDone<LINK_COOLDOWN){
+      const endTime=lastDone+LINK_COOLDOWN;
       const timerEl=document.createElement("p");
       timerEl.style.color="#ff9800";
       div.appendChild(timerEl);
@@ -122,7 +121,11 @@ function startTimer(el,endTime,onFinish){
   function tick(){
     const now=Date.now();
     const diff=endTime-now;
-    if(diff<=0){el.textContent="✅ الرابط متاح الآن!"; if(onFinish) onFinish(); return;}
+    if(diff<=0){
+      el.textContent="✅ الرابط متاح الآن!"; 
+      if(onFinish) onFinish(); 
+      return;
+    }
     const h=Math.floor(diff/(1000*60*60));
     const m=Math.floor((diff%(1000*60*60))/(1000*60));
     const s=Math.floor((diff%(1000*60))/1000);
@@ -142,10 +145,10 @@ window.openLink=async function(index,url){
     return;
   }
 
-  openedLinkIndex = index;
-  openedWindow = window.open(url,"_blank");
+  openedLinkIndex=index;
+  openedWindow=window.open(url,"_blank");
 
-  const checkWindow = setInterval(async ()=>{
+  const checkWindow=setInterval(async ()=>{
     if(openedWindow && openedWindow.closed){
       clearInterval(checkWindow);
       await updateDoc(userRef,{
@@ -155,10 +158,9 @@ window.openLink=async function(index,url){
       alert(`🎉 تم إضافة ${POINTS_PER_LINK} نقطة لحسابك!`);
       openedLinkIndex=null;
       openedWindow=null;
-      renderLinks();
     }
   },500);
 };
 </script>
 </body>
-</html>   
+</html>
