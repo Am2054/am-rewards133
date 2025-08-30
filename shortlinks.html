@@ -5,21 +5,103 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>مهمة الروابط المختصرة | Am Rewards</title>
 <style>
-body{font-family:'Tajawal',sans-serif;background-color:#121212;color:#e0e0e0;margin:0;padding:20px;text-align:center;}
-h2{color:#4caf50;font-size:28px;margin-bottom:20px;}
-.link-box{background:#1e1e1e;padding:15px;border:1px solid #333;margin:12px auto;max-width:420px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.7);transition:0.3s;}
-.link-box:hover{background-color:#2a2a2a;}
-.link-box p{margin:6px 0;font-size:16px;}
-.link-box button{background-color:#4caf50;color:#121212;border:none;padding:10px 18px;border-radius:8px;font-weight:bold;cursor:pointer;font-size:16px;transition:0.3s;}
-.link-box button:hover{background-color:#388e3c;}
-#user-points{background:#263238;padding:12px 20px;border-radius:10px;display:inline-block;margin:0 auto 20px;font-size:20px;border:1px solid #37474f;}
-#status{font-size:18px;margin-bottom:15px;color:#81c784;}
-.back-buttons{margin-top:30px;}
-.back-buttons button{background-color:#4caf50;border:none;color:#121212;padding:12px 24px;margin:8px;border-radius:8px;font-weight:bold;cursor:pointer;font-size:16px;transition:0.3s;}
-.back-buttons button:hover{background-color:#388e3c;}
+body {
+  font-family:'Tajawal',sans-serif;
+  background-color:#121212;
+  color:#e0e0e0;
+  margin:0;
+  padding:20px;
+  text-align:center;
+}
+header {
+  margin-bottom: 20px;
+}
+header img {
+  width: 120px;
+  border-radius: 15px;
+  margin-bottom: 10px;
+  box-shadow: 0 0 20px #00e5ff;
+}
+header h1 {
+  font-size: 28px;
+  color: #00e5ff;
+  text-shadow: 0 0 15px #00e5ff, 0 0 30px #00bcd4;
+  margin:0;
+}
+.link-box {
+  background:#1e1e1e;
+  padding:15px;
+  border:1px solid #333;
+  margin:12px auto;
+  max-width:420px;
+  border-radius:12px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.7);
+  transition:0.3s;
+}
+.link-box:hover { background-color:#2a2a2a; }
+.link-box p { margin:6px 0; font-size:16px; }
+.link-box button {
+  background-color:#4caf50;
+  color:#121212;
+  border:none;
+  padding:10px 18px;
+  border-radius:8px;
+  font-weight:bold;
+  cursor:pointer;
+  font-size:16px;
+  transition:0.3s;
+}
+.link-box button:hover { background-color:#388e3c; }
+#user-points {
+  background:#263238;
+  padding:12px 20px;
+  border-radius:10px;
+  display:inline-block;
+  margin:0 auto 20px;
+  font-size:20px;
+  border:1px solid #37474f;
+}
+#status { font-size:18px; margin-bottom:15px; color:#81c784; }
+.back-buttons {
+  margin-top:30px;
+}
+.back-buttons button {
+  background-color:#4caf50;
+  border:none;
+  color:#121212;
+  padding:12px 24px;
+  margin:8px;
+  border-radius:8px;
+  font-weight:bold;
+  cursor:pointer;
+  font-size:16px;
+  transition:0.3s;
+}
+.back-buttons button:hover { background-color:#388e3c; }
+
+/* تنبيه النقاط */
+#point-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #00e676;
+  color: #121212;
+  font-weight: bold;
+  padding: 15px 25px;
+  border-radius: 10px;
+  box-shadow: 0 0 20px #00e67688;
+  display: none;
+  z-index: 1000;
+}
 </style>
 </head>
 <body>
+<header>
+  <img src="https://i.ibb.co/7v8cVfC/am-logo.png" alt="Am Rewards">
+  <h1>Am Rewards</h1>
+</header>
+
 <h2>مهمة الروابط المختصرة</h2>
 <div id="user-points">نقاطي: 0</div>
 <div id="status">جاري تحميل الروابط...</div>
@@ -29,6 +111,9 @@ h2{color:#4caf50;font-size:28px;margin-bottom:20px;}
   <button onclick="window.location.href='dashboard.html'">🔙 العودة إلى الصفحة الرئيسية</button>
   <button onclick="window.location.href='tasks.html'">🗂️ العودة إلى صفحة المهام</button>
 </div>
+
+<!-- تنبيه النقاط -->
+<div id="point-toast"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -46,6 +131,7 @@ const auth=getAuth(app);
 const db=getFirestore(app);
 
 const POINTS_PER_LINK=3;
+const LINK_COOLDOWN=24*60*60*1000; // 24 ساعة
 const shortlinks=[
   {title:"رابط 1",url:"https://swiftlnx.com/Lzt3c"},
   {title:"رابط 2",url:"https://exe.io/qEJR4"},
@@ -62,17 +148,14 @@ onAuthStateChanged(auth, async user=>{
   currentUser=user;
   const userRef=doc(db,"users",user.uid);
   const snap=await getDoc(userRef);
-  if(!snap.exists()){
-    await setDoc(userRef,{points:0,completedLinks:{}});
-  }
+  if(!snap.exists()){ await setDoc(userRef,{points:0,completedLinks:{}}); }
 
   onSnapshot(userRef,snap=>{
     const data=snap.data();
     const points=data?.points??0;
     document.getElementById("user-points").textContent=`نقاطي: ${points}`;
+    renderLinks();
   });
-
-  renderLinks();
 });
 
 async function renderLinks(){
@@ -89,29 +172,53 @@ async function renderLinks(){
 
     const lastDone=completedLinks[index]||0;
     const now=Date.now();
+    const button=document.createElement("button");
+    const timerEl=document.createElement("p");
+    div.appendChild(timerEl);
+    div.appendChild(button);
 
-    if(lastDone && now - lastDone < 24*60*60*1000){
-      const endTime=lastDone + 24*60*60*1000;
-      const timerEl=document.createElement("p");
-      timerEl.style.color="#ff9800";
-      div.appendChild(timerEl);
-      container.appendChild(div);
-      startTimer(timerEl,endTime,()=>{renderButton(div,item,index);});
+    if(lastDone && now - lastDone < LINK_COOLDOWN){
+      button.disabled=true;
+      startTimer(timerEl,lastDone+LINK_COOLDOWN,()=>{button.disabled=false; button.textContent="افتح الرابط";});
     } else {
-      renderButton(div,item,index);
-      container.appendChild(div);
+      button.disabled=false;
+      button.textContent="افتح الرابط";
+      button.onclick=()=>openLink(index,item.url);
     }
+
+    const titleEl=document.createElement("p");
+    titleEl.textContent=item.title;
+    div.insertBefore(titleEl,div.firstChild);
+    container.appendChild(div);
   });
 
   document.getElementById("status").textContent="✅ اختر أي رابط متاح";
 }
 
-function renderButton(div,item,index){
-  div.innerHTML=`
-    <p>${item.title}</p>
-    <button onclick="openLink(${index},'${item.url}')">افتح الرابط</button>
-  `;
-}
+window.openLink=async function(index,url){
+  const userRef=doc(db,"users",currentUser.uid);
+  const snap=await getDoc(userRef);
+  const completedLinks=snap.exists()?snap.data().completedLinks||{}:{};
+  if(completedLinks[index] && Date.now()-completedLinks[index]<LINK_COOLDOWN){
+    showToast("⚠️ لقد فتحت هذا الرابط بالفعل اليوم!");
+    return;
+  }
+
+  openedLinkIndex=index;
+  window.open(url,"_blank");
+};
+
+window.addEventListener("focus", async ()=>{
+  if(openedLinkIndex !== null && currentUser){
+    const userRef=doc(db,"users",currentUser.uid);
+    await updateDoc(userRef,{
+      points: increment(POINTS_PER_LINK),
+      [`completedLinks.${openedLinkIndex}`]: Date.now()
+    });
+    showToast(`🎉 تم إضافة ${POINTS_PER_LINK} نقطة لحسابك!`);
+    openedLinkIndex=null;
+  }
+});
 
 function startTimer(el,endTime,onFinish){
   function tick(){
@@ -127,31 +234,13 @@ function startTimer(el,endTime,onFinish){
   tick();
 }
 
-window.openLink=async function(index,url){
-  const userRef=doc(db,"users",currentUser.uid);
-  const snap=await getDoc(userRef);
-  const completedLinks=snap.exists()?snap.data().completedLinks||{}:{};
-  if(completedLinks[index] && Date.now()-completedLinks[index]<24*60*60*1000){
-    alert("⚠️ لقد فتحت هذا الرابط بالفعل اليوم!");
-    return;
-  }
-
-  openedLinkIndex = index;
-  window.open(url,"_blank");
-};
-
-window.addEventListener("focus", async ()=>{
-  if(openedLinkIndex!==null){
-    const userRef=doc(db,"users",currentUser.uid);
-    await updateDoc(userRef,{
-      points: increment(POINTS_PER_LINK),
-      [`completedLinks.${openedLinkIndex}`]: Date.now()
-    });
-    alert(`🎉 تم إضافة ${POINTS_PER_LINK} نقطة لحسابك!`);
-    renderLinks();
-    openedLinkIndex=null;
-  }
-});
+// تنبيه منبثق
+function showToast(message){
+  const toast=document.getElementById("point-toast");
+  toast.textContent=message;
+  toast.style.display="block";
+  setTimeout(()=>{ toast.style.display="none"; },2000);
+}
 </script>
 </body>
 </html>
