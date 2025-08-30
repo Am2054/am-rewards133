@@ -23,12 +23,12 @@ h2{color:#4caf50;font-size:28px;margin-bottom:20px;}
 <h2>مهمة الروابط المختصرة</h2>
 <div id="user-points">نقاطي: 0</div>
 <div id="status">جاري تحميل الروابط...</div>
-<div id="links-container"></div>
+<div id="links-container"></div>  
 
 <div class="back-buttons">
   <button onclick="window.location.href='dashboard.html'">🔙 العودة إلى الصفحة الرئيسية</button>
   <button onclick="window.location.href='tasks.html'">🗂️ العودة إلى صفحة المهام</button>
-</div>
+</div>  
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -56,8 +56,6 @@ const shortlinks=[
 ];
 
 let currentUser;
-let openedWindow=null;
-let openedLinkIndex=null;
 
 onAuthStateChanged(auth, async user=>{
   if(!user){
@@ -68,13 +66,28 @@ onAuthStateChanged(auth, async user=>{
   currentUser=user;
   const userRef=doc(db,"users",user.uid);
 
-  // إنشاء المستخدم لو مش موجود
   const snap=await getDoc(userRef);
   if(!snap.exists()){
     await setDoc(userRef,{points:0,completedLinks:{}});
   }
 
-  // snapshot = تحميل فوري + تحديث لحظي
+  // ✅ تحقق لو المستخدم راجع من رابط
+  const pendingLink=localStorage.getItem("pendingLink");
+  if(pendingLink!==null){
+    const linkIndex=parseInt(pendingLink);
+    const userSnap=await getDoc(userRef);
+    const completedLinks=userSnap.exists()?userSnap.data().completedLinks||{}:{};
+
+    if(!completedLinks[linkIndex] || Date.now()-completedLinks[linkIndex]>=LINK_COOLDOWN){
+      await updateDoc(userRef,{
+        points: increment(POINTS_PER_LINK),
+        [`completedLinks.${linkIndex}`]: Date.now()
+      });
+      alert(`🎉 تم إضافة ${POINTS_PER_LINK} نقطة لحسابك!`);
+    }
+    localStorage.removeItem("pendingLink");
+  }
+
   onSnapshot(userRef,snap=>{
     const data=snap.data() || {};
     const points=data.points ?? 0;
@@ -135,31 +148,10 @@ function startTimer(el,endTime,onFinish){
   tick();
 }
 
-window.openLink=async function(index,url){
-  const userRef=doc(db,"users",currentUser.uid);
-  const snap=await getDoc(userRef);
-  const completedLinks=snap.exists()?snap.data().completedLinks||{}:{};
-
-  if(completedLinks[index] && Date.now()-completedLinks[index]<LINK_COOLDOWN){
-    alert("⚠️ لقد فتحت هذا الرابط بالفعل اليوم!");
-    return;
-  }
-
-  openedLinkIndex=index;
-  openedWindow=window.open(url,"_blank");
-
-  const checkWindow=setInterval(async ()=>{
-    if(openedWindow && openedWindow.closed){
-      clearInterval(checkWindow);
-      await updateDoc(userRef,{
-        points: increment(POINTS_PER_LINK),
-        [`completedLinks.${openedLinkIndex}`]: Date.now()
-      });
-      alert(`🎉 تم إضافة ${POINTS_PER_LINK} نقطة لحسابك!`);
-      openedLinkIndex=null;
-      openedWindow=null;
-    }
-  },500);
+// ✅ هنا بس نخزن إن الرابط مفتوح
+window.openLink=function(index,url){
+  localStorage.setItem("pendingLink",index);
+  window.open(url,"_blank");
 };
 </script>
 </body>
