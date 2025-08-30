@@ -23,7 +23,38 @@
       width: 100%;
       max-width: 400px;
       text-align: center;
+      box-shadow: 0 0 25px rgba(0, 188, 212, 0.4);
     }
+
+    /* شعار الموقع */
+    .logo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 15px;
+      animation: glowPulse 2s infinite alternate;
+    }
+    .logo img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      margin-bottom: 10px;
+      box-shadow: 0 0 15px #00e5ff;
+      animation: glowPulse 2s infinite alternate;
+    }
+    .logo h1 {
+      font-size: 28px;
+      color: #00e5ff;
+      text-shadow: 0 0 12px #00e5ff;
+      margin: 0;
+      animation: glowPulse 2s infinite alternate;
+    }
+    @keyframes glowPulse {
+      0% { text-shadow: 0 0 5px #00e5ff, 0 0 10px #00e5ff, 0 0 15px #00e5ff; box-shadow: 0 0 5px #00e5ff; }
+      50% { text-shadow: 0 0 15px #00e5ff, 0 0 25px #00e5ff, 0 0 35px #00e5ff; box-shadow: 0 0 15px #00e5ff; }
+      100% { text-shadow: 0 0 8px #00e5ff, 0 0 16px #00e5ff, 0 0 24px #00e5ff; box-shadow: 0 0 8px #00e5ff; }
+    }
+
     h2 { margin-bottom: 20px; color: #00e5ff; }
     input, button {
       width: 100%;
@@ -48,6 +79,11 @@
 </head>
 <body>
   <div class="form-box">
+    <div class="logo">
+      <img src="https://i.ibb.co/2t0L7sx/am-logo.png" alt="Am Rewards Logo">
+      <h1>Am Rewards</h1>
+    </div>
+
     <h2 id="form-title">تسجيل الدخول إلى Am Rewards</h2>
     <div id="msg" class="message"></div>
 
@@ -128,17 +164,11 @@
       return /^(010|011|012|015)[0-9]{8}$/.test(phone);
     }
 
-    // تسجيل الدخول
     window.login = async function () {
       const email = document.getElementById("login-email").value.trim();
       const password = document.getElementById("login-password").value.trim();
       const btn = document.getElementById("login-btn");
       if (!email || !password) return showMessage("يرجى إدخال البريد وكلمة المرور", "error");
-
-      if (email === "owner@am.com" && password === "AmOwner@2025") {
-        window.location.href = "admin.html";
-        return;
-      }
 
       try {
         btn.textContent = "جاري الدخول...";
@@ -147,19 +177,40 @@
         const result = await signInWithEmailAndPassword(auth, email, password);
         const uid = result.user.uid;
 
-        // تأكد أن الحساب له وثيقة في Firestore
         const ref = doc(db, "users", uid);
         const snapshot = await getDoc(ref);
+
         if (!snapshot.exists()) {
           await setDoc(ref, {
-            email: email,
+            uid: uid,
             name: "مستخدم جديد",
+            email: email,
             phone: "",
             points: 0,
-            withdrawn: 0,
-            level: 1,
-            joinedAt: serverTimestamp()
+            pointsUsed: 0,
+            bonusPoint: 0,
+            totalWithdrawn: 0,
+            dailyWithdrawAmount: 0,
+            fee: 0,
+            isBanned: false,
+            wallet: "",
+            method: "vodafone,etisalat,orange",
+            lastWithdrawlDate: "",
+            joinedAt: serverTimestamp(),
+            completedLinks: {},
+            completedAds: {},
+            completedApps: {},
+            completedGames: {},
+            completedSurveys: {},
+            completedVideos: {}
           });
+        } else {
+          // ملء الحقول إذا المستخدم موجود
+          const data = snapshot.data();
+          document.getElementById("signup-name").value = data.name || "";
+          document.getElementById("signup-phone").value = data.phone || "";
+          document.getElementById("signup-email").value = data.email || "";
+          toggleMode();
         }
 
         showMessage("✅ تم تسجيل الدخول بنجاح!", "success");
@@ -171,7 +222,6 @@
       }
     };
 
-    // إنشاء حساب
     window.signup = async function () {
       const name = document.getElementById("signup-name").value.trim();
       const phone = document.getElementById("signup-phone").value.trim();
@@ -193,13 +243,27 @@
         const uid = userCredential.user.uid;
 
         await setDoc(doc(db, "users", uid), {
+          uid: uid,
           name: name,
-          phone: phone,
           email: email,
+          phone: phone,
           points: 0,
-          withdrawn: 0,
-          level: 1,
-          joinedAt: serverTimestamp()
+          pointsUsed: 0,
+          bonusPoint: 0,
+          totalWithdrawn: 0,
+          dailyWithdrawAmount: 0,
+          fee: 0,
+          isBanned: false,
+          wallet: "",
+          method: "vodafone,etisalat,orange",
+          lastWithdrawlDate: "",
+          joinedAt: serverTimestamp(),
+          completedLinks: {},
+          completedAds: {},
+          completedApps: {},
+          completedGames: {},
+          completedSurveys: {},
+          completedVideos: {}
         });
 
         showMessage("✅ تم إنشاء الحساب بنجاح!", "success");
