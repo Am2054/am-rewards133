@@ -23,17 +23,16 @@ h2{color:#4caf50;font-size:28px;margin-bottom:20px;}
 <h2>مهمة الروابط المختصرة</h2>
 <div id="user-points">نقاطي: 0</div>
 <div id="status">جاري تحميل الروابط...</div>
-<div id="links-container"></div>  
-
+<div id="links-container"></div>    
 <div class="back-buttons">
   <button onclick="window.location.href='dashboard.html'">🔙 العودة إلى الصفحة الرئيسية</button>
   <button onclick="window.location.href='tasks.html'">🗂️ العودة إلى صفحة المهام</button>
-</div>  
+</div>    
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig={
   apiKey:"AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -65,6 +64,14 @@ onAuthStateChanged(auth, async user=>{
   }
   currentUser=user;
   const userRef=doc(db,"users",user.uid);
+
+  // ✅ أول مرة: لو الحساب جديد أضف completedLinks
+  const snap=await getDoc(userRef);
+  if(!snap.exists()){
+    await setDoc(userRef,{ points:0, completedLinks:{} },{ merge:true });
+  } else if(!snap.data().completedLinks){
+    await updateDoc(userRef,{ completedLinks:{} });
+  }
 
   // ✅ تحقق لو المستخدم راجع من رابط
   const pendingLink=localStorage.getItem("pendingLink");
