@@ -78,7 +78,7 @@ onAuthStateChanged(auth, async user=>{
   if(pendingLink!==null){
     const linkIndex=parseInt(pendingLink);
     const userSnap=await getDoc(userRef);
-    const completedLinks=userSnap.exists()?userSnap.data().completedLinks||{}:{};
+    const completedLinks=userSnap.exists()? (userSnap.data().completedLinks||{}) : {};
 
     if(!completedLinks[linkIndex] || Date.now()-completedLinks[linkIndex]>=LINK_COOLDOWN){
       await updateDoc(userRef,{
@@ -90,11 +90,13 @@ onAuthStateChanged(auth, async user=>{
     localStorage.removeItem("pendingLink");
   }
 
+  // ✅ snapshot دايمًا يمرر completedLinks حتى لو فاضي
   onSnapshot(userRef,snap=>{
     const data=snap.data() || {};
     const points=data.points ?? 0;
+    const completedLinks=data.completedLinks || {}; // ✅ هنا التعديل المهم
     document.getElementById("user-points").textContent=`نقاطي: ${points}`;
-    renderLinks(data.completedLinks || {});
+    renderLinks(completedLinks);
   });
 });
 
