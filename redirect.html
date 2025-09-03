@@ -4,20 +4,20 @@
   <meta charset="UTF-8">
   <title>جارٍ التحويل...</title>
   <style>
-    body { 
-      background: #121212; 
-      color: #e0e0e0; 
-      font-family: 'Tajawal', sans-serif; 
-      display: flex; 
-      justify-content: center; 
-      align-items: center; 
-      height: 100vh; 
-      text-align: center; 
+    body {
+      background: #121212;
+      color: #e0e0e0;
+      font-family: 'Tajawal', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      text-align: center;
     }
     .box {
-      background: #1e1e1e; 
-      padding: 30px; 
-      border-radius: 12px; 
+      background: #1e1e1e;
+      padding: 30px;
+      border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.6);
       max-width: 400px;
     }
@@ -30,69 +30,18 @@
     <p id="msg">من فضلك انتظر ثوانٍ قليلة...</p>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, updateDoc, increment, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const targetUrl = params.get("target");
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    const POINTS_PER_LINK = 3;
-
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        document.getElementById("msg").textContent = "⚠️ يجب تسجيل الدخول!";
-        return;
-      }
-
-      const data = JSON.parse(localStorage.getItem("pendingLink"));
-      if (!data) {
-        document.getElementById("msg").textContent = "⚠️ لا يوجد رابط للمتابعة!";
-        return;
-      }
-
-      // 🔎 نشوف هل دي أول زيارة ولا رجوع بعد الرابط
-      if (!localStorage.getItem("linkVisited")) {
-        // أول زيارة → نفتح الرابط المختصر
-        localStorage.setItem("linkVisited", "true");
-        document.getElementById("msg").textContent = "⏳ سيتم تحويلك الآن...";
-        setTimeout(() => {
-          window.location.href = data.url;
-        }, 2000);
-      } else {
-        // رجع من الرابط → نحسب النقاط
-        const userDocRef = doc(db, "users", user.uid);
-
-        await updateDoc(userDocRef, {
-          points: increment(POINTS_PER_LINK),
-          [`completedLinks.${data.index}`]: Date.now()
-        });
-
-        // سجل المهمة
-        const logRef = collection(db, "adminTaskLogs");
-        await addDoc(logRef, {
-          userId: user.uid,
-          taskType: "shortlink",
-          rewardToUser: POINTS_PER_LINK,
-          date: new Date()
-        });
-
-        // 🧹 مسح التخزين
-        localStorage.removeItem("pendingLink");
-        localStorage.removeItem("linkVisited");
-
-        document.getElementById("title").textContent = "✅ تم إضافة نقاطك!";
-        document.getElementById("msg").textContent = "🎉 تم احتساب المهمة بنجاح. يمكنك العودة للصفحة السابقة.";
-      }
-    });
+    if (!targetUrl) {
+      document.getElementById("msg").textContent = "⚠️ لا يوجد رابط للمتابعة!";
+    } else {
+      document.getElementById("msg").textContent = "⏳ سيتم تحويلك الآن...";
+      setTimeout(() => {
+        window.location.href = targetUrl;
+      }, 2000);
+    }
   </script>
 </body>
 </html>
