@@ -5,48 +5,51 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>مهمة الروابط المختصرة | Am Rewards</title>
 <style>
-body{font-family:'Tajawal',sans-serif;background-color:#121212;color:#e0e0e0;margin:0;padding:20px;text-align:center;}
-h2{color:#4caf50;font-size:28px;margin-bottom:20px;}
-.link-box{background:#1e1e1e;padding:15px;border:1px solid #333;margin:12px auto;max-width:420px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.7);transition:0.3s;}
-.link-box:hover{background-color:#2a2a2a;}
-.link-box p{margin:6px 0;font-size:16px;}
-.link-box button{background-color:#4caf50;color:#121212;border:none;padding:10px 18px;border-radius:8px;font-weight:bold;cursor:pointer;font-size:16px;transition:0.3s;}
-.link-box button:hover{background-color:#388e3c;}
-#user-points{background:#263238;padding:12px 20px;border-radius:10px;display:inline-block;margin:0 auto 20px;font-size:20px;border:1px solid #37474f;}
-#status{font-size:18px;margin-bottom:15px;color:#81c784;}
-.back-buttons{margin-top:30px;}
-.back-buttons button{background-color:#4caf50;border:none;color:#121212;padding:12px 24px;margin:8px;border-radius:8px;font-weight:bold;cursor:pointer;font-size:16px;transition:0.3s;}
-.back-buttons button:hover{background-color:#388e3c;}
+  body{font-family:'Tajawal',sans-serif;background:#121212;color:#e0e0e0;margin:0;padding:20px;text-align:center}
+  h2{color:#4caf50;font-size:28px;margin-bottom:20px}
+  .link-box{background:#1e1e1e;padding:15px;border:1px solid #333;margin:12px auto;max-width:420px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.7);transition:.3s}
+  .link-box:hover{background:#2a2a2a}
+  .link-box p{margin:6px 0;font-size:16px}
+  .link-box button{background:#4caf50;color:#121212;border:none;padding:10px 18px;border-radius:8px;font-weight:bold;cursor:pointer;font-size:16px;transition:.3s}
+  .link-box button:hover{background:#388e3c}
+  #user-points{background:#263238;padding:12px 20px;border-radius:10px;display:inline-block;margin:0 auto 20px;font-size:20px;border:1px solid #37474f}
+  #status{font-size:18px;margin-bottom:8px;color:#81c784}
+  #err{font-size:15px;color:#ff5252;margin-bottom:15px}
+  .back-buttons{margin-top:30px}
+  .back-buttons button{background:#4caf50;border:none;color:#121212;padding:12px 24px;margin:8px;border-radius:8px;font-weight:bold;cursor:pointer;font-size:16px;transition:.3s}
+  .back-buttons button:hover{background:#388e3c}
 </style>
 </head>
 <body>
-<h2>مهمة الروابط المختصرة</h2>
-<div id="user-points">نقاطي: 0</div>
-<div id="status">جاري تحميل الروابط...</div>
-<div id="links-container"></div>    
-<div class="back-buttons">
-  <button onclick="window.location.href='dashboard.html'">🔙 العودة إلى الصفحة الرئيسية</button>
-  <button onclick="window.location.href='tasks.html'">🗂️ العودة إلى صفحة المهام</button>
-</div>    
+  <h2>مهمة الروابط المختصرة</h2>
+  <div id="user-points">نقاطي: 0</div>
+  <div id="status">جاري تحميل الروابط...</div>
+  <div id="err"></div>
+  <div id="links-container"></div>
+
+  <div class="back-buttons">
+    <button onclick="window.location.href='dashboard.html'">🔙 العودة إلى الصفحة الرئيسية</button>
+    <button onclick="window.location.href='tasks.html'">🗂️ العودة إلى صفحة المهام</button>
+  </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const firebaseConfig={
+const firebaseConfig = {
   apiKey:"AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
   authDomain:"am--rewards.firebaseapp.com",
   projectId:"am--rewards"
 };
 
-const app=initializeApp(firebaseConfig);
-const auth=getAuth(app);
-const db=getFirestore(app);
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
 
-const POINTS_PER_LINK=3;
-const LINK_COOLDOWN=24*60*60*1000; // 24 ساعة
-const shortlinks=[
+const POINTS_PER_LINK = 3;
+const LINK_COOLDOWN   = 24*60*60*1000; // 24 ساعة
+const shortlinks = [
   {title:"رابط 1",url:"https://swiftlnx.com/Lzt3c"},
   {title:"رابط 2",url:"https://exe.io/qEJR4"},
   {title:"رابط 3",url:"https://yshorten.com/woSf"},
@@ -54,108 +57,147 @@ const shortlinks=[
   {title:"رابط 5",url:"https://short-jambo.ink/oBRa"}
 ];
 
-let currentUser;
+const $ = (id)=>document.getElementById(id);
+const setStatus = (t)=>{ $("status").textContent=t; };
+const setErr    = (t)=>{ $("err").textContent=t||""; };
 
-onAuthStateChanged(auth, async user=>{
+onAuthStateChanged(auth, async (user)=>{
   if(!user){
-    alert("⚠️ يجب تسجيل الدخول أولاً."); 
-    window.location.href="index.html"; 
+    alert("⚠️ يجب تسجيل الدخول أولاً.");
+    location.href="index.html";
     return;
   }
-  currentUser=user;
-  const userRef=doc(db,"users",user.uid);
 
-  // ✅ أول مرة: لو الحساب جديد أضف completedLinks
-  const snap=await getDoc(userRef);
+  const userRef = doc(db,"users",user.uid);
+
+  try {
+    await ensureUserDoc(userRef);            // 1) تأكيد وجود الحقول الأساسية
+    await handlePendingLink(userRef);        // 2) معالجة الرجوع من الرابط إن وُجد
+
+    // 3) رندر مباشر ومتابعة حيّة
+    onSnapshot(userRef, (snap)=>{
+      const data = snap.data() || {};
+      const points = data.points ?? 0;
+      $("user-points").textContent = `نقاطي: ${points}`;
+      renderLinks(data.completedLinks || {});
+      setStatus("✅ اختر أي رابط متاح");
+      setErr("");
+    }, (err)=> setErr("خطأ في التحديث الحي: "+err.message) );
+
+  } catch(e){
+    console.error(e);
+    setErr("حدث خطأ: "+e.message);
+    setStatus("⚠️ حاول تحديث الصفحة");
+    // حتى مع الخطأ، حاول نرندر روابط فاضية عشان الصفحة ما تفضلش واقفة
+    renderLinks({});
+  }
+});
+
+// ---- Helpers ----
+async function ensureUserDoc(userRef){
+  const snap = await getDoc(userRef);
   if(!snap.exists()){
-    await setDoc(userRef,{ points:0, completedLinks:{} },{ merge:true });
-  } else if(!snap.data().completedLinks){
-    await updateDoc(userRef,{ completedLinks:{} });
+    await setDoc(userRef, {
+      points: 0,
+      completedLinks: {},
+      // وجود الخرائط الأخرى لا يضر حتى لو مش مستخدمة هنا
+      completedAds: {}, completedApps: {}, completedGames: {},
+      completedSurveys: {}, completedVideos: {}
+    }, {merge:true});
+  } else {
+    const data = snap.data() || {};
+    const patch = {};
+    if(!data.completedLinks || typeof data.completedLinks !== "object") patch.completedLinks = {};
+    if(typeof data.points !== "number") patch.points = 0;
+    if(Object.keys(patch).length) await updateDoc(userRef, patch);
+  }
+}
+
+async function handlePendingLink(userRef){
+  const raw = localStorage.getItem("pendingLink");
+  if(raw === null) return;
+
+  // تأمين القيمة
+  const idx = Number(raw);
+  if(!Number.isInteger(idx) || idx < 0 || idx >= shortlinks.length){
+    console.warn("pendingLink غير صالح، تم مسحه");
+    localStorage.removeItem("pendingLink");
+    return;
   }
 
-  // ✅ تحقق لو المستخدم راجع من رابط
-  const pendingLink=localStorage.getItem("pendingLink");
-  if(pendingLink!==null){
-    const linkIndex=parseInt(pendingLink);
-    const userSnap=await getDoc(userRef);
-    const completedLinks=userSnap.exists()? (userSnap.data().completedLinks||{}) : {};
+  try{
+    const snap = await getDoc(userRef);
+    const completed = (snap.data() && snap.data().completedLinks) || {};
+    const last = completed[idx] || 0;
 
-    if(!completedLinks[linkIndex] || Date.now()-completedLinks[linkIndex]>=LINK_COOLDOWN){
-      await updateDoc(userRef,{
+    if(!last || (Date.now() - last) >= LINK_COOLDOWN){
+      await updateDoc(userRef, {
         points: increment(POINTS_PER_LINK),
-        [`completedLinks.${linkIndex}`]: Date.now()
+        [`completedLinks.${idx}`]: Date.now()
       });
       alert(`🎉 تم إضافة ${POINTS_PER_LINK} نقطة لحسابك!`);
     }
+  } catch(e){
+    setErr("تعذر تسجيل إنجاز الرابط: " + e.message);
+  } finally {
     localStorage.removeItem("pendingLink");
   }
-
-  // ✅ snapshot دايمًا يمرر completedLinks حتى لو فاضي
-  onSnapshot(userRef,snap=>{
-    const data=snap.data() || {};
-    const points=data.points ?? 0;
-    const completedLinks=data.completedLinks || {}; // ✅ هنا التعديل المهم
-    document.getElementById("user-points").textContent=`نقاطي: ${points}`;
-    renderLinks(completedLinks);
-  });
-});
+}
 
 function renderLinks(completedLinks={}){
-  const container=document.getElementById("links-container");
-  container.innerHTML="";
+  const container = $("links-container");
+  container.innerHTML = "";
 
   shortlinks.forEach((item,index)=>{
-    const div=document.createElement("div");
-    div.className="link-box";
+    const div = document.createElement("div");
+    div.className = "link-box";
 
-    const lastDone=completedLinks[index]||0;
-    const now=Date.now();
+    const lastDone = completedLinks[index] || 0;
+    const now = Date.now();
 
-    if(lastDone && now-lastDone<LINK_COOLDOWN){
-      const endTime=lastDone+LINK_COOLDOWN;
-      const timerEl=document.createElement("p");
-      timerEl.style.color="#ff9800";
+    if(lastDone && (now - lastDone) < LINK_COOLDOWN){
+      const endTime = lastDone + LINK_COOLDOWN;
+      const timerEl = document.createElement("p");
+      timerEl.style.color = "#ff9800";
       div.appendChild(timerEl);
       container.appendChild(div);
-      startTimer(timerEl,endTime,()=>{renderButton(div,item,index);});
+      startTimer(timerEl, endTime, ()=> renderButton(div,item,index));
     } else {
       renderButton(div,item,index);
       container.appendChild(div);
     }
   });
-
-  document.getElementById("status").textContent="✅ اختر أي رابط متاح";
 }
 
 function renderButton(div,item,index){
-  div.innerHTML=`
+  div.innerHTML = `
     <p>${item.title}</p>
-    <button onclick="openLink(${index},'${item.url}')">افتح الرابط</button>
+    <button onclick="openLink(${index}, '${item.url}')">افتح الرابط</button>
   `;
 }
 
 function startTimer(el,endTime,onFinish){
   function tick(){
-    const now=Date.now();
-    const diff=endTime-now;
-    if(diff<=0){
-      el.textContent="✅ الرابط متاح الآن!"; 
-      if(onFinish) onFinish(); 
+    const diff = endTime - Date.now();
+    if(diff <= 0){
+      el.textContent = "✅ الرابط متاح الآن!";
+      if(onFinish) onFinish();
       return;
     }
-    const h=Math.floor(diff/(1000*60*60));
-    const m=Math.floor((diff%(1000*60*60))/(1000*60));
-    const s=Math.floor((diff%(1000*60))/1000);
-    el.textContent=`⏳ متبقي: ${h} س ${m} د ${s} ث`;
-    setTimeout(tick,1000);
+    const h = Math.floor(diff/3600000);
+    const m = Math.floor((diff%3600000)/60000);
+    const s = Math.floor((diff%60000)/1000);
+    el.textContent = `⏳ متبقي: ${h} س ${m} د ${s} ث`;
+    setTimeout(tick, 1000);
   }
   tick();
 }
 
-// ✅ هنا بس نخزن إن الرابط مفتوح
-window.openLink=function(index,url){
-  localStorage.setItem("pendingLink",index);
-  window.open(url,"_blank");
+// فتح الرابط + تمييزه في localStorage
+window.openLink = function(index, url){
+  try { localStorage.setItem("pendingLink", String(index)); } catch {}
+  // افتح في نفس التبويب لتفادي حجب الـ popup
+  location.href = url;
 };
 </script>
 </body>
