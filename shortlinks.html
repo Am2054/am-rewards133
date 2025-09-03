@@ -71,10 +71,9 @@ onAuthStateChanged(auth, async (user)=>{
   const userRef = doc(db,"users",user.uid);
 
   try {
-    await ensureUserDoc(userRef);            // 1) تأكيد وجود الحقول الأساسية
-    await handlePendingLink(userRef);        // 2) معالجة الرجوع من الرابط إن وُجد
+    await ensureUserDoc(userRef);
+    await handlePendingLink(userRef);
 
-    // 3) رندر مباشر ومتابعة حيّة
     onSnapshot(userRef, (snap)=>{
       const data = snap.data() || {};
       const points = data.points ?? 0;
@@ -88,19 +87,16 @@ onAuthStateChanged(auth, async (user)=>{
     console.error(e);
     setErr("حدث خطأ: "+e.message);
     setStatus("⚠️ حاول تحديث الصفحة");
-    // حتى مع الخطأ، حاول نرندر روابط فاضية عشان الصفحة ما تفضلش واقفة
     renderLinks({});
   }
 });
 
-// ---- Helpers ----
 async function ensureUserDoc(userRef){
   const snap = await getDoc(userRef);
   if(!snap.exists()){
     await setDoc(userRef, {
       points: 0,
       completedLinks: {},
-      // وجود الخرائط الأخرى لا يضر حتى لو مش مستخدمة هنا
       completedAds: {}, completedApps: {}, completedGames: {},
       completedSurveys: {}, completedVideos: {}
     }, {merge:true});
@@ -117,10 +113,8 @@ async function handlePendingLink(userRef){
   const raw = localStorage.getItem("pendingLink");
   if(raw === null) return;
 
-  // تأمين القيمة
   const idx = Number(raw);
   if(!Number.isInteger(idx) || idx < 0 || idx >= shortlinks.length){
-    console.warn("pendingLink غير صالح، تم مسحه");
     localStorage.removeItem("pendingLink");
     return;
   }
@@ -193,11 +187,10 @@ function startTimer(el,endTime,onFinish){
   tick();
 }
 
-// فتح الرابط + تمييزه في localStorage
+// الفتح يمر أولاً على redirect.html
 window.openLink = function(index, url){
   try { localStorage.setItem("pendingLink", String(index)); } catch {}
-  // افتح في نفس التبويب لتفادي حجب الـ popup
-  location.href = url;
+  location.href = `redirect.html?target=${encodeURIComponent(url)}`;
 };
 </script>
 </body>
