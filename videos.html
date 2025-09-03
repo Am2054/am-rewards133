@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>مشاهدة الفيديوهات | Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: #0d0d0d url('https://i.ibb.co/6b4f8vq/video-bg.jpg') no-repeat center center fixed;
+      background-size: cover;
+      color: #eee;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 650px;
+      margin: 50px auto;
+      background: rgba(20,20,20,0.9);
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 0 20px #3b82f666;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 15px;
+      color: #3b82f6;
+    }
+    p {
+      margin-bottom: 25px;
+      color: #bbb;
+    }
+    video {
+      width: 100%;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 10px #3b82f666;
+    }
+    button {
+      background: #3b82f6;
+      color: #fff;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover { background: #2563eb; }
+    #msg { margin-top: 15px; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🎥 مشاهدة الفيديوهات</h1>
+  <p>شاهد الفيديو حتى النهاية لتحصل على نقاطك.</p>
+
+  <!-- فيديو تجريبي (يمكن استبداله بـ YouTube API / مصدر خارجي) -->
+  <video id="rewardVideo" controls>
+    <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+    متصفحك لا يدعم تشغيل الفيديو.
+  </video>
+
+  <button id="getPointsBtn" disabled>احصل على النقاط</button>
+  <div id="msg"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+  // 🔹 Firebase config
+  const firebaseConfig = {
+    apiKey:"AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+    authDomain:"am--rewards.firebaseapp.com",
+    projectId:"am--rewards"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  const video = document.getElementById("rewardVideo");
+  const btn = document.getElementById("getPointsBtn");
+  const msg = document.getElementById("msg");
+
+  let currentUser;
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentUser = user;
+    } else {
+      window.location.href = "index.html"; // يرجع لتسجيل الدخول
+    }
+  });
+
+  // 🔹 السماح بالضغط بعد انتهاء الفيديو
+  video.addEventListener("ended", () => {
+    btn.disabled = false;
+    btn.textContent = "🎁 احصل على نقاطك الآن";
+  });
+
+  btn.addEventListener("click", () => {
+    if (!currentUser) return;
+    msg.textContent = "سيتم ربط النقاط بالفيديو بعد إضافة الكود النهائي (YouTube / OfferWall API)...";
+    msg.style.color = "#3b82f6";
+    btn.disabled = true;
+  });
+</script>
+
+</body>
+</html>
