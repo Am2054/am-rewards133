@@ -14,16 +14,16 @@ body {
   margin:0; padding:0;
 }
 .container {
-  max-width:600px;
+  max-width:500px;
   margin:50px auto;
   background:rgba(30,30,30,0.95);
-  padding:30px;
+  padding:25px;
   border-radius:15px;
   box-shadow:0 0 20px #00e5ff66;
 }
 h1 { text-align:center; margin-bottom:20px; color:#00e5ff; }
 label { display:block; margin:10px 0 5px; }
-input, select, button {
+input, button {
   width:100%;
   padding:12px;
   margin-bottom:12px;
@@ -34,8 +34,6 @@ input, select, button {
   font-weight:600;
 }
 input::placeholder { color:#aaa; }
-.wallet-box { display:none; margin-bottom:10px; }
-.wallet-box.show { display:block; }
 .info { display:flex; justify-content:space-between; margin-bottom:10px; }
 .info div {
   width:48%;
@@ -45,42 +43,6 @@ input::placeholder { color:#aaa; }
   text-align:center;
   box-shadow: inset 0 0 10px #00e5ff33;
 }
-#confirmModal {
-  display:none;
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:rgba(0,0,0,0.8);
-  justify-content:center;
-  align-items:center;
-  z-index:1000;
-}
-#confirmModal.show { display:flex; }
-.modal-content {
-  background:#1e1e1e;
-  padding:25px;
-  border-radius:15px;
-  max-width:400px;
-  width:90%;
-  text-align:center;
-  box-shadow:0 0 20px #00e5ff66;
-}
-.modal-content h2 { margin-bottom:20px; color:#00e5ff; }
-.modal-content div { margin-bottom:12px; font-weight:600; }
-.modal-buttons { display:flex; justify-content:space-between; margin-top:15px; }
-.modal-buttons button {
-  width:48%;
-  padding:12px;
-  font-weight:700;
-  border:none;
-  border-radius:10px;
-  cursor:pointer;
-  transition:0.3s;
-}
-.modal-buttons button.confirm { background:#10b981; color:#fff; }
-.modal-buttons button.confirm:hover { background:#059669; }
-.modal-buttons button.cancel { background:#d32f2f; color:#fff; }
-.modal-buttons button.cancel:hover { background:#ff5252; }
 .msg { color:#ff5252; text-align:center; margin-bottom:10px; }
 .ok { color:#10b981; text-align:center; margin-bottom:10px; }
 button#confirmBtn { background:#00e5ff; color:#000; font-weight:700; border:none; border-radius:10px; padding:12px; cursor:pointer; transition:0.3s; }
@@ -97,25 +59,8 @@ button#confirmBtn:hover { background:#00bcd4; }
     <div>ما يعادل: <span id="egpVal">0.00</span> جم</div>
   </div>
 
-  <label for="methodSel">اختر طريقة الدفع</label>
-  <select id="methodSel">
-    <option value="vodafone">فودافون كاش</option>
-    <option value="etisalat">اتصالات كاش</option>
-    <option value="orange">اورنج كاش</option>
-  </select>
-
-  <div id="box-vodafone" class="wallet-box show">
-    <label>رقم محفظة فودافون</label>
-    <input type="text" id="walletVod" placeholder="ادخل رقم المحفظة">
-  </div>
-  <div id="box-etisalat" class="wallet-box">
-    <label>رقم محفظة اتصالات</label>
-    <input type="text" id="walletEts" placeholder="ادخل رقم المحفظة">
-  </div>
-  <div id="box-orange" class="wallet-box">
-    <label>رقم محفظة اورنج</label>
-    <input type="text" id="walletOrg" placeholder="ادخل رقم المحفظة">
-  </div>
+  <label>رقم محفظة فودافون كاش</label>
+  <input type="text" id="walletVod" placeholder="ادخل رقم المحفظة">
 
   <label>المبلغ المراد سحبه (20 - 200 جنيه)</label>
   <input type="number" id="amountInp" placeholder="ادخل المبلغ">
@@ -125,28 +70,11 @@ button#confirmBtn:hover { background:#00bcd4; }
     <div>صافي المبلغ: <span id="netVal">0.00</span> جم</div>
   </div>
   <div>النقاط المطلوبة: <span id="needPts">0</span></div>
-  <div>الحد المتبقي اليومي: <span id="leftCap">0</span></div>
-  <div>عدد الطلبات المتبقية: <span id="leftCount">0</span></div>
 
   <button id="confirmBtn">تأكيد السحب</button>
 
   <div class="msg" id="msg"></div>
   <div class="ok" id="ok"></div>
-</div>
-
-<div id="confirmModal">
-  <div class="modal-content">
-    <h2>تأكيد طلب السحب</h2>
-    <div>طريقة الدفع: <span id="c_method"></span></div>
-    <div>المبلغ الإجمالي: <span id="c_gross"></span></div>
-    <div>الخصم: <span id="c_fee"></span></div>
-    <div>صافي المبلغ: <span id="c_net"></span></div>
-    <div>النقاط المستخدمة: <span id="c_pts"></span></div>
-    <div class="modal-buttons">
-      <button class="confirm" onclick="submitWithdrawal()">تأكيد</button>
-      <button class="cancel" onclick="closeConfirm()">إلغاء</button>
-    </div>
-  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -163,46 +91,20 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 const POINT_VALUE_EGP = 0.07;
-const LIMITS = { 
-  vodafone:{label:'فودافون كاش',min:20,maxDaily:200,maxCount:3}, 
-  etisalat:{label:'اتصالات كاش',min:20,maxDaily:200,maxCount:3}, 
-  orange:{label:'اورنج كاش',min:20,maxDaily:200,maxCount:3} 
-};
+const LIMITS = { min:20, maxDaily:200, maxCount:3 };
 
-const methodSel=document.getElementById('methodSel');
-const amountInp=document.getElementById('amountInp');
 const pointsVal=document.getElementById('pointsVal');
 const egpVal=document.getElementById('egpVal');
-
+const amountInp=document.getElementById('amountInp');
 const walletVod=document.getElementById('walletVod');
-const walletEts=document.getElementById('walletEts');
-const walletOrg=document.getElementById('walletOrg');
-
-const boxVodafone=document.getElementById('box-vodafone');
-const boxEtisalat=document.getElementById('box-etisalat');
-const boxOrange=document.getElementById('box-orange');
-
 const feeVal=document.getElementById('feeVal');
 const netVal=document.getElementById('netVal');
 const needPts=document.getElementById('needPts');
-
-const leftCount=document.getElementById('leftCount');
-const leftCap=document.getElementById('leftCap');
-
 const msg=document.getElementById('msg');
 const ok=document.getElementById('ok');
 
-const confirmModal=document.getElementById('confirmModal');
-const c_method=document.getElementById('c_method');
-const c_gross=document.getElementById('c_gross');
-const c_fee=document.getElementById('c_fee');
-const c_net=document.getElementById('c_net');
-const c_pts=document.getElementById('c_pts');
-
-let userData=null;
 let userId=null;
-
-function isToday(date){ const now=new Date(); return date.getDate()===now.getDate() && date.getMonth()===now.getMonth() && date.getFullYear()===now.getFullYear(); }
+let userData=null;
 
 auth.onAuthStateChanged(user=>{
   if(user){
@@ -210,7 +112,6 @@ auth.onAuthStateChanged(user=>{
     db.collection('users').doc(userId).get().then(doc=>{
       if(doc.exists){
         userData=doc.data();
-        if(!userData.withdrawals) userData.withdrawals=[];
         updateDisplay();
       }
     });
@@ -223,103 +124,68 @@ function updateDisplay(){
   if(!userData) return;
   const points=userData.points||0;
   pointsVal.textContent=points;
-  const egp=points*POINT_VALUE_EGP;
-  egpVal.textContent=egp.toFixed(2);
-
-  const method=methodSel.value;
-  const limit=LIMITS[method];
-
-  const withdrawalsToday=userData.withdrawals?.filter(w=>w.method===method && isToday(new Date(w.date)))||[];
-  const withdrawnAmountToday=withdrawalsToday.reduce((acc,w)=>acc+w.amount,0);
-  const leftAmount=limit.maxDaily-withdrawnAmountToday;
-  const leftRequests=limit.maxCount-withdrawalsToday.length;
-
-  leftCount.textContent=leftRequests>0?leftRequests:0;
-  leftCap.textContent=leftAmount>0?leftAmount.toFixed(2)+' جم':'0.00 جم';
+  egpVal.textContent=(points*POINT_VALUE_EGP).toFixed(2);
 
   const amt=parseFloat(amountInp.value);
-  if(isNaN(amt)||amt<limit.min||amt>leftAmount||leftRequests<=0){
-    feeVal.textContent='0.00'; netVal.textContent='0.00'; needPts.textContent='0'; return;
+  if(isNaN(amt)||amt<LIMITS.min){
+    feeVal.textContent='0.00';
+    netVal.textContent='0.00';
+    needPts.textContent='0';
+    return;
   }
-  const fee=amt*0.10; const net=amt-fee; const neededPoints=Math.ceil(amt/POINT_VALUE_EGP);
-  feeVal.textContent=fee.toFixed(2); netVal.textContent=net.toFixed(2); needPts.textContent=neededPoints;
-}
-
-methodSel.addEventListener('change',()=>{
-  const val=methodSel.value;
-  boxVodafone.classList.toggle('show',val==='vodafone');
-  boxEtisalat.classList.toggle('show',val==='etisalat');
-  boxOrange.classList.toggle('show',val==='orange');
-  updateDisplay();
-});
-amountInp.addEventListener('input',updateDisplay);
-document.getElementById('confirmBtn').addEventListener('click',()=>openConfirm());
-
-function openConfirm(){
-  msg.style.display='none'; ok.style.display='none';
-  if(!userData){ msg.textContent='يرجى تسجيل الدخول أولاً.'; msg.style.display='block'; return; }
-
-  const method=methodSel.value; 
-  const limit=LIMITS[method]; 
-  const amt=parseFloat(amountInp.value);
-  if(isNaN(amt)){ msg.textContent='يرجى إدخال مبلغ صالح.'; msg.style.display='block'; return; }
-  if(amt<limit.min){ msg.textContent=`الحد الأدنى للسحب هو ${limit.min} جنيه.`; msg.style.display='block'; return; }
-  if(userData.points*POINT_VALUE_EGP<amt){ msg.textContent='رصيدك غير كافٍ.'; msg.style.display='block'; return; }
-
-  const withdrawalsToday=userData.withdrawals?.filter(w=>w.method===method && isToday(new Date(w.date)))||[];
-  const withdrawnAmountToday=withdrawalsToday.reduce((acc,w)=>acc+w.amount,0);
-  const leftAmount=limit.maxDaily-withdrawnAmountToday;
-  const leftRequests=limit.maxCount-withdrawalsToday.length;
-  if(amt>leftAmount){ msg.textContent=`الحد الأقصى المتبقي للسحب اليومي هو ${leftAmount.toFixed(2)} جنيه.`; msg.style.display='block'; return; }
-  if(leftRequests<=0){ msg.textContent='وصلت الحد الأقصى لعدد الطلبات اليوم.'; msg.style.display='block'; return; }
-
-  c_method.textContent=LIMITS[method].label;
-  c_gross.textContent=amt.toFixed(2);
-  const fee=amt*0.10; c_fee.textContent=fee.toFixed(2);
-  c_net.textContent=(amt-fee).toFixed(2);
-  c_pts.textContent=Math.ceil(amt/POINT_VALUE_EGP);
-  confirmModal.classList.add('show');
-}
-
-function closeConfirm(){ confirmModal.classList.remove('show'); }
-
-function submitWithdrawal(){
-  const method=methodSel.value;
-  const amt=parseFloat(amountInp.value);
   const fee=amt*0.10;
   const net=amt-fee;
+  const neededPoints=Math.ceil(amt/POINT_VALUE_EGP);
+  feeVal.textContent=fee.toFixed(2);
+  netVal.textContent=net.toFixed(2);
+  needPts.textContent=neededPoints;
+}
+amountInp.addEventListener('input',updateDisplay);
+
+document.getElementById('confirmBtn').addEventListener('click',()=>{
+  msg.textContent=''; ok.textContent='';
+  if(!userData){ msg.textContent='يرجى تسجيل الدخول.'; return; }
+
+  const amt=parseFloat(amountInp.value);
+  const wallet=walletVod.value.trim();
+  if(isNaN(amt)||amt<LIMITS.min){ msg.textContent='الحد الأدنى للسحب 20 جنيه.'; return; }
+  if(amt>LIMITS.maxDaily){ msg.textContent='الحد الأقصى للسحب 200 جنيه يومياً.'; return; }
+  if(!wallet){ msg.textContent='من فضلك أدخل رقم المحفظة.'; return; }
+
   const ptsUsed=Math.ceil(amt/POINT_VALUE_EGP);
-  const wallet=(method==='vodafone'?walletVod.value:method==='etisalat'?walletEts.value:walletOrg.value);
+  if((userData.points||0)<ptsUsed){ msg.textContent='رصيد نقاطك غير كافٍ.'; return; }
 
-  if(!wallet){ msg.textContent='يرجى إدخال رقم المحفظة.'; msg.style.display='block'; return; }
-
-  const withdrawalData = { method, amount: amt, fee, net, pts: ptsUsed, wallet, userId, status:"pending", date:firebase.firestore.FieldValue.serverTimestamp() };
+  const withdrawalData={
+    method:"vodafone",
+    amount:amt,
+    fee:amt*0.10,
+    net:amt-amt*0.10,
+    pts:ptsUsed,
+    wallet,
+    userId,
+    status:"pending",
+    date:firebase.firestore.FieldValue.serverTimestamp()
+  };
 
   const userRef=db.collection('users').doc(userId);
-  const userWithdrawalsRef=userRef.collection('withdrawals');
-  const mainWithdrawalsRef=db.collection('withdrawals');
+  const withdrawalsRef=db.collection('withdrawals');
 
   db.runTransaction(async (transaction)=>{
     const userSnap=await transaction.get(userRef);
-    if(!userSnap.exists) throw "المستخدم غير موجود";
-
     const currentPts=userSnap.data().points||0;
     if(currentPts<ptsUsed) throw "رصيدك غير كافٍ";
 
     transaction.update(userRef,{ points: firebase.firestore.FieldValue.increment(-ptsUsed) });
-    transaction.set(userWithdrawalsRef.doc(), withdrawalData);
-    transaction.set(mainWithdrawalsRef.doc(), withdrawalData);
+    transaction.set(withdrawalsRef.doc(), withdrawalData);
   }).then(()=>{
-    ok.textContent='تم تقديم طلب السحب بنجاح!'; ok.style.display='block';
-    amountInp.value=''; confirmModal.classList.remove('show');
+    ok.textContent='✅ تم تقديم طلب السحب بنجاح';
+    amountInp.value=''; walletVod.value='';
     updateDisplay();
   }).catch(err=>{
     console.error(err);
-    msg.textContent="حدث خطأ: "+err; msg.style.display='block';
+    msg.textContent="خطأ: "+err;
   });
-}
-
-updateDisplay();
+});
 </script>
 </body>
   </html>
