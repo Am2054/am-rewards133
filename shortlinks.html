@@ -1,72 +1,193 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8" />
-  <title>مهمة الروابط المختصرة | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <style>
-    body { font-family: 'Cairo', sans-serif; background: #121212; color: #fff; text-align: center; padding: 30px; }
-    button { background: #ff9800; color: #fff; border: none; padding: 12px 24px; font-size: 18px; border-radius: 10px; cursor: pointer; margin-top: 20px; }
-    button:hover { background: #e68900; }
-  </style>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-</head>
-<body>
-  <h1>مهمة الروابط المختصرة</h1>
-  <p>بعد الانتهاء من المهمة اضغط على الزر لإضافة النقاط.</p>
-  <button id="completeTaskBtn">✅ أتممت المهمة</button>
+<!DOCTYPE html> 
+<html lang="ar" dir="rtl">  <head>      <meta charset="UTF-8">      
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>      
+<title>مهمة الروابط المختصرة | Am Rewards</title>      
+<style>      
+  body{font-family:'Tajawal',sans-serif;background:#121212;color:#e0e0e0;margin:0;padding:20px;text-align:center}      
+  h2{color:#4caf50;font-size:28px;margin-bottom:20px}      
+  .link-box{background:#1e1e1e;padding:15px;border:1px solid #333;margin:12px auto;max-width:420px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.7);transition:.3s}      
+  .link-box:hover{background:#2a2a2a}      
+  .link-box p{margin:6px 0;font-size:16px}      
+  .link-box button{background:#4caf50;color:#121212;border:none;padding:10px 18px;border-radius:8px;font-weight:bold;cursor:pointer;font-size:16px;transition:.3s}      
+  .link-box button:hover{background:#388e3c}      
+  #user-points{background:#263238;padding:12px 20px;border-radius:10px;display:inline-block;margin:0 auto 20px;font-size:20px;border:1px solid #37474f}      
+  #status{font-size:18px;margin-bottom:8px;color:#81c784}      
+  #err{font-size:15px;color:#ff5252;margin-bottom:15px}      
+  .back-buttons{margin-top:30px}      
+  .back-buttons button{background:#4caf50;border:none;color:#121212;padding:12px 24px;margin:8px;border-radius:8px;font-weight:bold;cursor:pointer;font-size:16px;transition:.3s}      
+  .back-buttons button:hover{background:#388e3c}      
+</style>      
+</head>      
+<body>      
+  <h2>مهمة الروابط المختصرة</h2>      
+  <div id="user-points">نقاطي: 0</div>      
+  <div id="status">جاري تحميل الروابط...</div>      
+  <div id="err"></div>      
+  <div id="links-container"></div>    <div class="back-buttons">      
+    <button onclick="window.location.href='dashboard.html'">🔙 العودة إلى الصفحة الرئيسية</button>      
+    <button onclick="window.location.href='tasks.html'">🗂️ العودة إلى صفحة المهام</button>      
+  </div>  <script type="module">      
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";      
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";      
+import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";    const firebaseConfig = {  
+apiKey:"AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",  
+authDomain:"am--rewards.firebaseapp.com",  
+projectId:"am--rewards"  
+};  const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
 
-  <script>
-    // إعداد Firebase
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT.firebaseapp.com",
-      projectId: "YOUR_PROJECT",
-      storageBucket: "YOUR_PROJECT.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+const POINTS_PER_LINK = 3;
+const LINK_COOLDOWN   = 246060*1000; // 24 ساعة
+const shortlinks = [
+{title:"رابط 1",url:"https://swiftlnx.com/Lzt3c"},
+{title:"رابط 2",url:"https://exe.io/qEJR4"},
+{title:"رابط 3",url:"https://yshorten.com/woSf"},
+{title:"رابط 4",url:"https://oii.la/7o245qg"},
+{title:"رابط 5",url:"https://short-jambo.ink/oBRa"}
+];
 
-    // حدث عند الضغط على الزر
-    document.getElementById("completeTaskBtn").addEventListener("click", async () => {
-      const user = auth.currentUser;
-      if (!user) {
-        alert("⚠️ لازم تسجل دخول الأول!");
-        console.log("User not logged in.");
-        return;
-      }
+const $ = (id)=>document.getElementById(id);
+const setStatus = (t)=>{ $("status").textContent=t; };
+const setErr    = (t)=>{ $("err").textContent=t||""; };
 
-      try {
-        const userRef = db.collection("users").doc(user.uid);
-        await db.runTransaction(async (transaction) => {
-          const doc = await transaction.get(userRef);
-          if (!doc.exists) throw "المستخدم غير موجود!";
-          const oldPoints = doc.data().points || 0;
-          const newPoints = oldPoints + 10; // ✅ إضافة 10 نقاط
+onAuthStateChanged(auth, async (user)=>{
+if(!user){
+alert("⚠️ يجب تسجيل الدخول أولاً.");
+location.href="index.html";
+return;
+}
 
-          transaction.update(userRef, { points: newPoints });
-          console.log(`تم تحديث النقاط: ${oldPoints} ➝ ${newPoints}`);
-        });
-        alert("✅ تمت إضافة النقاط بنجاح!");
-      } catch (error) {
-        console.error("خطأ أثناء إضافة النقاط:", error);
-        alert("⚠️ لم يتم إضافة النقاط. شوف الكونسول.");
-      }
-    });
+const userRef = doc(db,"users",user.uid);
 
-    // متابعة تسجيل الدخول
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        console.log("تسجيل الدخول ناجح:", user.email, user.uid);
-      } else {
-        console.log("المستخدم غير مسجل دخول.");
-      }
-    });
-  </script>
-</body>
-</html>
+try {
+await ensureUserDoc(userRef);            // 1) تأكيد وجود الحقول الأساسية
+await handlePendingLink(userRef);        // 2) معالجة الرجوع من الرابط إن وُجد
+
+// 3) رندر مباشر ومتابعة حيّة
+onSnapshot(userRef, (snap)=>{
+const data = snap.data() || {};
+const points = data.points ?? 0;
+$("user-points").textContent = نقاطي: ${points};
+renderLinks(data.completedLinks || {});
+setStatus("✅ اختر أي رابط متاح");
+setErr("");
+}, (err)=> setErr("خطأ في التحديث الحي: "+err.message) );
+
+} catch(e){
+console.error(e);
+setErr("حدث خطأ: "+e.message);
+setStatus("⚠️ حاول تحديث الصفحة");
+// حتى مع الخطأ، حاول نرندر روابط فاضية عشان الصفحة ما تفضلش واقفة
+renderLinks({});
+}
+});
+
+// ---- Helpers ----
+async function ensureUserDoc(userRef){
+const snap = await getDoc(userRef);
+if(!snap.exists()){
+await setDoc(userRef, {
+points: 0,
+completedLinks: {},
+// وجود الخرائط الأخرى لا يضر حتى لو مش مستخدمة هنا
+completedAds: {}, completedApps: {}, completedGames: {},
+completedSurveys: {}, completedVideos: {}
+}, {merge:true});
+} else {
+const data = snap.data() || {};
+const patch = {};
+if(!data.completedLinks || typeof data.completedLinks !== "object") patch.completedLinks = {};
+if(typeof data.points !== "number") patch.points = 0;
+if(Object.keys(patch).length) await updateDoc(userRef, patch);
+}
+}
+
+async function handlePendingLink(userRef){
+const raw = localStorage.getItem("pendingLink");
+if(raw === null) return;
+
+// تأمين القيمة
+const idx = Number(raw);
+if(!Number.isInteger(idx) || idx < 0 || idx >= shortlinks.length){
+console.warn("pendingLink غير صالح، تم مسحه");
+localStorage.removeItem("pendingLink");
+return;
+}
+
+try{
+const snap = await getDoc(userRef);
+const completed = (snap.data() && snap.data().completedLinks) || {};
+const last = completed[idx] || 0;
+
+if(!last || (Date.now() - last) >= LINK_COOLDOWN){
+await updateDoc(userRef, {
+points: increment(POINTS_PER_LINK),
+[completedLinks.${idx}]: Date.now()
+});
+alert(🎉 تم إضافة ${POINTS_PER_LINK} نقطة لحسابك!);
+}
+
+} catch(e){
+setErr("تعذر تسجيل إنجاز الرابط: " + e.message);
+} finally {
+localStorage.removeItem("pendingLink");
+}
+}
+
+function renderLinks(completedLinks={}){
+const container = $("links-container");
+container.innerHTML = "";
+
+shortlinks.forEach((item,index)=>{
+const div = document.createElement("div");
+div.className = "link-box";
+
+const lastDone = completedLinks[index] || 0;
+const now = Date.now();
+
+if(lastDone && (now - lastDone) < LINK_COOLDOWN){
+const endTime = lastDone + LINK_COOLDOWN;
+const timerEl = document.createElement("p");
+timerEl.style.color = "#ff9800";
+div.appendChild(timerEl);
+container.appendChild(div);
+startTimer(timerEl, endTime, ()=> renderButton(div,item,index));
+} else {
+renderButton(div,item,index);
+container.appendChild(div);
+}
+
+});
+}
+
+function renderButton(div,item,index){
+div.innerHTML =     <p>${item.title}</p>     <button onclick="openLink(${index}, '${item.url}')">افتح الرابط</button>    ;
+}
+
+function startTimer(el,endTime,onFinish){
+function tick(){
+const diff = endTime - Date.now();
+if(diff <= 0){
+el.textContent = "✅ الرابط متاح الآن!";
+if(onFinish) onFinish();
+return;
+}
+const h = Math.floor(diff/3600000);
+const m = Math.floor((diff%3600000)/60000);
+const s = Math.floor((diff%60000)/1000);
+el.textContent = ⏳ متبقي: ${h} س ${m} د ${s} ث;
+setTimeout(tick, 1000);
+}
+tick();
+}
+
+// فتح الرابط + تمييزه في localStorage
+window.openLink = function(index, url){
+try { localStorage.setItem("pendingLink", String(index)); } catch {}
+// افتح في نفس التبويب لتفادي حجب الـ popup
+location.href = url;
+};
+</script>  </body>
+
+  </html>
