@@ -1,93 +1,72 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>مهمة الروابط | Am Rewards</title>
+  <meta charset="UTF-8" />
+  <title>مهمة الروابط المختصرة | Am Rewards</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <style>
-    body { font-family:'Tajawal',sans-serif;background:#121212;color:#e0e0e0;margin:0;padding:20px;text-align:center }
-    h2 { color:#4caf50;margin-bottom:20px }
-    .task-box { background:#1e1e1e;padding:15px;border-radius:10px;margin:12px auto;max-width:400px }
-    button { background:#4caf50;color:#121212;border:none;padding:10px 20px;border-radius:8px;cursor:pointer }
-    button:hover { background:#388e3c }
-    #user-points { margin:20px 0;font-size:18px }
-    #status { margin-top:15px;color:#81c784 }
-    #err { margin-top:10px;color:#ff5252 }
+    body { font-family: 'Cairo', sans-serif; background: #121212; color: #fff; text-align: center; padding: 30px; }
+    button { background: #ff9800; color: #fff; border: none; padding: 12px 24px; font-size: 18px; border-radius: 10px; cursor: pointer; margin-top: 20px; }
+    button:hover { background: #e68900; }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
-  <h2>مهمة الروابط (نسخة للتجربة فقط)</h2>
-  <div id="user-points">نقاطي: 0</div>
-  <div id="tasks-container"></div>
-  <div id="status"></div>
-  <div id="err"></div>
+  <h1>مهمة الروابط المختصرة</h1>
+  <p>بعد الانتهاء من المهمة اضغط على الزر لإضافة النقاط.</p>
+  <button id="completeTaskBtn">✅ أتممت المهمة</button>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
+  <script>
+    // إعداد Firebase
     const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    const POINTS_PER_TASK = 3;
-    const tasks = [
-      { title: "مهمة 1" },
-      { title: "مهمة 2" },
-      { title: "مهمة 3" }
-    ];
-
-    const $ = (id) => document.getElementById(id);
-
-    onAuthStateChanged(auth, async (user) => {
+    // حدث عند الضغط على الزر
+    document.getElementById("completeTaskBtn").addEventListener("click", async () => {
+      const user = auth.currentUser;
       if (!user) {
-        alert("⚠️ يجب تسجيل الدخول أولا.");
-        location.href = "index.html";
+        alert("⚠️ لازم تسجل دخول الأول!");
+        console.log("User not logged in.");
         return;
       }
 
-      const userRef = doc(db, "users", user.uid);
-      const snap = await getDoc(userRef);
-      const data = snap.data() || {};
-      $("user-points").textContent = `نقاطي: ${data.points ?? 0}`;
+      try {
+        const userRef = db.collection("users").doc(user.uid);
+        await db.runTransaction(async (transaction) => {
+          const doc = await transaction.get(userRef);
+          if (!doc.exists) throw "المستخدم غير موجود!";
+          const oldPoints = doc.data().points || 0;
+          const newPoints = oldPoints + 10; // ✅ إضافة 10 نقاط
 
-      renderTasks(userRef, data.completedLinks || {});
+          transaction.update(userRef, { points: newPoints });
+          console.log(`تم تحديث النقاط: ${oldPoints} ➝ ${newPoints}`);
+        });
+        alert("✅ تمت إضافة النقاط بنجاح!");
+      } catch (error) {
+        console.error("خطأ أثناء إضافة النقاط:", error);
+        alert("⚠️ لم يتم إضافة النقاط. شوف الكونسول.");
+      }
     });
 
-    function renderTasks(userRef, completedLinks) {
-      const container = $("tasks-container");
-      container.innerHTML = "";
-
-      tasks.forEach((task, index) => {
-        const div = document.createElement("div");
-        div.className = "task-box";
-
-        div.innerHTML = `
-          <p>${task.title}</p>
-          <button id="btn-${index}">✔️ أتممت المهمة</button>
-        `;
-        container.appendChild(div);
-
-        document.getElementById(`btn-${index}`).onclick = async () => {
-          try {
-            await updateDoc(userRef, {
-              points: increment(POINTS_PER_TASK),
-              [`completedLinks.${index}`]: Date.now()
-            });
-            $("status").textContent = `🎉 تم إضافة ${POINTS_PER_TASK} نقاط!`;
-          } catch (e) {
-            $("err").textContent = "⚠️ خطأ: " + e.message;
-          }
-        };
-      });
-    }
+    // متابعة تسجيل الدخول
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        console.log("تسجيل الدخول ناجح:", user.email, user.uid);
+      } else {
+        console.log("المستخدم غير مسجل دخول.");
+      }
+    });
   </script>
 </body>
 </html>
