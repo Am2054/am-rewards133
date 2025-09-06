@@ -211,16 +211,30 @@ auth.onAuthStateChanged(user=>{
     // سجل السحب المعدل يدعم النص وتايم ستامب
     db.collection("withdrawals")
       .where("userId", "==", user.uid)
-      .orderBy("date", "desc")
       .onSnapshot(snapshot => {
         withdrawalsTable.innerHTML = "";
         if (snapshot.empty) {
           withdrawalsTable.innerHTML = `<tr><td colspan="4">لا يوجد طلبات سحب بعد</td></tr>`;
           return;
         }
+        // حول النتائج لمصفوفة مع معالجة التاريخ
+        let arr = [];
         snapshot.forEach(doc => {
           const w = doc.data();
-          const tr = document.createElement("tr");
+          let dateVal = 0;
+          if (w.date) {
+            if (typeof w.date === "string") {
+              dateVal = Date.parse(w.date) || 0;
+            } else if (w.date.toDate) {
+              dateVal = w.date.toDate().getTime();
+            }
+          }
+          arr.push({ ...w, dateVal });
+        });
+        // رتب النتائج تنازليًا حسب التاريخ
+        arr.sort((a, b) => b.dateVal - a.dateVal);
+        // اعرض النتائج
+        arr.forEach(w => {
           let dateStr = "-";
           if (w.date) {
             if (typeof w.date === "string") {
@@ -244,6 +258,7 @@ auth.onAuthStateChanged(user=>{
             default:
               statusText = w.status || "-";
           }
+          const tr = document.createElement("tr");
           tr.innerHTML = `
             <td>${w.amount || "-"} جم</td>
             <td>${w.net ? w.net.toFixed(2) : "-"} جم</td>
@@ -317,4 +332,4 @@ confirmBtn.addEventListener('click',async ()=>{
 });
 </script>
 </body>
-  </html>
+        </html>
