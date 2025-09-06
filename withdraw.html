@@ -153,7 +153,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-const POINT_VALUE_EGP = 0.08;
+const POINT_VALUE_EGP = 0.07; // سعر النقطة الجديد
 const LIMITS = { min:20, maxDaily:200 };
 
 const pointsVal=document.getElementById('pointsVal');
@@ -165,6 +165,7 @@ const netVal=document.getElementById('netVal');
 const needPts=document.getElementById('needPts');
 const msg=document.getElementById('msg');
 const withdrawalsTable=document.getElementById('withdrawalsTable');
+const confirmBtn=document.getElementById('confirmBtn');
 
 let userId=null;
 
@@ -189,7 +190,7 @@ auth.onAuthStateChanged(user=>{
         snap.forEach(doc=>{
           const w=doc.data();
           const tr=document.createElement("tr");
-          const date=w.date?.toDate().toLocaleDateString("ar-EG")||"-";
+          const date=w.date?.toDate().toLocaleString("ar-EG")||"-";
 
           let statusClass="", icon="";
           if(w.status==="pending" || w.status==="معلق") {
@@ -232,7 +233,7 @@ function updateCalc(){
 }
 amountInp.addEventListener('input',updateCalc);
 
-document.getElementById('confirmBtn').addEventListener('click',()=>{
+confirmBtn.addEventListener('click',async ()=>{
   msg.textContent=""; msg.className="msg";
   const amt=parseFloat(amountInp.value);
   const wallet=walletVod.value.trim();
@@ -240,6 +241,11 @@ document.getElementById('confirmBtn').addEventListener('click',()=>{
   if(amt>LIMITS.maxDaily){ msg.textContent="❌ الحد الأقصى 200 جم يومياً"; msg.classList.add("error"); return; }
   if(!wallet){ msg.textContent="❌ أدخل رقم المحفظة"; msg.classList.add("error"); return; }
 
+  // رسالة تأكيد قبل التنفيذ
+  const confirmMsg=`هل تريد سحب ${amt} جم إلى المحفظة: ${wallet} ؟`;
+  if(!confirm(confirmMsg)) return;
+
+  confirmBtn.disabled=true; // منع التكرار
   const ptsNeeded=Math.ceil(amt/POINT_VALUE_EGP);
 
   db.runTransaction(async (tr)=>{
@@ -262,8 +268,10 @@ document.getElementById('confirmBtn').addEventListener('click',()=>{
   }).catch(err=>{
     msg.textContent="❌ "+err;
     msg.classList.add("error");
+  }).finally(()=>{
+    confirmBtn.disabled=false; // إعادة تفعيل الزر
   });
 });
 </script>
 </body>
-  </html>
+    </html>
