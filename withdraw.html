@@ -8,24 +8,44 @@
 <style>
 body {
   font-family: 'Cairo', sans-serif;
-  background: #0f172a url('https://i.ibb.co/4YV5fB2/bg-dark.jpg') no-repeat center center fixed;
-  background-size: cover;
+  background: #0f172a linear-gradient(135deg, #0f172a 0%, #38bdf8 100%);
   color: #f1f5f9;
   margin: 0; padding: 0;
+  min-height: 100vh;
+  /* خلفية متحركة */
+  position: relative;
+  overflow: hidden;
+}
+body::before {
+  content: "";
+  position: fixed;
+  top:0; left:0; width:100vw; height:100vh; z-index:0;
+  background: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80') no-repeat center center;
+  background-size: cover;
+  opacity: 0.22;
+  filter: blur(5px) brightness(1.2);
+  animation: bgmove 20s infinite alternate;
+}
+@keyframes bgmove {
+  0% { background-position: center top; }
+  100% { background-position: center bottom; }
 }
 .container {
   max-width: 480px;
   margin: 30px auto;
-  background: rgba(15, 23, 42, 0.9);
+  background: rgba(15, 23, 42, 0.94);
   padding: 25px;
   border-radius: 15px;
-  box-shadow: 0 0 20px rgba(0,229,255,0.4);
+  box-shadow: 0 0 30px rgba(56,189,248,0.35), 0 0 80px 0 rgba(56,189,248,0.1);
+  position: relative;
+  z-index: 2;
 }
 h1 {
   text-align: center;
   margin-bottom: 20px;
   color: #38bdf8;
-  font-size: 22px;
+  font-size: 24px;
+  letter-spacing: 1px;
 }
 label { display:block; margin:10px 0 5px; font-weight:600; }
 input {
@@ -36,6 +56,7 @@ input {
   border-radius: 8px;
   background: #1e293b;
   color: #f1f5f9;
+  font-size: 15px;
 }
 input::placeholder { color:#94a3b8; }
 .info {
@@ -45,10 +66,11 @@ input::placeholder { color:#94a3b8; }
   margin-bottom: 12px;
   text-align: center;
   font-size: 15px;
+  box-shadow: 0 0 8px #0ea5e9a1;
 }
 button {
   width: 100%;
-  background: #38bdf8;
+  background: linear-gradient(90deg, #38bdf8 0%, #0ea5e9 100%);
   color: #0f172a;
   font-weight: 700;
   padding: 12px;
@@ -56,21 +78,26 @@ button {
   border-radius: 10px;
   cursor: pointer;
   transition: 0.3s;
+  font-size: 17px;
+  box-shadow: 0 2px 10px #38bdf863;
 }
-button:hover { background: #0ea5e9; }
+button:hover { background: #0ea5e9; color: #fff; }
 .msg { text-align:center; margin-top:10px; font-size:15px; }
 .error { color:#f87171; }
 .success { color:#22c55e; }
 
 /* جدول السحوبات */
 .history {
-  margin-top: 25px;
+  margin-top: 28px;
+  position: relative;
+  z-index: 1;
 }
 .history h2 {
   font-size: 18px;
   margin-bottom: 10px;
   color: #38bdf8;
   text-align: center;
+  letter-spacing: 1px;
 }
 table {
   width: 100%;
@@ -78,6 +105,7 @@ table {
   background: #1e293b;
   border-radius: 8px;
   overflow: hidden;
+  box-shadow: 0 0 10px #38bdf838;
 }
 th, td {
   padding: 8px;
@@ -181,30 +209,48 @@ auth.onAuthStateChanged(user=>{
         }
       });
 
-    // متابعة سجل السحب
+    // سجل السحب المعدل
     db.collection("withdrawals")
-      .where("userId","==",user.uid)
-      .orderBy("date","desc")
-      .onSnapshot(snap=>{
-        withdrawalsTable.innerHTML="";
-        snap.forEach(d=>{
-          const w=d.data();
-          const tr=document.createElement("tr");
-          const date=w.date?.toDate ? w.date.toDate().toLocaleString("ar-EG") : "-";
-
-          let statusClass="", icon="";
-          if(w.status==="pending" || w.status==="معلق") {
-            statusClass="status-pending"; icon="⏳";
-          } else if(w.status==="completed" || w.status==="مكتمل") {
-            statusClass="status-completed"; icon="✅";
-          } else if(w.status==="rejected" || w.status==="مرفوض") {
-            statusClass="status-rejected"; icon="❌";
+      .where("userId", "==", user.uid)
+      .orderBy("date", "desc")
+      .onSnapshot(snap => {
+        withdrawalsTable.innerHTML = "";
+        if (snap.empty) {
+          withdrawalsTable.innerHTML = `<tr><td colspan="4">لا يوجد طلبات سحب بعد</td></tr>`;
+          return;
+        }
+        snap.forEach(d => {
+          const w = d.data();
+          const tr = document.createElement("tr");
+          let date = "-";
+          try {
+            if (w.date?.toDate) {
+              const dt = w.date.toDate();
+              date = dt.toLocaleDateString("ar-EG") + " - " + dt.toLocaleTimeString("ar-EG");
+            }
+          } catch { }
+          // تحديد الحالة
+          let statusClass = "", icon = "", statusText = "";
+          switch (w.status) {
+            case "pending":
+            case "معلق":
+              statusClass = "status-pending"; icon = "⏳"; statusText = "معلق";
+              break;
+            case "completed":
+            case "مكتمل":
+              statusClass = "status-completed"; icon = "✅"; statusText = "مكتمل";
+              break;
+            case "rejected":
+            case "مرفوض":
+              statusClass = "status-rejected"; icon = "❌"; statusText = "مرفوض";
+              break;
+            default:
+              statusText = w.status || "-";
           }
-
-          tr.innerHTML=`
+          tr.innerHTML = `
             <td>${w.amount} جم</td>
-            <td>${w.net.toFixed(2)} جم</td>
-            <td class="status ${statusClass}">${icon} ${w.status}</td>
+            <td>${w.net ? w.net.toFixed(2) : "-"} جم</td>
+            <td class="status ${statusClass}">${icon} ${statusText}</td>
             <td>${date}</td>
           `;
           withdrawalsTable.appendChild(tr);
@@ -274,4 +320,4 @@ confirmBtn.addEventListener('click',async ()=>{
 });
 </script>
 </body>
-    </html>
+          </html>
