@@ -15,7 +15,7 @@ body {
 }
 .container {
   max-width: 480px;
-  margin: 50px auto;
+  margin: 30px auto;
   background: rgba(15, 23, 42, 0.9);
   padding: 25px;
   border-radius: 15px;
@@ -61,6 +61,34 @@ button:hover { background: #0ea5e9; }
 .msg { text-align:center; margin-top:10px; font-size:15px; }
 .error { color:#f87171; }
 .success { color:#22c55e; }
+
+/* جدول السحوبات */
+.history {
+  margin-top: 25px;
+}
+.history h2 {
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: #38bdf8;
+  text-align: center;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #1e293b;
+  border-radius: 8px;
+  overflow: hidden;
+}
+th, td {
+  padding: 8px;
+  text-align: center;
+  border-bottom: 1px solid #334155;
+  font-size: 14px;
+}
+th {
+  background: #0ea5e9;
+  color: #0f172a;
+}
 </style>
 </head>
 <body>
@@ -82,6 +110,22 @@ button:hover { background: #0ea5e9; }
   <button id="confirmBtn">تأكيد السحب</button>
 
   <div id="msg" class="msg"></div>
+
+  <!-- سجل السحب -->
+  <div class="history">
+    <h2>📜 سجل طلبات السحب</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>المبلغ</th>
+          <th>الصافي</th>
+          <th>الحالة</th>
+          <th>التاريخ</th>
+        </tr>
+      </thead>
+      <tbody id="withdrawalsTable"></tbody>
+    </table>
+  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -97,7 +141,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-const POINT_VALUE_EGP = 0.08; // 1 نقطة = 0.08 جم
+const POINT_VALUE_EGP = 0.08;
 const LIMITS = { min:20, maxDaily:200 };
 
 const pointsVal=document.getElementById('pointsVal');
@@ -108,6 +152,7 @@ const feeVal=document.getElementById('feeVal');
 const netVal=document.getElementById('netVal');
 const needPts=document.getElementById('needPts');
 const msg=document.getElementById('msg');
+const withdrawalsTable=document.getElementById('withdrawalsTable');
 
 let userId=null;
 
@@ -122,6 +167,27 @@ auth.onAuthStateChanged(user=>{
           egpVal.textContent=(points*POINT_VALUE_EGP).toFixed(2);
         }
       });
+
+    // متابعة سجل السحب
+    db.collection("withdrawals")
+      .where("userId","==",user.uid)
+      .orderBy("date","desc")
+      .onSnapshot(snap=>{
+        withdrawalsTable.innerHTML="";
+        snap.forEach(doc=>{
+          const w=doc.data();
+          const tr=document.createElement("tr");
+          const date=w.date?.toDate().toLocaleDateString("ar-EG")||"-";
+          tr.innerHTML=`
+            <td>${w.amount} جم</td>
+            <td>${w.net.toFixed(2)} جم</td>
+            <td>${w.status}</td>
+            <td>${date}</td>
+          `;
+          withdrawalsTable.appendChild(tr);
+        });
+      });
+
   } else {
     window.location.href="index.html";
   }
