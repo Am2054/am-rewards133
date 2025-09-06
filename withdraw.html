@@ -12,7 +12,6 @@ body {
   color: #f1f5f9;
   margin: 0; padding: 0;
   min-height: 100vh;
-  /* خلفية متحركة */
   position: relative;
   overflow: hidden;
 }
@@ -209,49 +208,47 @@ auth.onAuthStateChanged(user=>{
         }
       });
 
-    // سجل السحب المعدل
+    // سجل السحب المعدل يدعم النص وتايم ستامب
     db.collection("withdrawals")
       .where("userId", "==", user.uid)
       .orderBy("date", "desc")
-      .onSnapshot(snap => {
+      .onSnapshot(snapshot => {
         withdrawalsTable.innerHTML = "";
-        if (snap.empty) {
+        if (snapshot.empty) {
           withdrawalsTable.innerHTML = `<tr><td colspan="4">لا يوجد طلبات سحب بعد</td></tr>`;
           return;
         }
-        snap.forEach(d => {
-          const w = d.data();
+        snapshot.forEach(doc => {
+          const w = doc.data();
           const tr = document.createElement("tr");
-          let date = "-";
-          try {
-            if (w.date?.toDate) {
+          let dateStr = "-";
+          if (w.date) {
+            if (typeof w.date === "string") {
+              dateStr = w.date;
+            } else if (w.date.toDate) {
               const dt = w.date.toDate();
-              date = dt.toLocaleDateString("ar-EG") + " - " + dt.toLocaleTimeString("ar-EG");
+              dateStr = dt.toLocaleDateString("ar-EG") + " - " + dt.toLocaleTimeString("ar-EG");
             }
-          } catch { }
-          // تحديد الحالة
-          let statusClass = "", icon = "", statusText = "";
+          }
+          let statusClass="", icon="", statusText="";
           switch (w.status) {
             case "pending":
             case "معلق":
-              statusClass = "status-pending"; icon = "⏳"; statusText = "معلق";
-              break;
+              statusClass = "status-pending"; icon = "⏳"; statusText = "معلق"; break;
             case "completed":
             case "مكتمل":
-              statusClass = "status-completed"; icon = "✅"; statusText = "مكتمل";
-              break;
+              statusClass = "status-completed"; icon = "✅"; statusText = "مكتمل"; break;
             case "rejected":
             case "مرفوض":
-              statusClass = "status-rejected"; icon = "❌"; statusText = "مرفوض";
-              break;
+              statusClass = "status-rejected"; icon = "❌"; statusText = "مرفوض"; break;
             default:
               statusText = w.status || "-";
           }
           tr.innerHTML = `
-            <td>${w.amount} جم</td>
+            <td>${w.amount || "-"} جم</td>
             <td>${w.net ? w.net.toFixed(2) : "-"} جم</td>
             <td class="status ${statusClass}">${icon} ${statusText}</td>
-            <td>${date}</td>
+            <td>${dateStr}</td>
           `;
           withdrawalsTable.appendChild(tr);
         });
@@ -320,4 +317,4 @@ confirmBtn.addEventListener('click',async ()=>{
 });
 </script>
 </body>
-          </html>
+  </html>
