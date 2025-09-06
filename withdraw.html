@@ -89,6 +89,18 @@ th {
   background: #0ea5e9;
   color: #0f172a;
 }
+
+/* الحالات */
+.status {
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.status-pending { color: orange; }
+.status-completed { color: #22c55e; }
+.status-rejected { color: #f87171; }
 </style>
 </head>
 <body>
@@ -178,10 +190,20 @@ auth.onAuthStateChanged(user=>{
           const w=doc.data();
           const tr=document.createElement("tr");
           const date=w.date?.toDate().toLocaleDateString("ar-EG")||"-";
+
+          let statusClass="", icon="";
+          if(w.status==="pending" || w.status==="معلق") {
+            statusClass="status-pending"; icon="⏳";
+          } else if(w.status==="completed" || w.status==="مكتمل") {
+            statusClass="status-completed"; icon="✅";
+          } else if(w.status==="rejected" || w.status==="مرفوض") {
+            statusClass="status-rejected"; icon="❌";
+          }
+
           tr.innerHTML=`
             <td>${w.amount} جم</td>
             <td>${w.net.toFixed(2)} جم</td>
-            <td>${w.status}</td>
+            <td class="status ${statusClass}">${icon} ${w.status}</td>
             <td>${date}</td>
           `;
           withdrawalsTable.appendChild(tr);
@@ -229,7 +251,7 @@ document.getElementById('confirmBtn').addEventListener('click',()=>{
     tr.set(db.collection("withdrawals").doc(),{
       userId, method:"vodafone", wallet,
       amount:amt, fee:amt*0.10, net:amt-amt*0.10,
-      pts:ptsNeeded, status:"pending",
+      pts:ptsNeeded, status:"معلق",
       date:firebase.firestore.FieldValue.serverTimestamp()
     });
   }).then(()=>{
@@ -244,4 +266,4 @@ document.getElementById('confirmBtn').addEventListener('click',()=>{
 });
 </script>
 </body>
-</html>
+  </html>
