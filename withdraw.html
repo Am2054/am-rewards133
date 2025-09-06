@@ -181,7 +181,7 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 const POINT_VALUE_EGP = 0.07; // سعر النقطة
-const LIMITS = { min:20, maxDaily:200 };
+const LIMITS = { min:20, maxDaily:200, maxOpsPerDay:2 };
 
 const pointsVal=document.getElementById('pointsVal');
 const egpVal=document.getElementById('egpVal');
@@ -217,7 +217,6 @@ auth.onAuthStateChanged(user=>{
           withdrawalsTable.innerHTML = `<tr><td colspan="4">لا يوجد طلبات سحب بعد</td></tr>`;
           return;
         }
-        // حول النتائج لمصفوفة مع معالجة التاريخ
         let arr = [];
         snapshot.forEach(doc => {
           const w = doc.data();
@@ -231,9 +230,7 @@ auth.onAuthStateChanged(user=>{
           }
           arr.push({ ...w, dateVal });
         });
-        // رتب النتائج تنازليًا حسب التاريخ
         arr.sort((a, b) => b.dateVal - a.dateVal);
-        // اعرض النتائج
         arr.forEach(w => {
           let dateStr = "-";
           if (w.date) {
@@ -296,40 +293,82 @@ confirmBtn.addEventListener('click',async ()=>{
   const amt=parseFloat(amountInp.value);
   const wallet=walletVod.value.trim();
   if(isNaN(amt)||amt<LIMITS.min){ msg.textContent="❌ الحد الأدنى للسحب 20 جم"; msg.classList.add("error"); return; }
-  if(amt>LIMITS.maxDaily){ msg.textContent="❌ الحد الأقصى 200 جم يومياً"; msg.classList.add("error"); return; }
   if(!wallet){ msg.textContent="❌ أدخل رقم المحفظة"; msg.classList.add("error"); return; }
 
-  // رسالة تأكيد أولى
-  const confirmMsg=`هل تريد سحب ${amt} جم إلى المحفظة: ${wallet} ؟`;
-  if(!confirm(confirmMsg)) return;
+  // تحقق من عدد عمليات السحب ومجموع المبالغ اليوم
+  confirmBtn.disabled=true;
+  try {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
-  confirmBtn.disabled=true; // منع التكرار
-  const ptsNeeded=Math.ceil(amt/POINT_VALUE_EGP);
+    const query = db.collection("withdrawals")
+      .where("userId", "==", userId)
+      .where("date", ">=", startOfDay)
+      .where("date", "<=", endOfDay);
 
-  db.runTransaction(async (tr)=>{
-    const userRef=db.collection("users").doc(userId);
-    const snap=await tr.get(userRef);
-    const points=snap.data().points||0;
-    if(points<ptsNeeded) throw "رصيد نقاط غير كافٍ";
-    tr.update(userRef,{ points: firebase.firestore.FieldValue.increment(-ptsNeeded) });
-    tr.set(db.collection("withdrawals").doc(),{
-      userId, method:"vodafone", wallet,
-      amount:amt, fee:amt*0.10, net:amt-amt*0.10,
-      pts:ptsNeeded, status:"معلق",
-      date:firebase.firestore.FieldValue.serverTimestamp()
+    const snapshot = await query.get();
+
+    let todayOpsCount = 0;
+    let todayTotalAmount = 0;
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if(data.amount){
+        todayOpsCount += 1;
+        todayTotalAmount += Number(data.amount) || 0;
+      }
     });
-  }).then(()=>{
+
+    if (todayOpsCount >= LIMITS.maxOpsPerDay) {
+      msg.textContent = "❌ لقد وصلت للحد الأقصى (2 عملية سحب يوميًا). يمكنك السحب مرة أخرى غدًا.";
+      msg.classList.add("error");
+      confirmBtn.disabled=false;
+      return;
+    }
+    if((todayTotalAmount + amt) > LIMITS.maxDaily){
+      msg.textContent = `❌ مجموع عمليتي السحب اليوم لا يمكن أن يتخطى ${LIMITS.maxDaily} جم. المتبقي لك اليوم: ${(LIMITS.maxDaily-todayTotalAmount).toFixed(2)} جم`;
+      msg.classList.add("error");
+      confirmBtn.disabled=false;
+      return;
+    }
+    if(amt > (LIMITS.maxDaily-todayTotalAmount)){
+      msg.textContent = `❌ مبلغ السحب أكبر من المتبقي اليوم (${(LIMITS.maxDaily-todayTotalAmount).toFixed(2)} جم).`;
+      msg.classList.add("error");
+      confirmBtn.disabled=false;
+      return;
+    }
+
+    // رسالة تأكيد أولى
+    const confirmMsg=`هل تريد سحب ${amt} جم إلى المحفظة: ${wallet} ؟`;
+    if(!confirm(confirmMsg)) { confirmBtn.disabled=false; return; }
+
+    const ptsNeeded=Math.ceil(amt/POINT_VALUE_EGP);
+
+    await db.runTransaction(async (tr)=>{
+      const userRef=db.collection("users").doc(userId);
+      const snap=await tr.get(userRef);
+      const points=snap.data().points||0;
+      if(points<ptsNeeded) throw "رصيد نقاط غير كافٍ";
+      tr.update(userRef,{ points: firebase.firestore.FieldValue.increment(-ptsNeeded) });
+      tr.set(db.collection("withdrawals").doc(),{
+        userId, method:"vodafone", wallet,
+        amount:amt, fee:amt*0.10, net:amt-amt*0.10,
+        pts:ptsNeeded, status:"معلق",
+        date:firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
+
     msg.textContent="✅ تم إرسال طلب السحب بنجاح. ⏳ المعالجة تستغرق من 30 دقيقة إلى 12 ساعة.";
     msg.classList.add("success");
     amountInp.value=""; walletVod.value="";
     updateCalc();
-  }).catch(err=>{
+  } catch(err){
     msg.textContent="❌ "+err;
     msg.classList.add("error");
-  }).finally(()=>{
-    confirmBtn.disabled=false; // إعادة تفعيل الزر
-  });
+  } finally{
+    confirmBtn.disabled=false;
+  }
 });
 </script>
 </body>
-        </html>
+  </html>
