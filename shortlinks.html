@@ -93,28 +93,8 @@ onAuthStateChanged(auth, async (user)=>{
     console.error(e);
     setErr("حدث خطأ: "+e.message);
     setStatus("⚠️ حاول تحديث الصفحة");
-    renderLinks({});
-  }
-});
+    renderLinks({}):
 
-// ---- Helpers ----
-async function ensureUserDoc(userRef){
-  const snap = await getDoc(userRef);
-  if(!snap.exists()){
-    await setDoc(userRef, {
-      points: 0,
-      completedLinks: {},
-      completedAds: {}, completedApps: {}, completedGames: {},
-      completedSurveys: {}, completedVideos: {}
-    }, {merge:true});
-  } else {
-    const data = snap.data() || {};
-    const patch = {};
-    if(!data.completedLinks || typeof data.completedLinks !== "object") patch.completedLinks = {};
-    if(typeof data.points !== "number") patch.points = 0;
-    if(Object.keys(patch).length) await updateDoc(userRef, patch);
-  }
-}
 
 // ---- التحقق من الوقت وتسجيل المهمة ----
 async function handlePendingLink(userRef){
@@ -146,9 +126,8 @@ async function handlePendingLink(userRef){
 
     if(!last || (Date.now() - last) >= LINK_COOLDOWN){
       await updateDoc(userRef, {
-        points: increment(POINTS_PER_LINK),
-        [`completedLinks.${idx}`]: Date.now()
-      });
+  points: increment(POINTS_PER_LINK)
+});
 
       // 🟢 تسجيل المهمة في tasksCompleted
       const taskId = `shortlink-${idx}-${Date.now()}`;
