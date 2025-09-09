@@ -139,14 +139,26 @@ if(now - visitTime < MIN_WAIT_TIME){
 try{
   const snap = await getDoc(userRef);
   const completed = (snap.data() && snap.data().completedLinks) || {};
-  const last = completed[idx] || 0;
+  const last = completed[idx] || 0
 
   if(!last || (Date.now() - last) >= LINK_COOLDOWN){  
-    await updateDoc(userRef, {  
-      points: increment(POINTS_PER_LINK),  
-      [`completedLinks.${idx}`]: Date.now()
-    });
-    alert(`🎉 تم إضافة ${POINTS_PER_LINK} نقطة لحسابك!`);
+  await updateDoc(userRef, {  
+    points: increment(POINTS_PER_LINK),  
+    [`completedLinks.${idx}`]: Date.now()
+  });
+
+  // 🟢 تسجيل المهمة في tasksCompleted
+  const taskDocRef = doc(db, "tasksCompleted", crypto.randomUUID());
+  await setDoc(taskDocRef, {
+    userId: userRef.id,
+    taskId: `shortlink-${idx}`,
+    taskType: "shortlinks",
+    pointsEarned: POINTS_PER_LINK,
+    date: new Date(),
+    status: "done"
+  });
+
+  alert(`🎉 تم إضافة ${POINTS_PER_LINK} نقطة لحسابك!`);
   }
 } catch(e){
   setErr("تعذر تسجيل إنجاز الرابط: " + e.message);
