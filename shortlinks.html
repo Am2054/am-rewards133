@@ -50,7 +50,7 @@ const db   = getFirestore(app);
 
 const POINTS_PER_LINK = 2;
 const LINK_COOLDOWN   = 24*60*60*1000; // 24 ساعة
-const MIN_WAIT_TIME   = 15000; // لازم ينتظر 15 ثانية
+const MIN_WAIT_TIME   = 15000; // 15 ثانية
 
 const shortlinks = [
   {title:"رابط 1",url:"https://swiftlnx.com/Lzt3c"},
@@ -77,14 +77,16 @@ onAuthStateChanged(auth, async (user)=>{
   const userRef = doc(db,"users",user.uid);
 
   try {
-    await ensureUserDoc(userRef);
+    // لو عاوز تحفظ ensureUserDoc، ممكن تسيبه للتوثيق
+    // await ensureUserDoc(userRef);
+
     await handlePendingLink(userRef);
 
     onSnapshot(userRef, (snap)=>{
       const data = snap.data() || {};
       const points = data.points ?? 0;
       $("user-points").textContent = `نقاطي: ${points}`;
-      renderLinks(data.completedLinks || {});
+      renderLinks({}); // لا تعتمد على completedLinks بعد الحذف
       setStatus("✅ اختر أي رابط متاح");
       setErr("");
     }, (err)=> setErr("خطأ في التحديث الحي: "+err.message) );
@@ -93,8 +95,9 @@ onAuthStateChanged(auth, async (user)=>{
     console.error(e);
     setErr("حدث خطأ: "+e.message);
     setStatus("⚠️ حاول تحديث الصفحة");
-    renderLinks({}):
-
+    renderLinks({});
+  }
+});
 
 // ---- التحقق من الوقت وتسجيل المهمة ----
 async function handlePendingLink(userRef){
@@ -121,28 +124,31 @@ async function handlePendingLink(userRef){
 
   try{
     const snap = await getDoc(userRef);
-    const completed = (snap.data() && snap.data().completedLinks) || {};
-    const last = completed[idx] || 0;
 
-    if(!last || (Date.now() - last) >= LINK_COOLDOWN){
-      await updateDoc(userRef, {
-  points: increment(POINTS_PER_LINK)
-});
-
-      // 🟢 تسجيل المهمة في tasksCompleted
-      const taskId = `shortlink-${idx}-${Date.now()}`;
-      const taskRef = doc(db, "tasksCompleted", taskId);
-      await setDoc(taskRef, {
-        userId: userRef.id,
-        taskId: `shortlink-${idx}`,
-        taskType: "shortlinks",
-        pointsEarned: POINTS_PER_LINK,
-        date: new Date(),
-        status: "done"
-      });
-
-      alert(`🎉 تم إضافة ${POINTS_PER_LINK} نقطة لحسابك!`);
+    if(!snap.exists()) {
+      setErr("حساب المستخدم غير موجود!");
+      return;
     }
+
+    // ✅ تحديث النقاط فقط
+    await updateDoc(userRef, {
+      points: increment(POINTS_PER_LINK)
+    });
+
+    // ✅ تسجيل المهمة في tasksCompleted
+    const taskId = `shortlink-${idx}-${Date.now()}`;
+    const taskRef = doc(db, "tasksCompleted", taskId);
+    await setDoc(taskRef, {
+      userId: userRef.id,
+      taskId: `shortlink-${idx}`,
+      taskType: "shortlinks",
+      pointsEarned: POINTS_PER_LINK,
+      date: new Date(),
+      status: "done"
+    });
+
+    alert(`🎉 تم إضافة ${POINTS_PER_LINK} نقطة لحسابك!`);
+
   } catch(e){
     setErr("تعذر تسجيل إنجاز الرابط: " + e.message);
   } finally {
@@ -151,30 +157,17 @@ async function handlePendingLink(userRef){
   }
 }
 
-function renderLinks(completedLinks={}){
+function renderLinks(){
   const container = $("links-container");
   container.innerHTML = "";
   shortlinks.forEach((item,index)=>{
-    const last = completedLinks[index] || 0;
-    let locked = false, timerText = "";
-    if(last){
-      const diff = Date.now() - last;
-      if(diff < LINK_COOLDOWN){
-        locked = true;
-        let remain = LINK_COOLDOWN - diff;
-        let hours = Math.floor(remain/(60*60*1000));
-        let minutes = Math.floor((remain%(60*60*1000))/(60*1000));
-        timerText = `انتظر ${hours} ساعة و${minutes} دقيقة لإعادة تنفيذ المهمة`;
-      }
-    }
     const div = document.createElement("div");
     div.className = "link-box";
     div.innerHTML =
       `<p>${item.title}</p>
-       <button ${locked?"disabled":""} onclick="openLink(${index}, '${item.url}')">
-          ${locked ? "مغلق 24 ساعة" : "افتح الرابط"}
-       </button>
-       ${locked ? `<div class="timer-lock">${timerText}</div>` : ""}`;
+       <button onclick="openLink(${index}, '${item.url}')">
+          افتح الرابط
+       </button>`;
     container.appendChild(div);
   });
 }
@@ -189,4 +182,4 @@ window.openLink = function(index, url){
 };
 </script>
 </body>
-  </html>
+</html>
