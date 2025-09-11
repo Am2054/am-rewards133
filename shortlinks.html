@@ -67,6 +67,8 @@ const $ = (id)=>document.getElementById(id);
 const setStatus = (t)=>{ $("status").textContent=t; };
 const setErr    = (t)=>{ $("err").textContent=t||""; };
 
+let currentUserRef = null;
+
 onAuthStateChanged(auth, async (user)=>{
   if(!user){
     alert("⚠️ يجب تسجيل الدخول أولاً.");
@@ -74,19 +76,16 @@ onAuthStateChanged(auth, async (user)=>{
     return;
   }
 
-  const userRef = doc(db,"users",user.uid);
+  currentUserRef = doc(db,"users",user.uid);
 
   try {
-    // لو عاوز تحفظ ensureUserDoc، ممكن تسيبه للتوثيق
-    // await ensureUserDoc(userRef);
+    await handlePendingLink(currentUserRef);
 
-    await handlePendingLink(userRef);
-
-    onSnapshot(userRef, (snap)=>{
+    onSnapshot(currentUserRef, (snap)=>{
       const data = snap.data() || {};
       const points = data.points ?? 0;
       $("user-points").textContent = `نقاطي: ${points}`;
-      renderLinks({}); // لا تعتمد على completedLinks بعد الحذف
+      renderLinks(data.lastLinks || {});
       setStatus("✅ اختر أي رابط متاح");
       setErr("");
     }, (err)=> setErr("خطأ في التحديث الحي: "+err.message) );
@@ -116,7 +115,7 @@ async function handlePendingLink(userRef){
 
   const now = Date.now();
   if(now - visitTime < MIN_WAIT_TIME){
-    setErr("يجب عليك البقاء في الرابط لمدة لا تقل عن 15 ثانيه قبل العودة!");
+    setErr("يجب عليك البقاء في الرابط لمدة لا تقل عن 15 ثانية قبل العودة!");
     localStorage.removeItem("pendingLink");
     localStorage.removeItem("pendingLinkTime");
     return;
@@ -124,15 +123,19 @@ async function handlePendingLink(userRef){
 
   try{
     const snap = await getDoc(userRef);
+    const data = snap.data() || {};
+    const lastLinks = data.lastLinks || {};
+    const last = lastLinks[idx] || 0;
 
-    if(!snap.exists()) {
-      setErr("حساب المستخدم غير موجود!");
+    if(Date.now() - last < LINK_COOLDOWN){
+      setErr("⚠️ لا يمكنك فتح هذا الرابط الآن. جرب لاحقًا.");
       return;
     }
 
-    // ✅ تحديث النقاط فقط
+    // ✅ تحديث النقاط + وقت آخر فتح للرابط
     await updateDoc(userRef, {
-      points: increment(POINTS_PER_LINK)
+      points: increment(POINTS_PER_LINK),
+      [`lastLinks.${idx}`]: Date.now()
     });
 
     // ✅ تسجيل المهمة في tasksCompleted
@@ -157,17 +160,30 @@ async function handlePendingLink(userRef){
   }
 }
 
-function renderLinks(){
+function renderLinks(lastLinks){
   const container = $("links-container");
   container.innerHTML = "";
+
   shortlinks.forEach((item,index)=>{
+    const last = lastLinks[index] || 0;
+    let locked = false, timerText = "";
+
+    if(last && Date.now() - last < LINK_COOLDOWN){
+      locked = true;
+      let remain = LINK_COOLDOWN - (Date.now()-last);
+      let hours = Math.floor(remain/(1000*60*60));
+      let minutes = Math.floor((remain%(1000*60*60))/(1000*60));
+      timerText = `⏳ انتظر ${hours} ساعة و ${minutes} دقيقة`;
+    }
+
     const div = document.createElement("div");
     div.className = "link-box";
     div.innerHTML =
       `<p>${item.title}</p>
-       <button onclick="openLink(${index}, '${item.url}')">
-          افتح الرابط
-       </button>`;
+       <button ${locked?"disabled":""} onclick="openLink(${index}, '${item.url}')">
+          ${locked ? "🔒 غير متاح الآن" : "افتح الرابط"}
+       </button>
+       ${locked ? `<div class="timer-lock">${timerText}</div>` : ""}`;
     container.appendChild(div);
   });
 }
