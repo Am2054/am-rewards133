@@ -124,6 +124,9 @@
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
+      storageBucket: "am--rewards.appspot.com",
+      messagingSenderId: "428582312150",
+      appId: "1:428582312150:web:44e35a70e457e7db4c45df"
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -165,7 +168,11 @@
 
       try {
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-        const uid = userCredential.user.uid;
+        const user = userCredential.user;
+        const uid = user.uid;
+
+        // إرسال تحقق بالبريد
+        await user.sendEmailVerification();
 
         const userRef = db.collection("users").doc(uid);
         const fields = {
@@ -182,11 +189,19 @@
           joinedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
-        // force overwrite (remove old maps completely)
         await userRef.set(fields, { merge: false });
 
-        successElem.textContent = "✅ تم إنشاء الحساب بنجاح! جاري تحويلك...";
-        setTimeout(() => { window.location.href = "dashboard.html"; }, 2000);
+        successElem.textContent = "✅ تم إنشاء الحساب بنجاح! تحقق من بريدك الإلكتروني لتفعيل الحساب.";
+        btn.textContent = "تم إرسال التحقق";
+
+        // متخلوش يدخل الداشبورد إلا بعد التحقق
+        setTimeout(() => {
+          if (user.emailVerified) {
+            window.location.href = "dashboard.html";
+          } else {
+            successElem.textContent = "📩 تأكد من الضغط على رابط التفعيل المرسل لبريدك.";
+          }
+        }, 4000);
 
       } catch (error) {
         errorElem.textContent = "❌ " + error.message;
@@ -196,4 +211,4 @@
     }
   </script>
 </body>
-</html>
+  </html>
