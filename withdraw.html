@@ -295,27 +295,30 @@ confirmBtn.addEventListener('click',async ()=>{
   if(isNaN(amt)||amt<LIMITS.min){ msg.textContent="❌ الحد الأدنى للسحب 20 جم"; msg.classList.add("error"); return; }
   if(!wallet){ msg.textContent="❌ أدخل رقم المحفظة"; msg.classList.add("error"); return; }
 
-  // تحقق من عدد عمليات السحب ومجموع المبالغ اليوم
   confirmBtn.disabled=true;
   try {
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
+    // استعلام أبسط بدون تاريخ لتجنب خطأ index
     const query = db.collection("withdrawals")
-      .where("userId", "==", userId)
-      .where("date", ">=", startOfDay)
-      .where("date", "<=", endOfDay);
+      .where("userId", "==", userId);
 
     const snapshot = await query.get();
 
+    // فلترة اليوم برمجياً
     let todayOpsCount = 0;
     let todayTotalAmount = 0;
     snapshot.forEach(doc => {
       const data = doc.data();
-      if(data.amount){
-        todayOpsCount += 1;
-        todayTotalAmount += Number(data.amount) || 0;
+      let wDate = data.date;
+      if(wDate && wDate.toDate){
+        wDate = wDate.toDate();
+        if(wDate >= startOfDay && wDate <= endOfDay){
+          todayOpsCount += 1;
+          todayTotalAmount += Number(data.amount) || 0;
+        }
       }
     });
 
@@ -338,7 +341,6 @@ confirmBtn.addEventListener('click',async ()=>{
       return;
     }
 
-    // رسالة تأكيد أولى
     const confirmMsg=`هل تريد سحب ${amt} جم إلى المحفظة: ${wallet} ؟`;
     if(!confirm(confirmMsg)) { confirmBtn.disabled=false; return; }
 
@@ -371,4 +373,4 @@ confirmBtn.addEventListener('click',async ()=>{
 });
 </script>
 </body>
-  </html>
+                              </html>
