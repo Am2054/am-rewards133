@@ -133,10 +133,9 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // توليد كود إحالة عشوائي
-    function generateReferralCode() {
-      return Math.random().toString(36).substring(2, 8).toUpperCase();
-    }
+    // ✅ قراءة كود الإحالة من الرابط
+    const urlParams = new URLSearchParams(window.location.search);
+    const referralCode = urlParams.get("ref");
 
     async function signup() {
       const name = document.getElementById("name").value.trim();
@@ -179,13 +178,6 @@
         // إرسال تحقق بالبريد
         await user.sendEmailVerification();
 
-        // جلب referralBy من الرابط (لو موجود)
-        const urlParams = new URLSearchParams(window.location.search);
-        const referralBy = urlParams.get("ref"); // ?ref=CODE
-
-        // توليد كود إحالة جديد للمستخدم
-        const referralCode = generateReferralCode();
-
         const userRef = db.collection("users").doc(uid);
         const fields = {
           uid: uid,
@@ -193,26 +185,33 @@
           email: email,
           phone: "",
           points: 0,
-          referralPoints: 0,
-          referralCount: 0,
-          referralCode: referralCode,
-          referralBy: referralBy || null,
+          bonusPoint: 0,
           totalWithdrawn: 0,
           dailyWithdrawAmount: 0,
           isBanned: false,
           lastWithdrawlDate: "",
+          referralCode: uid.slice(0,6).toUpperCase(), // كود إحالة خاص بيه
+          referredBy: referralCode || "", // لو جاي من رابط إحالة
           joinedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
         await userRef.set(fields, { merge: false });
 
-        // لو عنده ref → نزود referralCount للشخص اللي دعاه
-        if (referralBy) {
-          const referrer = await db.collection("users").where("referralCode", "==", referralBy).get();
-          if (!referrer.empty) {
-            const refDoc = referrer.docs[0];
-            await refDoc.ref.update({
-              referralCount: firebase.firestore.FieldValue.increment(1)
+        // ✅ لو فيه كود إحالة حدث بيانات صاحب الكود
+        if (referralCode) {
+          const referrerQuery = await db.collection("users")
+            .where("referralCode", "==", referralCode).get();
+          if (!referrerQuery.empty) {
+            const referrerDoc = referrerQuery.docs[0].ref;
+            await db.runTransaction(async (transaction) => {
+              const refSnap = await transaction.get(referrerDoc);
+              if (refSnap.exists) {
+                const refData = refSnap.data();
+                transaction.update(referrerDoc, {
+                  referralCount: (refData.referralCount || 0) + 1,
+                  referralPoints: (refData.referralPoints || 0) // هنا هنضيف الـ 10% من المهام بعدين
+                });
+              }
             });
           }
         }
@@ -236,4 +235,4 @@
     }
   </script>
 </body>
-      </html>
+  </html>
