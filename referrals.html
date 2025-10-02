@@ -1,51 +1,213 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>الإحالات | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <style>
-    body {
-      font-family: 'Tajawal', sans-serif;
-      background-color: #121212;
-      color: #eee;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      padding: 20px;
-      text-align: center;
+    body { 
+      font-family: 'Cairo', sans-serif; 
+      background:#f8f9fa; 
+      color:#333; 
+      text-align:center; 
+      padding:20px; 
     }
-    .container {
-      max-width: 450px;
-      background: #1e1e1e;
-      padding: 30px 25px;
-      border-radius: 15px;
-      box-shadow: 0 0 15px #00e5ff88;
-      user-select: none;
+    .card { 
+      background:#fff; 
+      padding:20px; 
+      border-radius:12px; 
+      margin:15px auto; 
+      width:90%; 
+      max-width:760px; 
+      box-shadow:0 2px 12px rgba(0,0,0,0.08); 
+      text-align: right;
     }
-    h1 {
-      color: #00e5ff;
-      margin-bottom: 20px;
-      font-size: 28px;
+    h2 { text-align:center; margin-bottom:10px; color:#0f172a; }
+    .row { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    .input-wrap { width:100%; display:flex; gap:10px; align-items:center; justify-content:center; }
+    input[type="text"] { 
+      width:78%; 
+      padding:10px; 
+      border-radius:8px; 
+      border:1px solid #ddd; 
+      background:#fafafa; 
+      color:#111; 
+      text-align:center; 
     }
-    p {
-      font-size: 18px;
-      line-height: 1.5;
-      color: #ccc;
+    button { 
+      background:#0ea5e9; 
+      color:#fff; 
+      border:none; 
+      padding:10px 14px; 
+      border-radius:8px; 
+      cursor:pointer; 
+      font-weight:700;
     }
-    .emoji {
-      font-size: 50px;
-      margin-bottom: 15px;
+    button:hover { background:#0891b2; }
+    .stats { display:flex; gap:12px; justify-content:space-between; flex-wrap:wrap; }
+    .stat-box { background:#f1f5f9; padding:12px 14px; border-radius:10px; min-width:180px; box-shadow:0 2px 6px rgba(2,6,23,0.03); }
+    ul { list-style:none; padding:0; margin:0; }
+    li { 
+      background:#fff; 
+      margin:8px 0; 
+      padding:12px; 
+      border-radius:8px; 
+      display:flex; 
+      justify-content:space-between; 
+      align-items:center; 
+      border:1px solid #eef2f7;
+    }
+    .name { font-weight:700; color:#0f172a; }
+    .points { color:#0ea5e9; font-weight:800; }
+    .bonus { color:#059669; font-weight:800; }
+    .empty { color:#6b7280; padding:12px 0; }
+    @media (max-width:640px){
+      .stat-box{ min-width: 48%; }
+      input[type="text"]{ width:70%; }
     }
   </style>
 </head>
 <body>
-  <div class="container" role="main" aria-label="صفحة الإحالات">
-    <div class="emoji">⏳</div>
-    <h1>نظام الإحالات</h1>
-    <p>سيتم توفير نظام الإحالات قريبًا إن شاء الله.<br />شكراً لصبركم وثقتكم في <strong>Am Rewards</strong>!</p>
+  <h2>🌟 نظام الإحالات — Am Rewards</h2>
+
+  <div class="card">
+    <h3>رابط الإحالة الخاص بك</h3>
+    <div class="input-wrap">
+      <input type="text" id="referralLink" readonly aria-label="رابط الإحالة">
+      <button id="copyBtn">📋 نسخ</button>
+    </div>
   </div>
+
+  <div class="card">
+    <div class="stats">
+      <div class="stat-box">
+        <div>عدد الإحالات</div>
+        <div style="font-size:20px;font-weight:900" id="referralCount">0</div>
+      </div>
+      <div class="stat-box">
+        <div>النقاط من الإحالات (مجمّعة)</div>
+        <div style="font-size:20px;font-weight:900" id="referralPoints">0</div>
+      </div>
+      <div class="stat-box">
+        <div>رابط الدعوة</div>
+        <div style="font-size:14px;color:#374151">شارك الرابط و احصل على 10% من نقاط المدعوين</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>👥 المدعوّون</h3>
+    <ul id="invitedList"></ul>
+    <div id="invitedEmpty" class="empty" style="display:none">لا يوجد مدعوّون حتى الآن</div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { 
+      getFirestore, doc, updateDoc, onSnapshot, collection, query, where, onSnapshot as onQSnapshot 
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // ====== هنا firebaseConfig بتاع مشروعك (موجود كما طلبت) ======
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.appspot.com",
+      messagingSenderId: "428582312150",
+      appId: "1:428582312150:web:44e35a70e457e7db4c45df"
+    };
+    // ============================================================
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const copyBtn = document.getElementById('copyBtn');
+    copyBtn.addEventListener('click', async () => {
+      const link = document.getElementById('referralLink').value || '';
+      if (!link) return alert('لا يوجد رابط للنسخ الآن.');
+      try {
+        await navigator.clipboard.writeText(link);
+        alert('تم نسخ رابط الإحالة ✅');
+      } catch (e) {
+        // fallback
+        const el = document.getElementById('referralLink');
+        el.select();
+        document.execCommand('copy');
+        alert('تم نسخ رابط الإحالة ✅');
+      }
+    });
+
+    onAuthStateChanged(auth, user => {
+      if (!user) {
+        // لو مش مسجل دخول - رجعه لصفحة الدخول
+        window.location.href = "index.html";
+        return;
+      }
+
+      const userRef = doc(db, "users", user.uid);
+
+      // تحديث بيانات المستخدم (real-time)
+      onSnapshot(userRef, async (snap) => {
+        if (!snap.exists()) {
+          // لو مش موجود حسابه - رجعه
+          console.warn("user doc not found");
+          return;
+        }
+        const data = snap.data();
+
+        // لو مفيش referralCode - أنشئ واحد (6 أحرف من uid)
+        if (!data.referralCode || data.referralCode === "") {
+          const newCode = user.uid.slice(0,6).toUpperCase();
+          try { await updateDoc(userRef, { referralCode: newCode }); }
+          catch(e){ console.warn("failed to set referralCode:", e); }
+          data.referralCode = newCode;
+        }
+
+        // رابط الإحالة
+        const link = `${window.location.origin}/signup.html?ref=${data.referralCode}`;
+        document.getElementById('referralLink').value = link;
+
+        // إحصائيات
+        document.getElementById('referralCount').innerText = data.referralCount || 0;
+        document.getElementById('referralPoints').innerText = data.referralPoints || 0;
+      });
+
+      // جلب المدعوين بشكل حي (real-time)
+      const q = query(collection(db, "users"), where("referralBy", "==", user.uid));
+      onQSnapshot(q, (snapshot) => {
+        const invitedList = document.getElementById('invitedList');
+        invitedList.innerHTML = "";
+        if (snapshot.empty) {
+          document.getElementById('invitedEmpty').style.display = 'block';
+          return;
+        } else {
+          document.getElementById('invitedEmpty').style.display = 'none';
+        }
+
+        snapshot.forEach(docSnap => {
+          const invited = docSnap.data();
+          const name = invited.name || invited.email || 'مستخدم جديد';
+          const pts = Number(invited.points || 0);
+          const bonus = Math.floor(pts * 0.10); // 10% تقريبي من نقاط المدعو الآن
+          const li = document.createElement('li');
+          li.innerHTML = `
+            <span style="display:flex; gap:10px; align-items:center">
+              <span class="name">${name}</span>
+              <small style="color:#6b7280">(${docSnap.id.slice(0,6)})</small>
+            </span>
+            <span style="display:flex; gap:14px; align-items:center">
+              <span class="points">${pts} نقطة</span>
+              <span class="bonus">+ ${bonus} (10%)</span>
+            </span>
+          `;
+          invitedList.appendChild(li);
+        });
+      }, (err) => {
+        console.error("invited onSnapshot error:", err);
+      });
+    });
+  </script>
 </body>
-</html>
+  </html>
