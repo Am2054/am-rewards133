@@ -133,6 +133,11 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
+    // توليد كود إحالة عشوائي
+    function generateReferralCode() {
+      return Math.random().toString(36).substring(2, 8).toUpperCase();
+    }
+
     async function signup() {
       const name = document.getElementById("name").value.trim();
       const email = document.getElementById("email").value.trim();
@@ -174,6 +179,13 @@
         // إرسال تحقق بالبريد
         await user.sendEmailVerification();
 
+        // جلب referralBy من الرابط (لو موجود)
+        const urlParams = new URLSearchParams(window.location.search);
+        const referralBy = urlParams.get("ref"); // ?ref=CODE
+
+        // توليد كود إحالة جديد للمستخدم
+        const referralCode = generateReferralCode();
+
         const userRef = db.collection("users").doc(uid);
         const fields = {
           uid: uid,
@@ -181,7 +193,10 @@
           email: email,
           phone: "",
           points: 0,
-          bonusPoint: 0,
+          referralPoints: 0,
+          referralCount: 0,
+          referralCode: referralCode,
+          referralBy: referralBy || null,
           totalWithdrawn: 0,
           dailyWithdrawAmount: 0,
           isBanned: false,
@@ -191,10 +206,20 @@
 
         await userRef.set(fields, { merge: false });
 
+        // لو عنده ref → نزود referralCount للشخص اللي دعاه
+        if (referralBy) {
+          const referrer = await db.collection("users").where("referralCode", "==", referralBy).get();
+          if (!referrer.empty) {
+            const refDoc = referrer.docs[0];
+            await refDoc.ref.update({
+              referralCount: firebase.firestore.FieldValue.increment(1)
+            });
+          }
+        }
+
         successElem.textContent = "✅ تم إنشاء الحساب بنجاح! تحقق من بريدك الإلكتروني لتفعيل الحساب.";
         btn.textContent = "تم إرسال التحقق";
 
-        // متخلوش يدخل الداشبورد إلا بعد التحقق
         setTimeout(() => {
           if (user.emailVerified) {
             window.location.href = "dashboard.html";
@@ -211,4 +236,4 @@
     }
   </script>
 </body>
-  </html>
+      </html>
