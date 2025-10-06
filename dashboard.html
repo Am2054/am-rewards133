@@ -2,144 +2,212 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <title>لوحة التحكم | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <!-- Font -->
+  <title>لوحة التحكم — Am Rewards (v2)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-
   <style>
-    :root {
-      --bg1: #0d1117;
-      --bg2: #203a43;
-      --accent: #f39c12;
-      --card: rgba(30,34,44,0.96);
-      --muted: #9ca3af;
+    :root{
+      --bg:#0b1220;
+      --card:#0f1724;
+      --muted:#9aa4b2;
+      --accent:#1fb6ff;
+      --gold:#f6b93b;
+      --glass: rgba(255,255,255,0.03);
+      --success:#16a34a;
     }
-    html,body{height:100%;margin:0;padding:0;font-family:'Cairo',sans-serif;background:linear-gradient(120deg,var(--bg1) 0%,var(--bg2) 60%, #2c5364 100%);color:#fff}
-    .container{max-width:900px;margin:20px auto;padding:18px;box-sizing:border-box;}
-    .top { display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:18px; }
-    h1{margin:0;font-size:1.7rem;color:var(--accent);text-shadow:0 0 10px #0008}
-    .card { background:var(--card); border-radius:14px; padding:18px; box-shadow:0 6px 30px rgba(2,6,23,0.5); }
-    .grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-top:14px; }
-    .stat { padding:16px; border-radius:12px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.03); }
-    .stat h3{margin:0;font-size:0.95rem;color:var(--muted)}
-    .stat p{margin:8px 0 0;font-size:1.3rem;font-weight:800;color:#fff}
-    .actions { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
-    .btn { display:inline-block;padding:12px 14px;border-radius:10px;text-decoration:none;color:#111;font-weight:800; text-align:center; }
-    .btn.primary{background:linear-gradient(90deg,#3498db,#38bdf8); box-shadow:0 6px 24px rgba(56,189,248,0.12);}
-    .btn.green{background:linear-gradient(90deg,#2ecc71,#22c55e);}
-    .btn.gold{background:linear-gradient(90deg,#f1c40f,#fde047); color:#111;}
-    .links { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
-    .small { font-size:0.85rem; color:var(--muted); margin-top:6px; }
-    footer { text-align:center; margin-top:20px; color: #bfcfe0; font-size:0.9rem; }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:"Cairo",sans-serif; background:
+      radial-gradient(1200px 600px at 10% 10%, rgba(31,182,255,0.06), transparent 8%),
+      linear-gradient(180deg,#071024 0%, #0b1f2a 100%);
+      color:#e6eef6; -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      min-height:100vh;
+      padding:20px;
+    }
 
-    /* loading / error */
-    .loading { color:#22c55e; font-weight:700; }
-    .error { color:#ff7b7b; font-weight:700; }
+    .wrap{max-width:1100px;margin:0 auto;padding:18px;}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo {
+      width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#7ef7ff);
+      display:flex;align-items:center;justify-content:center;color:#012; font-weight:900; font-size:18px;
+      box-shadow:0 6px 30px rgba(31,182,255,0.06), inset 0 -6px 18px rgba(0,0,0,0.25);
+    }
+    h1{margin:0;font-size:18px;color:var(--gold);letter-spacing:0.6px}
+    .sub{color:var(--muted);font-size:13px}
+
+    /* layout */
+    .grid {
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap:18px;
+    }
+    .left {
+      display:grid;
+      gap:14px;
+    }
+    .card {
+      background:linear-gradient(180deg,var(--card), rgba(255,255,255,0.01));
+      border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,0.03);
+      box-shadow:0 8px 30px rgba(3,10,18,0.45);
+    }
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+    .stat {
+      padding:14px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.02);
+      transition:transform .18s ease, box-shadow .18s;
+    }
+    .stat:hover{transform:translateY(-4px);box-shadow:0 12px 30px rgba(2,6,23,0.5)}
+    .k{font-size:12px;color:var(--muted);margin-bottom:8px}
+    .v{font-weight:800;font-size:20px;color:#fff}
+
+    /* progress */
+    .progress-wrap{margin-top:10px}
+    .progress {height:10px;background:rgba(255,255,255,0.04);border-radius:999px;overflow:hidden}
+    .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#7ef7ff);width:0%;transition:width 600ms cubic-bezier(.23,.9,.32,1)}
+
+    /* actions */
+    .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
+    .btn{padding:10px 14px;border-radius:10px;text-decoration:none;font-weight:800;display:inline-flex;align-items:center;gap:8px;cursor:pointer;border:0}
+    .btn.primary{background:linear-gradient(90deg,var(--accent),#6ae7ff);color:#012;}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+    .btn.gold{background:linear-gradient(90deg,var(--gold),#ffd27f);color:#112}
+
+    /* right column */
+    .right .mini{display:flex;gap:10px;flex-direction:column}
+    .profile{display:flex;gap:12px;align-items:center}
+    .avatar{width:62px;height:62px;border-radius:12px;background:linear-gradient(135deg,#fff2,#fff0);display:flex;align-items:center;justify-content:center;color:#012;font-weight:900}
+    .profile h3{margin:0;font-size:16px}
+    .profile p{margin:0;color:var(--muted);font-size:13px}
 
     /* toast */
-    .toast {
-      position: fixed;
-      left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      bottom: 26px;
-      padding: 12px 18px;
-      border-radius: 12px;
-      background: linear-gradient(90deg,#16a34a,#34d399);
-      color: #042;
-      font-weight:800;
-      box-shadow: 0 10px 30px rgba(2,6,23,0.45);
-      opacity: 0;
-      pointer-events: none;
-      transition: all 360ms cubic-bezier(.2,.9,.3,1);
-      z-index: 9999;
-    }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events:auto; }
+    .toast{position:fixed;left:50%;transform:translateX(-50%) translateY(20px);bottom:26px;padding:12px 18px;border-radius:12px;background:linear-gradient(90deg,#16a34a,#34d399);color:#052;box-shadow:0 10px 30px rgba(2,6,23,0.45);opacity:0;pointer-events:none;transition:all .36s cubic-bezier(.2,.9,.3,1);z-index:9999}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
 
-    /* responsive tweaks */
-    @media (max-width:640px){
-      h1{font-size:1.3rem}
+    /* small */
+    .muted{color:var(--muted);font-size:13px}
+    footer{margin-top:22px;text-align:center;color:rgba(255,255,255,0.12);font-size:13px}
+
+    @media(max-width:980px){
       .grid{grid-template-columns:1fr}
+      .right{order:-1}
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="top">
-      <h1>لوحة التحكم — Am Rewards</h1>
-      <div class="small">مرحبا بك — سارع بجمع النقاط وادعُ أصدقائك لربح 10% يوميًا</div>
-    </div>
-
-    <div class="card">
-      <div id="loadingMsg" class="loading">جاري تحميل بياناتك...</div>
-      <div id="errorMsg" class="error" style="display:none"></div>
-
-      <div id="mainContent" style="display:none">
-        <div class="grid">
-          <div class="stat">
-            <h3>الاسم</h3>
-            <p id="userName">—</p>
-            <div class="small">الإيميل: <span id="userEmail">—</span></div>
-          </div>
-
-          <div class="stat">
-            <h3>النقاط</h3>
-            <p id="userPoints">0</p>
-            <div class="small">قيمة النقاط: <span id="pointsEgp">0.00</span> جم</div>
-          </div>
-
-          <div class="stat">
-            <h3>نقاط الإحالات</h3>
-            <p id="referralPoints">0</p>
-            <div class="small">هذه نقاط الداعي التي حصل عليها من إحالاته</div>
-          </div>
-
-          <div class="stat">
-            <h3>نقاط إضافية</h3>
-            <p id="bonusPoint">0</p>
-            <div class="small">مكافآت إضافية/بونص</div>
-          </div>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo">AM</div>
+        <div>
+          <h1>Am Rewards</h1>
+          <div class="sub">سارع بجمع النقاط وادعُ أصدقائك لربح 10% يوميًا</div>
         </div>
+      </div>
+      <div id="headerRight" class="muted">تحميل...</div>
+    </header>
 
-        <div style="display:flex; gap:14px; margin-top:14px; flex-wrap:wrap;">
-          <div style="flex:1; min-width:180px">
-            <div class="card" style="padding:12px;">
-              <h3 style="margin:0 0 6px 0">روابط سريعة</h3>
-              <div class="links">
-                <a class="btn primary" href="tasks.html">📝 الذهاب للمهام</a>
-                <a class="btn green" href="withdraw.html">💸 طلب السحب</a>
-                <a class="btn gold" href="referrals.html">👥 صفحة الإحالات</a>
+    <main class="grid">
+      <!-- LEFT -->
+      <section class="left">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="k">الرصيد الحالي (نقاط)</div>
+              <div class="v" id="userPoints">0</div>
+              <div class="muted" id="pointsEgp">قيمة النقاط: 0.00 ج</div>
+            </div>
+            <div style="min-width:160px;text-align:left">
+              <div class="k">روابط سريعة</div>
+              <div class="actions">
+                <a class="btn primary" href="tasks.html">📝 المهام</a>
+                <a class="btn gold" href="referrals.html">👥 إحالات</a>
+                <a class="btn ghost" href="withdraw.html">💸 سحب</a>
               </div>
             </div>
           </div>
 
-          <div style="flex:1; min-width:180px">
-            <div class="card" style="padding:12px;">
-              <h3 style="margin:0 0 6px 0">ملخص سريع</h3>
-              <div class="small">عرض سريع لمعلومات الحساب</div>
-              <div style="margin-top:8px" id="quickStats"></div>
+          <div class="stats-grid" style="margin-top:14px">
+            <div class="stat">
+              <div class="k">نقاط اليوم</div>
+              <div class="v" id="pointsToday">0</div>
+              <div class="muted">مقاسة من آخر دخول/فحص</div>
             </div>
+
+            <div class="stat">
+              <div class="k">أرباح الإحالات (مجمعة)</div>
+              <div class="v" id="referralPoints">0</div>
+              <div class="muted">نقاط حصلت عليها من دعواتك</div>
+            </div>
+
+            <div class="stat">
+              <div class="k">إجمالي السحوبات</div>
+              <div class="v" id="totalWithdrawn">0 ج</div>
+              <div class="muted">المبلغ المسحوب منذ البداية</div>
+            </div>
+
+            <div class="stat">
+              <div class="k">نقاط إضافية</div>
+              <div class="v" id="bonusPoint">0</div>
+              <div class="muted">بونص/مكافآت أخرى</div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px" class="card">
+            <div class="k">تقدمك اليومي</div>
+            <div class="progress-wrap">
+              <div class="progress"><i id="progressBar"></i></div>
+            </div>
+            <div class="muted" id="progressLabel">0 / 1000 نقطة</div>
           </div>
         </div>
 
-      </div> <!-- mainContent -->
+        <div class="card" style="margin-top:12px">
+          <h3 style="margin:0 0 8px 0">ملخص سريع</h3>
+          <div id="quickSummary" class="muted">جارٍ التحميل...</div>
+        </div>
+      </section>
 
-    </div> <!-- card -->
+      <!-- RIGHT -->
+      <aside class="right">
+        <div class="card mini">
+          <div class="profile">
+            <div class="avatar" id="avatar">A</div>
+            <div>
+              <h3 id="userName">مستخدم</h3>
+              <p id="userEmail" class="muted">—</p>
+            </div>
+          </div>
+
+          <div style="margin-top:12px">
+            <div class="k">كود الإحالة</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <div style="background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px" id="refCode">—</div>
+              <button class="btn ghost" id="copyRef">انسخ الرابط</button>
+            </div>
+            <div class="muted" style="margin-top:8px">شارك الرابط مع أصدقائك واحصل على 10% يوميًا من أرباحهم</div>
+          </div>
+
+          <div style="margin-top:12px">
+            <button class="btn primary" id="refreshBtn">🔄 تحديث</button>
+            <button class="btn ghost" id="logoutBtn" style="margin-left:8px">🚪 تسجيل خروج</button>
+          </div>
+        </div>
+      </aside>
+    </main>
 
     <footer>© Am Rewards</footer>
   </div>
 
-  <!-- toast -->
-  <div id="toast" class="toast">🎉 تمت إضافة مكافأة الداعي!</div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <!-- Firebase v8 (متوافق مع كودك السابق) -->
+  <!-- firebase v8 -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <script>
-  // ========== إعداد Firebase (استخدم نفس الإعدادات عندك) ==========
+  // ====== إعداد Firebase (احتفظ بالإعدادات كما لديك) ======
   const firebaseConfig = {
     apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
     authDomain: "am--rewards.firebaseapp.com",
@@ -152,91 +220,105 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
 
-  // إعدادات صفحة
+  // إعدادات العرض
   const POINT_VALUE_EGP = 0.07;
+  const DAILY_TARGET = 1000; // لتعبئة الـ progress bar (قابل للتعديل)
 
-  const loadingMsg = document.getElementById('loadingMsg');
-  const errorMsg = document.getElementById('errorMsg');
+  // عناصر الواجهة
+  const loadingMsg = document.getElementById('headerRight');
+  const mainLoading = document.getElementById('loadingMsg');
   const mainContent = document.getElementById('mainContent');
-  const toastEl = document.getElementById('toast');
+  const toast = document.getElementById('toast');
+  const userNameEl = document.getElementById('userName');
+  const userEmailEl = document.getElementById('userEmail');
+  const avatarEl = document.getElementById('avatar');
+  const userPointsEl = document.getElementById('userPoints');
+  const pointsEgpEl = document.getElementById('pointsEgp');
+  const referralPointsEl = document.getElementById('referralPoints');
+  const bonusPointEl = document.getElementById('bonusPoint');
+  const pointsTodayEl = document.getElementById('pointsToday');
+  const totalWithdrawnEl = document.getElementById('totalWithdrawn');
+  const quickSummaryEl = document.getElementById('quickSummary');
+  const progressBarEl = document.getElementById('progressBar');
+  const progressLabelEl = document.getElementById('progressLabel');
+  const refCodeEl = document.getElementById('refCode');
+  const copyRefBtn = document.getElementById('copyRef');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
 
-  function showToast(text) {
-    toastEl.textContent = text;
-    toastEl.classList.add('show');
-    setTimeout(()=> toastEl.classList.remove('show'), 3500);
+  function showToast(text, success=true) {
+    toast.textContent = text;
+    toast.style.background = success ? 'linear-gradient(90deg,#16a34a,#34d399)' : 'linear-gradient(90deg,#f97316,#fb7185)';
+    toast.classList.add('show');
+    setTimeout(()=> toast.classList.remove('show'), 3600);
   }
 
-  // دالة مساعدة: نحدد مرجع الداعي مهما كان مخزن كـ uid أو referralCode
+  // مساعدة: إيجاد مرجع مستند الداعي سواء كان UID أو referralCode
   async function getReferrerDocRef(referralBy) {
     if (!referralBy) return null;
-    // احتمالات: referralBy قد يكون UID طويل أو كود قصير (مثلاً 6 أحرف)
     if (typeof referralBy === 'string' && referralBy.length > 20) {
       // نفترض UID
       return db.collection('users').doc(referralBy);
     } else {
-      // نفترض كود إحالة: نبحث عن المستخدم صاحب الكود
-      const q = db.collection('users').where('referralCode', '==', referralBy).limit(1);
-      const snap = await q.get();
+      // احتمال أنه referralCode
+      const snap = await db.collection('users').where('referralCode', '==', referralBy).limit(1).get();
       if (!snap.empty) return snap.docs[0].ref;
       return null;
     }
   }
 
-  // الدالة الأساسية: حساب ومكافأة الداعي (10%) مرة واحدة يوميًا عند فتح الداشبورد
+  // الدالة المسؤولة عن حساب مكافأة الإحالة اليومية (10%)
   async function handleReferralReward(uid, userData) {
     try {
       if (!userData) return;
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const today = new Date().toISOString().split('T')[0];
       const prevPoints = Number(userData.previousPoints ?? 0);
       const currentPoints = Number(userData.points ?? 0);
       const lastDate = userData.lastReferralRewardDate ?? '';
       const referralBy = userData.referralBy ?? null;
 
-      // إذا لم يكن لدينا previousPoints نفعلها (حالة أول تسجيل)
+      // لو previousPoints غير معرّف — نعّرفه وننهي (لا نحسب مكافأة أول مرة)
       if (userData.previousPoints === undefined) {
-        await db.collection('users').doc(uid).update({ previousPoints: currentPoints });
-        // لا نكمل حساب اليوم أول مرة لأننا لم نحتفظ بقاعدة للمقارنة
+        await db.collection('users').doc(uid).update({ previousPoints: currentPoints }).catch(()=>{});
         return;
       }
 
-      // شرط منح المكافأة: يوجد رافع (referralBy) + لم تُمنَح اليوم + ربح اليوم > 0
       const gainedToday = Math.max(currentPoints - prevPoints, 0);
+
+      // شرط الإضافة: لديه داعي، المكافأة لليوم لم تُحسب بعد، ونقطة موجبة اكتسبها اليوم
       if (!referralBy || lastDate === today || gainedToday <= 0) {
-        // فقط نحدث previousPoints و lastReferralRewardDate إذا لم تكن محدثة
+        // نضمن تحديث previousPoints و lastReferralRewardDate حتى لو لم تُمنَح مكافأة
         await db.collection('users').doc(uid).update({
           previousPoints: currentPoints,
           lastReferralRewardDate: today
-        }).catch(()=>{/* ignore */});
+        }).catch(()=>{});
         return;
       }
 
-      // حصلنا على مرجع الداعي (مستند)
+      // احصل على مرجع الداعي
       const referrerDocRef = await getReferrerDocRef(referralBy);
       if (!referrerDocRef) {
-        // لا يوجد داعٍ مطابق - نحدّث سابق النقاط فقط
+        // لا داعي مطابق — حدث البرمجية للمستخدم فقط
         await db.collection('users').doc(uid).update({
           previousPoints: currentPoints,
           lastReferralRewardDate: today
-        }).catch(()=>{/* ignore */});
+        }).catch(()=>{});
         return;
       }
 
       const reward = Math.floor(gainedToday * 0.10); // 10%
-
       if (reward <= 0) {
         await db.collection('users').doc(uid).update({
           previousPoints: currentPoints,
           lastReferralRewardDate: today
-        }).catch(()=>{/* ignore */});
+        }).catch(()=>{});
         return;
       }
 
-      // نفّذ كتلة مضمونة Transaction لتحديث الداعي وتسجيل اللوج
+      // transaction: أضف referralPoints لسجل الداعي وسجل اللوج، ثم حدث المستخدم
       await db.runTransaction(async (tx) => {
-        // اجلب بيانات الداعي
         const refSnap = await tx.get(referrerDocRef);
         if (!refSnap.exists) {
-          // حدثت حالة غير متوقعة
           tx.update(db.collection('users').doc(uid), {
             previousPoints: currentPoints,
             lastReferralRewardDate: today
@@ -244,13 +326,12 @@
           return;
         }
 
-        // زيادة referralPoints للداعي (مكافأة)
         const curReferralPoints = Number(refSnap.data().referralPoints ?? 0);
         tx.update(referrerDocRef, {
           referralPoints: curReferralPoints + reward
         });
 
-        // سجّل اللوج (مفيد للتتبع)
+        // سجل لوج للإحالة
         const logRef = db.collection('referralLogs').doc();
         tx.set(logRef, {
           type: 'daily_bonus',
@@ -261,84 +342,132 @@
           date: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // وأخيراً: حدّث بيانات المستخدم الذي تم احتسابه له
+        // حدث المستخدم
         tx.update(db.collection('users').doc(uid), {
           previousPoints: currentPoints,
           lastReferralRewardDate: today
         });
       });
 
-      // show toast وConsole
-      showToast(`🎉 تم إضافة ${reward} نقطة إلى داعيك!`);
-      console.log(`Referral reward: added ${reward} points to ${referrerDocRef.id}`);
+      // بعد نجاح الـ transaction، حدث واجهة المستخدم: نجلب بيانات الداعي الأخيرة بشكل محلي (اختياري لكن مفيد)
+      const freshRefSnap = await referrerDocRef.get();
+      if (freshRefSnap.exists) {
+        const newRefPoints = Number(freshRefSnap.data().referralPoints ?? 0);
+        // لو الداعي هو نفس المستخدم الحالي (نادر) نعرضه أيضاً
+        if (referrerDocRef.id === uid) {
+          referralPointsEl.textContent = newRefPoints;
+        }
+      }
+
+      showToast(`🎉 تمت إضافة ${reward} نقطة إلى داعيك!`);
+      console.log(`Referral: added ${reward} pts to ${referrerDocRef.id}`);
 
     } catch (err) {
-      console.error('خطأ أثناء حساب مكافأة الإحالة:', err);
+      console.error('handleReferralReward error:', err);
     }
   }
 
-  // دالة لتحديث واجهة المستخدم
-  function renderData(data, user) {
-    document.getElementById('userName').textContent = data.name || user.displayName || 'مستخدم';
-    document.getElementById('userEmail').textContent = data.email || user.email || '—';
-    document.getElementById('userPoints').textContent = Number(data.points ?? 0);
-    document.getElementById('referralPoints').textContent = Number(data.referralPoints ?? 0);
-    document.getElementById('bonusPoint').textContent = Number(data.bonusPoint ?? 0);
-    // عرض القيمة بالجنيه
-    const egp = (Number(data.points ?? 0) * POINT_VALUE_EGP).toFixed(2);
-    document.getElementById('pointsEgp').textContent = egp;
-    // quick stats
-    document.getElementById('quickStats').innerHTML = `
-      <div class="small">إحالات: <strong>${data.referralCount ?? 0}</strong></div>
-      <div class="small">مسحوبات إجمالية: <strong>${data.totalWithdrawn ?? 0} ج</strong></div>
-    `;
+  // تحديث الواجهة بعد الحصول على بيانات المستخدم
+  function renderUser(userDoc, user) {
+    const d = userDoc;
+    userNameEl.textContent = d.name || user.displayName || 'مستخدم';
+    userEmailEl.textContent = d.email || user.email || '—';
+    avatarEl.textContent = (d.name ? d.name.slice(0,1).toUpperCase() : (user.email? user.email[0].toUpperCase() : 'A'));
+    userPointsEl.textContent = Number(d.points ?? 0);
+    referralPointsEl.textContent = Number(d.referralPoints ?? 0);
+    bonusPointEl.textContent = Number(d.bonusPoint ?? 0);
+    pointsTodayEl.textContent = Math.max((Number(d.points ?? 0) - Number(d.previousPoints ?? 0)), 0);
+    totalWithdrawnEl.textContent = (d.totalWithdrawn ?? 0) + ' ج';
+    refCodeEl.textContent = d.referralCode || '—';
+    // points to EGP
+    pointsEgpEl.textContent = (Number(d.points ?? 0) * POINT_VALUE_EGP).toFixed(2) + ' ج';
+    // progress
+    const progress = Math.min(100, Math.round(((Number(d.points ?? 0) % DAILY_TARGET) / DAILY_TARGET) * 100));
+    progressBarEl.style.width = progress + '%';
+    progressLabelEl.textContent = `${Number(d.points ?? 0)} / ${DAILY_TARGET} نقطة`;
+    // quick summary
+    quickSummaryEl.textContent = `إحالات: ${d.referralCount ?? 0} · نقاط الإحالات: ${d.referralPoints ?? 0} · بونص: ${d.bonusPoint ?? 0}`;
+    loadingMsg.textContent = 'أهلاً بك، لوحة التحكم جاهزة';
+    mainContent.style.display = 'block';
   }
 
-  // استمع لحالة الدخول
+  // جلب وتحديث كل شيء عند دخول المستخدم
   auth.onAuthStateChanged(async (user) => {
-    if (!user) {
-      window.location.href = 'index.html';
-      return;
-    }
-
+    if (!user) return location.href = 'index.html';
     try {
-      const userRef = db.collection('users').doc(user.uid);
-      const docSnap = await userRef.get();
-      loadingMsg.style.display = 'none';
+      mainContent.style.display = 'none';
+      loadingMsg.textContent = 'جارٍ تحميل بياناتك...';
+      const uid = user.uid;
+      const userRef = db.collection('users').doc(uid);
+      const snap = await userRef.get();
 
-      if (!docSnap.exists) {
-        errorMsg.style.display = 'block';
-        errorMsg.textContent = 'لم يتم العثور على حسابك في النظام.';
+      if (!snap.exists) {
+        loadingMsg.textContent = 'لم نتمكن من العثور على حسابك';
         return;
       }
 
-      const data = docSnap.data();
+      const data = snap.data();
 
-      // تأكد أن previousPoints موجود (لو مش موجود، خزنه دون حساب مكافأة)
+      // إذا previousPoints غير موجود — خزنه أول مرة ثم اعرض (لا نحسب مكافأة أول دخول)
       if (data.previousPoints === undefined) {
-        await userRef.update({ previousPoints: Number(data.points ?? 0) }).catch(()=>{/* ignore */});
+        await userRef.update({ previousPoints: Number(data.points ?? 0) }).catch(()=>{});
         data.previousPoints = Number(data.points ?? 0);
       }
 
-      // عرض البيانات
-      renderData(data, user);
-      mainContent.style.display = 'block';
+      renderUser(data, user);
 
-      // حساب مكافأة الإحالة (مرة يوميًا)
-      await handleReferralReward(user.uid, data);
+      // استدعي حساب الإحالة (مرة يوميًا)
+      await handleReferralReward(uid, data);
+
+      // بعد حساب الإحالة، جلب بيانات المستخدم مرة ثانية لتحديث الأرقام (خصوصًا referralPoints)
+      const updatedSnap = await userRef.get();
+      if (updatedSnap.exists) {
+        renderUser(updatedSnap.data(), user);
+      }
 
     } catch (err) {
       console.error(err);
-      loadingMsg.style.display = 'none';
-      errorMsg.style.display = 'block';
-      errorMsg.textContent = 'حدث خطأ في تحميل بياناتك. حاول مرة أخرى.';
+      loadingMsg.textContent = 'حدث خطأ أثناء التحميل';
+      mainContent.style.display = 'none';
     }
   });
 
-  // تسجيل خروج
-  function logout() {
-    auth.signOut().then(()=> location.href = 'index.html');
-  }
+  // نسخ رابط الإحالة
+  copyRefBtn.addEventListener('click', async () => {
+    const code = refCodeEl.textContent;
+    if (!code || code === '—') return showToast('لا يوجد كود إحالة بعد', false);
+    const url = `${location.origin}/signup.html?ref=${code}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast('✅ تم نسخ رابط الإحالة');
+    } catch (e) {
+      // fallback
+      const ta = document.createElement('textarea');
+      ta.value = url; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove();
+      showToast('✅ تم نسخ رابط الإحالة');
+    }
+  });
+
+  // زر التحديث اليدوي
+  refreshBtn.addEventListener('click', async () => {
+    const user = auth.currentUser;
+    if (!user) return location.href = 'index.html';
+    loadingMsg.textContent = 'جارٍ التحديث...';
+    try {
+      const snap = await db.collection('users').doc(user.uid).get();
+      if (snap.exists) renderUser(snap.data(), user);
+      loadingMsg.textContent = 'تم التحديث';
+      setTimeout(()=> loadingMsg.textContent = 'لوحة التحكم جاهزة', 1200);
+    } catch (e) {
+      console.error(e);
+      loadingMsg.textContent = 'خطأ أثناء التحديث';
+    }
+  });
+
+  // logout
+  logoutBtn.addEventListener('click', ()=> auth.signOut().then(()=> location.href='index.html'));
+
   </script>
 </body>
   </html>
