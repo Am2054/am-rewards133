@@ -1,171 +1,277 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <title>نظام الإحالات | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Cairo', sans-serif;
-      background-color: #0e0e0e;
-      color: #fff;
-      margin: 0;
-      padding: 0;
-      text-align: center;
-    }
-    .container {
-      max-width: 600px;
-      margin: 30px auto;
-      padding: 20px;
-      background: #1a1a1a;
-      border-radius: 16px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.6);
-    }
-    h2 {
-      color: #ffcc00;
-      margin-bottom: 15px;
-    }
-    .info {
-      background: #222;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 15px;
-      text-align: right;
-    }
-    .ref-link {
-      background: #111;
-      border: 1px solid #444;
-      border-radius: 10px;
-      padding: 10px;
-      margin-top: 10px;
-      word-break: break-all;
-      text-align: left;
-    }
-    button {
-      background: #ffcc00;
-      color: #000;
-      border: none;
-      border-radius: 10px;
-      padding: 10px 15px;
-      cursor: pointer;
-      font-weight: bold;
-      transition: background 0.3s;
-    }
-    button:hover {
-      background: #ffdb4d;
-    }
-    ul {
-      list-style: none;
-      padding: 0;
-    }
-    li {
-      background: #2a2a2a;
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 6px;
-      text-align: right;
-    }
-    .footer {
-      margin-top: 15px;
-      font-size: 14px;
-      color: #888;
-    }
-  </style>
-</head>
-<body>
-
-<div class="container">
-  <h2>نظام الإحالات 🔗</h2>
-  <div class="info">
-    <p><strong>عدد الإحالات:</strong> <span id="referralCount">0</span></p>
-    <p><strong>نقاط الإحالات:</strong> <span id="referralPoints">0</span></p>
-  </div>
-
-  <div class="info">
-    <p><strong>كود الإحالة الخاص بك:</strong> <span id="referralCode">-</span></p>
-    <div class="ref-link">
-      <p id="referralLink"></p>
-      <button onclick="copyReferralLink()">نسخ الرابط</button>
-    </div>
-  </div>
-
-  <h3>قائمة المدعوين 👥</h3>
-  <ul id="referralsList">
-    <li>جارِ التحميل...</li>
-  </ul>
-
-  <div class="footer">
-    <p>شارك الرابط مع أصدقائك واربح <strong>10%</strong> من أرباحهم اليومية تلقائيًا 🎁</p>
-  </div>
-</div>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, doc, getDoc, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-    authDomain: "am--rewards.firebaseapp.com",
-    projectId: "am--rewards",
-    storageBucket: "am--rewards.appspot.com",
-    messagingSenderId: "428582312150",
-    appId: "1:428582312150:web:44e35a70e457e7db4c45df"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  const referralCountEl = document.getElementById("referralCount");
-  const referralPointsEl = document.getElementById("referralPoints");
-  const referralCodeEl = document.getElementById("referralCode");
-  const referralLinkEl = document.getElementById("referralLink");
-  const referralsListEl = document.getElementById("referralsList");
-
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "login.html";
-      return;
-    }
-
-    const userRef = doc(db, "users", user.uid);
-    const userSnap = await getDoc(userRef);
-    if (!userSnap.exists()) return;
-
-    const data = userSnap.data();
-    referralCountEl.textContent = data.referralCount || 0;
-    referralPointsEl.textContent = data.referralPoints || 0;
-    referralCodeEl.textContent = data.referralCode || "—";
-
-    const refLink = `${window.location.origin}/signup.html?ref=${data.referralCode}`;
-    referralLinkEl.textContent = refLink;
-
-    // عرض المدعوين لحظيًا
-    const q = query(collection(db, "users"), where("referralBy", "==", user.uid));
-    onSnapshot(q, (snapshot) => {
-      referralsListEl.innerHTML = "";
-      if (snapshot.empty) {
-        referralsListEl.innerHTML = "<li>لا يوجد مدعوون بعد</li>";
-        return;
-      }
-      snapshot.forEach((doc) => {
-        const d = doc.data();
-        const name = d.name || d.email || "مستخدم غير معروف";
-        referralsListEl.innerHTML += `<li>${name}</li>`;
-      });
-    });
-  });
-
-  // نسخ الرابط
-  window.copyReferralLink = function() {
-    const text = referralLinkEl.textContent;
-    navigator.clipboard.writeText(text).then(() => {
-      alert("✅ تم نسخ رابط الإحالة بنجاح!");
-    });
-  };
-</script>
-
-</body>
-                                                                                       </html>
+<!DOCTYPE html>  <html lang="ar" dir="rtl">  
+<head>  
+  <meta charset="UTF-8">  
+  <title>نظام الإحالات | Am Rewards</title>  
+  <meta name="viewport" content="width=device-width, initial-scale=1">  
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">  
+  <style>  
+    body {  
+      font-family: 'Cairo', sans-serif;  
+      background: linear-gradient(135deg, #14213d 0%, #000 100%);  
+      color: #fff;  
+      margin: 0;  
+      padding: 0;  
+      min-height: 100vh;  
+      text-align: center;  
+    }  
+    .container {  
+      max-width: 600px;  
+      margin: 38px auto 28px auto;  
+      padding: 24px 18px 18px 18px;  
+      background: rgba(20,33,61,0.95);  
+      border-radius: 18px;  
+      box-shadow: 0 6px 32px rgba(31,182,255,0.12), 0 0 0 1px #1fb6ff22;  
+      position: relative;  
+    }  
+    h2 {  
+      color: #f6b93b;  
+      margin-bottom: 14px;  
+      font-size: 26px;  
+      letter-spacing: 1px;  
+      font-weight: bold;  
+    }  
+    .info {  
+      background: #1a202c;  
+      padding: 18px 12px;  
+      border-radius: 12px;  
+      margin-bottom: 16px;  
+      text-align: right;  
+      box-shadow: 0 2px 12px #1fb6ff08;  
+      border: 1px solid #1fb6ff22;  
+    }  
+    .info strong {  
+      color: #1fb6ff;  
+    }  
+    .ref-link {  
+      background: #111;  
+      border: 1px solid #444;  
+      border-radius: 10px;  
+      padding: 10px;  
+      margin-top: 10px;  
+      word-break: break-all;  
+      text-align: left;  
+      display: flex;  
+      align-items: center;  
+      justify-content: space-between;  
+    }  
+    .ref-link p {  
+      margin: 0;  
+      font-size: 14px;  
+      color: #f6b93b;  
+      direction: ltr;  
+    }  
+    .copy-btn {  
+      background: #1fb6ff;  
+      color: #012;  
+      border: none;  
+      border-radius: 10px;  
+      padding: 7px 14px;  
+      cursor: pointer;  
+      font-weight: bold;  
+      font-size: 14px;  
+      transition: background 0.3s;  
+      margin-right: 8px;  
+    }  
+    .copy-btn:hover {  
+      background: #45cafc;  
+    }  
+    h3 {  
+      color: #ffd27f;  
+      margin-top: 26px;  
+      margin-bottom: 12px;  
+      font-size: 20px;  
+      letter-spacing: .5px;  
+    }  
+    ul {  
+      list-style: none;  
+      padding: 0;  
+      margin: 0;  
+    }  
+    li {  
+      background: #232946;  
+      padding: 10px 12px;  
+      border-radius: 8px;  
+      margin-bottom: 7px;  
+      text-align: right;  
+      font-size: 15px;  
+      display: flex;  
+      justify-content: space-between;  
+      align-items: center;  
+      transition: box-shadow 0.2s;  
+      box-shadow: 0 1px 8px #1fb6ff0a;  
+      border: 1px solid #1fb6ff19;  
+    }  
+    .invite-points {  
+      color: #1fb6ff;  
+      font-weight: bold;  
+      font-size: 13px;  
+      margin-left: 16px;  
+      background: #1fb6ff12;  
+      border-radius: 8px;  
+      padding: 2px 8px;  
+      letter-spacing: .5px;  
+    }  
+    .footer {  
+      margin-top: 18px;  
+      font-size: 14px;  
+      color: #aaa;  
+      background: transparent;  
+      border-radius: 12px;  
+      padding: 8px 0 0 0;  
+    }  
+    .toast {  
+      position: fixed;  
+      left: 50%;  
+      transform: translateX(-50%) translateY(20px);  
+      bottom: 28px;  
+      padding: 14px 22px;  
+      border-radius: 14px;  
+      background: linear-gradient(90deg,#16a34a,#34d399);  
+      color: #052;  
+      font-size: 15px;  
+      box-shadow: 0 10px 30px rgba(2,6,23,0.45);  
+      opacity: 0;  
+      pointer-events: none;  
+      transition: all .36s cubic-bezier(.2,.9,.3,1);  
+      z-index: 9999;  
+    }  
+    .toast.show {  
+      opacity: 1;  
+      transform: translateX(-50%) translateY(0);  
+      pointer-events: auto;  
+    }  
+    @media (max-width: 700px) {  
+      .container{max-width:96vw;padding:12px}  
+    }  
+  </style>  
+</head>  
+<body>  <div class="container">  
+  <h2>نظام الإحالات 🔗</h2>  
+  <div class="info">  
+    <p><strong>عدد الإحالات:</strong> <span id="referralCount">0</span></p>  
+    <p><strong>نقاط الإحالات:</strong> <span id="referralPoints">0</span></p>  
+  </div>    <div class="info">  
+    <p><strong>كود الإحالة الخاص بك:</strong> <span id="referralCode">-</span></p>  
+    <div class="ref-link">  
+      <p id="referralLink"></p>  
+      <button class="copy-btn" onclick="copyReferralLink()">نسخ الرابط</button>  
+    </div>  
+  </div>    <h3>قائمة المدعوين 👥</h3>  
+  <ul id="referralsList">  
+    <li>جارِ التحميل...</li>  
+  </ul>    <div class="footer">  
+    <p>شارك الرابط مع أصدقائك واربح <strong>10%</strong> من أرباحهم اليومية تلقائيًا 🎁</p>  
+  </div>  
+</div>  <div id="toast" class="toast" role="status" aria-live="polite"></div>  <script type="module">  
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";  
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";  
+  import { getFirestore, doc, getDoc, updateDoc, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";  
+  
+  // ===== إعداد فايربيز =====  
+  const firebaseConfig = {  
+    apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",  
+    authDomain: "am--rewards.firebaseapp.com",  
+    projectId: "am--rewards",  
+    storageBucket: "am--rewards.appspot.com",  
+    messagingSenderId: "428582312150",  
+    appId: "1:428582312150:web:44e35a70e457e7db4c45df"  
+  };  
+  const app = initializeApp(firebaseConfig);  
+  const auth = getAuth(app);  
+  const db = getFirestore(app);  
+  
+  // عناصر الصفحة  
+  const referralCountEl = document.getElementById("referralCount");  
+  const referralPointsEl = document.getElementById("referralPoints");  
+  const referralCodeEl = document.getElementById("referralCode");  
+  const referralLinkEl = document.getElementById("referralLink");  
+  const referralsListEl = document.getElementById("referralsList");  
+  const toast = document.getElementById("toast");  
+  
+  // توست تنبيه  
+  function showToast(text, success=true) {  
+    toast.textContent = text;  
+    toast.style.background = success  
+      ? 'linear-gradient(90deg,#16a34a,#34d399)'  
+      : 'linear-gradient(90deg,#f97316,#fb7185)';  
+    toast.classList.add('show');  
+    setTimeout(() => toast.classList.remove('show'), 3300);  
+  }  
+  
+  // نسخ الرابط  
+  window.copyReferralLink = function() {  
+    const text = referralLinkEl.textContent;  
+    navigator.clipboard.writeText(text).then(() => {  
+      showToast("✅ تم نسخ رابط الإحالة بنجاح!");  
+    }).catch(() => {  
+      showToast("❌ حدث خطأ أثناء النسخ!", false);  
+    });  
+  };  
+  
+  onAuthStateChanged(auth, async (user) => {  
+    if (!user) {  
+      window.location.href = "login.html";  
+      return;  
+    }  
+  
+    const userRef = doc(db, "users", user.uid);  
+    const userSnap = await getDoc(userRef);  
+    if (!userSnap.exists()) return;  
+    const data = userSnap.data();  
+  
+    referralCountEl.textContent = data.referralCount || 0;  
+    referralPointsEl.textContent = data.referralPoints || 0;  
+    referralCodeEl.textContent = data.referralCode || "—";  
+    const refLink = `${window.location.origin}/signup.html?ref=${data.referralCode}`;  
+    referralLinkEl.textContent = refLink;  
+  
+    // عرض المدعوين  
+    const q = query(collection(db, "users"), where("referralBy", "==", user.uid));  
+    onSnapshot(q, async (snapshot) => {  
+      referralsListEl.innerHTML = "";  
+      if (snapshot.empty) {  
+        referralsListEl.innerHTML = "<li>لا يوجد مدعوون بعد</li>";  
+        return;  
+      }  
+  
+      let totalReferralPointsToday = 0;  
+      const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"  
+      let listHtml = "";  
+  
+      // اجمع نقاط الإحالة اليوم فقط (10% من نقاط اليوم لكل مدعو لم يحصل على بونص اليوم)  
+      for (const docSnap of snapshot.docs) {  
+        const d = docSnap.data();  
+        const name = d.name || d.email || "مستخدم غير معروف";  
+        const earnedToday = d.dailyPoints || 0;  
+        const bonus = Math.floor(earnedToday * 0.1);  
+  
+        // تحقق من منح البونص لهذا المدعو اليوم مرة واحدة فقط  
+        if (d.lastReferralBonusDate !== today && bonus > 0) {  
+          totalReferralPointsToday += bonus;  
+          // تحديث تاريخ آخر منح في حساب المدعو  
+          const referredUserRef = doc(db, "users", docSnap.id);  
+          await updateDoc(referredUserRef, { lastReferralBonusDate: today });  
+        }  
+  
+        listHtml += `<li>  
+          <span>${name}</span>  
+          <span class="invite-points">+${bonus} نقطة</span>  
+        </li>`;  
+      }  
+  
+      referralsListEl.innerHTML = listHtml;  
+  
+      // تحديث نقاط الإحالة في حساب الداعي مرة واحدة فقط يوميًا  
+      if (totalReferralPointsToday > 0) {  
+        const refUserRef = doc(db, "users", auth.currentUser.uid);  
+        const refUserSnap = await getDoc(refUserRef);  
+        const refUserData = refUserSnap.data() || {};  
+        const newTotal = (refUserData.referralPoints || 0) + totalReferralPointsToday;  
+        await updateDoc(refUserRef, { referralPoints: newTotal });  
+        referralPointsEl.textContent = newTotal;  
+        showToast(`🎉 حصلت على ${totalReferralPointsToday} نقطة من إحالات اليوم!`);  
+      }  
+    });  
+  });  
+</script>  </body>  
+                                                                    </html>
