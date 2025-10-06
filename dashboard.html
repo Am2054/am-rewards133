@@ -1,263 +1,284 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="utf-8" />
-  <title>لوحة التحكم — Am Rewards (v2)</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    :root{
-      --bg:#0b1220;
-      --card:#0f1724;
-      --muted:#9aa4b2;
-      --accent:#1fb6ff;
-      --gold:#f6b93b;
-      --glass: rgba(255,255,255,0.03);
-      --success:#16a34a;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0; font-family:"Cairo",sans-serif; background:
-      radial-gradient(1200px 600px at 10% 10%, rgba(31,182,255,0.06), transparent 8%),
-      linear-gradient(180deg,#071024 0%, #0b1f2a 100%);
-      color:#e6eef6; -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      min-height:100vh;
-      padding:20px;
-    }
-    .wrap{max-width:1100px;margin:0 auto;padding:18px;}
-    header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}
-    .brand{display:flex;align-items:center;gap:12px}
-    .logo {
-      width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#7ef7ff);
-      display:flex;align-items:center;justify-content:center;color:#012; font-weight:900; font-size:18px;
-      box-shadow:0 6px 30px rgba(31,182,255,0.06), inset 0 -6px 18px rgba(0,0,0,0.25);
-    }
-    h1{margin:0;font-size:18px;color:var(--gold);letter-spacing:0.6px}
-    .sub{color:var(--muted);font-size:13px}
 
-    .grid { display:grid; grid-template-columns: 1fr 360px; gap:18px; }
-    .left { display:grid; gap:14px; }
-    .card { background:linear-gradient(180deg,var(--card), rgba(255,255,255,0.01)); border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,0.03); box-shadow:0 8px 30px rgba(3,10,18,0.45); }
-    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
-    .stat { padding:14px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.02); transition:transform .18s ease, box-shadow .18s; }
-    .stat:hover{transform:translateY(-4px);box-shadow:0 12px 30px rgba(2,6,23,0.5)}
-    .k{font-size:12px;color:var(--muted);margin-bottom:8px}
-    .v{font-weight:800;font-size:20px;color:#fff}
-    .progress-wrap{margin-top:10px}
-    .progress {height:10px;background:rgba(255,255,255,0.04);border-radius:999px;overflow:hidden}
-    .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#7ef7ff);width:0%;transition:width 600ms cubic-bezier(.23,.9,.32,1)}
-    .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
-    .btn{padding:10px 14px;border-radius:10px;text-decoration:none;font-weight:800;display:inline-flex;align-items:center;gap:8px;cursor:pointer;border:0}
-    .btn.primary{background:linear-gradient(90deg,var(--accent),#6ae7ff);color:#012;}
-    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
-    .btn.gold{background:linear-gradient(90deg,var(--gold),#ffd27f);color:#112}
-    .right .mini{display:flex;gap:10px;flex-direction:column}
-    .profile{display:flex;gap:12px;align-items:center}
-    .avatar{width:62px;height:62px;border-radius:12px;background:linear-gradient(135deg,#fff2,#fff0);display:flex;align-items:center;justify-content:center;color:#012;font-weight:900}
-    .profile h3{margin:0;font-size:16px}
-    .profile p{margin:0;color:var(--muted);font-size:13px}
-    .toast{position:fixed;left:50%;transform:translateX(-50%) translateY(20px);bottom:26px;padding:12px 18px;border-radius:12px;background:linear-gradient(90deg,#16a34a,#34d399);color:#052;box-shadow:0 10px 30px rgba(2,6,23,0.45);opacity:0;pointer-events:none;transition:all .36s cubic-bezier(.2,.9,.3,1);z-index:9999}
-    .toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
-    .muted{color:var(--muted);font-size:13px}
-    footer{margin-top:22px;text-align:center;color:rgba(255,255,255,0.12);font-size:13px}
-    @media(max-width:980px){.grid{grid-template-columns:1fr}.right{order:-1}}
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <header>
-      <div class="brand">
-        <div class="logo">AM</div>
-        <div>
-          <h1>Am Rewards</h1>
-          <div class="sub">سارع بجمع النقاط وادعُ أصدقائك لربح 10% يوميًا</div>
-        </div>
-      </div>
-      <div id="headerRight" class="muted">تحميل...</div>
-    </header>
 
-    <main class="grid">
-      <!-- LEFT -->
-      <section class="left">
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <div class="k">الرصيد الحالي (نقاط)</div>
-              <div class="v" id="userPoints">0</div>
-              <div class="muted" id="pointsEgp">قيمة النقاط: 0.00 ج</div>
-            </div>
-            <div style="min-width:160px;text-align:left">
-              <div class="k">روابط سريعة</div>
-              <div class="actions">
-                <a class="btn primary" href="tasks.html">📝 المهام</a>
-                <a class="btn gold" href="referrals.html">👥 إحالات</a>
-                <a class="btn ghost" href="withdraw.html">💸 سحب</a>
-              </div>
-            </div>
-          </div>
+<!DOCTYPE html>  <html lang="ar" dir="rtl">  
+<head>  
+  <meta charset="utf-8" />  
+  <title>لوحة التحكم — Am Rewards (v2)</title>  
+  <meta name="viewport" content="width=device-width,initial-scale=1" />  
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">  
+  <style>  
+    :root{  
+      --bg:#0b1220;  
+      --card:#0f1724;  
+      --muted:#9aa4b2;  
+      --accent:#1fb6ff;  
+      --gold:#f6b93b;  
+      --glass: rgba(255,255,255,0.03);  
+      --success:#16a34a;  
+    }  
+    *{box-sizing:border-box}  
+    body{  
+      margin:0; font-family:"Cairo",sans-serif; background:  
+      radial-gradient(1200px 600px at 10% 10%, rgba(31,182,255,0.06), transparent 8%),  
+      linear-gradient(180deg,#071024 0%, #0b1f2a 100%);  
+      color:#e6eef6; -webkit-font-smoothing:antialiased;  
+      -moz-osx-font-smoothing:grayscale;  
+      min-height:100vh;  
+      padding:20px;  
+    }  
+    .wrap{max-width:1100px;margin:0 auto;padding:18px;}  
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}  
+    .brand{display:flex;align-items:center;gap:12px}  
+    .logo {  
+      width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#7ef7ff);  
+      display:flex;align-items:center;justify-content:center;color:#012; font-weight:900; font-size:18px;  
+      box-shadow:0 6px 30px rgba(31,182,255,0.06), inset 0 -6px 18px rgba(0,0,0,0.25);  
+    }  
+    h1{margin:0;font-size:18px;color:var(--gold);letter-spacing:0.6px}  
+    .sub{color:var(--muted);font-size:13px}  .grid { display:grid; grid-template-columns: 1fr 360px; gap:18px; }  
+.left { display:grid; gap:14px; }  
+.card { background:linear-gradient(180deg,var(--card), rgba(255,255,255,0.01)); border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,0.03); box-shadow:0 8px 30px rgba(3,10,18,0.45); }  
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}  
+.stat { padding:14px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.02); transition:transform .18s ease, box-shadow .18s; }  
+.stat:hover{transform:translateY(-4px);box-shadow:0 12px 30px rgba(2,6,23,0.5)}  
+.k{font-size:12px;color:var(--muted);margin-bottom:8px}  
+.v{font-weight:800;font-size:20px;color:#fff}  
+.progress-wrap{margin-top:10px}  
+.progress {height:10px;background:rgba(255,255,255,0.04);border-radius:999px;overflow:hidden}  
+.progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#7ef7ff);width:0%;transition:width 600ms cubic-bezier(.23,.9,.32,1)}  
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}  
+.btn{padding:10px 14px;border-radius:10px;text-decoration:none;font-weight:800;display:inline-flex;align-items:center;gap:8px;cursor:pointer;border:0}  
+.btn.primary{background:linear-gradient(90deg,var(--accent),#6ae7ff);color:#012;}  
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}  
+.btn.gold{background:linear-gradient(90deg,var(--gold),#ffd27f);color:#112}  
+.right .mini{display:flex;gap:10px;flex-direction:column}  
+.profile{display:flex;gap:12px;align-items:center}  
+.avatar{width:62px;height:62px;border-radius:12px;background:linear-gradient(135deg,#fff2,#fff0);display:flex;align-items:center;justify-content:center;color:#012;font-weight:900}  
+.profile h3{margin:0;font-size:16px}  
+.profile p{margin:0;color:var(--muted);font-size:13px}  
+.toast{position:fixed;left:50%;transform:translateX(-50%) translateY(20px);bottom:26px;padding:12px 18px;border-radius:12px;background:linear-gradient(90deg,#16a34a,#34d399);color:#052;box-shadow:0 10px 30px rgba(2,6,23,0.45);opacity:0;pointer-events:none;transition:all .36s cubic-bezier(.2,.9,.3,1);z-index:9999}  
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}  
+.muted{color:var(--muted);font-size:13px}  
+footer{margin-top:22px;text-align:center;color:rgba(255,255,255,0.12);font-size:13px}  
+@media(max-width:980px){.grid{grid-template-columns:1fr}.right{order:-1}}  
+@media(max-width:700px){.wrap{max-width:98vw;padding:4px;} .card{padding:12px;} .profile{gap:6px;} .avatar{width:44px;height:44px;} }
 
-          <div class="stats-grid" style="margin-top:14px">
-            <div class="stat">
-              <div class="k">نقاط اليوم</div>
-              <div class="v" id="pointsToday">0</div>
-              <div class="muted">مقاسة من آخر دخول/فحص</div>
-            </div>
+  </style>  
+</head>  
+<body>  
+  <div class="wrap">  
+    <header>  
+      <div class="brand">  
+        <div class="logo">AM</div>  
+        <div>  
+          <h1>Am Rewards</h1>  
+          <div class="sub">سارع بجمع النقاط وادعُ أصدقائك لربح 10% يوميًا</div>  
+        </div>  
+      </div>  
+      <div id="headerRight" class="muted">تحميل...</div>  
+    </header>  <main class="grid">  
+  <!-- LEFT -->  
+  <section class="left">  
+    <div class="card">  
+      <div style="display:flex;justify-content:space-between;align-items:center">  
+        <div>  
+          <div class="k">الرصيد الحالي (نقاط)</div>  
+          <div class="v" id="userPoints">0</div>  
+          <div class="muted" id="pointsEgp">قيمة النقاط: 0.00 ج</div>  
+        </div>  
+        <div style="min-width:160px;text-align:left">  
+          <div class="k">روابط سريعة</div>  
+          <div class="actions">  
+            <a class="btn primary" href="tasks.html">📝 المهام</a>  
+            <a class="btn gold" href="referrals.html">👥 إحالات</a>  
+            <a class="btn ghost" href="withdraw.html">💸 سحب</a>  
+          </div>  
+        </div>  
+      </div>  
 
-            <div class="stat">
-              <div class="k">إجمالي السحوبات</div>
-              <div class="v" id="totalWithdrawn">0 ج</div>
-              <div class="muted">المبلغ المسحوب منذ البداية</div>
-            </div>
+      <div class="stats-grid" style="margin-top:14px">  
+        <div class="stat">  
+          <div class="k">نقاط اليوم</div>  
+          <div class="v" id="pointsToday">0</div>  
+          <div class="muted">مقاسة من آخر دخول/فحص</div>  
+        </div>  
 
-            <div class="stat">
-              <div class="k">نقاط إضافية</div>
-              <div class="v" id="bonusPoint">0</div>
-              <div class="muted">بونص/مكافآت أخرى</div>
-            </div>
-          </div>
+        <div class="stat">  
+          <div class="k">إجمالي السحوبات</div>  
+          <div class="v" id="totalWithdrawn">0 ج</div>  
+          <div class="muted">المبلغ المسحوب منذ البداية</div>  
+        </div>  
 
-          <div style="margin-top:12px" class="card">
-            <div class="k">تقدمك اليومي</div>
-            <div class="progress-wrap">
-              <div class="progress"><i id="progressBar"></i></div>
-            </div>
-            <div class="muted" id="progressLabel">0 / 1000 نقطة</div>
-          </div>
-        </div>
+        <div class="stat">  
+          <div class="k">نقاط إضافية</div>  
+          <div class="v" id="bonusPoint">0</div>  
+          <div class="muted">بونص/مكافآت أخرى</div>  
+        </div>  
+      </div>  
 
-        <div class="card" style="margin-top:12px">
-          <h3 style="margin:0 0 8px 0">ملخص سريع</h3>
-          <div id="quickSummary" class="muted">جارٍ التحميل...</div>
-        </div>
-      </section>
+      <div style="margin-top:12px" class="card">  
+        <div class="k">تقدمك اليومي</div>  
+        <div class="progress-wrap">  
+          <div class="progress"><i id="progressBar"></i></div>  
+        </div>  
+        <div class="muted" id="progressLabel">0 / 1000 نقطة</div>  
+      </div>  
+    </div>  
 
-      <!-- RIGHT -->
-      <aside class="right">
-        <div class="card mini">
-          <div class="profile">
-            <div class="avatar" id="avatar">A</div>
-            <div>
-              <h3 id="userName">مستخدم</h3>
-              <p id="userEmail" class="muted">—</p>
-            </div>
-          </div>
+    <div class="card" style="margin-top:12px">  
+      <h3 style="margin:0 0 8px 0">ملخص سريع</h3>  
+      <div id="quickSummary" class="muted">جارٍ التحميل...</div>  
+    </div>  
+  </section>  
 
-          <div style="margin-top:12px">
-            <button class="btn primary" id="refreshBtn">🔄 تحديث</button>
-            <button class="btn ghost" id="logoutBtn" style="margin-left:8px">🚪 تسجيل خروج</button>
-          </div>
-        </div>
-      </aside>
-    </main>
+  <!-- RIGHT -->  
+  <aside class="right">  
+    <div class="card mini">  
+      <div class="profile">  
+        <div class="avatar" id="avatar">A</div>  
+        <div>  
+          <h3 id="userName">مستخدم</h3>  
+          <p id="userEmail" class="muted">—</p>  
+        </div>  
+      </div>  
 
-    <footer>© Am Rewards</footer>
-  </div>
+      <div style="margin-top:12px">  
+        <button class="btn primary" id="refreshBtn">🔄 تحديث</button>  
+        <button class="btn ghost" id="logoutBtn" style="margin-left:8px">🚪 تسجيل خروج</button>  
+      </div>  
+    </div>  
+  </aside>  
+</main>  
 
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<footer>© Am Rewards</footer>
 
-  <script>
-  // ===== Firebase Config =====
-  const firebaseConfig = {
-    apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-    authDomain: "am--rewards.firebaseapp.com",
-    projectId: "am--rewards",
-    storageBucket: "am--rewards.appspot.com",
-    messagingSenderId: "744783579735",
-    appId: "1:744783579735:web:45e00de9998893bbc9b112"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
-
-  const POINT_VALUE_EGP = 0.07;
-  const DAILY_TARGET = 1000;
-
-  const loadingMsg = document.getElementById('headerRight');
-  const userNameEl = document.getElementById('userName');
-  const userEmailEl = document.getElementById('userEmail');
-  const avatarEl = document.getElementById('avatar');
-  const userPointsEl = document.getElementById('userPoints');
-  const bonusPointEl = document.getElementById('bonusPoint');
-  const pointsTodayEl = document.getElementById('pointsToday');
-  const totalWithdrawnEl = document.getElementById('totalWithdrawn');
-  const quickSummaryEl = document.getElementById('quickSummary');
-  const progressBarEl = document.getElementById('progressBar');
-  const progressLabelEl = document.getElementById('progressLabel');
-  const pointsEgpEl = document.getElementById('pointsEgp');
-  const refreshBtn = document.getElementById('refreshBtn');
-  const logoutBtn = document.getElementById('logoutBtn');
-  const toast = document.getElementById('toast');
-
-  function showToast(text, success=true) {
-    toast.textContent = text;
-    toast.style.background = success ? 'linear-gradient(90deg,#16a34a,#34d399)' : 'linear-gradient(90deg,#f97316,#fb7185)';
-    toast.classList.add('show');
-    setTimeout(()=> toast.classList.remove('show'), 3600);
-  }
-
-  function renderUser(d, user) {
-    userNameEl.textContent = d.name || user.displayName || 'مستخدم';
-    userEmailEl.textContent = d.email || user.email || '—';
-    avatarEl.textContent = (d.name ? d.name.slice(0,1).toUpperCase() : (user.email? user.email[0].toUpperCase() : 'A'));
-    userPointsEl.textContent = Number(d.points ?? 0);
-    bonusPointEl.textContent = Number(d.bonusPoint ?? 0);
-    pointsTodayEl.textContent = Math.max((Number(d.points ?? 0) - Number(d.previousPoints ?? 0)), 0);
-    totalWithdrawnEl.textContent = (d.totalWithdrawn ?? 0) + ' ج';
-    pointsEgpEl.textContent = (Number(d.points ?? 0) * POINT_VALUE_EGP).toFixed(2) + ' ج';
-    const progress = Math.min(100, Math.round(((Number(d.points ?? 0) % DAILY_TARGET) / DAILY_TARGET) * 100));
-    progressBarEl.style.width = progress + '%';
-    progressLabelEl.textContent = `${Number(d.points ?? 0)} / ${DAILY_TARGET} نقطة`;
-    quickSummaryEl.textContent = `بونص: ${d.bonusPoint ?? 0}`;
-    loadingMsg.textContent = 'أهلاً بك، لوحة التحكم جاهزة';
-  }
-
-  auth.onAuthStateChanged(async (user) => {
-    if (!user) return location.href = 'index.html';
-    try {
-      loadingMsg.textContent = 'جارٍ تحميل بياناتك...';
-      const uid = user.uid;
-      const userRef = db.collection('users').doc(uid);
-      const snap = await userRef.get();
-
-      if (!snap.exists) {
-        loadingMsg.textContent = 'لم نتمكن من العثور على حسابك';
-        return;
-      }
-
-      const data = snap.data();
-      if (data.previousPoints === undefined) {
-        await userRef.update({ previousPoints: Number(data.points ?? 0) }).catch(()=>{});
-        data.previousPoints = Number(data.points ?? 0);
-      }
-
-      renderUser(data, user);
-
-    } catch (err) {
-      console.error(err);
-      loadingMsg.textContent = 'حدث خطأ أثناء التحميل';
-    }
-  });
-
-  refreshBtn.addEventListener('click', async () => {
-    const user = auth.currentUser;
-    if (!user) return location.href = 'index.html';
-    loadingMsg.textContent = 'جارٍ التحديث...';
-    try {
-      const snap = await db.collection('users').doc(user.uid).get();
-      if (snap.exists) renderUser(snap.data(), user);
-      loadingMsg.textContent = 'تم التحديث';
-      setTimeout(()=> loadingMsg.textContent = 'لوحة التحكم جاهزة', 1200);
-    } catch (e) {
-      console.error(e);
-      loadingMsg.textContent = 'خطأ أثناء التحديث';
-    }
-  });
-
-  logoutBtn.addEventListener('click', ()=> auth.signOut().then(()=> location.href='index.html'));
-  </script>
-</body>
-                                                   </html>
+  </div>    <div id="toast" class="toast" role="status" aria-live="polite"></div>  
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>  
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>  
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>  <script>  
+  // ===== Firebase Config =====  
+  const firebaseConfig = {  
+    apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",  
+    authDomain: "am--rewards.firebaseapp.com",  
+    projectId: "am--rewards",  
+    storageBucket: "am--rewards.appspot.com",  
+    messagingSenderId: "744783579735",  
+    appId: "1:744783579735:web:45e00de9998893bbc9b112"  
+  };  
+  firebase.initializeApp(firebaseConfig);  
+  const auth = firebase.auth();  
+  const db = firebase.firestore();  
+  
+  const POINT_VALUE_EGP = 0.07;  
+  const DAILY_TARGET = 1000;  
+  
+  const loadingMsg = document.getElementById('headerRight');  
+  const userNameEl = document.getElementById('userName');  
+  const userEmailEl = document.getElementById('userEmail');  
+  const avatarEl = document.getElementById('avatar');  
+  const userPointsEl = document.getElementById('userPoints');  
+  const bonusPointEl = document.getElementById('bonusPoint');  
+  const pointsTodayEl = document.getElementById('pointsToday');  
+  const totalWithdrawnEl = document.getElementById('totalWithdrawn');  
+  const quickSummaryEl = document.getElementById('quickSummary');  
+  const progressBarEl = document.getElementById('progressBar');  
+  const progressLabelEl = document.getElementById('progressLabel');  
+  const pointsEgpEl = document.getElementById('pointsEgp');  
+  const refreshBtn = document.getElementById('refreshBtn');  
+  const logoutBtn = document.getElementById('logoutBtn');  
+  const toast = document.getElementById('toast');  
+  
+  function showToast(text, success=true) {  
+    toast.textContent = text;  
+    toast.style.background = success ? 'linear-gradient(90deg,#16a34a,#34d399)' : 'linear-gradient(90deg,#f97316,#fb7185)';  
+    toast.classList.add('show');  
+    setTimeout(()=> toast.classList.remove('show'), 3600);  
+  }  
+  
+  function renderUser(d, user) {  
+    userNameEl.textContent = d.name || user.displayName || 'مستخدم';  
+    userEmailEl.textContent = d.email || user.email || '—';  
+    avatarEl.textContent = (d.name ? d.name.slice(0,1).toUpperCase() : (user.email? user.email[0].toUpperCase() : 'A'));  
+    userPointsEl.textContent = Number(d.points ?? 0);  
+    bonusPointEl.textContent = Number(d.bonusPoint ?? 0);  
+    pointsTodayEl.textContent = Math.max((Number(d.points ?? 0) - Number(d.previousPoints ?? 0)), 0);  
+    totalWithdrawnEl.textContent = (d.totalWithdrawn ?? 0) + ' ج';  
+    pointsEgpEl.textContent = (Number(d.points ?? 0) * POINT_VALUE_EGP).toFixed(2) + ' ج';  
+    const progress = Math.min(100, Math.round(((Number(d.points ?? 0) % DAILY_TARGET) / DAILY_TARGET) * 100));  
+    progressBarEl.style.width = progress + '%';  
+    progressLabelEl.textContent = `${Number(d.points ?? 0)} / ${DAILY_TARGET} نقطة`;  
+    quickSummaryEl.textContent = `بونص: ${d.bonusPoint ?? 0}`;  
+    loadingMsg.textContent = 'أهلاً بك، لوحة التحكم جاهزة';  
+  }  
+  
+  // ====== منطق منح نقاط الإحالة يومياً ======  
+  async function handleReferralDailyBonus(userId, userPoints) {  
+    const userRef = db.collection('users').doc(userId);  
+    const userSnap = await userRef.get();  
+    if (!userSnap.exists) return;  
+    const userData = userSnap.data();  
+    const referrerId = userData.referralBy;  
+    if (!referrerId) return;  
+  
+    // تحقق من منح البونص اليوم فقط مرة واحدة  
+    const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"  
+    if (userData.lastReferralBonusDate === today) return; // تم منحه اليوم بالفعل  
+  
+    const bonusAmount = Math.floor(userPoints * 0.10);  
+    if (bonusAmount > 0) {  
+      const referrerRef = db.collection('users').doc(referrerId);  
+      await referrerRef.update({  
+        bonusPoint: firebase.firestore.FieldValue.increment(bonusAmount)  
+      });  
+      await userRef.update({ lastReferralBonusDate: today });  
+    }  
+  }  
+  
+  auth.onAuthStateChanged(async (user) => {  
+    if (!user) return location.href = 'index.html';  
+    try {  
+      loadingMsg.textContent = 'جارٍ تحميل بياناتك...';  
+      const uid = user.uid;  
+      const userRef = db.collection('users').doc(uid);  
+      const snap = await userRef.get();  
+  
+      if (!snap.exists) {  
+        loadingMsg.textContent = 'لم نتمكن من العثور على حسابك';  
+        return;  
+      }  
+  
+      const data = snap.data();  
+      if (data.previousPoints === undefined) {  
+        await userRef.update({ previousPoints: Number(data.points ?? 0) }).catch(()=>{});  
+        data.previousPoints = Number(data.points ?? 0);  
+      }  
+  
+      renderUser(data, user);  
+  
+      // منطق منح الإحالة يومياً  
+      await handleReferralDailyBonus(uid, Number(data.points ?? 0));  
+  
+    } catch (err) {  
+      console.error(err);  
+      loadingMsg.textContent = 'حدث خطأ أثناء التحميل';  
+    }  
+  });  
+  
+  refreshBtn.addEventListener('click', async () => {  
+    const user = auth.currentUser;  
+    if (!user) return location.href = 'index.html';  
+    loadingMsg.textContent = 'جارٍ التحديث...';  
+    try {  
+      const snap = await db.collection('users').doc(user.uid).get();  
+      if (snap.exists) renderUser(snap.data(), user);  
+      loadingMsg.textContent = 'تم التحديث';  
+      setTimeout(()=> loadingMsg.textContent = 'لوحة التحكم جاهزة', 1200);  
+    } catch (e) {  
+      console.error(e);  
+      loadingMsg.textContent = 'خطأ أثناء التحديث';  
+    }  
+  });  
+  
+  logoutBtn.addEventListener('click', ()=> auth.signOut().then(()=> location.href='index.html'));  
+</script>  </body>  
+        </html>
