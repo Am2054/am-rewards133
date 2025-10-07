@@ -22,13 +22,11 @@
       background: rgba(20,33,61,0.95);
       border-radius: 18px;
       box-shadow: 0 6px 32px rgba(31,182,255,0.12), 0 0 0 1px #1fb6ff22;
-      position: relative;
     }
     h2 {
       color: #f6b93b;
       margin-bottom: 14px;
       font-size: 26px;
-      letter-spacing: 1px;
       font-weight: bold;
     }
     .info {
@@ -37,7 +35,6 @@
       border-radius: 12px;
       margin-bottom: 16px;
       text-align: right;
-      box-shadow: 0 2px 12px #1fb6ff08;
       border: 1px solid #1fb6ff22;
     }
     .info strong {
@@ -50,7 +47,6 @@
       padding: 10px;
       margin-top: 10px;
       word-break: break-all;
-      text-align: left;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -71,7 +67,6 @@
       font-weight: bold;
       font-size: 14px;
       transition: background 0.3s;
-      margin-right: 8px;
     }
     .copy-btn:hover {
       background: #45cafc;
@@ -81,7 +76,6 @@
       margin-top: 26px;
       margin-bottom: 12px;
       font-size: 20px;
-      letter-spacing: .5px;
     }
     ul {
       list-style: none;
@@ -93,13 +87,9 @@
       padding: 10px 12px;
       border-radius: 8px;
       margin-bottom: 7px;
-      text-align: right;
-      font-size: 15px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      transition: box-shadow 0.2s;
-      box-shadow: 0 1px 8px #1fb6ff0a;
       border: 1px solid #1fb6ff19;
       gap: 7px;
     }
@@ -110,7 +100,6 @@
       border-radius: 8px;
       padding: 2px 8px;
       font-size: 13px;
-      margin-left: 8px;
     }
     .invite-points {
       color: #1fb6ff;
@@ -124,9 +113,6 @@
       margin-top: 18px;
       font-size: 14px;
       color: #aaa;
-      background: transparent;
-      border-radius: 12px;
-      padding: 8px 0 0 0;
     }
     .toast {
       position: fixed;
@@ -147,7 +133,6 @@
     .toast.show {
       opacity: 1;
       transform: translateX(-50%) translateY(0);
-      pointer-events: auto;
     }
     @media (max-width: 700px) {
       .container{max-width:96vw;padding:12px}
@@ -177,12 +162,14 @@
     <p>شارك الرابط مع أصدقائك واربح <strong>10%</strong> من أرباحهم اليومية تلقائيًا 🎁</p>
   </div>
 </div>
-<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<div id="toast" class="toast"></div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getFirestore, doc, getDoc, updateDoc, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  // ===== إعداد فايربيز =====
+
+  // إعداد Firebase
   const firebaseConfig = {
     apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
     authDomain: "am--rewards.firebaseapp.com",
@@ -232,37 +219,38 @@
     if (!userSnap.exists()) return;
     const data = userSnap.data();
 
-    referralCountEl.textContent = data.referralCount || 0;
-    referralPointsEl.textContent = data.referralPoints || 0;
     referralCodeEl.textContent = data.referralCode || "—";
     const refLink = `${window.location.origin}/signup.html?ref=${data.referralCode}`;
     referralLinkEl.textContent = refLink;
+    referralPointsEl.textContent = data.referralPoints || 0;
+    referralCountEl.textContent = data.referralCount || 0;
 
-    // عرض المدعوين
     const q = query(collection(db, "users"), where("referralBy", "==", data.referralCode));
     onSnapshot(q, async (snapshot) => {
       referralsListEl.innerHTML = "";
+      referralCountEl.textContent = snapshot.size;
+      await updateDoc(userRef, { referralCount: snapshot.size });
+
       if (snapshot.empty) {
         referralsListEl.innerHTML = "<li>لا يوجد مدعوون بعد</li>";
         return;
       }
+
       let totalReferralPointsToday = 0;
-      const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+      const today = new Date().toISOString().slice(0, 10);
       let listHtml = "";
 
       for (const docSnap of snapshot.docs) {
         const d = docSnap.data();
         const name = d.name || d.email || "مستخدم غير معروف";
-        // استخدم points بدلاً من dailyPoints حسب قاعدة بياناتك
-        const earnedToday = (typeof d.points === 'number') ? d.points : 0;
+        const earnedToday = typeof d.points === "number" ? d.points : 0;
         const bonus = Math.floor(earnedToday * 0.1);
-        // تحقق من منح البونص لهذا المدعو اليوم مرة واحدة فقط
+
         if (d.lastReferralBonusDate !== today && bonus > 0) {
           totalReferralPointsToday += bonus;
-          // تحديث تاريخ آخر منح في حساب المدعو
-          const referredUserRef = doc(db, "users", docSnap.id);
-          await updateDoc(referredUserRef, { lastReferralBonusDate: today });
+          await updateDoc(doc(db, "users", docSnap.id), { lastReferralBonusDate: today });
         }
+
         listHtml += `<li>
           <span>${name}</span>
           <span class="invite-earned">نقاط اليوم: ${earnedToday}</span>
@@ -272,13 +260,15 @@
 
       referralsListEl.innerHTML = listHtml;
 
-      // تحديث نقاط الإحالة في حساب الداعي مرة واحدة فقط يوميًا
-      if (totalReferralPointsToday > 0) {
-        const refUserRef = doc(db, "users", auth.currentUser.uid);
-        const refUserSnap = await getDoc(refUserRef);
-        const refUserData = refUserSnap.data() || {};
+      // إضافة النقاط مرة واحدة يوميًا فقط
+      const refUserSnap = await getDoc(userRef);
+      const refUserData = refUserSnap.data() || {};
+      if (refUserData.lastReferralUpdateDate !== today && totalReferralPointsToday > 0) {
         const newTotal = (refUserData.referralPoints || 0) + totalReferralPointsToday;
-        await updateDoc(refUserRef, { referralPoints: newTotal });
+        await updateDoc(userRef, {
+          referralPoints: newTotal,
+          lastReferralUpdateDate: today
+        });
         referralPointsEl.textContent = newTotal;
         showToast(`🎉 حصلت على ${totalReferralPointsToday} نقطة من إحالات اليوم!`);
       }
@@ -286,4 +276,4 @@
   });
 </script>
 </body>
-  </html>
+    </html>
