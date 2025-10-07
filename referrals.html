@@ -8,7 +8,7 @@
   <style>
     body {
       font-family: 'Cairo', sans-serif;
-      background: linear-gradient(135deg, #14213d 0%, #000 100%);
+      background: radial-gradient(circle at top, #14213d, #000);
       color: #fff;
       margin: 0;
       padding: 0;
@@ -17,103 +17,74 @@
     }
     .container {
       max-width: 600px;
-      margin: 38px auto 28px auto;
-      padding: 24px 18px 18px 18px;
-      background: rgba(20,33,61,0.95);
+      margin: 38px auto;
+      padding: 24px 18px;
+      background: rgba(20,33,61,0.93);
       border-radius: 18px;
-      box-shadow: 0 6px 32px rgba(31,182,255,0.12), 0 0 0 1px #1fb6ff22;
+      box-shadow: 0 8px 40px rgba(0,255,255,0.1);
+      backdrop-filter: blur(6px);
     }
     h2 {
-      color: #f6b93b;
+      color: #ffd369;
       margin-bottom: 14px;
-      font-size: 26px;
+      font-size: 28px;
       font-weight: bold;
+      text-shadow: 0 0 10px #1fb6ff55;
     }
     .info {
-      background: #1a202c;
-      padding: 18px 12px;
+      background: #0e1a2b;
+      padding: 16px 12px;
       border-radius: 12px;
       margin-bottom: 16px;
+      border: 1px solid #1fb6ff33;
       text-align: right;
-      border: 1px solid #1fb6ff22;
     }
-    .info strong {
-      color: #1fb6ff;
-    }
+    .info strong { color: #1fb6ff; }
     .ref-link {
       background: #111;
-      border: 1px solid #444;
+      border: 1px solid #333;
       border-radius: 10px;
       padding: 10px;
       margin-top: 10px;
-      word-break: break-all;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
-    .ref-link p {
-      margin: 0;
-      font-size: 14px;
-      color: #f6b93b;
-      direction: ltr;
-    }
+    .ref-link p { margin: 0; font-size: 13px; color: #ffd369; direction: ltr; }
     .copy-btn {
-      background: #1fb6ff;
-      color: #012;
+      background: linear-gradient(90deg,#1fb6ff,#34d399);
+      color: #000;
       border: none;
       border-radius: 10px;
       padding: 7px 14px;
       cursor: pointer;
       font-weight: bold;
-      font-size: 14px;
-      transition: background 0.3s;
+      font-size: 13px;
+      transition: 0.3s;
     }
-    .copy-btn:hover {
-      background: #45cafc;
-    }
+    .copy-btn:hover { filter: brightness(1.1); }
     h3 {
       color: #ffd27f;
       margin-top: 26px;
       margin-bottom: 12px;
       font-size: 20px;
     }
-    ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
+    ul { list-style: none; padding: 0; margin: 0; }
     li {
-      background: #232946;
+      background: #1a2236;
       padding: 10px 12px;
-      border-radius: 8px;
+      border-radius: 10px;
       margin-bottom: 7px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border: 1px solid #1fb6ff19;
-      gap: 7px;
+      border: 1px solid #1fb6ff22;
+      animation: fadeIn .4s ease forwards;
     }
-    .invite-earned {
-      color: #ffd27f;
-      font-weight: bold;
-      background: #fff2;
-      border-radius: 8px;
-      padding: 2px 8px;
-      font-size: 13px;
-    }
-    .invite-points {
-      color: #1fb6ff;
-      font-weight: bold;
-      background: #1fb6ff12;
-      border-radius: 8px;
-      padding: 2px 8px;
-      font-size: 13px;
-    }
-    .footer {
-      margin-top: 18px;
-      font-size: 14px;
-      color: #aaa;
-    }
+    @keyframes fadeIn { from {opacity:0; transform:translateY(8px)} to {opacity:1;transform:translateY(0)} }
+    .invite-earned { color: #ffd369; font-weight: bold; font-size: 13px; }
+    .invite-points { color: #1fb6ff; font-weight: bold; font-size: 13px; }
+    .footer { margin-top: 18px; font-size: 14px; color: #aaa; }
     .toast {
       position: fixed;
       left: 50%;
@@ -130,14 +101,7 @@
       transition: all .36s cubic-bezier(.2,.9,.3,1);
       z-index: 9999;
     }
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-    @media (max-width: 700px) {
-      .container{max-width:96vw;padding:12px}
-      li{font-size:13px;}
-    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   </style>
 </head>
 <body>
@@ -159,121 +123,106 @@
     <li>جارِ التحميل...</li>
   </ul>
   <div class="footer">
-    <p>شارك الرابط مع أصدقائك واربح <strong>10%</strong> من أرباحهم اليومية تلقائيًا 🎁</p>
+    <p>اربح <strong>10%</strong> من أرباح أصدقائك يوميًا عند فتح الصفحة 🎁</p>
   </div>
 </div>
 <div id="toast" class="toast"></div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, doc, getDoc, updateDoc, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  // إعداد Firebase
-  const firebaseConfig = {
-    apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-    authDomain: "am--rewards.firebaseapp.com",
-    projectId: "am--rewards",
-    storageBucket: "am--rewards.appspot.com",
-    messagingSenderId: "428582312150",
-    appId: "1:428582312150:web:44e35a70e457e7db4c45df"
-  };
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+const firebaseConfig = {
+  apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+  authDomain: "am--rewards.firebaseapp.com",
+  projectId: "am--rewards",
+  storageBucket: "am--rewards.appspot.com",
+  messagingSenderId: "428582312150",
+  appId: "1:428582312150:web:44e35a70e457e7db4c45df"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-  // عناصر الصفحة
-  const referralCountEl = document.getElementById("referralCount");
-  const referralPointsEl = document.getElementById("referralPoints");
-  const referralCodeEl = document.getElementById("referralCode");
-  const referralLinkEl = document.getElementById("referralLink");
-  const referralsListEl = document.getElementById("referralsList");
-  const toast = document.getElementById("toast");
+const referralCountEl = document.getElementById("referralCount");
+const referralPointsEl = document.getElementById("referralPoints");
+const referralCodeEl = document.getElementById("referralCode");
+const referralLinkEl = document.getElementById("referralLink");
+const referralsListEl = document.getElementById("referralsList");
+const toast = document.getElementById("toast");
 
-  // توست تنبيه
-  function showToast(text, success=true) {
-    toast.textContent = text;
-    toast.style.background = success ? 'linear-gradient(90deg,#16a34a,#34d399)' : 'linear-gradient(90deg,#f97316,#fb7185)';
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 3300);
+function showToast(text, success=true) {
+  toast.textContent = text;
+  toast.style.background = success ? 'linear-gradient(90deg,#16a34a,#34d399)' : 'linear-gradient(90deg,#f97316,#fb7185)';
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3300);
+}
+
+window.copyReferralLink = function() {
+  const text = referralLinkEl.textContent;
+  navigator.clipboard.writeText(text).then(() => showToast("✅ تم نسخ الرابط!"));
+};
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) return window.location.href = "login.html";
+  
+  const userRef = doc(db, "users", user.uid);
+  const userSnap = await getDoc(userRef);
+  if (!userSnap.exists()) return;
+
+  const userData = userSnap.data();
+  referralCodeEl.textContent = userData.referralCode || "—";
+  const refLink = `${window.location.origin}/signup.html?ref=${userData.referralCode}`;
+  referralLinkEl.textContent = refLink;
+  referralPointsEl.textContent = userData.referralPoints || 0;
+  
+  const q = query(collection(db, "users"), where("referralBy", "==", userData.referralCode));
+  const snapshot = await getDocs(q);
+
+  referralsListEl.innerHTML = "";
+  referralCountEl.textContent = snapshot.size;
+  await updateDoc(userRef, { referralCount: snapshot.size });
+
+  if (snapshot.empty) {
+    referralsListEl.innerHTML = "<li>لا يوجد مدعوون بعد</li>";
+    return;
   }
 
-  // نسخ الرابط
-  window.copyReferralLink = function() {
-    const text = referralLinkEl.textContent;
-    navigator.clipboard.writeText(text).then(() => {
-      showToast("✅ تم نسخ رابط الإحالة بنجاح!");
-    }).catch(() => {
-      showToast("❌ حدث خطأ أثناء النسخ!", false);
+  let totalReferralPointsToday = 0;
+  const today = new Date().toISOString().slice(0, 10);
+
+  for (const docSnap of snapshot.docs) {
+    const d = docSnap.data();
+    const name = d.name || d.email || "مستخدم";
+    const earned = typeof d.points === "number" ? d.points : 0;
+    const bonus = Math.floor(earned * 0.1);
+
+    if (bonus > 0) totalReferralPointsToday += bonus;
+
+    referralsListEl.innerHTML += `
+      <li>
+        <span>${name}</span>
+        <span class="invite-earned">نقاطه: ${earned}</span>
+        <span class="invite-points">ربحك: +${bonus}</span>
+      </li>`;
+  }
+
+  // تحديث نقاط الإحالة + النقاط العامة
+  if (totalReferralPointsToday > 0 && userData.lastReferralUpdateDate !== today) {
+    const newReferralPoints = (userData.referralPoints || 0) + totalReferralPointsToday;
+    const newPoints = (userData.points || 0) + totalReferralPointsToday;
+
+    await updateDoc(userRef, {
+      referralPoints: newReferralPoints,
+      points: newPoints,
+      lastReferralUpdateDate: today
     });
-  };
 
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "login.html";
-      return;
-    }
-
-    const userRef = doc(db, "users", user.uid);
-    const userSnap = await getDoc(userRef);
-    if (!userSnap.exists()) return;
-    const data = userSnap.data();
-
-    referralCodeEl.textContent = data.referralCode || "—";
-    const refLink = `${window.location.origin}/signup.html?ref=${data.referralCode}`;
-    referralLinkEl.textContent = refLink;
-    referralPointsEl.textContent = data.referralPoints || 0;
-    referralCountEl.textContent = data.referralCount || 0;
-
-    const q = query(collection(db, "users"), where("referralBy", "==", data.referralCode));
-    onSnapshot(q, async (snapshot) => {
-      referralsListEl.innerHTML = "";
-      referralCountEl.textContent = snapshot.size;
-      await updateDoc(userRef, { referralCount: snapshot.size });
-
-      if (snapshot.empty) {
-        referralsListEl.innerHTML = "<li>لا يوجد مدعوون بعد</li>";
-        return;
-      }
-
-      let totalReferralPointsToday = 0;
-      const today = new Date().toISOString().slice(0, 10);
-      let listHtml = "";
-
-      for (const docSnap of snapshot.docs) {
-        const d = docSnap.data();
-        const name = d.name || d.email || "مستخدم غير معروف";
-        const earnedToday = typeof d.points === "number" ? d.points : 0;
-        const bonus = Math.floor(earnedToday * 0.1);
-
-        if (d.lastReferralBonusDate !== today && bonus > 0) {
-          totalReferralPointsToday += bonus;
-          await updateDoc(doc(db, "users", docSnap.id), { lastReferralBonusDate: today });
-        }
-
-        listHtml += `<li>
-          <span>${name}</span>
-          <span class="invite-earned">نقاط اليوم: ${earnedToday}</span>
-          <span class="invite-points">أرباحك: +${bonus}</span>
-        </li>`;
-      }
-
-      referralsListEl.innerHTML = listHtml;
-
-      // إضافة النقاط مرة واحدة يوميًا فقط
-      const refUserSnap = await getDoc(userRef);
-      const refUserData = refUserSnap.data() || {};
-      if (refUserData.lastReferralUpdateDate !== today && totalReferralPointsToday > 0) {
-        const newTotal = (refUserData.referralPoints || 0) + totalReferralPointsToday;
-        await updateDoc(userRef, {
-          referralPoints: newTotal,
-          lastReferralUpdateDate: today
-        });
-        referralPointsEl.textContent = newTotal;
-        showToast(`🎉 حصلت على ${totalReferralPointsToday} نقطة من إحالات اليوم!`);
-      }
-    });
-  });
+    referralPointsEl.textContent = newReferralPoints;
+    showToast(`🎉 تمت إضافة ${totalReferralPointsToday} نقطة إلى رصيدك!`);
+  }
+});
 </script>
 </body>
-    </html>
+                                                                          </html>
