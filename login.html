@@ -1,393 +1,369 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8" />
-  <title>تسجيل الدخول / إنشاء حساب - Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
-    body {
-      font-family: 'Cairo', sans-serif;
-      height: 100vh;
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      color: #eee;
-      background: linear-gradient(-45deg, #0d0d0d, #1a1a1a, #0f2027, #203a43, #2c5364);
-      background-size: 400% 400%;
-      animation: gradientBG 15s ease infinite;
-      position: relative;
-      overflow: hidden;
-    }
-    @keyframes gradientBG {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-    .stars-bg {
-      position: fixed;
-      inset: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 0;
-      pointer-events: none;
-      opacity: 0.18;
-    }
-    .form-box {
-      background: rgba(26, 32, 44, 0.98);
-      padding: 36px 28px 30px;
-      border-radius: 20px;
-      width: 100%;
-      max-width: 420px;
-      text-align: center;
-      box-shadow: 0 0 36px 0 rgba(56,189,248,0.18), 0 2px 32px 0 #0008;
-      backdrop-filter: blur(2.5px);
-      border: 2px solid #38bdf8a4;
-      z-index: 2;
-      position: relative;
-      transition: box-shadow 0.3s;
-    }
-    .form-box:hover {
-      box-shadow: 0 0 60px 0 rgba(56,189,248,0.28), 0 2px 32px 0 #0ea5e9a1;
-      border-color: #0ea5e9;
-    }
-    .logo {
-      width: 64px;
-      margin-bottom: 14px;
-      border-radius: 50%;
-      box-shadow: 0 2px 12px #38bdf8a6;
-      background: #203a43;
-      display: inline-block;
-    }
-    h2 {
-      margin-bottom: 14px;
-      color: #38bdf8;
-      text-shadow: 0 0 9px #38bdf8a4;
-      font-size: 26px;
-      font-weight: 900;
-      letter-spacing: 1px;
-    }
-    .subtitle {
-      color: #a5f3fc;
-      margin-bottom: 12px;
-      font-size: 15px;
-      text-shadow: 0 0 5px #38bdf8a1;
-      font-weight: 500;
-      letter-spacing: 0.5px;
-    }
-    input, button {
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 13px;
-      border-radius: 12px;
-      border: 1.5px solid #334155;
-      font-size: 15px;
-      outline: none;
-      background: #151c25;
-      color: #eee;
-      transition: border-color 0.20s, box-shadow 0.20s;
-      font-weight: 600;
-      box-shadow: 0 0 0 #38bdf800;
-    }
-    input:focus {
-      border-color: #38bdf8;
-      box-shadow: 0 0 10px #38bdf8a6;
-      background: #1e293b;
-    }
-    button {
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      background: linear-gradient(90deg, #38bdf8 0%, #0ea5e9 100%);
-      color: #0f172a;
-      transition: 0.3s ease;
-      box-shadow: 0 6px 18px 0 #38bdf864;
-      letter-spacing: 1px;
-      border: none;
-    }
-    button.login-btn {
-      background: linear-gradient(90deg, #38bdf8 0%, #0ea5e9 100%);
-    }
-    button.signup-btn {
-      background: linear-gradient(90deg, #fb8500 0%, #ffb703 100%);
-      color: #222;
-    }
-    button.download-btn {
-      background: linear-gradient(90deg, #22c55e 0%, #4ade80 100%);
-      color: #fff;
-      margin-top: 8px;
-      margin-bottom: 0;
-      font-size: 15px;
-      font-weight: 700;
-      border-radius: 12px;
-      border: none;
-      box-shadow: 0 4px 12px #22c55e88;
-      transition: 0.2s;
-    }
-    button.login-btn:hover, button.signup-btn:hover, button.download-btn:hover {
-      filter: brightness(1.12);
-      transform: translateY(-1px) scale(1.03);
-      box-shadow: 0 10px 30px #38bdf888;
-      color: #fff;
-    }
-    button:active {
-      transform: scale(0.98);
-      box-shadow: 0 3px 8px #38bdf844;
-    }
-    button:disabled {
-      background: #334155;
-      color: #94a3b8;
-      cursor: not-allowed;
-      box-shadow: none;
-      transform: none;
-    }
-    .switcher {
-      background: none;
-      border: none;
-      color: #7dd3fc;
-      text-decoration: underline;
-      cursor: pointer;
-      margin-top: 8px;
-      margin-bottom: -6px;
-      font-size: 14px;
-    }
-    .switcher:hover {
-      color: #38bdf8;
-      text-shadow: 0 0 6px #38bdf8a1;
-    }
-    .forgot {
-      background: none;
-      border: none;
-      color: #fb8500;
-      text-decoration: underline;
-      cursor: pointer;
-      font-size: 13px;
-      margin-top: -8px;
-      margin-bottom: 12px;
-    }
-    .forgot:hover {
-      color: #ffb703;
-    }
-    .hidden { display: none; }
-    .message { font-weight: bold; margin-bottom: 10px; min-height: 20px; }
-    .error { color: #f87171; text-shadow: 0 0 8px #f8717199; }
-    .success { color: #22c55e; text-shadow: 0 0 8px #22c55e99; }
-    .footer {
-      margin-top: 18px;
-      font-size: 13px;
-      color: #94a3b8;
-      opacity: 0.8;
-      font-weight: 400;
-    }
-    @media (max-width: 520px) {
-      .form-box {
-        padding: 12px 5px 8px;
-        border-radius: 13px;
-        max-width: 99vw;
-      }
-      h2 { font-size: 18px; }
-      input, button { font-size: 12px; }
-      .subtitle { font-size: 11px; }
-      .logo { width: 40px; }
-      .footer { font-size: 10px; }
-    }
-  </style>
-</head>
-<body>
-  <div class="stars-bg">
-    <svg width="100vw" height="100vh">
-      <circle cx="50" cy="70" r="2" fill="#fff" opacity="0.6">
-        <animate attributeName="cy" values="70;440;70" dur="10s" repeatCount="indefinite" />
-      </circle>
-      <circle cx="320" cy="90" r="1.3" fill="#38bdf8" opacity="0.25">
-        <animate attributeName="cy" values="90;390;90" dur="18s" repeatCount="indefinite" />
-      </circle>
-      <circle cx="210" cy="190" r="2" fill="#a5f3fc" opacity="0.23">
-        <animate attributeName="cy" values="190;380;190" dur="13s" repeatCount="indefinite" />
-      </circle>
-      <circle cx="350" cy="350" r="1.1" fill="#fb8500" opacity="0.17">
-        <animate attributeName="cy" values="350;60;350" dur="11s" repeatCount="indefinite" />
-      </circle>
-      <circle cx="80" cy="400" r="1" fill="#fff" opacity="0.14">
-        <animate attributeName="cy" values="400;80;400" dur="16s" repeatCount="indefinite" />
-      </circle>
-      <circle cx="140" cy="320" r="1.8" fill="#38bdf8" opacity="0.14">
-        <animate attributeName="cy" values="320;120;320" dur="23s" repeatCount="indefinite" />
-      </circle>
-      <circle cx="400" cy="210" r="1.3" fill="#fff" opacity="0.24">
-        <animate attributeName="cy" values="210;410;210" dur="14s" repeatCount="indefinite" />
-      </circle>
-    </svg>
-  </div>
-  <div class="form-box">
-    <img src="logo.png" alt="Am Rewards" class="logo" />
-    <h2 id="form-title">تسجيل الدخول إلى Am Rewards</h2>
-    <div class="subtitle">انضم وابدأ رحلتك للربح بسهولة وأمان</div>
-    <div id="msg" class="message"></div>
-    <div id="login-form">
-      <input type="email" id="login-email" placeholder="البريد الإلكتروني" autocomplete="username" />
-      <input type="password" id="login-password" placeholder="كلمة المرور" autocomplete="current-password" />
-      <button class="login-btn" id="login-btn" onclick="login()">تسجيل الدخول</button>
-      <button class="forgot" onclick="resetPassword()">نسيت كلمة المرور؟</button>
-    </div>
-    <div id="signup-form" class="hidden">
-      <input type="text" id="signup-name" placeholder="الاسم الكامل" />
-      <input type="tel" id="signup-phone" placeholder="رقم الهاتف (مصر فقط)" />
-      <input type="email" id="signup-email" placeholder="البريد الإلكتروني" autocomplete="username" />
-      <input type="password" id="signup-password" placeholder="كلمة المرور (6 أحرف على الأقل)" autocomplete="new-password" />
-      <input type="password" id="signup-confirm" placeholder="تأكيد كلمة المرور" autocomplete="new-password" />
-      <button class="signup-btn" id="signup-btn" onclick="signup()">إنشاء الحساب</button>
-    </div>
-    <button class="switcher" onclick="toggleMode()">أو أنشئ حساب جديد</button>
-    <!-- زر تحميل التطبيق (يمكنك وضع رابط apk هنا لاحقاً) -->
-    <!-- <button class="download-btn" onclick="window.open('app.apk','_blank')">تحميل التطبيق</button> -->
-    <div class="footer">© 2025 Am Rewards • كل الحقوق محفوظة</div>
-  </div>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getAuth,
-      setPersistence,
-      browserLocalPersistence,
-      signInWithEmailAndPassword,
-      createUserWithEmailAndPassword,
-      sendPasswordResetEmail
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import {
-      getFirestore,
-      doc,
-      setDoc,
-      getDoc,
-      serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards",
-    };
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+<!DOCTYPE html>  <html lang="ar" dir="rtl">  
+<head>  
+  <meta charset="UTF-8" />  
+  <title>تسجيل الدخول / إنشاء حساب - Am Rewards</title>  
+  <meta name="viewport" content="width=device-width, initial-scale=1" />  
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">  
+  <style>  
+    :root{  
+      --accent:#38bdf8;  
+      --accent-2:#0ea5e9;  
+      --glass-bg: rgba(255,255,255,0.09);  
+      --glass-border: rgba(56,189,248,0.13);  
+      --input-bg: rgba(30,41,59,0.64);  
+      --input-focus: #38bdf8;  
+      --input-border: #334155;  
+      --error: #f87171;  
+      --success: #22c55e;  
+      --muted: #a5f3fc;  
+      --radius: 22px;  
+    }  
+    html, body{  
+      min-height:100vh;  
+      margin:0;  
+      padding:0;  
+      font-family:"Cairo","Montserrat",sans-serif;  
+      color:#f1f6fb;  
+      direction:rtl;  
+      background:  
+        linear-gradient(120deg, #0f2027 0%, #2c5364 100%),  
+        url('https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=1500&q=80');  
+      background-size:cover;  
+      background-attachment:fixed;  
+      background-blend-mode:overlay;  
+      display:flex;  
+      align-items:center;  
+      justify-content:center;  
+      position:relative;  
+      overflow:hidden;  
+    }  
+    .animated-bg {  
+      position:fixed; inset:0; z-index:0; pointer-events:none;  
+      background: radial-gradient(circle at 70% 15%, rgba(56,189,248,0.10) 0%, transparent 55%),  
+                  radial-gradient(circle at 15% 85%, rgba(251,133,0,0.10) 0%, transparent 65%);  
+      animation: movebg 12s cubic-bezier(.4,0,.2,1) infinite alternate;  
+    }  
+    @keyframes movebg {  
+      0% { background-position: 70% 15%, 15% 85%;}  
+      100% { background-position: 65% 35%, 30% 80%;}  
+    }  
+    .center-box {  
+      width:100%;  
+      max-width:410px;  
+      padding:40px 24px 28px 24px;  
+      border-radius:var(--radius);  
+      background:var(--glass-bg);  
+      box-shadow:0 0 36px 0 #38bdf832, 0 6px 32px 0 #0008;  
+      border:2px solid var(--glass-border);  
+      z-index:2;  
+      position:relative;  
+      backdrop-filter: blur(15px) saturate(108%);  
+      display:flex;  
+      flex-direction:column;  
+      align-items:center;  
+    }  
+    .logo{  
+      width:72px;  
+      margin-bottom:18px;  
+      border-radius:14px;  
+      background:#fff;  
+      box-shadow:0 4px 18px #38bdf8a8;  
+      display:block;  
+    }  
+    h2 {  
+      margin-bottom:13px;  
+      color:var(--accent);  
+      font-family:"Montserrat", "Cairo", sans-serif;  
+      font-size:28px;  
+      font-weight:900;  
+      letter-spacing:1px;  
+      text-shadow:0 0 9px #38bdf8a4;  
+    }  
+    .subtitle {  
+      color:var(--muted);  
+      font-size:15px;  
+      margin-bottom:16px;  
+      font-weight:600;  
+      text-shadow:0 0 5px #38bdf8a1;  
+      letter-spacing:0.5px;  
+    }  
+    .form-view { width:100%; }  
+    .form-row{margin-bottom:13px;text-align:right;}  
+    label{font-size:13.5px;color:var(--muted);margin-bottom:2px;display:block;}  
+    input[type="text"], input[type="email"], input[type="password"], input[type="tel"]{  
+      width:100%;  
+      padding:13px 14px;  
+      border-radius:13px;  
+      border:1.5px solid var(--input-border);  
+      background: var(--input-bg);  
+      color:#fff;  
+      font-size:15.5px;  
+      font-family:"Cairo",sans-serif;  
+      transition:box-shadow .18s, border-color .18s, transform .12s;  
+      outline:none;  
+    }  
+    input:focus {  
+      border-color: var(--input-focus);  
+      box-shadow: 0 0 14px #38bdf8a6;  
+      background: #1e293b;  
+    }  
+    button {  
+      width:100%;  
+      padding:13px 0;  
+      border-radius:13px;  
+      font-size:16px;  
+      font-weight:800;  
+      font-family:"Montserrat","Cairo",sans-serif;  
+      letter-spacing:0.7px;  
+      cursor:pointer;  
+      border:none;  
+      transition:.17s;  
+      margin-bottom:10px;  
+      box-shadow: 0 4px 22px rgba(56,189,248,0.13);  
+    }  
+    .login-btn{  
+      background:linear-gradient(90deg,var(--accent),var(--accent-2) 90%);  
+      color:#0f172a;  
+    }  
+    .login-btn:hover{background:linear-gradient(90deg,#0ea5e9,var(--accent));color:#fff;}  
+    .signup-btn{  
+      background:linear-gradient(90deg,#fb8500 0%,#ffb703 100%);  
+      color:#23272f;  
+      font-weight:900;  
+    }  
+    .signup-btn:hover{background:linear-gradient(90deg,#ffb703,#fb8500);color:#fff;}  
+    .switcher, .forgot {  
+      background:none;  
+      border:none;  
+      color:var(--muted);  
+      font-size:14px;  
+      margin-bottom:1px;  
+      text-decoration:underline;  
+      cursor:pointer;  
+      transition:color .13s;  
+    }  
+    .switcher:hover{color:var(--accent);}  
+    .forgot {  
+      color:#fb8500;  
+      font-size:13px;  
+      margin-top:-10px;  
+      margin-bottom:12px;  
+    }  
+    .forgot:hover{color:#ffb703;}  
+    .message {  
+      font-weight: bold;  
+      margin-bottom: 10px;  
+      min-height: 20px;  
+      text-align:center;  
+      font-size:15px;  
+      transition:.13s;  
+    }  
+    .error { color: var(--error); text-shadow: 0 0 8px #f8717199; }  
+    .success { color: var(--success); text-shadow: 0 0 8px #22c55e99; }  
+    .footer {  
+      margin-top: 22px;  
+      font-size: 13px;  
+      color: #94a3b8;  
+      opacity: 0.8;  
+      font-weight: 400;  
+      text-align:center;  
+    }  
+    @media (max-width: 520px) {  
+      .center-box { padding:14px 3vw 8px 3vw; border-radius: 13px; }  
+      h2{font-size:18px;}  
+      .logo{width:40px;}  
+      .footer{font-size:10px;}  
+    }  
+  </style>  
+</head>  
+<body>  
+  <div class="animated-bg" aria-hidden="true"></div>  
+  <div class="center-box">  
+    <img src="logo.png" alt="Am Rewards" class="logo" />  
+    <h2 id="form-title">تسجيل الدخول إلى Am Rewards</h2>  
+    <div class="subtitle">انضم وابدأ رحلتك للربح بسهولة وأمان</div>  
+    <div id="msg" class="message"></div>  
+    <div id="login-form" class="form-view">  
+      <div class="form-row">  
+        <label for="login-email">البريد الإلكتروني</label>  
+        <input type="email" id="login-email" placeholder="example@mail.com" autocomplete="username" />  
+      </div>  
+      <div class="form-row">  
+        <label for="login-password">كلمة المرور</label>  
+        <input type="password" id="login-password" placeholder="كلمة المرور" autocomplete="current-password" />  
+      </div>  
+      <button class="login-btn" id="login-btn" onclick="login()">تسجيل الدخول</button>  
+      <button class="forgot" onclick="resetPassword()">نسيت كلمة المرور؟</button>  
+    </div>  
+    <div id="signup-form" class="form-view" style="display:none">  
+      <div class="form-row">  
+        <label for="signup-name">الاسم الكامل</label>  
+        <input type="text" id="signup-name" placeholder="اسمك بالكامل" />  
+      </div>  
+      <div class="form-row">  
+        <label for="signup-phone">رقم الهاتف (مصر فقط)</label>  
+        <input type="tel" id="signup-phone" placeholder="01123456789" />  
+      </div>  
+      <div class="form-row">  
+        <label for="signup-email">البريد الإلكتروني</label>  
+        <input type="email" id="signup-email" placeholder="example@mail.com" autocomplete="username" />  
+      </div>  
+      <div class="form-row">  
+        <label for="signup-password">كلمة المرور</label>  
+        <input type="password" id="signup-password" placeholder="كلمة المرور (6 أحرف على الأقل)" autocomplete="new-password" />  
+      </div>  
+      <div class="form-row">  
+        <label for="signup-confirm">تأكيد كلمة المرور</label>  
+        <input type="password" id="signup-confirm" placeholder="تأكيد كلمة المرور" autocomplete="new-password" />  
+      </div>  
+      <button class="signup-btn" id="signup-btn" onclick="signup()">إنشاء الحساب</button>  
+    </div>  
+    <button class="switcher" id="switcher" onclick="toggleMode()">أو أنشئ حساب جديد</button>  
+    <div class="footer">© 2025 Am Rewards • كل الحقوق محفوظة</div>  
+  </div>  
+  <script type="module">  
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";  
+    import {  
+      getAuth,  
+      setPersistence,  
+      browserLocalPersistence,  
+      signInWithEmailAndPassword,  
+      createUserWithEmailAndPassword,  
+      sendPasswordResetEmail  
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";  
+    import {  
+      getFirestore,  
+      doc,  
+      setDoc,  
+      getDoc,  
+      serverTimestamp  
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";  
+    const firebaseConfig = {  
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",  
+      authDomain: "am--rewards.firebaseapp.com",  
+      projectId: "am--rewards",  
+    };  
+    const app = initializeApp(firebaseConfig);  
+    const auth = getAuth(app);  
+    const db = getFirestore(app);  let isLogin = true;  
+function showMessage(text, type="success") {  
+  const msg = document.getElementById("msg");  
+  msg.textContent = text;  
+  msg.className = "message " + type;  
+}  
+function translateError(code) {  
+  switch(code) {  
+    case "auth/invalid-email": return "البريد الإلكتروني غير صالح";  
+    case "auth/user-not-found": return "المستخدم غير موجود";  
+    case "auth/wrong-password": return "كلمة المرور غير صحيحة";  
+    case "auth/email-already-in-use": return "هذا البريد مستخدم من قبل";  
+    case "auth/weak-password": return "كلمة المرور ضعيفة جدًا";  
+    case "auth/missing-password": return "يرجى إدخال كلمة المرور";  
+    case "auth/too-many-requests": return "تم حظر المحاولة مؤقتًا بسبب عدة محاولات خاطئة، انتظر قليلًا";  
+    default: return "حدث خطأ غير متوقع، حاول مرة أخرى";  
+  }  
+}  
+window.toggleMode = function () {  
+  isLogin = !isLogin;  
+  document.getElementById("login-form").style.display = isLogin ? "" : "none";  
+  document.getElementById("signup-form").style.display = isLogin ? "none" : "";  
+  document.getElementById("form-title").textContent = isLogin ? "تسجيل الدخول إلى Am Rewards" : "إنشاء حساب جديد في Am Rewards";  
+  document.getElementById("switcher").textContent = isLogin ? "أو أنشئ حساب جديد" : "أو سجّل الدخول";  
+  document.getElementById("msg").textContent = "";  
+};  
+function validateEgyptianPhone(phone) {  
+  return /^(010|011|012|015)[0-9]{8}$/.test(phone);  
+}  
+window.login = async function () {  
+  const email = document.getElementById("login-email").value.trim();  
+  const password = document.getElementById("login-password").value.trim();  
+  const btn = document.getElementById("login-btn");  
+  if (!email || !password) return showMessage("يرجى إدخال البريد وكلمة المرور", "error");  
+  btn.textContent = "جاري الدخول...";  
+  btn.disabled = true;  
+  try {  
+    await setPersistence(auth, browserLocalPersistence);  
+    const result = await signInWithEmailAndPassword(auth, email, password);  
+    const uid = result.user.uid;  
+    const ref = doc(db, "users", uid);  
+    const snapshot = await getDoc(ref);  
+    if (!snapshot.exists()) {  
+      await setDoc(ref, {  
+        uid: uid,  
+        name: "مستخدم جديد",  
+        email: email,  
+        phone: "",  
+        points: 0,  
+        bonusPoint: 0,  
+        totalWithdrawn: 0,  
+        dailyWithdrawAmount: 0,  
+        isBanned: false,  
+        lastWithdrawlDate: "",  
+        joinedAt: serverTimestamp(),  
+      });  
+    }  
+    showMessage("✅ تم تسجيل الدخول بنجاح!", "success");  
+    setTimeout(()=> window.location.href = "dashboard.html", 1500);  
+  } catch (error) {  
+    btn.textContent = "تسجيل الدخول";  
+    btn.disabled = false;  
+    showMessage(translateError(error.code), "error");  
+  }  
+};  
+window.signup = async function () {  
+  const name = document.getElementById("signup-name").value.trim();  
+  const phone = document.getElementById("signup-phone").value.trim();  
+  const email = document.getElementById("signup-email").value.trim();  
+  const password = document.getElementById("signup-password").value.trim();  
+  const confirm = document.getElementById("signup-confirm").value.trim();  
+  const btn = document.getElementById("signup-btn");  
+  if (!name || !phone || !email || !password || !confirm)  
+    return showMessage("يرجى تعبئة جميع الحقول", "error");  
+  if (password.length < 6)  
+    return showMessage("كلمة المرور يجب أن تكون 6 أحرف على الأقل", "error");  
+  if (password !== confirm)  
+    return showMessage("كلمة المرور وتأكيدها غير متطابقين", "error");  
+  if (!validateEgyptianPhone(phone))  
+    return showMessage("رقم الهاتف يجب أن يكون مصري صحيح مثل 011xxxxxxxx", "error");  
+  if (email === "amirfg992005@gmail.com")  
+    return showMessage("❌ هذا البريد محجوز ولا يمكن استخدامه.", "error");  
+  btn.textContent = "جاري التسجيل...";  
+  btn.disabled = true;  
+  try {  
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);  
+    const uid = userCredential.user.uid;  
+    await setDoc(doc(db, "users", uid), {  
+      uid: uid,  
+      name: name,  
+      email: email,  
+      phone: phone,  
+      points: 0,  
+      bonusPoint: 0,  
+      totalWithdrawn: 0,  
+      dailyWithdrawAmount: 0,  
+      isBanned: false,  
+      lastWithdrawlDate: "",  
+      joinedAt: serverTimestamp(),  
+    });  
+    showMessage("✅ تم إنشاء الحساب بنجاح!", "success");  
+    setTimeout(()=> window.location.href = "dashboard.html", 1500);  
+  } catch (error) {  
+    btn.textContent = "إنشاء الحساب";  
+    btn.disabled = false;  
+    showMessage(translateError(error.code), "error");  
+  }  
+};  
+window.resetPassword = async function () {  
+  const email = document.getElementById("login-email").value.trim();  
+  if (!email) return showMessage("أدخل بريدك الإلكتروني لإعادة تعيين كلمة المرور", "error");  
+  try {  
+    await sendPasswordResetEmail(auth, email);  
+    showMessage("تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني", "success");  
+  } catch (error) {  
+    showMessage(translateError(error.code), "error");  
+  }  
+};
 
-    let isLogin = true;
-    function showMessage(text, type="success") {
-      const msg = document.getElementById("msg");
-      msg.textContent = text;
-      msg.className = "message " + type;
-    }
-    function translateError(code) {
-      switch(code) {
-        case "auth/invalid-email": return "البريد الإلكتروني غير صالح";
-        case "auth/user-not-found": return "المستخدم غير موجود";
-        case "auth/wrong-password": return "كلمة المرور غير صحيحة";
-        case "auth/email-already-in-use": return "هذا البريد مستخدم من قبل";
-        case "auth/weak-password": return "كلمة المرور ضعيفة جدًا";
-        case "auth/missing-password": return "يرجى إدخال كلمة المرور";
-        case "auth/too-many-requests": return "تم حظر المحاولة مؤقتًا بسبب عدة محاولات خاطئة، انتظر قليلًا";
-        default: return "حدث خطأ غير متوقع، حاول مرة أخرى";
-      }
-    }
-    window.toggleMode = function () {
-      isLogin = !isLogin;
-      document.getElementById("login-form").classList.toggle("hidden", !isLogin);
-      document.getElementById("signup-form").classList.toggle("hidden", isLogin);
-      document.getElementById("form-title").textContent = isLogin ? "تسجيل الدخول إلى Am Rewards" : "إنشاء حساب جديد في Am Rewards";
-      document.querySelector(".switcher").textContent = isLogin ? "أو أنشئ حساب جديد" : "أو سجّل الدخول";
-      document.getElementById("msg").textContent = "";
-    };
-    function validateEgyptianPhone(phone) {
-      return /^(010|011|012|015)[0-9]{8}$/.test(phone);
-    }
-    window.login = async function () {
-      const email = document.getElementById("login-email").value.trim();
-      const password = document.getElementById("login-password").value.trim();
-      const btn = document.getElementById("login-btn");
-      if (!email || !password) return showMessage("يرجى إدخال البريد وكلمة المرور", "error");
-      btn.textContent = "جاري الدخول...";
-      btn.disabled = true;
-      try {
-        await setPersistence(auth, browserLocalPersistence);
-        const result = await signInWithEmailAndPassword(auth, email, password);
-        const uid = result.user.uid;
-        const ref = doc(db, "users", uid);
-        const snapshot = await getDoc(ref);
-        if (!snapshot.exists()) {
-          await setDoc(ref, {
-            uid: uid,
-            name: "مستخدم جديد",
-            email: email,
-            phone: "",
-            points: 0,
-            bonusPoint: 0,
-            totalWithdrawn: 0,
-            dailyWithdrawAmount: 0,
-            isBanned: false,
-            lastWithdrawlDate: "",
-            joinedAt: serverTimestamp(),
-          });
-        }
-        showMessage("✅ تم تسجيل الدخول بنجاح!", "success");
-        setTimeout(()=> window.location.href = "dashboard.html", 1500);
-      } catch (error) {
-        btn.textContent = "تسجيل الدخول";
-        btn.disabled = false;
-        showMessage(translateError(error.code), "error");
-      }
-    };
-    window.signup = async function () {
-      const name = document.getElementById("signup-name").value.trim();
-      const phone = document.getElementById("signup-phone").value.trim();
-      const email = document.getElementById("signup-email").value.trim();
-      const password = document.getElementById("signup-password").value.trim();
-      const confirm = document.getElementById("signup-confirm").value.trim();
-      const btn = document.getElementById("signup-btn");
-      if (!name || !phone || !email || !password || !confirm)
-        return showMessage("يرجى تعبئة جميع الحقول", "error");
-      if (password.length < 6)
-        return showMessage("كلمة المرور يجب أن تكون 6 أحرف على الأقل", "error");
-      if (password !== confirm)
-        return showMessage("كلمة المرور وتأكيدها غير متطابقين", "error");
-      if (!validateEgyptianPhone(phone))
-        return showMessage("رقم الهاتف يجب أن يكون مصري صحيح مثل 011xxxxxxxx", "error");
-      if (email === "amirfg992005@gmail.com")
-        return showMessage("❌ هذا البريد محجوز ولا يمكن استخدامه.", "error");
-      btn.textContent = "جاري التسجيل...";
-      btn.disabled = true;
-      try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const uid = userCredential.user.uid;
-        await setDoc(doc(db, "users", uid), {
-          uid: uid,
-          name: name,
-          email: email,
-          phone: phone,
-          points: 0,
-          bonusPoint: 0,
-          totalWithdrawn: 0,
-          dailyWithdrawAmount: 0,
-          isBanned: false,
-          lastWithdrawlDate: "",
-          joinedAt: serverTimestamp(),
-        });
-        showMessage("✅ تم إنشاء الحساب بنجاح!", "success");
-        setTimeout(()=> window.location.href = "dashboard.html", 1500);
-      } catch (error) {
-        btn.textContent = "إنشاء الحساب";
-        btn.disabled = false;
-        showMessage(translateError(error.code), "error");
-      }
-    };
-    window.resetPassword = async function () {
-      const email = document.getElementById("login-email").value.trim();
-      if (!email) return showMessage("أدخل بريدك الإلكتروني لإعادة تعيين كلمة المرور", "error");
-      try {
-        await sendPasswordResetEmail(auth, email);
-        showMessage("تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني", "success");
-      } catch (error) {
-        showMessage(translateError(error.code), "error");
-      }
-    };
-  </script>
-</body>
-  </html>
+  </script>  
+</body>  
+      </html>
