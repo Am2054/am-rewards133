@@ -116,8 +116,6 @@ th {
   background: #0ea5e9;
   color: #0f172a;
 }
-
-/* الحالات */
 .status {
   font-weight: bold;
   display: flex;
@@ -150,7 +148,6 @@ th {
 
   <div id="msg" class="msg"></div>
 
-  <!-- سجل السحب -->
   <div class="history">
     <h2>📜 سجل طلبات السحب</h2>
     <table>
@@ -180,7 +177,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-const POINT_VALUE_EGP = 0.07; // سعر النقطة
+const POINT_VALUE_EGP = 0.07;
 const LIMITS = { min:20, maxDaily:200, maxOpsPerDay:2 };
 
 const pointsVal=document.getElementById('pointsVal');
@@ -199,87 +196,55 @@ let userId=null;
 auth.onAuthStateChanged(user=>{
   if(user){
     userId=user.uid;
-    db.collection('users').doc(userId)
-      .onSnapshot(doc=>{
-        if(doc.exists){
-          const points=doc.data().points||0;
-          pointsVal.textContent=points;
-          egpVal.textContent=(points*POINT_VALUE_EGP).toFixed(2);
+    db.collection('users').doc(userId).onSnapshot(doc=>{
+      if(doc.exists){
+        const points=doc.data().points||0;
+        pointsVal.textContent=points;
+        egpVal.textContent=(points*POINT_VALUE_EGP).toFixed(2);
+      }
+    });
+
+    // ✅ سجل السحب
+    db.collection("withdrawals").where("userId", "==", user.uid)
+    .onSnapshot(snapshot => {
+      withdrawalsTable.innerHTML = "";
+      if (snapshot.empty) {
+        withdrawalsTable.innerHTML = `<tr><td colspan="4">لا يوجد طلبات سحب بعد</td></tr>`;
+        return;
+      }
+      let arr = [];
+      snapshot.forEach(doc => {
+        const w = doc.data();
+        let dateVal = 0;
+        if (w.date) {
+          if (typeof w.date === "string") dateVal = Date.parse(w.date) || 0;
+          else if (w.date.toDate) dateVal = w.date.toDate().getTime();
         }
+        arr.push({ ...w, dateVal });
       });
-
-// سجل السحب المعدل يدعم النص وتايم ستامب
-db.collection("withdrawals")
-  .where("userId", "==", user?.uid)
-  .onSnapshot(snapshot => {
-    const withdrawalsTable = document.getElementById("withdrawalsTable");
-    if (!withdrawalsTable) return; // ✅ تأكد إن الجدول موجود فعلاً في الصفحة
-
-    withdrawalsTable.innerHTML = "";
-    if (snapshot.empty) {
-      withdrawalsTable.innerHTML = `<tr><td colspan="4">لا يوجد طلبات سحب بعد</td></tr>`;
-      return;
-    }
-
-    let arr = [];
-    snapshot.forEach(doc => {
-      const w = doc.data();
-      let dateVal = 0;
-
-      // ✅ معالجة التاريخ سواء كان نص أو Timestamp
-      if (w.date) {
-        if (typeof w.date === "string") {
-          dateVal = Date.parse(w.date) || 0;
-        } else if (w.date.toDate) {
-          dateVal = w.date.toDate().getTime();
+      arr.sort((a,b)=>b.dateVal-a.dateVal);
+      arr.forEach(w=>{
+        let dateStr="-";
+        if(w.date && w.date.toDate){
+          const dt=w.date.toDate();
+          if(!isNaN(dt)) dateStr=dt.toLocaleDateString("ar-EG")+" - "+dt.toLocaleTimeString("ar-EG");
         }
-      }
-
-      arr.push({ ...w, dateVal });
-    });
-
-    // ✅ ترتيب السحوبات من الأحدث إلى الأقدم
-    arr.sort((a, b) => b.dateVal - a.dateVal);
-
-    arr.forEach(w => {
-      let dateStr = "-";
-      if (w.date) {
-        if (typeof w.date === "string") {
-          dateStr = w.date;
-        } else if (w.date.toDate) {
-          const dt = w.date.toDate();
-          dateStr = dt.toLocaleDateString("ar-EG") + " - " + dt.toLocaleTimeString("ar-EG");
+        let statusClass="", icon="", statusText="";
+        switch (w.status) {
+          case "pending": statusClass="status-pending"; icon="⏳"; statusText="معلق"; break;
+          case "completed": statusClass="status-completed"; icon="✅"; statusText="مكتمل"; break;
+          case "rejected": statusClass="status-rejected"; icon="❌"; statusText="مرفوض"; break;
+          default: statusText=w.status||"-";
         }
-      }
-
-      // ✅ تحديد الحالة (معلق - مكتمل - مرفوض)
-      let statusClass = "", icon = "", statusText = "";
-      switch (w.status) {
-        case "pending":
-        case "معلق":
-          statusClass = "status-pending"; icon = "⏳"; statusText = "معلق"; break;
-        case "completed":
-        case "مكتمل":
-          statusClass = "status-completed"; icon = "✅"; statusText = "مكتمل"; break;
-        case "rejected":
-        case "مرفوض":
-          statusClass = "status-rejected"; icon = "❌"; statusText = "مرفوض"; break;
-        default:
-          statusText = w.status || "-";
-      }
-
-      // ✅ التأكد من وجود المبلغ والقيمة الصافية
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${w.amount || "-"} جم</td>
-        <td>${w.net ? Number(w.net).toFixed(2) : "-"} جم</td>
-        <td class="status ${statusClass}">${icon} ${statusText}</td>
-        <td>${dateStr}</td>
-      `;
-      withdrawalsTable.appendChild(tr);
+        const tr=document.createElement("tr");
+        tr.innerHTML=`
+          <td>${w.amount||"-"} جم</td>
+          <td>${w.net?Number(w.net).toFixed(2):"-"} جم</td>
+          <td class="status ${statusClass}">${icon} ${statusText}</td>
+          <td>${dateStr}</td>`;
+        withdrawalsTable.appendChild(tr);
+      });
     });
-  });
-
   } else {
     window.location.href="index.html";
   }
@@ -288,10 +253,7 @@ db.collection("withdrawals")
 function updateCalc(){
   const amt=parseFloat(amountInp.value);
   if(isNaN(amt)||amt<LIMITS.min){
-    feeVal.textContent="0.00";
-    netVal.textContent="0.00";
-    needPts.textContent="0";
-    return;
+    feeVal.textContent="0.00"; netVal.textContent="0.00"; needPts.textContent="0"; return;
   }
   const fee=amt*0.10;
   const net=amt-fee;
@@ -311,80 +273,49 @@ confirmBtn.addEventListener('click',async ()=>{
 
   confirmBtn.disabled=true;
   try {
-    const now = new Date();
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const now=new Date();
+    const start=new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0);
+    const end=new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23,59,59);
 
-    // استعلام أبسط بدون تاريخ لتجنب خطأ index
-    const query = db.collection("withdrawals")
-      .where("userId", "==", userId);
-
-    const snapshot = await query.get();
-
-    // فلترة اليوم برمجياً
-    let todayOpsCount = 0;
-    let todayTotalAmount = 0;
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      let wDate = data.date;
-      if(wDate && wDate.toDate){
-        wDate = wDate.toDate();
-        if(wDate >= startOfDay && wDate <= endOfDay){
-          todayOpsCount += 1;
-          todayTotalAmount += Number(data.amount) || 0;
-        }
+    const snapshot=await db.collection("withdrawals").where("userId","==",userId).get();
+    let todayOps=0,todayAmt=0;
+    snapshot.forEach(doc=>{
+      const d=doc.data();
+      if(d.date?.toDate){
+        const dd=d.date.toDate();
+        if(dd>=start&&dd<=end){ todayOps++; todayAmt+=(+d.amount)||0; }
       }
     });
 
-    if (todayOpsCount >= LIMITS.maxOpsPerDay) {
-      msg.textContent = "❌ لقد وصلت للحد الأقصى (2 عملية سحب يوميًا). يمكنك السحب مرة أخرى غدًا.";
-      msg.classList.add("error");
-      confirmBtn.disabled=false;
-      return;
-    }
-    if((todayTotalAmount + amt) > LIMITS.maxDaily){
-      msg.textContent = `❌ مجموع عمليتي السحب اليوم لا يمكن أن يتخطى ${LIMITS.maxDaily} جم. المتبقي لك اليوم: ${(LIMITS.maxDaily-todayTotalAmount).toFixed(2)} جم`;
-      msg.classList.add("error");
-      confirmBtn.disabled=false;
-      return;
-    }
-    if(amt > (LIMITS.maxDaily-todayTotalAmount)){
-      msg.textContent = `❌ مبلغ السحب أكبر من المتبقي اليوم (${(LIMITS.maxDaily-todayTotalAmount).toFixed(2)} جم).`;
-      msg.classList.add("error");
-      confirmBtn.disabled=false;
-      return;
-    }
+    if(todayOps>=LIMITS.maxOpsPerDay){ msg.textContent="❌ لقد وصلت للحد الأقصى (2 عملية سحب يوميًا)"; msg.classList.add("error"); confirmBtn.disabled=false; return; }
+    if((todayAmt+amt)>LIMITS.maxDaily){ msg.textContent=`❌ لا يمكنك تجاوز ${LIMITS.maxDaily} جم يوميًا`; msg.classList.add("error"); confirmBtn.disabled=false; return; }
 
-    const confirmMsg=`هل تريد سحب ${amt} جم إلى المحفظة: ${wallet} ؟`;
-    if(!confirm(confirmMsg)) { confirmBtn.disabled=false; return; }
+    if(!confirm(`هل تريد سحب ${amt} جم إلى ${wallet}؟`)){ confirmBtn.disabled=false; return; }
 
     const ptsNeeded=Math.ceil(amt/POINT_VALUE_EGP);
-
-    await db.runTransaction(async (tr)=>{
-      const userRef=db.collection("users").doc(userId);
-      const snap=await tr.get(userRef);
+    await db.runTransaction(async tr=>{
+      const ref=db.collection("users").doc(userId);
+      const snap=await tr.get(ref);
       const points=snap.data().points||0;
       if(points<ptsNeeded) throw "رصيد نقاط غير كافٍ";
-      tr.update(userRef,{ points: firebase.firestore.FieldValue.increment(-ptsNeeded) });
+      tr.update(ref,{ points: firebase.firestore.FieldValue.increment(-ptsNeeded) });
       tr.set(db.collection("withdrawals").doc(),{
         userId, method:"vodafone", wallet,
         amount:amt, fee:amt*0.10, net:amt-amt*0.10,
-        pts:ptsNeeded, status:"معلق",
+        pts:ptsNeeded, status:"pending",
         date:firebase.firestore.FieldValue.serverTimestamp()
       });
     });
-
-    msg.textContent="✅ تم إرسال طلب السحب بنجاح. ⏳ المعالجة تستغرق من 30 دقيقة إلى 12 ساعة.";
+    msg.textContent="✅ تم إرسال طلب السحب بنجاح. ⏳ جارٍ المراجعة.";
     msg.classList.add("success");
     amountInp.value=""; walletVod.value="";
     updateCalc();
-  } catch(err){
-    msg.textContent="❌ "+err;
-    msg.classList.add("error");
-  } finally{
+  }catch(err){
+    msg.textContent="❌ "+err; msg.classList.add("error");
+  }finally{
     confirmBtn.disabled=false;
   }
 });
 </script>
 </body>
-                              </html>
+    </html>
