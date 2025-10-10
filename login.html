@@ -136,7 +136,6 @@
       box-shadow: 0 0 12px #38bdf8a6;
       background: #1e293b;
     }
-    /* زر إظهار كلمة السر */
     .password-eye {
       position: absolute;
       left: 14px;
@@ -293,7 +292,7 @@
       <span id="msg-text"></span>
     </div>
     <!-- نموذج تسجيل الدخول -->
-    <form id="login-form" class="form-view" autocomplete="on" onsubmit="event.preventDefault(); login();">
+    <form id="login-form" class="form-view" autocomplete="on">
       <div class="form-row">
         <label for="login-email">البريد الإلكتروني</label>
         <input type="email" id="login-email" placeholder="example@mail.com" autocomplete="username" required />
@@ -305,11 +304,11 @@
           <svg viewBox="0 0 24 24" fill="none"><path d="M1.5 12C3.5 7 8 3.5 12 3.5C16 3.5 20.5 7 22.5 12C20.5 17 16 20.5 12 20.5C8 20.5 3.5 17 1.5 12Z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="2"/></svg>
         </button>
       </div>
-      <button class="login-btn" id="login-btn" type="submit">تسجيل الدخول</button>
+      <button class="login-btn" id="login-btn" type="button" onclick="login()">تسجيل الدخول</button>
       <button class="forgot" id="forgot-btn" type="button" onclick="resetPassword()">نسيت كلمة المرور؟</button>
     </form>
     <!-- نموذج إنشاء حساب -->
-    <form id="signup-form" class="form-view" style="display:none" autocomplete="on" onsubmit="event.preventDefault(); signup();">
+    <form id="signup-form" class="form-view" style="display:none" autocomplete="on">
       <div class="form-row">
         <label for="signup-name">الاسم الكامل</label>
         <input type="text" id="signup-name" placeholder="اسمك بالكامل" required />
@@ -336,7 +335,7 @@
           <svg viewBox="0 0 24 24" fill="none"><path d="M1.5 12C3.5 7 8 3.5 12 3.5C16 3.5 20.5 7 22.5 12C20.5 17 16 20.5 12 20.5C8 20.5 3.5 17 1.5 12Z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="2"/></svg>
         </button>
       </div>
-      <button class="signup-btn" id="signup-btn" type="submit">إنشاء الحساب</button>
+      <button class="signup-btn" id="signup-btn" type="button" onclick="signup()">إنشاء الحساب</button>
     </form>
     <button class="switcher" id="switcher" type="button" onclick="toggleMode()">أو أنشئ حساب جديد</button>
     <div class="footer">© 2025 Am Rewards • كل الحقوق محفوظة</div>
@@ -375,20 +374,28 @@
       msgText.textContent = text;
       msg.className = "message " + type;
       msg.style.display = text ? "block" : "none";
-      if (text) setTimeout(() => { msg.style.display = "none"; }, 4000);
+      clearTimeout(window._msgTimeout);
+      if (text) {
+        window._msgTimeout = setTimeout(() => {
+          if(type !== "error") msg.style.display = "none";
+        }, type === "error" ? 10000 : 3000);
+      }
     }
+
     function translateError(code) {
       switch(code) {
         case "auth/invalid-email": return "البريد الإلكتروني غير صالح";
-        case "auth/user-not-found": return "المستخدم غير موجود";
-        case "auth/wrong-password": return "كلمة المرور غير صحيحة";
+        case "auth/user-not-found":
+        case "auth/wrong-password":
+          return "البريد الإلكتروني أو كلمة المرور غير صحيحة";
         case "auth/email-already-in-use": return "هذا البريد مستخدم من قبل";
         case "auth/weak-password": return "كلمة المرور ضعيفة جدًا";
         case "auth/missing-password": return "يرجى إدخال كلمة المرور";
         case "auth/too-many-requests": return "تم حظر المحاولة مؤقتًا بسبب عدة محاولات خاطئة، انتظر قليلًا";
-        default: return "حدث خطأ غير متوقع، حاول مرة أخرى";
+        default: return "حدث خطأ، حاول مرة أخرى أو تحقق من بياناتك.";
       }
     }
+
     window.toggleMode = function () {
       isLogin = !isLogin;
       document.getElementById("login-form").style.display = isLogin ? "" : "none";
@@ -397,9 +404,11 @@
       document.getElementById("switcher").textContent = isLogin ? "أو أنشئ حساب جديد" : "أو سجّل الدخول";
       showMessage("", "success");
     };
+
     function validateEgyptianPhone(phone) {
       return /^(010|011|012|015)[0-9]{8}$/.test(phone);
     }
+
     window.login = async function () {
       const email = document.getElementById("login-email").value.trim();
       const password = document.getElementById("login-password").value.trim();
@@ -436,6 +445,7 @@
         showMessage(translateError(error.code), "error");
       }
     };
+
     window.signup = async function () {
       const name = document.getElementById("signup-name").value.trim();
       const phone = document.getElementById("signup-phone").value.trim();
@@ -479,6 +489,7 @@
         showMessage(translateError(error.code), "error");
       }
     };
+
     window.resetPassword = async function () {
       const email = document.getElementById("login-email").value.trim();
       const btn = document.getElementById("forgot-btn");
@@ -498,6 +509,7 @@
       }
       btn.textContent = "نسيت كلمة المرور؟";
     };
+
     // زر إظهار/إخفاء كلمة المرور
     window.togglePassword = function(id, btn) {
       const input = document.getElementById(id);
