@@ -208,63 +208,77 @@ auth.onAuthStateChanged(user=>{
         }
       });
 
-    // سجل السحب المعدل يدعم النص وتايم ستامب
-    db.collection("withdrawals")
-      .where("userId", "==", user.uid)
-      .onSnapshot(snapshot => {
-        withdrawalsTable.innerHTML = "";
-        if (snapshot.empty) {
-          withdrawalsTable.innerHTML = `<tr><td colspan="4">لا يوجد طلبات سحب بعد</td></tr>`;
-          return;
+// سجل السحب المعدل يدعم النص وتايم ستامب
+db.collection("withdrawals")
+  .where("userId", "==", user?.uid)
+  .onSnapshot(snapshot => {
+    const withdrawalsTable = document.getElementById("withdrawalsTable");
+    if (!withdrawalsTable) return; // ✅ تأكد إن الجدول موجود فعلاً في الصفحة
+
+    withdrawalsTable.innerHTML = "";
+    if (snapshot.empty) {
+      withdrawalsTable.innerHTML = `<tr><td colspan="4">لا يوجد طلبات سحب بعد</td></tr>`;
+      return;
+    }
+
+    let arr = [];
+    snapshot.forEach(doc => {
+      const w = doc.data();
+      let dateVal = 0;
+
+      // ✅ معالجة التاريخ سواء كان نص أو Timestamp
+      if (w.date) {
+        if (typeof w.date === "string") {
+          dateVal = Date.parse(w.date) || 0;
+        } else if (w.date.toDate) {
+          dateVal = w.date.toDate().getTime();
         }
-        let arr = [];
-        snapshot.forEach(doc => {
-          const w = doc.data();
-          let dateVal = 0;
-          if (w.date) {
-            if (typeof w.date === "string") {
-              dateVal = Date.parse(w.date) || 0;
-            } else if (w.date.toDate) {
-              dateVal = w.date.toDate().getTime();
-            }
-          }
-          arr.push({ ...w, dateVal });
-        });
-        arr.sort((a, b) => b.dateVal - a.dateVal);
-        arr.forEach(w => {
-          let dateStr = "-";
-          if (w.date) {
-            if (typeof w.date === "string") {
-              dateStr = w.date;
-            } else if (w.date.toDate) {
-              const dt = w.date.toDate();
-              dateStr = dt.toLocaleDateString("ar-EG") + " - " + dt.toLocaleTimeString("ar-EG");
-            }
-          }
-          let statusClass="", icon="", statusText="";
-          switch (w.status) {
-            case "pending":
-            case "معلق":
-              statusClass = "status-pending"; icon = "⏳"; statusText = "معلق"; break;
-            case "completed":
-            case "مكتمل":
-              statusClass = "status-completed"; icon = "✅"; statusText = "مكتمل"; break;
-            case "rejected":
-            case "مرفوض":
-              statusClass = "status-rejected"; icon = "❌"; statusText = "مرفوض"; break;
-            default:
-              statusText = w.status || "-";
-          }
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${w.amount || "-"} جم</td>
-            <td>${w.net ? w.net.toFixed(2) : "-"} جم</td>
-            <td class="status ${statusClass}">${icon} ${statusText}</td>
-            <td>${dateStr}</td>
-          `;
-          withdrawalsTable.appendChild(tr);
-        });
-      });
+      }
+
+      arr.push({ ...w, dateVal });
+    });
+
+    // ✅ ترتيب السحوبات من الأحدث إلى الأقدم
+    arr.sort((a, b) => b.dateVal - a.dateVal);
+
+    arr.forEach(w => {
+      let dateStr = "-";
+      if (w.date) {
+        if (typeof w.date === "string") {
+          dateStr = w.date;
+        } else if (w.date.toDate) {
+          const dt = w.date.toDate();
+          dateStr = dt.toLocaleDateString("ar-EG") + " - " + dt.toLocaleTimeString("ar-EG");
+        }
+      }
+
+      // ✅ تحديد الحالة (معلق - مكتمل - مرفوض)
+      let statusClass = "", icon = "", statusText = "";
+      switch (w.status) {
+        case "pending":
+        case "معلق":
+          statusClass = "status-pending"; icon = "⏳"; statusText = "معلق"; break;
+        case "completed":
+        case "مكتمل":
+          statusClass = "status-completed"; icon = "✅"; statusText = "مكتمل"; break;
+        case "rejected":
+        case "مرفوض":
+          statusClass = "status-rejected"; icon = "❌"; statusText = "مرفوض"; break;
+        default:
+          statusText = w.status || "-";
+      }
+
+      // ✅ التأكد من وجود المبلغ والقيمة الصافية
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${w.amount || "-"} جم</td>
+        <td>${w.net ? Number(w.net).toFixed(2) : "-"} جم</td>
+        <td class="status ${statusClass}">${icon} ${statusText}</td>
+        <td>${dateStr}</td>
+      `;
+      withdrawalsTable.appendChild(tr);
+    });
+  });
 
   } else {
     window.location.href="index.html";
