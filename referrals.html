@@ -163,44 +163,61 @@
       relativeLast.textContent = data.lastReferralUpdateDate ? "آخر تحديث: "+relativeTime(data.lastReferralUpdateDate) : "آخر تحديث: -";  
   
       const q = query(collection(db,"users"), where("referralBy","==",data.referralCode||"__NO__"));  
-      const subs = onSnapshot(q, async (snapQ)=>{  
-        tableBody.innerHTML = "";  
-        if(snapQ.empty){ tableBody.innerHTML=`<tr><td colspan="6" class="small-muted">لا يوجد مدعوون</td></tr>`; return;}  
-        let idx=0, totalBonus=0;  
-        for(const docSnap of snapQ.docs){  
-          idx++;  
-          const invited=docSnap.data();  
-          const invitedId=docSnap.id;  
-          const now=Number(invited.points||0);  
-          const prev=Number(invited.totalReferralGiven||0);  
-          const diff=Math.max(now-prev,0);  
-          const bonus=Math.floor(diff*0.1);  
-          if(diff>0){  
-            await runTransaction(db,async(t)=>{  
-              const invRef=doc(db,"users",invitedId);  
-              const invDoc=await t.get(invRef);  
-              if(!invDoc.exists()) return;  
-              t.update(invRef,{totalReferralGiven:now});  
-              t.update(userRef,{  
-                referralPoints:increment(bonus),  
-                points:increment(bonus),  
-                lastReferralUpdateDate:serverTimestamp()  
-              });  
-            });  
-            totalBonus+=bonus;  
-          }  
-          const row=document.createElement("tr");  
-          row.innerHTML=`<td>${idx}</td>  
-            <td>${invited.name||'مستخدم'}</td>  
-            <td>${now}</td><td>${prev}</td>  
-            <td>${diff>0?`<span class='tag diff'>${diff}</span>`:"0"}</td>  
-            <td>${bonus>0?`<span class='tag bonus'>+${bonus}</span>`:"0"}</td>`;  
-          tableBody.appendChild(row);  
-        }  
-        if(totalBonus>0){ showToast(`🎉 تمت إضافة ${totalBonus} نقطة!`); updateSummary.textContent=`تمت إضافة ${totalBonus} نقطة جديدة`; }  
-        else updateSummary.textContent="لا توجد نقاط جديدة";  
-      });  
-    }  
+      const subs = onSnapshot(q, async (snapQ)=>{
+  tableBody.innerHTML = "";
+  if(snapQ.empty){ 
+    tableBody.innerHTML=`<tr><td colspan="6" class="small-muted">لا يوجد مدعوون</td></tr>`; 
+    return;
+  }
+
+  let idx=0, totalBonus=0;
+  const updates = []; // نجمع التحديثات كلها هنا مؤقتًا
+
+  for(const docSnap of snapQ.docs){
+    idx++;
+    const invited=docSnap.data();
+    const invitedId=docSnap.id;
+    const now=Number(invited.points||0);
+    const prev=Number(invited.totalReferralGiven||0);
+    const diff=Math.max(now-prev,0);
+    const bonus=Math.floor(diff*0.1);
+
+    if(diff>0){
+      updates.push({ invitedId, now, bonus });
+      totalBonus+=bonus;
+    }
+
+    // نعرض الصف في الجدول
+    const row=document.createElement("tr");
+    row.innerHTML=`<td>${idx}</td>
+      <td>${invited.name||'مستخدم'}</td>
+      <td>${now}</td><td>${prev}</td>
+      <td>${diff>0?`<span class='tag diff'>${diff}</span>`:"0"}</td>
+      <td>${bonus>0?`<span class='tag bonus'>+${bonus}</span>`:"0"}</td>`;
+    tableBody.appendChild(row);
+  }
+
+  // بعد ما نرسم الجدول، نحدث القيم في الخلفية مرة واحدة
+  if(updates.length>0){
+    for(const u of updates){
+      const invRef = doc(db,"users",u.invitedId);
+      await runTransaction(db, async (t)=>{
+        const invDoc = await t.get(invRef);
+        if(!invDoc.exists()) return;
+        t.update(invRef,{ totalReferralGiven:u.now });
+        t.update(userRef,{
+          referralPoints:increment(u.bonus),
+          points:increment(u.bonus),
+          lastReferralUpdateDate:serverTimestamp()
+        });
+      });
+    }
+    showToast(`🎉 تمت إضافة ${totalBonus} نقطة جديدة!`);
+    updateSummary.textContent=`تمت إضافة ${totalBonus} نقطة جديدة`;
+  } else {
+    updateSummary.textContent="لا توجد نقاط جديدة";
+  }
+});
   
     onAuthStateChanged(auth,(user)=>{  
       if(!user) return location.href="login.html";  
