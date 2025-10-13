@@ -108,134 +108,163 @@
   <div id="toast">تم</div>
 
   <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { 
-    getFirestore, doc, getDoc, collection, query, where, onSnapshot,
-    runTransaction, increment, serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, collection, query, where, onSnapshot,
+      runTransaction, increment, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-    authDomain: "am--rewards.firebaseapp.com",
-    projectId: "am--rewards",
-    storageBucket: "am--rewards.appspot.com",
-    messagingSenderId: "428582312150",
-    appId: "1:428582312150:web:44e35a70e457e7db4c45df"
-  };
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.appspot.com",
+      messagingSenderId: "428582312150",
+      appId: "1:428582312150:web:44e35a70e457e7db4c45df"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-  const referralCountEl = document.getElementById('referralCount');
-  const referralPointsEl = document.getElementById('referralPoints');
-  const referralCodeEl = document.getElementById('referralCode');
-  const referralLinkEl = document.getElementById('referralLink');
-  const tableBody = document.getElementById('tableBody');
-  const refreshBtn = document.getElementById('refreshBtn');
-  const copyBtn = document.getElementById('copyBtn');
-  const relativeLast = document.getElementById('relativeLast');
-  const updateSummary = document.getElementById('updateSummary');
-  const toast = document.getElementById('toast');
+    const referralCountEl = document.getElementById('referralCount');
+    const referralPointsEl = document.getElementById('referralPoints');
+    const referralCodeEl = document.getElementById('referralCode');
+    const referralLinkEl = document.getElementById('referralLink');
+    const tableBody = document.getElementById('tableBody');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const relativeLast = document.getElementById('relativeLast');
+    const updateSummary = document.getElementById('updateSummary');
+    const toast = document.getElementById('toast');
 
-  let currentUser = null;
+    let currentUser = null;
+    let refUserUnsub = null;   // لنلغي الاستماع عند الحاجة
+    let invitedUnsub = null;
 
-  function showToast(msg){
-    toast.textContent = msg;
-    toast.classList.add('show');
-    setTimeout(()=>toast.classList.remove('show'),3500);
-  }
+    function showToast(msg){
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(()=>toast.classList.remove('show'),3500);
+    }
 
-  function relativeTime(ts){
-    if(!ts) return "-";
-    const d = ts.toDate ? ts.toDate() : new Date(ts);
-    const diff = Math.floor((Date.now() - d.getTime())/60000);
-    if(diff < 1) return "الآن";
-    if(diff < 60) return `منذ ${diff} دقيقة`;
-    const h = Math.floor(diff/60);
-    return h < 24 ? `منذ ${h} ساعة` : `منذ ${Math.floor(h/24)} يوم`;
-  }
+    function relativeTime(ts){
+      if(!ts) return "-";
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      const diff = Math.floor((Date.now() - d.getTime())/60000);
+      if(diff < 1) return "الآن";
+      if(diff < 60) return `منذ ${diff} دقيقة`;
+      const h = Math.floor(diff/60);
+      return h < 24 ? `منذ ${h} ساعة` : `منذ ${Math.floor(h/24)} يوم`;
+    }
 
-  async function loadReferrals(user){
-    const userRef = doc(db,"users",user.uid);
-    const snap = await getDoc(userRef);
-    if(!snap.exists()) return;
-    const data = snap.data();
+    async function loadReferrals(user){
+      // إذا كان في مستمعات قديمة نلغيها أول
+      if(refUserUnsub) refUserUnsub();
+      if(invitedUnsub) invitedUnsub();
 
-    referralCodeEl.textContent = data.referralCode || "—";
-    referralLinkEl.textContent = `${location.origin}/signup.html?ref=${data.referralCode||''}`;
-    referralCountEl.textContent = data.referralCount || 0;
-    referralPointsEl.textContent = data.referralPoints || 0;
-    relativeLast.textContent = data.lastReferralUpdateDate ? "آخر تحديث: "+relativeTime(data.lastReferralUpdateDate) : "آخر تحديث: -";
+      const userRef = doc(db,"users",user.uid);
 
-    const q = query(collection(db,"users"), where("referralBy","==",data.referralCode||"__NO__"));
-    
-    onSnapshot(q, async (snapQ)=>{
-      tableBody.innerHTML = "";
-      if(snapQ.empty){ 
-        tableBody.innerHTML=`<tr><td colspan="6" class="small-muted">لا يوجد مدعوون</td></tr>`; 
-        return;
-      }
+      // استمع لمستند المستخدم لنعرض التحديثات فوراً
+      refUserUnsub = onSnapshot(userRef, (snap)=>{
+        if(!snap.exists()) return;
+        const data = snap.data();
+        referralCodeEl.textContent = data.referralCode || "—";
+        referralLinkEl.textContent = `${location.origin}/signup.html?ref=${data.referralCode||''}`;
+        referralCountEl.textContent = data.referralCount || 0;
+        referralPointsEl.textContent = data.referralPoints || 0;
+        relativeLast.textContent = data.lastReferralUpdateDate ? "آخر تحديث: "+relativeTime(data.lastReferralUpdateDate) : "آخر تحديث: -";
+      });
 
-      let idx=0, totalBonus=0;
-      const updates = [];
-
-      for(const docSnap of snapQ.docs){
-        idx++;
-        const invited=docSnap.data();
-        const invitedId=docSnap.id;
-        const totalEarned=Number(invited.totalEarned||0);
-        const prev=Number(invited.referralChecked||0);
-        const diff=Math.max(totalEarned-prev,0);
-        const bonus=Math.floor(diff*0.1);
-
-        if(diff>0){
-          updates.push({ invitedId, totalEarned, bonus });
-          totalBonus+=bonus;
+      // استعلام المدعوين — ونسمع تغيّراتهم لحظياً
+      const q = query(collection(db,"users"), where("referralBy","==", (await getDoc(userRef)).data()?.referralCode || "__NO__"));
+      invitedUnsub = onSnapshot(q, async (snapQ)=>{
+        tableBody.innerHTML = "";
+        if(snapQ.empty){
+          tableBody.innerHTML = `<tr><td colspan="6" class="small-muted">لا يوجد مدعوون</td></tr>`;
+          updateSummary.textContent = "لا توجد نقاط جديدة";
+          return;
         }
 
-        const row=document.createElement("tr");
-        row.innerHTML=`<td>${idx}</td>
-          <td>${invited.name||'مستخدم'}</td>
-          <td>${totalEarned}</td><td>${prev}</td>
-          <td>${diff>0?`<span class='tag diff'>${diff}</span>`:"0"}</td>
-          <td>${bonus>0?`<span class='tag bonus'>+${bonus}</span>`:"0"}</td>`;
-        tableBody.appendChild(row);
-      }
+        let idx=0, totalBonus=0;
+        const updates = [];
 
-      if(updates.length>0){
-        for(const u of updates){
-          const invRef = doc(db,"users",u.invitedId);
-          await runTransaction(db, async (t)=>{
-            const invDoc = await t.get(invRef);
-            if(!invDoc.exists()) return;
-            t.update(invRef,{ referralChecked:u.totalEarned });
-            t.update(userRef,{
-              referralPoints:increment(u.bonus),
-              points:increment(u.bonus),
-              lastReferralUpdateDate:serverTimestamp()
-            });
-          });
+        // نجمع التغييرات أولاً (حتى لا نعمل عمليات متزامنة كثيرة بطريقه غير مراقبة)
+        for(const docSnap of snapQ.docs){
+          idx++;
+          const invited = docSnap.data();
+          const invitedId = docSnap.id;
+          const now = Number(invited.points || 0);
+          const prev = Number(invited.totalReferralGiven || 0);
+          const diff = Math.max(now - prev, 0);
+          const bonus = Math.floor(diff * 0.1);
+
+          if(diff > 0){
+            updates.push({ invitedId, now, bonus });
+            totalBonus += bonus;
+          }
+
+          const row = document.createElement("tr");
+          row.innerHTML = `<td>${idx}</td>
+            <td>${invited.name||'مستخدم'}</td>
+            <td>${now}</td><td>${prev}</td>
+            <td>${diff>0?`<span class='tag diff'>${diff}</span>`:"0"}</td>
+            <td>${bonus>0?`<span class='tag bonus'>+${bonus}</span>`:"0"}</td>`;
+          tableBody.appendChild(row);
         }
-        showToast(`🎉 تمت إضافة ${totalBonus} نقطة جديدة!`);
-        updateSummary.textContent=`تمت إضافة ${totalBonus} نقطة جديدة`;
-      } else {
-        updateSummary.textContent="لا توجد نقاط جديدة";
-      }
+
+        // إذا في تحديثات، نحتفظ بترتيبها ونعمل transactions آمنة لكل مدعو
+        if(updates.length > 0){
+          // ننفّذ كل تحديث في transaction منفصلة لضمان سلامة البيانات
+          for(const u of updates){
+            const invRef = doc(db,"users",u.invitedId);
+            try{
+              await runTransaction(db, async (t)=>{
+                const invDoc = await t.get(invRef);
+                if(!invDoc.exists()) return;
+                // اقرأ القيم داخل الترانزاكشن للتأكد من عدم التكرار
+                const currentInv = invDoc.data();
+                const nowPoints = Number(currentInv.points || 0);
+                const nowTotalGiven = Number(currentInv.totalReferralGiven || 0);
+                const actualDiff = Math.max(nowPoints - nowTotalGiven, 0);
+                if(actualDiff <= 0) return; // مفيش فرق الآن
+                const actualBonus = Math.floor(actualDiff * 0.1);
+                // حدّث مدعو وسجل أننا أعطينا حتى هذه النقاط
+                t.update(invRef, { totalReferralGiven: nowPoints });
+                // حدّث رصيد الداعي (referrer) ومجموع نقاط الإحالات
+                t.update(userRef, {
+                  referralPoints: increment(actualBonus),
+                  points: increment(actualBonus),
+                  lastReferralUpdateDate: serverTimestamp()
+                });
+              });
+            }catch(err){
+              console.error('transaction failed for', u.invitedId, err);
+            }
+          }
+
+          showToast(`🎉 تمت إضافة ${totalBonus} نقطة جديدة!`);
+          updateSummary.textContent = `تمت إضافة ${totalBonus} نقطة جديدة`;
+          // ملاحظة: المستمع على userRef سيحدّث header تلقائياً عند انتهاء الترانزاكشن.
+        } else {
+          updateSummary.textContent = "لا توجد نقاط جديدة";
+        }
+      });
+    }
+
+    onAuthStateChanged(auth,(user)=>{
+      if(!user) return location.href="login.html";
+      currentUser=user;
+      loadReferrals(user);
     });
-  }
 
-  onAuthStateChanged(auth,(user)=>{
-    if(!user) return location.href="login.html";
-    currentUser=user;
-    loadReferrals(user);
-  });
-
-  refreshBtn.onclick=()=>{ if(currentUser) loadReferrals(currentUser); };
-  copyBtn.onclick=async()=>{
-    try{
-      await navigator.clipboard.writeText(referralLinkEl.textContent);
-      showToast("تم نسخ الرابط ✅");
-    }catch{ showToast("فشل النسخ ❌"); }
-  };
+    refreshBtn.onclick = ()=>{ if(currentUser) loadReferrals(currentUser); };
+    copyBtn.onclick = async ()=>{
+      try{
+        await navigator.clipboard.writeText(referralLinkEl.textContent);
+        showToast("تم نسخ الرابط ✅");
+      }catch{ showToast("فشل النسخ ❌"); }
+    };
   </script>
+</body>
+  </html>
