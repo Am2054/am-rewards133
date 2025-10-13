@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 <style>
+/* نفس الـ CSS اللي عندك (محفوظ كما هو) */
 body {
   font-family: 'Cairo', sans-serif;
   background: #0f172a linear-gradient(135deg, #0f172a 0%, #38bdf8 100%);
@@ -127,12 +128,12 @@ gap: 5px;
 .status-completed { color: #22c55e; }
 .status-rejected { color: #f87171; }
 </style>
-
 </head>
 <body>
 <div class="container">
   <h1>💸 طلب سحب الأرباح</h1>
   <div class="info">رصيدك الحالي: <span id="pointsVal">0</span> نقطة ≈ <span id="egpVal">0.00</span> جم</div>
+
   <label>رقم محفظة فودافون كاش</label>
   <input type="text" id="walletVod" placeholder="ادخل رقم المحفظة">
 
@@ -169,10 +170,10 @@ gap: 5px;
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
-const firebaseConfig = {   
-  apiKey:"AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",   
-  authDomain:"am--rewards.firebaseapp.com",   
-  projectId:"am--rewards"   
+const firebaseConfig = {
+  apiKey:"AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+  authDomain:"am--rewards.firebaseapp.com",
+  projectId:"am--rewards"
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
@@ -193,35 +194,69 @@ const withdrawalsTable=document.getElementById('withdrawalsTable');
 const confirmBtn=document.getElementById('confirmBtn');
 
 let userId=null;
+let unsubUserDoc = null;        // to unsubscribe user doc listener
+let unsubWithdrawals = null;    // to unsubscribe withdrawals listener
+
+// ensure calc initial state
+function updateCalc(){
+  const amt=parseFloat(amountInp.value);
+  if(isNaN(amt)||amt<LIMITS.min){
+    feeVal.textContent="0.00"; netVal.textContent="0.00"; needPts.textContent="0"; return;
+  }
+  const fee=amt*0.10;
+  const net=amt-fee;
+  const ptsNeeded=Math.ceil(amt/POINT_VALUE_EGP);
+  feeVal.textContent=fee.toFixed(2);
+  netVal.textContent=net.toFixed(2);
+  needPts.textContent=ptsNeeded;
+}
+amountInp.addEventListener('input',updateCalc);
+// call once on load
+updateCalc();
 
 auth.onAuthStateChanged(user=>{
+  // unsubscribe previous listeners (if any) to avoid duplicates
+  if(unsubUserDoc){ try{ unsubUserDoc(); }catch(e){/*ignore*/} unsubUserDoc = null; }
+  if(unsubWithdrawals){ try{ unsubWithdrawals(); }catch(e){/*ignore*/} unsubWithdrawals = null; }
+
   if(user){
-    userId=user.uid;
-    db.collection('users').doc(userId).onSnapshot(doc=>{
-      if(doc.exists){
-        const points=doc.data().points||0;
-        pointsVal.textContent=points;
-        egpVal.textContent=(points*POINT_VALUE_EGP).toFixed(2);
+    userId = user.uid;
+
+    // user doc realtime (points update)
+    const userRef = db.collection('users').doc(userId);
+    unsubUserDoc = userRef.onSnapshot(docSnap=>{
+      if(!docSnap.exists){
+        pointsVal.textContent = 0;
+        egpVal.textContent = (0).toFixed(2);
+        return;
       }
+      const data = docSnap.data() || {};
+      const points = Number(data.points || 0);
+      pointsVal.textContent = points;
+      egpVal.textContent = (points * POINT_VALUE_EGP).toFixed(2);
+      // in case amount input depends on points we can re-run calc
+      updateCalc();
+    }, err=>{
+      console.error("user doc snapshot error:", err);
     });
 
-    // سجل السحب
-    db.collection("withdrawals").where("userId","==",user.uid)
-    .onSnapshot(snapshot=>{
+    // withdrawals realtime (use userId variable)
+    const q = db.collection("withdrawals").where("userId","==", userId);
+    unsubWithdrawals = q.onSnapshot(snapshot=>{
       withdrawalsTable.innerHTML="";
       if(snapshot.empty){
         withdrawalsTable.innerHTML=`<tr><td colspan="4">لا يوجد طلبات سحب بعد</td></tr>`;
         return;
       }
       let arr=[];
-      snapshot.forEach(doc=>{
-        const w=doc.data();
-        let dateVal=0;
-        if(w.date){
-          if(typeof w.date==="string") dateVal=Date.parse(w.date)||0;
-          else if(w.date.toDate) dateVal=w.date.toDate().getTime();
+      snapshot.forEach(s=>{
+        const w = s.data();
+        let dateVal = 0;
+        if (w.date) {
+          if (typeof w.date === "string") dateVal = Date.parse(w.date) || 0;
+          else if (w.date.toDate) dateVal = w.date.toDate().getTime();
         }
-        arr.push({...w,dateVal});
+        arr.push({...w, dateVal});
       });
       arr.sort((a,b)=>b.dateVal-a.dateVal);
       arr.forEach(w=>{
@@ -245,25 +280,19 @@ auth.onAuthStateChanged(user=>{
           <td>${dateStr}</td>`;
         withdrawalsTable.appendChild(tr);
       });
+    }, err=>{
+      console.error("withdrawals snapshot error:", err);
     });
+
   } else {
-    window.location.href="index.html";
+    userId = null;
+    // ensure UI cleaned
+    pointsVal.textContent = 0;
+    egpVal.textContent = (0).toFixed(2);
+    withdrawalsTable.innerHTML = `<tr><td colspan="4">مرحبًا — الرجاء تسجيل الدخول</td></tr>`;
+    window.location.href = "index.html";
   }
 });
-
-function updateCalc(){
-  const amt=parseFloat(amountInp.value);
-  if(isNaN(amt)||amt<LIMITS.min){
-    feeVal.textContent="0.00"; netVal.textContent="0.00"; needPts.textContent="0"; return;
-  }
-  const fee=amt*0.10;
-  const net=amt-fee;
-  const ptsNeeded=Math.ceil(amt/POINT_VALUE_EGP);
-  feeVal.textContent=fee.toFixed(2);
-  netVal.textContent=net.toFixed(2);
-  needPts.textContent=ptsNeeded;
-}
-amountInp.addEventListener('input',updateCalc);
 
 confirmBtn.addEventListener('click',async ()=>{
   msg.textContent=""; msg.className="msg";
@@ -271,6 +300,7 @@ confirmBtn.addEventListener('click',async ()=>{
   const wallet=walletVod.value.trim();
   if(isNaN(amt)||amt<LIMITS.min){ msg.textContent="❌ الحد الأدنى للسحب 20 جم"; msg.classList.add("error"); return; }
   if(!wallet){ msg.textContent="❌ أدخل رقم المحفظة"; msg.classList.add("error"); return; }
+  if(!userId){ msg.textContent="❌ خطأ: المستخدم غير مسجّل"; msg.classList.add("error"); return; }
 
   confirmBtn.disabled=true;
   try {
@@ -298,26 +328,33 @@ confirmBtn.addEventListener('click',async ()=>{
       const userRef=db.collection("users").doc(userId);
       const userSnap=await tr.get(userRef);
       const userData=userSnap.data()||{};
-      const points=userData.points||0;
+      const points=Number(userData.points||0);
       if(points<ptsNeeded) throw "رصيد نقاط غير كافٍ";
 
+      // نقص النقاط
       tr.update(userRef,{ points: firebase.firestore.FieldValue.increment(-ptsNeeded) });
 
-      tr.set(db.collection("withdrawals").doc(),{
+      // سجّل طلب السحب
+      const newWithdrawRef = db.collection("withdrawals").doc();
+      tr.set(newWithdrawRef,{
         userId, method:"vodafone", wallet,
         amount:amt, fee:amt*0.10, net:amt-amt*0.10,
         pts:ptsNeeded, status:"pending",
         date:firebase.firestore.FieldValue.serverTimestamp()
       });
 
-      // ✅ نظام الإحالة الجديد: مكافأة عند كل عملية سحب
+      // نظام الإحالة الجديد: مكافأة عند كل عملية سحب
       if(userData.referrerId){
         const referrerRef=db.collection("users").doc(userData.referrerId);
-        const bonusPoints=Math.floor((amt - amt*0.10) / POINT_VALUE_EGP * 0.10);
-        tr.update(referrerRef,{
-          points: firebase.firestore.FieldValue.increment(bonusPoints),
-          lastReferralBonusAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        // نحسب المكافأة: 10% من الصافي محوّلة إلى نقاط
+        const netEgp = amt - amt*0.10;
+        const bonusPoints = Math.floor((netEgp / POINT_VALUE_EGP) * 0.10);
+        if(bonusPoints > 0){
+          tr.update(referrerRef,{
+            points: firebase.firestore.FieldValue.increment(bonusPoints),
+            lastReferralBonusAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
       }
     });
 
@@ -326,11 +363,13 @@ confirmBtn.addEventListener('click',async ()=>{
     amountInp.value=""; walletVod.value="";
     updateCalc();
   }catch(err){
-    msg.textContent="❌ "+err; msg.classList.add("error");
+    console.error("withdraw error:", err);
+    msg.textContent="❌ "+(err?.toString?.() || err);
+    msg.classList.add("error");
   }finally{
     confirmBtn.disabled=false;
   }
 });
 </script>
 </body>
-  </html>
+                                                                  </html>
