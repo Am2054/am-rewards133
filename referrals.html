@@ -95,10 +95,16 @@
         <table>
           <thead>
             <tr>
-              <th>#</th><th>المدعو</th><th>نقاطه الحالية</th><th>النقاط السابقة</th><th>الفرق</th><th>ربحك</th>
+              <th>#</th>
+              <th>المدعو</th>
+              <th>نقاطه الحالية</th>
+              <th>إجمالي أرباحه</th>
+              <th>النقاط السابقة</th>
+              <th>الفرق</th>
+              <th>ربحك</th>
             </tr>
           </thead>
-          <tbody id="tableBody"><tr><td colspan="6" class="small-muted">جارِ التحميل...</td></tr></tbody>
+          <tbody id="tableBody"><tr><td colspan="7" class="small-muted">جارِ التحميل...</td></tr></tbody>
         </table>
       </div>
       <div id="updateSummary" class="small-muted" style="margin-top:10px">—</div>
@@ -110,7 +116,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import {
+    import { 
       getFirestore, doc, getDoc, collection, query, where, onSnapshot,
       runTransaction, increment, serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -139,8 +145,6 @@
     const toast = document.getElementById('toast');
 
     let currentUser = null;
-    let refUserUnsub = null;   // لنلغي الاستماع عند الحاجة
-    let invitedUnsub = null;
 
     function showToast(msg){
       toast.textContent = msg;
@@ -159,95 +163,72 @@
     }
 
     async function loadReferrals(user){
-      // إذا كان في مستمعات قديمة نلغيها أول
-      if(refUserUnsub) refUserUnsub();
-      if(invitedUnsub) invitedUnsub();
-
       const userRef = doc(db,"users",user.uid);
+      const snap = await getDoc(userRef);
+      if(!snap.exists()) return;
+      const data = snap.data();
 
-      // استمع لمستند المستخدم لنعرض التحديثات فوراً
-      refUserUnsub = onSnapshot(userRef, (snap)=>{
-        if(!snap.exists()) return;
-        const data = snap.data();
-        referralCodeEl.textContent = data.referralCode || "—";
-        referralLinkEl.textContent = `${location.origin}/signup.html?ref=${data.referralCode||''}`;
-        referralCountEl.textContent = data.referralCount || 0;
-        referralPointsEl.textContent = data.referralPoints || 0;
-        relativeLast.textContent = data.lastReferralUpdateDate ? "آخر تحديث: "+relativeTime(data.lastReferralUpdateDate) : "آخر تحديث: -";
-      });
+      referralCodeEl.textContent = data.referralCode || "—";
+      referralLinkEl.textContent = `${location.origin}/signup.html?ref=${data.referralCode||''}`;
+      referralCountEl.textContent = data.referralCount || 0;
+      referralPointsEl.textContent = data.referralPoints || 0;
+      relativeLast.textContent = data.lastReferralUpdateDate ? "آخر تحديث: "+relativeTime(data.lastReferralUpdateDate) : "آخر تحديث: -";
 
-      // استعلام المدعوين — ونسمع تغيّراتهم لحظياً
-      const q = query(collection(db,"users"), where("referralBy","==", (await getDoc(userRef)).data()?.referralCode || "__NO__"));
-      invitedUnsub = onSnapshot(q, async (snapQ)=>{
+      const q = query(collection(db,"users"), where("referralBy","==",data.referralCode||"__NO__"));
+      const subs = onSnapshot(q, async (snapQ)=>{
         tableBody.innerHTML = "";
-        if(snapQ.empty){
-          tableBody.innerHTML = `<tr><td colspan="6" class="small-muted">لا يوجد مدعوون</td></tr>`;
-          updateSummary.textContent = "لا توجد نقاط جديدة";
+        if(snapQ.empty){ 
+          tableBody.innerHTML=`<tr><td colspan="7" class="small-muted">لا يوجد مدعوون</td></tr>`; 
           return;
         }
 
         let idx=0, totalBonus=0;
         const updates = [];
 
-        // نجمع التغييرات أولاً (حتى لا نعمل عمليات متزامنة كثيرة بطريقه غير مراقبة)
         for(const docSnap of snapQ.docs){
           idx++;
-          const invited = docSnap.data();
-          const invitedId = docSnap.id;
-          const now = Number(invited.points || 0);
-          const prev = Number(invited.totalReferralGiven || 0);
-          const diff = Math.max(now - prev, 0);
-          const bonus = Math.floor(diff * 0.1);
+          const invited=docSnap.data();
+          const invitedId=docSnap.id;
+          const now=Number(invited.points||0);
+          const totalEarned = Number(invited.totalEarned || 0); // ✅ تمت الإضافة
+          const prev=Number(invited.totalReferralGiven||0);
+          const diff=Math.max(now-prev,0);
+          const bonus=Math.floor(diff*0.1);
 
-          if(diff > 0){
+          if(diff>0){
             updates.push({ invitedId, now, bonus });
-            totalBonus += bonus;
+            totalBonus+=bonus;
           }
 
-          const row = document.createElement("tr");
-          row.innerHTML = `<td>${idx}</td>
+          const row=document.createElement("tr");
+          row.innerHTML=`<td>${idx}</td>
             <td>${invited.name||'مستخدم'}</td>
-            <td>${now}</td><td>${prev}</td>
+            <td>${now}</td>
+            <td>${totalEarned}</td> <!-- ✅ العمود الجديد -->
+            <td>${prev}</td>
             <td>${diff>0?`<span class='tag diff'>${diff}</span>`:"0"}</td>
             <td>${bonus>0?`<span class='tag bonus'>+${bonus}</span>`:"0"}</td>`;
           tableBody.appendChild(row);
         }
 
-        // إذا في تحديثات، نحتفظ بترتيبها ونعمل transactions آمنة لكل مدعو
-        if(updates.length > 0){
-          // ننفّذ كل تحديث في transaction منفصلة لضمان سلامة البيانات
+        if(updates.length>0){
           for(const u of updates){
             const invRef = doc(db,"users",u.invitedId);
-            try{
-              await runTransaction(db, async (t)=>{
-                const invDoc = await t.get(invRef);
-                if(!invDoc.exists()) return;
-                // اقرأ القيم داخل الترانزاكشن للتأكد من عدم التكرار
-                const currentInv = invDoc.data();
-                const nowPoints = Number(currentInv.points || 0);
-                const nowTotalGiven = Number(currentInv.totalReferralGiven || 0);
-                const actualDiff = Math.max(nowPoints - nowTotalGiven, 0);
-                if(actualDiff <= 0) return; // مفيش فرق الآن
-                const actualBonus = Math.floor(actualDiff * 0.1);
-                // حدّث مدعو وسجل أننا أعطينا حتى هذه النقاط
-                t.update(invRef, { totalReferralGiven: nowPoints });
-                // حدّث رصيد الداعي (referrer) ومجموع نقاط الإحالات
-                t.update(userRef, {
-                  referralPoints: increment(actualBonus),
-                  points: increment(actualBonus),
-                  lastReferralUpdateDate: serverTimestamp()
-                });
+            await runTransaction(db, async (t)=>{
+              const invDoc = await t.get(invRef);
+              if(!invDoc.exists()) return;
+              t.update(invRef,{ totalReferralGiven:u.now });
+              t.update(userRef,{
+                referralPoints:increment(u.bonus),
+                points:increment(u.bonus),
+                lastReferralUpdateDate:serverTimestamp()
               });
-            }catch(err){
-              console.error('transaction failed for', u.invitedId, err);
-            }
+            });
           }
-
           showToast(`🎉 تمت إضافة ${totalBonus} نقطة جديدة!`);
-          updateSummary.textContent = `تمت إضافة ${totalBonus} نقطة جديدة`;
-          // ملاحظة: المستمع على userRef سيحدّث header تلقائياً عند انتهاء الترانزاكشن.
+          updateSummary.textContent=`تمت إضافة ${totalBonus} نقطة جديدة`;
         } else {
-          updateSummary.textContent = "لا توجد نقاط جديدة";
+          updateSummary.textContent="لا توجد نقاط جديدة";
         }
       });
     }
@@ -258,8 +239,8 @@
       loadReferrals(user);
     });
 
-    refreshBtn.onclick = ()=>{ if(currentUser) loadReferrals(currentUser); };
-    copyBtn.onclick = async ()=>{
+    refreshBtn.onclick=()=>{ if(currentUser) loadReferrals(currentUser); };
+    copyBtn.onclick=async()=>{
       try{
         await navigator.clipboard.writeText(referralLinkEl.textContent);
         showToast("تم نسخ الرابط ✅");
