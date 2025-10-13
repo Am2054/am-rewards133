@@ -262,6 +262,26 @@ function updateCalc(){
   netVal.textContent=net.toFixed(2);
   needPts.textContent=ptsNeeded;
 }
+  // ✅ نظام الإحالات الجديد — مكافأة 10% عند السحب
+const inviterCode = snap.data().referralBy;
+if (inviterCode) {
+  const inviterQuery = await db.collection("users").where("referralCode", "==", inviterCode).get();
+  if (!inviterQuery.empty) {
+    const inviterRef = inviterQuery.docs[0].ref;
+    const inviterBonus = Math.floor(amt * 0.1); // 10% من مبلغ السحب
+    
+    tr.update(inviterRef, {
+      referralPoints: firebase.firestore.FieldValue.increment(inviterBonus),
+      points: firebase.firestore.FieldValue.increment(inviterBonus),
+      lastReferralUpdateDate: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }
+}
+
+// تحديث آخر سحب للمستخدم نفسه ليظهر في صفحة الإحالات
+tr.update(ref, {
+  lastWithdrawAmount: amt
+});
 amountInp.addEventListener('input',updateCalc);
 
 confirmBtn.addEventListener('click',async ()=>{
