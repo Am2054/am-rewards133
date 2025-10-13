@@ -90,6 +90,10 @@
         </div>
       </div>
 
+      <p class="small-muted" style="margin-top:12px;color:var(--gold)">
+        💡 المكافأة تُحسب تلقائيًا عند كل عملية سحب يقوم بها أحد المدعوين (10٪ من قيمة السحب).
+      </p>
+
       <div class="table-wrap">
         <table>
           <thead>
@@ -97,12 +101,11 @@
               <th>#</th>
               <th>المدعو</th>
               <th>نقاطه</th>
-              <th>إجمالي أرباحه</th>
               <th>آخر سحب</th>
               <th>ربحك</th>
             </tr>
           </thead>
-          <tbody id="tableBody"><tr><td colspan="6" class="small-muted">جارِ التحميل...</td></tr></tbody>
+          <tbody id="tableBody"><tr><td colspan="5" class="small-muted">جارِ التحميل...</td></tr></tbody>
         </table>
       </div>
       <div id="updateSummary" class="small-muted" style="margin-top:10px">—</div>
@@ -176,7 +179,7 @@
       onSnapshot(q, async (snapQ)=>{
         tableBody.innerHTML = "";
         if(snapQ.empty){ 
-          tableBody.innerHTML=`<tr><td colspan="6" class="small-muted">لا يوجد مدعوون</td></tr>`; 
+          tableBody.innerHTML=`<tr><td colspan="5" class="small-muted">لا يوجد مدعوون</td></tr>`; 
           return;
         }
 
@@ -187,10 +190,9 @@
           const invited=docSnap.data();
           const invitedId=docSnap.id;
           const nowPoints=Number(invited.points||0);
-          const totalEarned=Number(invited.totalEarned||0);
           const lastWithdraw=Number(invited.lastWithdrawAmount||0);
 
-          // لو فيه سحب جديد — احسب 10٪ وأضفها
+          // حساب المكافأة عند كل سحب
           if(lastWithdraw>0){
             const bonus=Math.floor(lastWithdraw*0.1);
             totalBonus+=bonus;
@@ -214,7 +216,6 @@
             <td>${idx}</td>
             <td>${invited.name||'مستخدم'}</td>
             <td>${nowPoints}</td>
-            <td>${totalEarned}</td>
             <td>${lastWithdraw}</td>
             <td>${lastWithdraw>0?`<span class='tag bonus'>+${Math.floor(lastWithdraw*0.1)}</span>`:"0"}</td>`;
           tableBody.appendChild(row);
@@ -243,4 +244,4 @@
     };
   </script>
 </body>
-                           </html>
+  </html>
