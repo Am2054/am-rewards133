@@ -52,7 +52,6 @@
     thead th{font-size:13px;color:var(--muted);border-bottom:1px solid rgba(255,255,255,0.05);padding:10px}
     tbody td{padding:10px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:14px}
     .tag{padding:4px 8px;border-radius:8px;font-weight:800;font-size:13px}
-    .tag.diff{background:rgba(255,211,105,0.07);color:var(--gold)}
     .tag.bonus{background:rgba(31,182,255,0.08);color:var(--accent)}
     .small-muted{font-size:13px;color:var(--muted)}
     #toast {
@@ -97,14 +96,13 @@
             <tr>
               <th>#</th>
               <th>المدعو</th>
-              <th>نقاطه الحالية</th>
+              <th>نقاطه</th>
               <th>إجمالي أرباحه</th>
-              <th>النقاط السابقة</th>
-              <th>الفرق</th>
+              <th>آخر سحب</th>
               <th>ربحك</th>
             </tr>
           </thead>
-          <tbody id="tableBody"><tr><td colspan="7" class="small-muted">جارِ التحميل...</td></tr></tbody>
+          <tbody id="tableBody"><tr><td colspan="6" class="small-muted">جارِ التحميل...</td></tr></tbody>
         </table>
       </div>
       <div id="updateSummary" class="small-muted" style="margin-top:10px">—</div>
@@ -117,8 +115,8 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { 
-      getFirestore, doc, getDoc, collection, query, where, onSnapshot,
-      runTransaction, increment, serverTimestamp
+      getFirestore, doc, getDoc, collection, query, where, onSnapshot, runTransaction,
+      increment, serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -129,6 +127,7 @@
       messagingSenderId: "428582312150",
       appId: "1:428582312150:web:44e35a70e457e7db4c45df"
     };
+
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
@@ -143,8 +142,6 @@
     const relativeLast = document.getElementById('relativeLast');
     const updateSummary = document.getElementById('updateSummary');
     const toast = document.getElementById('toast');
-
-    let currentUser = null;
 
     function showToast(msg){
       toast.textContent = msg;
@@ -176,115 +173,68 @@
 
       const q = query(collection(db,"users"), where("referralBy","==",data.referralCode||"__NO__"));
 
-      // realtime listener — الصفحة تتحدث لحظي
-      const subs = onSnapshot(q, async (snapQ)=>{
+      onSnapshot(q, async (snapQ)=>{
         tableBody.innerHTML = "";
         if(snapQ.empty){ 
-          tableBody.innerHTML=`<tr><td colspan="7" class="small-muted">لا يوجد مدعوون</td></tr>`; 
+          tableBody.innerHTML=`<tr><td colspan="6" class="small-muted">لا يوجد مدعوون</td></tr>`; 
           return;
         }
 
         let idx=0, totalBonus=0;
-        const updates = [];        // invitations that need bonus + set totalEarned maybe
-        const missingTotalEarned = []; // inviteds with missing totalEarned but no bonus needed
 
-        // جمع الصفوف أولًا (للأداء - نعرض الجدول فوراً)
         for(const docSnap of snapQ.docs){
           idx++;
           const invited=docSnap.data();
           const invitedId=docSnap.id;
-          const now=Number(invited.points||0);
-          const totalEarned = typeof invited.totalEarned !== 'undefined' ? Number(invited.totalEarned) : null;
-          const prev=Number(invited.totalReferralGiven||0);
-          const diff=Math.max(now-prev,0);
-          const bonus=Math.floor(diff*0.1);
+          const nowPoints=Number(invited.points||0);
+          const totalEarned=Number(invited.totalEarned||0);
+          const lastWithdraw=Number(invited.lastWithdrawAmount||0);
 
-          // لو totalEarned غير موجود، نعلّق عملية لإنشائه
-          const needsTotalEarned = (totalEarned === null);
-
-          if(diff>0){
-            updates.push({ invitedId, now, bonus, setTotalEarned: needsTotalEarned });
+          // لو فيه سحب جديد — احسب 10٪ وأضفها
+          if(lastWithdraw>0){
+            const bonus=Math.floor(lastWithdraw*0.1);
             totalBonus+=bonus;
-          } else if(needsTotalEarned){
-            // ما فيش فرق لكن totalEarned مفقود -> نملأه إلى now
-            missingTotalEarned.push({ invitedId, now });
-          }
 
-          const row=document.createElement("tr");
-          row.innerHTML=`<td>${idx}</td>
-            <td>${invited.name||'مستخدم'}</td>
-            <td>${now}</td>
-            <td>${ totalEarned !== null ? totalEarned : '-' }</td>
-            <td>${prev}</td>
-            <td>${diff>0?`<span class='tag diff'>${diff}</span>`:"0"}</td>
-            <td>${bonus>0?`<span class='tag bonus'>+${bonus}</span>`:"0"}</td>`;
-          tableBody.appendChild(row);
-        }
-
-        // الآن ننفّذ التحديثات المطلوبة — نفّذ كل واحدة على حدة باستخدام transaction (آمن)
-        if(updates.length>0){
-          for(const u of updates){
-            const invRef = doc(db,"users",u.invitedId);
             await runTransaction(db, async (t)=>{
-              const invDoc = await t.get(invRef);
+              const invRef=doc(db,"users",invitedId);
+              const invDoc=await t.get(invRef);
               if(!invDoc.exists()) return;
-              const invData = invDoc.data();
-              const currentNow = Number(invData.points||0); // تأكد من القيمة الحالية داخل الترانز أكشن
-              // نحدث totalReferralGiven إلى القيمة الحالية (currentNow)
-              const updatePayload = { totalReferralGiven: currentNow };
-              if(u.setTotalEarned){
-                updatePayload.totalEarned = currentNow;
-              }
-              t.update(invRef, updatePayload);
 
-              // نفّذ تحديث الرافر
+              t.update(invRef,{ lastWithdrawAmount:0 }); // تصفير بعد الحساب
               t.update(userRef,{
-                referralPoints: increment(u.bonus),
-                points: increment(u.bonus),
-                lastReferralUpdateDate: serverTimestamp()
+                referralPoints:increment(bonus),
+                points:increment(bonus),
+                lastReferralUpdateDate:serverTimestamp()
               });
             });
           }
+
+          const row=document.createElement("tr");
+          row.innerHTML=`
+            <td>${idx}</td>
+            <td>${invited.name||'مستخدم'}</td>
+            <td>${nowPoints}</td>
+            <td>${totalEarned}</td>
+            <td>${lastWithdraw}</td>
+            <td>${lastWithdraw>0?`<span class='tag bonus'>+${Math.floor(lastWithdraw*0.1)}</span>`:"0"}</td>`;
+          tableBody.appendChild(row);
         }
 
-        // نملأ الحقول المفقودة لـ totalEarned (الحالات التي ما كانش فيها diff)
-        if(missingTotalEarned.length>0){
-          for(const m of missingTotalEarned){
-            const invRef = doc(db,"users",m.invitedId);
-            try{
-              await runTransaction(db, async (t)=>{
-                const invDoc = await t.get(invRef);
-                if(!invDoc.exists()) return;
-                const invData = invDoc.data();
-                // لو الطقل مازال مفقود (تأكد داخل الترانز)
-                if(typeof invData.totalEarned === 'undefined'){
-                  t.update(invRef, { totalEarned: Number(invData.points || m.now) });
-                }
-              });
-            }catch(err){
-              // لا نوقف العرض لو فشل أحد التحديثات البسيطة
-              console.warn("failed to set totalEarned for", m.invitedId, err);
-            }
-          }
-        }
-
-        // عرض ملخص (لو تم إعطاء بونص)
         if(totalBonus>0){
-          showToast(`🎉 تمت إضافة ${totalBonus} نقطة جديدة!`);
+          showToast(`🎉 تمت إضافة ${totalBonus} نقطة جديدة`);
           updateSummary.textContent=`تمت إضافة ${totalBonus} نقطة جديدة`;
-        } else {
-          updateSummary.textContent="لا توجد نقاط جديدة";
+        }else{
+          updateSummary.textContent="لا توجد سحوبات جديدة";
         }
       });
     }
 
     onAuthStateChanged(auth,(user)=>{
       if(!user) return location.href="login.html";
-      currentUser=user;
       loadReferrals(user);
     });
 
-    refreshBtn.onclick=()=>{ if(currentUser) loadReferrals(currentUser); };
+    refreshBtn.onclick=()=>{ location.reload(); };
     copyBtn.onclick=async()=>{
       try{
         await navigator.clipboard.writeText(referralLinkEl.textContent);
@@ -293,4 +243,4 @@
     };
   </script>
 </body>
-  </html>
+                           </html>
