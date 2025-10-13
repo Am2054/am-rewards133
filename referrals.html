@@ -175,6 +175,8 @@
       relativeLast.textContent = data.lastReferralUpdateDate ? "آخر تحديث: "+relativeTime(data.lastReferralUpdateDate) : "آخر تحديث: -";
 
       const q = query(collection(db,"users"), where("referralBy","==",data.referralCode||"__NO__"));
+
+      // realtime listener — الصفحة تتحدث لحظي
       const subs = onSnapshot(q, async (snapQ)=>{
         tableBody.innerHTML = "";
         if(snapQ.empty){ 
@@ -183,48 +185,91 @@
         }
 
         let idx=0, totalBonus=0;
-        const updates = [];
+        const updates = [];        // invitations that need bonus + set totalEarned maybe
+        const missingTotalEarned = []; // inviteds with missing totalEarned but no bonus needed
 
+        // جمع الصفوف أولًا (للأداء - نعرض الجدول فوراً)
         for(const docSnap of snapQ.docs){
           idx++;
           const invited=docSnap.data();
           const invitedId=docSnap.id;
           const now=Number(invited.points||0);
-          const totalEarned = Number(invited.totalEarned || 0); // ✅ تمت الإضافة
+          const totalEarned = typeof invited.totalEarned !== 'undefined' ? Number(invited.totalEarned) : null;
           const prev=Number(invited.totalReferralGiven||0);
           const diff=Math.max(now-prev,0);
           const bonus=Math.floor(diff*0.1);
 
+          // لو totalEarned غير موجود، نعلّق عملية لإنشائه
+          const needsTotalEarned = (totalEarned === null);
+
           if(diff>0){
-            updates.push({ invitedId, now, bonus });
+            updates.push({ invitedId, now, bonus, setTotalEarned: needsTotalEarned });
             totalBonus+=bonus;
+          } else if(needsTotalEarned){
+            // ما فيش فرق لكن totalEarned مفقود -> نملأه إلى now
+            missingTotalEarned.push({ invitedId, now });
           }
 
           const row=document.createElement("tr");
           row.innerHTML=`<td>${idx}</td>
             <td>${invited.name||'مستخدم'}</td>
             <td>${now}</td>
-            <td>${totalEarned}</td> <!-- ✅ العمود الجديد -->
+            <td>${ totalEarned !== null ? totalEarned : '-' }</td>
             <td>${prev}</td>
             <td>${diff>0?`<span class='tag diff'>${diff}</span>`:"0"}</td>
             <td>${bonus>0?`<span class='tag bonus'>+${bonus}</span>`:"0"}</td>`;
           tableBody.appendChild(row);
         }
 
+        // الآن ننفّذ التحديثات المطلوبة — نفّذ كل واحدة على حدة باستخدام transaction (آمن)
         if(updates.length>0){
           for(const u of updates){
             const invRef = doc(db,"users",u.invitedId);
             await runTransaction(db, async (t)=>{
               const invDoc = await t.get(invRef);
               if(!invDoc.exists()) return;
-              t.update(invRef,{ totalReferralGiven:u.now });
+              const invData = invDoc.data();
+              const currentNow = Number(invData.points||0); // تأكد من القيمة الحالية داخل الترانز أكشن
+              // نحدث totalReferralGiven إلى القيمة الحالية (currentNow)
+              const updatePayload = { totalReferralGiven: currentNow };
+              if(u.setTotalEarned){
+                updatePayload.totalEarned = currentNow;
+              }
+              t.update(invRef, updatePayload);
+
+              // نفّذ تحديث الرافر
               t.update(userRef,{
-                referralPoints:increment(u.bonus),
-                points:increment(u.bonus),
-                lastReferralUpdateDate:serverTimestamp()
+                referralPoints: increment(u.bonus),
+                points: increment(u.bonus),
+                lastReferralUpdateDate: serverTimestamp()
               });
             });
           }
+        }
+
+        // نملأ الحقول المفقودة لـ totalEarned (الحالات التي ما كانش فيها diff)
+        if(missingTotalEarned.length>0){
+          for(const m of missingTotalEarned){
+            const invRef = doc(db,"users",m.invitedId);
+            try{
+              await runTransaction(db, async (t)=>{
+                const invDoc = await t.get(invRef);
+                if(!invDoc.exists()) return;
+                const invData = invDoc.data();
+                // لو الطقل مازال مفقود (تأكد داخل الترانز)
+                if(typeof invData.totalEarned === 'undefined'){
+                  t.update(invRef, { totalEarned: Number(invData.points || m.now) });
+                }
+              });
+            }catch(err){
+              // لا نوقف العرض لو فشل أحد التحديثات البسيطة
+              console.warn("failed to set totalEarned for", m.invitedId, err);
+            }
+          }
+        }
+
+        // عرض ملخص (لو تم إعطاء بونص)
+        if(totalBonus>0){
           showToast(`🎉 تمت إضافة ${totalBonus} نقطة جديدة!`);
           updateSummary.textContent=`تمت إضافة ${totalBonus} نقطة جديدة`;
         } else {
