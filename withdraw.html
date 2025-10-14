@@ -186,8 +186,7 @@
     let userId = null;
     let currentPoints = 0;
     let referredByUID = null;
-    let lastWithdrawalDocRef = null; // 🔑 لتخزين مرجع وثيقة السحب الجديدة 🔑
-
+    
     // دالة تنسيق الأرقام
     function formatNum(num) {
       return Number(num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -211,7 +210,7 @@
           if (doc.exists) {
             const data = doc.data();
             currentPoints = data.points || 0;
-            referredByUID = data.referredByUID || null; // جلب UID الداعي
+            referredByUID = data.referredByUID || null; 
 
             pointsVal.textContent = formatNum(currentPoints).replace('.00', '');
             egpVal.textContent = formatNum(currentPoints * POINT_VALUE_EGP);
@@ -219,7 +218,7 @@
           }
         });
 
-        // جلب سجل السحب (Realtime)
+        // جلب سجل السحب (Realtime) - تمت إضافة معالج الأخطاء
         db.collection("withdrawals").where("userId", "==", user.uid)
           .orderBy("date", "desc")
           .limit(20)
@@ -248,6 +247,10 @@
                 <td>${formatDate(w.date)}</td>`;
               withdrawalsTable.appendChild(tr);
             });
+          }, (error) => {
+              // ❌❌ هذا الجزء سيساعد في اكتشاف مشكلة قواعد الأمان أو الفهرسة ❌❌
+              console.error("FIREBASE ERROR: Failed to fetch withdrawals.", error);
+              withdrawalsTable.innerHTML = `<tr><td colspan="4" class="error">❌ فشل تحميل السجل. انظر الـ Console لمزيد من التفاصيل.</td></tr>`;
           });
 
       } else {
@@ -302,7 +305,7 @@
       try {
         const ptsNeeded = Math.ceil(amt / POINT_VALUE_EGP);
         
-        // التحقق من قيود اليوم (نقطة ضعف مؤقتة)
+        // التحقق من قيود اليوم 
         const now = new Date();
         const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
         
@@ -330,11 +333,12 @@
         }
         
         // ** تنفيذ المعاملة الآمنة لخصم النقاط وإنشاء طلب السحب **
+        let newWithdrawalDocId = null; 
+
         await db.runTransaction(async tr => {
           const userRef = db.collection("users").doc(userId);
-          const withdrawalRef = db.collection("withdrawals").doc(); // إنشاء مرجع جديد
-          lastWithdrawalDocRef = withdrawalRef; // تخزين المرجع للاستخدام لاحقاً
-
+          const withdrawalRef = db.collection("withdrawals").doc(); 
+          
           const snap = await tr.get(userRef);
           const points = snap.data().points || 0;
           
@@ -350,31 +354,31 @@
             referredByUID: referredByUID || null,
             isReferralPaid: false 
           });
+
+          newWithdrawalDocId = withdrawalRef.id; // تخزين الـ ID
         });
 
-        // 🚨🚨🚨 بدء منطق الإحالة المؤقت وغير الآمن 🚨🚨🚨
-        if (referredByUID) {
+        // 🚨🚨🚨 منطق الإحالة المؤقت وغير الآمن 🚨🚨🚨
+        if (referredByUID && newWithdrawalDocId) {
             const inviterRef = db.collection("users").doc(referredByUID);
-            const bonusPoints = Math.floor(amt * 0.10 * (1 / POINT_VALUE_EGP)); // 10% من المبلغ المحول لنقاط
+            const withdrawalRef = db.collection("withdrawals").doc(newWithdrawalDocId);
+            const bonusPoints = Math.floor(amt * 0.10 * (1 / POINT_VALUE_EGP));
             
             if (bonusPoints > 0) {
-                // 1. زيادة نقاط الداعي
-                await inviterRef.update({
-                    points: firebase.firestore.FieldValue.increment(bonusPoints),
-                    referralPoints: firebase.firestore.FieldValue.increment(bonusPoints),
-                    lastReferralUpdateDate: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                // 2. تحديث سجل السحب لعلامة "مدفوع"
-                // هذا يمنع التكرار في حال تحديث الصفحة، لكن يمكن التلاعب به
-                if(lastWithdrawalDocRef) {
-                    await lastWithdrawalDocRef.update({
+                // تنفيذ كلا التحديثين معاً.
+                await Promise.all([
+                    inviterRef.update({
+                        points: firebase.firestore.FieldValue.increment(bonusPoints),
+                        referralPoints: firebase.firestore.FieldValue.increment(bonusPoints),
+                        lastReferralUpdateDate: firebase.firestore.FieldValue.serverTimestamp()
+                    }),
+                    
+                    // تحديث سجل السحب لعلامة "مدفوع"
+                    withdrawalRef.update({
                         isReferralPaid: true,
                         referralBonusAmount: bonusPoints
-                    });
-                }
-                
-                console.log(`[RISK] Paid ${bonusPoints} referral points to ${referredByUID}`);
+                    })
+                ]);
             }
         }
         // 🚨🚨🚨 نهاية منطق الإحالة المؤقت وغير الآمن 🚨🚨🚨
@@ -385,8 +389,19 @@
         updateCalc();
 
       } catch (err) {
-        console.error(err);
-        let errorMsg = typeof err === 'string' ? err : "حدث خطأ غير متوقع. حاول مجدداً.";
+        // ❌❌ معالجة الأخطاء المحسّنة لعرض الأخطاء بدقة في الـ Console ❌❌
+        console.error("FATAL WITHDRAWAL ERROR:", err); 
+        let errorMsg;
+
+        if (typeof err === 'string') {
+          errorMsg = err; 
+        } else if (err.code) {
+             // أخطاء Firebase (مثل 'permission-denied')
+            errorMsg = `خطأ في Firebase: ${err.code}`;
+        } else {
+          errorMsg = "حدث خطأ غير متوقع. حاول مجدداً.";
+        }
+        
         msg.textContent = "❌ " + errorMsg; 
         msg.classList.add("error");
       } finally {
