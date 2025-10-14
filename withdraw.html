@@ -262,21 +262,6 @@ function updateCalc(){
   netVal.textContent=net.toFixed(2);
   needPts.textContent=ptsNeeded;
 }
-  // ✅ نظام الإحالات الجديد — مكافأة 10% عند السحب
-const inviterCode = snap.data().referralBy;
-if (inviterCode) {
-  const inviterQuery = await db.collection("users").where("referralCode", "==", inviterCode).get();
-  if (!inviterQuery.empty) {
-    const inviterRef = inviterQuery.docs[0].ref;
-    const inviterBonus = Math.floor(amt * 0.1); // 10% من مبلغ السحب
-    
-    tr.update(inviterRef, {
-      referralPoints: firebase.firestore.FieldValue.increment(inviterBonus),
-      points: firebase.firestore.FieldValue.increment(inviterBonus),
-      lastReferralUpdateDate: firebase.firestore.FieldValue.serverTimestamp()
-    });
-  }
-}
 
 // تحديث آخر سحب للمستخدم نفسه ليظهر في صفحة الإحالات
 tr.update(ref, {
@@ -314,18 +299,49 @@ confirmBtn.addEventListener('click',async ()=>{
 
     const ptsNeeded=Math.ceil(amt/POINT_VALUE_EGP);
     await db.runTransaction(async tr=>{
-      const ref=db.collection("users").doc(userId);
-      const snap=await tr.get(ref);
-      const points=snap.data().points||0;
-      if(points<ptsNeeded) throw "رصيد نقاط غير كافٍ";
-      tr.update(ref,{ points: firebase.firestore.FieldValue.increment(-ptsNeeded) });
-      tr.set(db.collection("withdrawals").doc(),{
-        userId, method:"vodafone", wallet,
-        amount:amt, fee:amt*0.10, net:amt-amt*0.10,
-        pts:ptsNeeded, status:"pending",
-        date:firebase.firestore.FieldValue.serverTimestamp()
+  const ref = db.collection("users").doc(userId);
+  const snap = await tr.get(ref);
+  const userData = snap.data() || {};
+  const points = userData.points || 0;
+
+  if (points < ptsNeeded) throw "رصيد نقاط غير كافٍ";
+
+  // خصم النقاط من المستخدم
+  tr.update(ref, { points: firebase.firestore.FieldValue.increment(-ptsNeeded) });
+
+  // حفظ طلب السحب
+  tr.set(db.collection("withdrawals").doc(), {
+    userId,
+    method: "vodafone",
+    wallet,
+    amount: amt,
+    fee: amt * 0.10,
+    net: amt - amt * 0.10,
+    pts: ptsNeeded,
+    status: "pending",
+    date: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  // ✅ نظام الإحالات الجديد — مكافأة 10% لصاحب الإحالة عند كل سحب
+  if (userData.referralBy) {
+    const inviterQuery = await db.collection("users")
+      .where("referralCode", "==", userData.referralBy)
+      .get();
+
+    if (!inviterQuery.empty) {
+      const inviterRef = inviterQuery.docs[0].ref;
+      const inviterBonus = Math.floor((amt - amt * 0.10) / POINT_VALUE_EGP * 0.10);
+      tr.update(inviterRef, {
+        points: firebase.firestore.FieldValue.increment(inviterBonus),
+        referralPoints: firebase.firestore.FieldValue.increment(inviterBonus),
+        lastReferralUpdateDate: firebase.firestore.FieldValue.serverTimestamp()
       });
-    });
+    }
+  }
+
+  // تحديث آخر عملية سحب للمستخدم نفسه (يظهر في صفحة الإحالات)
+  tr.update(ref, { lastWithdrawAmount: amt });
+});
     msg.textContent="✅ تم إرسال طلب السحب بنجاح. ⏳ جارٍ المراجعة.";
     msg.classList.add("success");
     amountInp.value=""; walletVod.value="";
