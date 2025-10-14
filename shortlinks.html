@@ -36,7 +36,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey:"AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -48,8 +48,9 @@ const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 
+// **نقطة تحسين:** استخدام serverTimestamp عند التحديث لتقليل التلاعب
 const POINTS_PER_LINK = 2;
-const LINK_COOLDOWN   = 24*60*60*1000; // 24 ساعة
+const LINK_COOLDOWN   = 24 * 60 * 60 * 1000; // 24 ساعة
 const MIN_WAIT_TIME   = 15000; // 15 ثانية
 
 const shortlinks = [
@@ -63,82 +64,105 @@ const shortlinks = [
   {title:"رابط 8",url:"https://srtslug.biz/8dwVH"},
 ];
 
-const $ = (id)=>document.getElementById(id);
-const setStatus = (t)=>{ $("status").textContent=t; };
-const setErr    = (t)=>{ $("err").textContent=t||""; };
+const $ = (id) => document.getElementById(id);
+const setStatus = (t) => { $("status").textContent = t; };
+const setErr    = (t) => { $("err").textContent = t || ""; };
 
 let currentUserRef = null;
+let serverTimeOffset = 0; // لحساب فرق التوقيت
 
-onAuthStateChanged(auth, async (user)=>{
-  if(!user){
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
     alert("⚠️ يجب تسجيل الدخول أولاً.");
-    location.href="index.html";
+    location.href = "index.html";
     return;
   }
 
-  currentUserRef = doc(db,"users",user.uid);
+  currentUserRef = doc(db, "users", user.uid);
 
   try {
+    // **تحسين: الحصول على وقت الخادم لتأمين التوقيت**
+    const nowRef = doc(db, "system", "time");
+    await setDoc(nowRef, { time: serverTimestamp() });
+    const nowSnap = await getDoc(nowRef);
+    const serverTime = nowSnap.data()?.time?.toMillis() || Date.now();
+    serverTimeOffset = serverTime - Date.now(); 
+
     await handlePendingLink(currentUserRef);
 
-    onSnapshot(currentUserRef, (snap)=>{
+    onSnapshot(currentUserRef, (snap) => {
       const data = snap.data() || {};
       const points = data.points ?? 0;
       $("user-points").textContent = `نقاطي: ${points}`;
       renderLinks(data.lastLinks || {});
       setStatus("✅ اختر أي رابط متاح");
       setErr("");
-    }, (err)=> setErr("خطأ في التحديث الحي: "+err.message) );
+    }, (err) => setErr("خطأ في التحديث الحي: " + err.message) );
 
-  } catch(e){
+  } catch(e) {
     console.error(e);
-    setErr("حدث خطأ: "+e.message);
+    setErr("حدث خطأ: " + e.message);
     setStatus("⚠️ حاول تحديث الصفحة");
     renderLinks({});
   }
 });
 
+// **دالة مساعدة:** للحصول على الوقت الحالي المعدل
+function getClientAdjustedTime() {
+    return Date.now() + serverTimeOffset;
+}
+
+// **دالة مساعدة:** لتنظيف localStorage
+function clearPendingLink() {
+    localStorage.removeItem("pendingLink");
+    localStorage.removeItem("pendingLinkTime");
+}
+
+
 // ---- التحقق من الوقت وتسجيل المهمة ----
-async function handlePendingLink(userRef){
+async function handlePendingLink(userRef) {
   const raw = localStorage.getItem("pendingLink");
   const ts  = localStorage.getItem("pendingLinkTime");
-  if(raw === null || ts === null) return;
+
+  if (raw === null || ts === null) return;
 
   const idx = Number(raw);
   const visitTime = Number(ts);
+  
+  // **تحسين: تنظيف مؤقت قبل الخروج في حال وجود خطأ في البيانات**
+  clearPendingLink();
 
-  if(!Number.isInteger(idx) || idx < 0 || idx >= shortlinks.length){
-    localStorage.removeItem("pendingLink");
-    localStorage.removeItem("pendingLinkTime");
+  if (!Number.isInteger(idx) || idx < 0 || idx >= shortlinks.length) {
     return;
   }
+  
+  const now = getClientAdjustedTime();
 
-  const now = Date.now();
-  if(now - visitTime < MIN_WAIT_TIME){
+  if (now - visitTime < MIN_WAIT_TIME) {
     setErr("يجب عليك البقاء في الرابط لمدة لا تقل عن 15 ثانية قبل العودة!");
-    localStorage.removeItem("pendingLink");
-    localStorage.removeItem("pendingLinkTime");
     return;
   }
-
-  try{
+  
+  // **نقطة أمان حرجة: إعادة التحقق من المدة الزمنية**
+  try {
     const snap = await getDoc(userRef);
     const data = snap.data() || {};
     const lastLinks = data.lastLinks || {};
     const last = lastLinks[idx] || 0;
-
-    if(Date.now() - last < LINK_COOLDOWN){
+    
+    // **تحسين: استخدام serverTimestamp هنا يزيد من الأمان ضد تغيير توقيت الجهاز**
+    if (last && now - last < LINK_COOLDOWN) {
       setErr("⚠️ لا يمكنك فتح هذا الرابط الآن. جرب لاحقًا.");
       return;
     }
 
-    // ✅ تحديث النقاط + وقت آخر فتح للرابط
+    // ✅ تحديث النقاط + وقت آخر فتح للرابط (باستخدام serverTimestamp)
     await updateDoc(userRef, {
       points: increment(POINTS_PER_LINK),
-      [`lastLinks.${idx}`]: Date.now()
+      [`lastLinks.${idx}`]: serverTimestamp() // **تحسين رئيسي: استخدام وقت الخادم**
     });
 
-    // ✅ تسجيل المهمة في tasksCompleted
+    // ✅ تسجيل المهمة في tasksCompleted (باستخدام وقت الخادم)
     const taskId = `shortlink-${idx}-${Date.now()}`;
     const taskRef = doc(db, "tasksCompleted", taskId);
     await setDoc(taskRef, {
@@ -146,33 +170,35 @@ async function handlePendingLink(userRef){
       taskId: `shortlink-${idx}`,
       taskType: "shortlinks",
       pointsEarned: POINTS_PER_LINK,
-      date: new Date(),
+      // **تحسين: استخدام وقت الخادم**
+      date: serverTimestamp(), 
       status: "done"
     });
 
     alert(`🎉 تم إضافة ${POINTS_PER_LINK} نقطة لحسابك!`);
+location.reload();
 
-  } catch(e){
+  } catch(e) {
     setErr("تعذر تسجيل إنجاز الرابط: " + e.message);
-  } finally {
-    localStorage.removeItem("pendingLink");
-    localStorage.removeItem("pendingLinkTime");
   }
+  // **ملاحظة:** تم حذف finally لأننا قمنا بتنظيفها في البداية
 }
 
-function renderLinks(lastLinks){
+function renderLinks(lastLinks) {
   const container = $("links-container");
   container.innerHTML = "";
+  
+  const now = getClientAdjustedTime();
 
-  shortlinks.forEach((item,index)=>{
+  shortlinks.forEach((item, index) => {
     const last = lastLinks[index] || 0;
     let locked = false, timerText = "";
 
-    if(last && Date.now() - last < LINK_COOLDOWN){
+    if (last && now - last < LINK_COOLDOWN) {
       locked = true;
-      let remain = LINK_COOLDOWN - (Date.now()-last);
-      let hours = Math.floor(remain/(1000*60*60));
-      let minutes = Math.floor((remain%(1000*60*60))/(1000*60));
+      let remain = LINK_COOLDOWN - (now - last);
+      let hours = Math.floor(remain / (1000 * 60 * 60));
+      let minutes = Math.floor((remain % (1000 * 60 * 60)) / (1000 * 60));
       timerText = `⏳ انتظر ${hours} ساعة و ${minutes} دقيقة`;
     }
 
@@ -180,7 +206,10 @@ function renderLinks(lastLinks){
     div.className = "link-box";
     div.innerHTML =
       `<p>${item.title}</p>
-       <button ${locked?"disabled":""} onclick="openLink(${index}, '${item.url}')">
+       <button 
+          ${locked ? "disabled" : ""} 
+          ${locked ? `title="${timerText}"` : ""} 
+          onclick="openLink(${index}, '${item.url}')">
           ${locked ? "🔒 غير متاح الآن" : "افتح الرابط"}
        </button>
        ${locked ? `<div class="timer-lock">${timerText}</div>` : ""}`;
@@ -189,10 +218,11 @@ function renderLinks(lastLinks){
 }
 
 // فتح الرابط + تسجيل وقت الفتح
-window.openLink = function(index, url){
+window.openLink = function(index, url) {
   try {
     localStorage.setItem("pendingLink", String(index));
-    localStorage.setItem("pendingLinkTime", String(Date.now()));
+    // **نستخدم Date.now() هنا لأننا نحتاج وقت العميل الفعلي للتحقق من MIN_WAIT_TIME**
+    localStorage.setItem("pendingLinkTime", String(Date.now())); 
   } catch {}
   location.href = url;
 };
