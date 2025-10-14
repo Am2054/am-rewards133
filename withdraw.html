@@ -280,7 +280,17 @@ await db.runTransaction(async tr=>{
     pts:ptsNeeded, status:"pending",    
     date:firebase.firestore.FieldValue.serverTimestamp()    
   });    
-});    
+});
+  // ✅ مكافأة الإحالة عند كل عملية سحب
+const inviterId = snap.data().invitedBy;
+if (inviterId) {
+  const rewardPts = Math.floor(ptsNeeded * 0.10); // 10% من النقاط المسحوبة
+  const inviterRef = db.collection("users").doc(inviterId);
+  tr.update(inviterRef, {
+    points: firebase.firestore.FieldValue.increment(rewardPts),
+    totalEarned: firebase.firestore.FieldValue.increment(rewardPts)
+  });
+  }
 msg.textContent="✅ تم إرسال طلب السحب بنجاح. ⏳ جارٍ المراجعة.";    
 msg.classList.add("success");    
 amountInp.value=""; walletVod.value="";    
