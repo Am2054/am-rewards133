@@ -129,7 +129,6 @@
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
-      // ⚠️ تأكد من تحديث الإعدادات إذا كنت تستخدم مشروعًا آخر غير المشروع في الملف الأصلي
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
@@ -197,11 +196,9 @@
 
 
       // المستمع الثاني: لبيانات المدعوين
-      allow read: if request.auth != null && (
-  request.auth.uid == userId ||
-  resource.data.referrerUid == request.auth.uid // ✅ التصحيح النهائي
-);
-      
+      // ✅ الاستعلام المُصحح: يستخدم الحقل الفعلي في قاعدة البيانات "referrerUid"
+      const q = query(collection(db,"users"), where("referrerUid","==",user.uid)); 
+
       onSnapshot(q, (snapQ)=>{
         tableBody.innerHTML = ""; // تصفير الجدول
         
@@ -213,8 +210,7 @@
 
         let idx=0;
         let tableRowsHTML = '';
-        const tenPercent = 0.1;
-
+        
         snapQ.docs.forEach(docSnap => {
           idx++;
           const invited = docSnap.data();
@@ -225,7 +221,6 @@
           // ⚠️ عرض "آخر سحب" يحتاج لربط بمستند السحب (للبساطة استخدمنا قيمة ثابتة)
           const lastWithdrawAmount = Number(invited.lastWithdrawAmount || 0);
 
-          // إزالة منطق التحديث من العميل
           const rowHTML = `
             <tr>
               <td>${idx}</td>
