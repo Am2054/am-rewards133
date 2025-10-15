@@ -197,9 +197,11 @@
 
 
       // المستمع الثاني: لبيانات المدعوين
-      // 🚨 تم تصحيح اسم الحقل من "referralBy" إلى "referredByUID"
-      const q = query(collection(db,"users"), where("referredByUID","==",user.uid)); 
-
+      allow read: if request.auth != null && (
+  request.auth.uid == userId ||
+  resource.data.referrerUid == request.auth.uid // ✅ التصحيح النهائي
+);
+      
       onSnapshot(q, (snapQ)=>{
         tableBody.innerHTML = ""; // تصفير الجدول
         
