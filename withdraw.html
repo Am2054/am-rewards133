@@ -210,6 +210,7 @@
           if (doc.exists) {
             const data = doc.data();
             currentPoints = data.points || 0;
+            // نترك referredByUID هنا لأننا سنستخدمه في صفحة المراجعة
             referredByUID = data.referredByUID || null; 
 
             pointsVal.textContent = formatNum(currentPoints).replace('.00', '');
@@ -218,7 +219,7 @@
           }
         });
 
-        // جلب سجل السحب (Realtime) - تمت إضافة معالج الأخطاء
+        // جلب سجل السحب (Realtime) - (تم حل مشكلته بإنشاء الفهرس)
         db.collection("withdrawals").where("userId", "==", user.uid)
           .orderBy("date", "desc")
           .limit(20)
@@ -248,7 +249,7 @@
               withdrawalsTable.appendChild(tr);
             });
           }, (error) => {
-              // ❌❌ هذا الجزء سيساعد في اكتشاف مشكلة قواعد الأمان أو الفهرسة ❌❌
+              // هذا الجزء سيساعد في اكتشاف مشكلة قواعد الأمان إذا عادت المشكلة
               console.error("FIREBASE ERROR: Failed to fetch withdrawals.", error);
               withdrawalsTable.innerHTML = `<tr><td colspan="4" class="error">❌ فشل تحميل السجل. انظر الـ Console لمزيد من التفاصيل.</td></tr>`;
           });
@@ -309,6 +310,8 @@
         const now = new Date();
         const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
         
+        // ** ملاحظة: هذا الاستعلام قد يحتاج فهرس مركب آخر في Firestore إذا كان يتسبب في خطأ **
+        // (userId, date, Ascending) - لكن دعه كما هو حالياً
         const todaySnapshot = await db.collection("withdrawals")
             .where("userId", "==", userId)
             .where("date", ">=", start) 
@@ -344,6 +347,7 @@
           
           if (points < ptsNeeded) throw "رصيد نقاط غير كافٍ";
           
+          // الخصم آمن لأنه يتم في Transaction و Rules تسمح لمالك المستند بالتعديل
           tr.update(userRef, { points: firebase.firestore.FieldValue.increment(-ptsNeeded) });
           
           tr.set(withdrawalRef, {
@@ -352,20 +356,21 @@
             pts: ptsNeeded, status: "pending",
             date: firebase.firestore.FieldValue.serverTimestamp(),
             referredByUID: referredByUID || null,
-            isReferralPaid: false 
+            isReferralPaid: false // يتم ترك هذه العلامة ليعرف المشرف لاحقاً أن الإحالة لم تتم
           });
 
-          newWithdrawalDocId = withdrawalRef.id; // تخزين الـ ID
+          newWithdrawalDocId = withdrawalRef.id; 
         });
 
         // 🚨🚨🚨 منطق الإحالة المؤقت وغير الآمن 🚨🚨🚨
+        // 🛑🛑 تم تعطيل هذا الجزء بالكامل لحل مشكلة 'failed-precondition' 🛑🛑
+        /*
         if (referredByUID && newWithdrawalDocId) {
             const inviterRef = db.collection("users").doc(referredByUID);
             const withdrawalRef = db.collection("withdrawals").doc(newWithdrawalDocId);
             const bonusPoints = Math.floor(amt * 0.10 * (1 / POINT_VALUE_EGP));
             
             if (bonusPoints > 0) {
-                // تنفيذ كلا التحديثين معاً.
                 await Promise.all([
                     inviterRef.update({
                         points: firebase.firestore.FieldValue.increment(bonusPoints),
@@ -373,7 +378,6 @@
                         lastReferralUpdateDate: firebase.firestore.FieldValue.serverTimestamp()
                     }),
                     
-                    // تحديث سجل السحب لعلامة "مدفوع"
                     withdrawalRef.update({
                         isReferralPaid: true,
                         referralBonusAmount: bonusPoints
@@ -381,6 +385,7 @@
                 ]);
             }
         }
+        */
         // 🚨🚨🚨 نهاية منطق الإحالة المؤقت وغير الآمن 🚨🚨🚨
         
         msg.textContent = "✅ تم إرسال طلب السحب بنجاح. ⏳ جارٍ المراجعة.";
@@ -396,7 +401,7 @@
         if (typeof err === 'string') {
           errorMsg = err; 
         } else if (err.code) {
-             // أخطاء Firebase (مثل 'permission-denied')
+             // أخطاء Firebase (مثل 'permission-denied' أو 'failed-precondition')
             errorMsg = `خطأ في Firebase: ${err.code}`;
         } else {
           errorMsg = "حدث خطأ غير متوقع. حاول مجدداً.";
