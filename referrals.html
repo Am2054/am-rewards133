@@ -174,6 +174,56 @@
       return Number(num || 0).toLocaleString('en-US');
     }
 
+    // 🚨 دالة جديدة: لجلب المدعوين باستخدام كود الإحالة (بعد التأكد من الكود)
+    function loadInvitedUsers(userCode){
+        // تأكد من أن هذه العناصر معرفة عالمياً أو جلبها هنا إذا لزم الأمر
+        const tableBody = document.getElementById('tableBody');
+        const updateSummary = document.getElementById('updateSummary');
+        
+        // ✅ الاستعلام النهائي المُصحح: يستخدم الحقل "referralBy" ويقارنه بكود الإحالة!
+        const q = query(collection(db,"users"), where("referralBy","==",userCode)); 
+
+        onSnapshot(q, (snapQ)=>{
+            tableBody.innerHTML = ""; // تصفير الجدول
+            
+            if(snapQ.empty){ 
+              tableBody.innerHTML=`<tr><td colspan="5" class="small-muted">لا يوجد مدعوون حتى الآن.</td></tr>`; 
+              updateSummary.textContent="—";
+              return;
+            }
+
+            let idx=0;
+            let tableRowsHTML = '';
+            
+            snapQ.docs.forEach(docSnap => {
+              idx++;
+              const invited = docSnap.data();
+              const invitedName = invited.name || 'مستخدم';
+              const nowPoints = formatNumber(invited.points);
+              const totalEarnedFromInvited = Number(invited.totalReferralEarnings || 0); 
+              const lastWithdrawAmount = Number(invited.lastWithdrawAmount || 0);
+
+              const rowHTML = `
+                <tr>
+                  <td>${idx}</td>
+                  <td>${invitedName}</td>
+                  <td>${nowPoints}</td>
+                  <td>${formatNumber(lastWithdrawAmount)} ج</td>
+                  <td><span class='tag bonus'>${formatNumber(totalEarnedFromInvited)}</span></td>
+                </tr>`;
+              tableRowsHTML += rowHTML;
+            });
+
+            tableBody.innerHTML = tableRowsHTML;
+            updateSummary.textContent=`تم تحميل بيانات ${idx} مدعو.`;
+
+        }, (error) => {
+            console.error("Error loading referrals:", error);
+            tableBody.innerHTML=`<tr><td colspan="5" class="small-muted">حدث خطأ في تحميل المدعوين.</td></tr>`;
+        });
+    }
+
+
     async function loadReferrals(user){
       const userRef = doc(db,"users",user.uid);
 
@@ -182,62 +232,25 @@
           if (!snap.exists()) return;
           const data = snap.data();
           
-          const code = data.referralCode || "—";
+          const userCode = data.referralCode; // ✅ جلب كود الإحالة
+          const code = userCode || "—";
+          
           referralCodeEl.textContent = code;
-          // رابط الإحالة يجب أن يكون ديناميكيًا قدر الإمكان
           referralLinkEl.textContent = `${location.origin}/signup.html?ref=${code}`;
 
           referralCountEl.textContent = formatNumber(data.referralCount);
           referralPointsEl.textContent = formatNumber(data.referralPoints);
           relativeLast.textContent = data.lastReferralUpdateDate ? "آخر تحديث: "+relativeTime(data.lastReferralUpdateDate) : "آخر تحديث: -";
+          
+          // 💡 استدعاء المستمع الثاني بعد الحصول على الكود
+          if(userCode) {
+              loadInvitedUsers(userCode); 
+          } else {
+              document.getElementById('tableBody').innerHTML=`<tr><td colspan="5" class="small-muted">تحميل المدعوين يتطلب كود إحالة فعال.</td></tr>`;
+          }
+
       }, (error) => {
           console.error("Error loading user data:", error);
-      });
-
-
-      // المستمع الثاني: لبيانات المدعوين
-      // ✅ الاستعلام المُصحح: يستخدم الحقل الفعلي في قاعدة البيانات "referrerUid"
-      const q = query(collection(db,"users"), where("referrerUid","==",user.uid)); 
-
-      onSnapshot(q, (snapQ)=>{
-        tableBody.innerHTML = ""; // تصفير الجدول
-        
-        if(snapQ.empty){ 
-          tableBody.innerHTML=`<tr><td colspan="5" class="small-muted">لا يوجد مدعوون حتى الآن.</td></tr>`; 
-          updateSummary.textContent="—";
-          return;
-        }
-
-        let idx=0;
-        let tableRowsHTML = '';
-        
-        snapQ.docs.forEach(docSnap => {
-          idx++;
-          const invited = docSnap.data();
-          const invitedName = invited.name || 'مستخدم';
-          const nowPoints = formatNumber(invited.points);
-          // ⚠️ يجب أن يكون هذا الحقل يمثل إجمالي أرباحك من هذا المدعو
-          const totalEarnedFromInvited = Number(invited.totalReferralEarnings || 0); 
-          // ⚠️ عرض "آخر سحب" يحتاج لربط بمستند السحب (للبساطة استخدمنا قيمة ثابتة)
-          const lastWithdrawAmount = Number(invited.lastWithdrawAmount || 0);
-
-          const rowHTML = `
-            <tr>
-              <td>${idx}</td>
-              <td>${invitedName}</td>
-              <td>${nowPoints}</td>
-              <td>${formatNumber(lastWithdrawAmount)} ج</td>
-              <td><span class='tag bonus'>${formatNumber(totalEarnedFromInvited)}</span></td>
-            </tr>`;
-          tableRowsHTML += rowHTML;
-        });
-
-        tableBody.innerHTML = tableRowsHTML;
-        updateSummary.textContent=`تم تحميل بيانات ${idx} مدعو.`;
-
-      }, (error) => {
-          console.error("Error loading referrals:", error);
-          tableBody.innerHTML=`<tr><td colspan="5" class="small-muted">حدث خطأ في تحميل المدعوين.</td></tr>`;
       });
     }
 
