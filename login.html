@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
   <style>
     /* -------------------------------------------
-     * CSS Style: (تم تعديل الـ CSS الخاص بالـ Modal هنا) 
+     * CSS Style: (بدون تغيير في الأساسيات) 
      * ------------------------------------------- */
     :root{  
       --main-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 60%, #38bdf8 100%);  
@@ -107,12 +107,29 @@
       border: 2px solid #bfa24333;  
       user-select: none;  
     }  
-    .form-view { width: 100%; }  
+    .form-view { 
+      width: 100%; 
+      transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out; /* 🆕 تحسين سلاسة الحركة */
+      opacity: 1;
+      transform: scale(1);
+    }  
+    .form-view.fade-out { /* 🆕 فئة للإخفاء */
+        opacity: 0;
+        transform: scale(0.95);
+        height: 0; /* لإزالة مساحة النموذج المختفي مؤقتا */
+        overflow: hidden;
+    }
+    .form-view.hidden-display { /* 🆕 فئة للإخفاء النهائي */
+        display: none;
+    }
+
     .form-row {  
       margin-bottom: 18px;  
       text-align: right;  
       position: relative;  
     }  
+    /* ... باقي تنسيقات CSS بدون تغيير ... */
+    
     label {  
       font-size: 1.08rem;  
       color: var(--muted);  
@@ -214,14 +231,7 @@
       font-weight: 700;  
     }  
     .switcher:hover { color: #38bdf8; }  
-    .forgot {  
-      color: #fb8500;  
-      font-size: .98rem;  
-      margin-top: -6px;  
-      margin-bottom: 13px;  
-      font-weight: 800;  
-    }  
-    .forgot:hover { color: #ffb703; }  
+    /* تم حذف تنسيق .forgot */  
     .message {  
       min-height: 36px;  
       padding: 12px 0 7px 0;  
@@ -284,7 +294,7 @@
       label { font-size: .91rem; }  
     }  
 
-    /* --- Modal Styles (سياسة الاستخدام) --- */
+    /* --- Modal Styles (بدون تغيير) --- */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -394,10 +404,9 @@
         </button>
       </div>
       <button class="login-btn" id="login-btn" type="button" onclick="login()">تسجيل الدخول</button>
-      <button class="forgot" id="forgot-btn" type="button" onclick="resetPassword()">نسيت كلمة المرور؟</button>
     </form>
     
-    <form id="signup-form" class="form-view" style="display:none" autocomplete="on">
+    <form id="signup-form" class="form-view hidden-display" autocomplete="on">
       <div class="form-row">
         <label for="signup-name">الاسم الكامل</label>
         <input type="text" id="signup-name" placeholder="اسمك بالكامل" required />
@@ -418,14 +427,7 @@
           <svg class="eye-closed" viewBox="0 0 24 24" fill="none" style="display:none;"><path d="M2.93 2.93L21.07 21.07M22.5 12C20.5 17 16 20.5 12 20.5C10.6364 20.5 9.3242 20.2443 8.08 19.75M1.5 12C3.5 7 8 3.5 12 3.5C13.3636 3.5 14.6758 3.7557 15.92 4.25M17.169 7.765C16.3263 7.0253 15.2289 6.5 14 6.5C11.5147 6.5 9.5 8.51472 9.5 11C9.5 12.1648 9.94054 13.238 10.669 14.075" stroke="currentColor" stroke-width="2"/></svg>
         </button>
       </div>
-      <div class="form-row">
-        <label for="signup-confirm">تأكيد كلمة المرور</label>
-        <input type="password" id="signup-confirm" placeholder="تأكيد كلمة المرور" autocomplete="new-password" required />
-        <button type="button" class="password-eye" onclick="togglePassword('signup-confirm', this)" tabindex="-1" aria-label="عرض كلمة المرور">
-          <svg class="eye-open" viewBox="0 0 24 24" fill="none"><path d="M1.5 12C3.5 7 8 3.5 12 3.5C16 3.5 20.5 7 22.5 12C20.5 17 16 20.5 12 20.5C8 20.5 3.5 17 1.5 12Z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="2"/></svg>
-          <svg class="eye-closed" viewBox="0 0 24 24" fill="none" style="display:none;"><path d="M2.93 2.93L21.07 21.07M22.5 12C20.5 17 16 20.5 12 20.5C10.6364 20.5 9.3242 20.2443 8.08 19.75M1.5 12C3.5 7 8 3.5 12 3.5C13.3636 3.5 14.6758 3.7557 15.92 4.25M17.169 7.765C16.3263 7.0253 15.2289 6.5 14 6.5C11.5147 6.5 9.5 8.51472 9.5 11C9.5 12.1648 9.94054 13.238 10.669 14.075" stroke="currentColor" stroke-width="2"/></svg>
-        </button>
-      </div>
+      
       <div class="form-row">
         <label for="signup-referral-code">كود الإحالة (اختياري)</label>
         <input type="text" id="signup-referral-code" placeholder="أدخل كود الإحالة هنا (إن وجد)" />
@@ -472,7 +474,6 @@
       browserLocalPersistence,
       signInWithEmailAndPassword,
       createUserWithEmailAndPassword,
-      sendPasswordResetEmail,
       updateProfile
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import {
@@ -497,6 +498,7 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
     let isLogin = true;
+    let referralCheckTimeout; 
 
     // **2. جلب عناصر DOM**
     const msgEl = document.getElementById("msg");
@@ -509,18 +511,16 @@
     const loginEmail = document.getElementById("login-email");
     const loginPassword = document.getElementById("login-password");
     const loginBtn = document.getElementById("login-btn");
-    const forgotBtn = document.getElementById("forgot-btn");
-
+    
     const signupName = document.getElementById("signup-name");
     const signupPhone = document.getElementById("signup-phone");
     const signupEmail = document.getElementById("signup-email");
     const signupPassword = document.getElementById("signup-password");
-    const signupConfirm = document.getElementById("signup-confirm");
     const signupReferralCode = document.getElementById("signup-referral-code");
     const referralCheckMsg = document.getElementById("referral-check-msg");
     const signupBtn = document.getElementById("signup-btn");
     
-    const policyModal = document.getElementById('policyModal'); // عنصر الـ Modal
+    const policyModal = document.getElementById('policyModal');
 
     // **3. الدوال المساعدة**
     function showMessage(text, type="success") {
@@ -550,18 +550,42 @@
     }
     
     function validateEgyptianPhone(phone) {  
-        return /^(010|011|012|015|01)[0-9]{9}$/.test(phone);  
+        return /^(010|011|012|015|01)[0-9]{8}$/.test(phone);  
     }  
 
-    // **4. دالة التبديل بين النماذج**
+    // **4. دالة التبديل بين النماذج (المعدلة لسلاسة الحركة)**
     window.toggleMode = function () {
-      isLogin = !isLogin;
-      loginForm.style.display = isLogin ? "" : "none";
-      signupForm.style.display = isLogin ? "none" : "";
-      formTitleEl.textContent = isLogin ? "تسجيل الدخول إلى Am Rewards" : "إنشاء حساب جديد في Am Rewards";
-      switcherBtn.textContent = isLogin ? "أو أنشئ حساب جديد" : "أو سجّل الدخول";
-      showMessage("", "success");
-      referralCheckMsg.textContent = "";
+      const currentForm = isLogin ? loginForm : signupForm;
+      const nextForm = isLogin ? signupForm : loginForm;
+      const nextModeTitle = isLogin ? "إنشاء حساب جديد في Am Rewards" : "تسجيل الدخول إلى Am Rewards";
+      const nextSwitcherText = isLogin ? "أو سجّل الدخول" : "أو أنشئ حساب جديد";
+
+      // 1. إخفاء النموذج الحالي بتأثير
+      currentForm.classList.add('fade-out');
+      
+      // 2. الانتظار حتى ينتهي تأثير الإخفاء ثم التبديل
+      setTimeout(() => {
+          // التغييرات اللحظية (التي لا تحتاج انتقال)
+          currentForm.classList.add('hidden-display');
+          currentForm.classList.remove('fade-out');
+          
+          nextForm.classList.remove('hidden-display');
+          formTitleEl.textContent = nextModeTitle;
+          switcherBtn.textContent = nextSwitcherText;
+          showMessage("", "success");
+          referralCheckMsg.textContent = "";
+          clearTimeout(referralCheckTimeout); 
+
+          // 3. إظهار النموذج الجديد بتأثير (يزال الـ fade-out ليظهر الـ scale(1) والـ opacity(1))
+          // نستخدم setTimeout آخر لضمان أن المتصفح قد طبق إزالة hidden-display
+          setTimeout(() => {
+            nextForm.classList.remove('fade-out'); // للتأكد في حال تم إضافتها مسبقاً بطريقة أخرى
+          }, 50);
+
+          isLogin = !isLogin;
+
+      }, 300); // 300ms تتطابق مع مدة الانتقال في CSS
+
     };
     
     // **5. دوال التحكم في Modal**
@@ -572,7 +596,7 @@
         policyModal.classList.remove('open');
     }
 
-    // **6. دالة تسجيل الدخول (مُحسّنة)**
+    // **6. دالة تسجيل الدخول (مع منطق المشرف)**
     window.login = async function () {
       const email = loginEmail.value.trim();
       const password = loginPassword.value.trim();
@@ -582,13 +606,25 @@
       loginBtn.textContent = "جاري الدخول...";
       loginBtn.disabled = true;
       
+      // منطق المشرف (Admin)
+      const ADMIN_EMAIL = "admin@am-rewards.com";
+      const ADMIN_PASSWORD = "Admin@2025"; 
+      const ADMIN_PAGE = "admin.html"; 
+      
+      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+          showMessage("✅ تم تسجيل الدخول كمشرف بنجاح!", "success");
+          sessionStorage.setItem('isAdmin', 'true');
+          setTimeout(()=> window.location.href = ADMIN_PAGE, 1200);
+          return; 
+      }
+      // نهاية منطق المشرف
+
       try {
         await setPersistence(auth, browserLocalPersistence);
         const result = await signInWithEmailAndPassword(auth, email, password);
         const uid = result.user.uid;
         const ref = doc(db, "users", uid);
         
-        // تحديث بسيط لضمان وجود حقل UID عند الدخول، محمي بقواعد الأمان
         await setDoc(ref, {
           uid: uid,
           email: email,
@@ -604,29 +640,73 @@
     };
 
     // **7. دالة التحقق من بيانات التسجيل**
-    function validateSignup(name, phone, email, password, confirm) {
-        if (!name || !phone || !email || !password || !confirm)
+    function validateSignup(name, phone, email, password) {
+        if (!name || !phone || !email || !password)
             return "يرجى تعبئة جميع الحقول المطلوبة.";
         if (password.length < 6)
             return "كلمة المرور يجب أن تكون 6 أحرف على الأقل";
-        if (password !== confirm)
-            return "كلمة المرور وتأكيدها غير متطابقين";
         if (!validateEgyptianPhone(phone))
             return "رقم الهاتف يجب أن يكون مصري صحيح (11 رقم)";
         return null;
     }
 
-    // **8. دالة إنشاء الحساب (مُحسّنة أمنياً)**
+    // 🆕 8. دالة التحقق من كود الإحالة (منفصلة)
+    async function checkReferralCode(code) {
+        if (!code) {
+            referralCheckMsg.textContent = "";
+            return { referrerUid: null, isValid: true };
+        }
+
+        referralCheckMsg.textContent = "جاري التحقق من كود الإحالة...";
+        referralCheckMsg.style.color = '#FFD369';
+
+        try {
+            const usersRef = collection(db, "users");
+            const q = query(usersRef, where("referralCode", "==", code), limit(1));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                referralCheckMsg.textContent = "كود الإحالة صحيح. شكراً لك!";
+                referralCheckMsg.style.color = '#22c55e';
+                return { referrerUid: querySnapshot.docs[0].id, isValid: true };
+            } else {
+                referralCheckMsg.textContent = "كود الإحالة غير صحيح أو غير موجود.";
+                referralCheckMsg.style.color = '#f87171';
+                return { referrerUid: null, isValid: false };
+            }
+        } catch (error) {
+            console.error("Referral check failed:", error);
+            referralCheckMsg.textContent = "حدث خطأ أثناء التحقق من الكود.";
+            referralCheckMsg.style.color = '#f87171';
+            return { referrerUid: null, isValid: false };
+        }
+    }
+    
+    // 🆕 9. مستمع حدث الإدخال لكود الإحالة (Debounced)
+    signupReferralCode.addEventListener('input', () => {
+        clearTimeout(referralCheckTimeout);
+        const code = signupReferralCode.value.trim();
+        if (code.length > 0) {
+            referralCheckTimeout = setTimeout(() => {
+                checkReferralCode(code);
+            }, 600); // التحقق بعد التوقف عن الكتابة بـ 600 مللي ثانية
+        } else {
+            referralCheckMsg.textContent = "";
+        }
+    });
+
+
+    // **10. دالة إنشاء الحساب (المعدلة)**
     window.signup = async function () {
         const name = signupName.value.trim();
         const phone = signupPhone.value.trim();
         const email = signupEmail.value.trim();
         const password = signupPassword.value.trim();
-        const confirm = signupConfirm.value.trim();
         const referralCode = signupReferralCode.value.trim();
-        const agreed = document.getElementById('agree-policy').checked; // التحقق من الموافقة
+        const agreed = document.getElementById('agree-policy').checked;
         
-        let validationError = validateSignup(name, phone, email, password, confirm);
+        // التحقق المبدئي
+        let validationError = validateSignup(name, phone, email, password);
         if (validationError) {
             return showMessage(validationError, "error");
         }
@@ -639,31 +719,22 @@
         referralCheckMsg.textContent = "";
 
         let referrerUid = null;
-
-        // 1. التحقق من كود الإحالة (لـ UX فقط)
+        
+        // التحقق النهائي من كود الإحالة
         if (referralCode) {
-            try {
-                referralCheckMsg.textContent = "جاري التحقق من كود الإحالة...";
-                const usersRef = collection(db, "users");
-                const q = query(usersRef, where("referralCode", "==", referralCode), limit(1));
-                const querySnapshot = await getDocs(q);
-
-                if (!querySnapshot.empty) {
-                    referrerUid = querySnapshot.docs[0].id;
-                    referralCheckMsg.textContent = "كود الإحالة صحيح. شكراً لك!";
-                    referralCheckMsg.style.color = '#22c55e';
-                } else {
-                    referralCheckMsg.textContent = "كود الإحالة غير صحيح أو غير موجود.";
-                }
-            } catch (error) {
-                console.error("Referral check failed:", error);
-                // لا نوقف التسجيل بسبب فشل التحقق
+            const result = await checkReferralCode(referralCode);
+            if (!result.isValid) {
+                signupBtn.textContent = "إنشاء الحساب";
+                signupBtn.disabled = false;
+                return showMessage("يرجى إدخال كود إحالة صحيح أو تركه فارغًا.", "error");
             }
+            referrerUid = result.referrerUid;
         }
+
 
         // 2. إنشاء المستخدم في Firebase Auth
         try {
-            const userCredential = await createUserWithWithEmailAndPassword(auth, email, password);
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
             const uid = user.uid;
             
@@ -686,13 +757,10 @@
                 isBanned: false,
                 lastWithdrawlDate: "",
                 joinedAt: serverTimestamp(),
-                // 🔥 الأمان: نرسل UID الداعي فقط. الخادم (Cloud Function) سيتولى منح المكافآت.
                 referredByUid: referrerUid || null, 
             };
             
             await setDoc(doc(db, "users", uid), userData);
-
-            // تم حذف منطق updateDoc و referralLogs من هنا بالكامل 
             
             showMessage("✅ تم إنشاء الحساب بنجاح! جاري التوجيه...", "success");
             setTimeout(()=> window.location.href = "dashboard.html", 1200);
@@ -705,32 +773,7 @@
         }
     };
 
-    // **9. دالة إعادة تعيين كلمة المرور**
-    window.resetPassword = async function () {
-      const email = loginEmail.value.trim();
-      
-      if (!email) {
-        showMessage("أدخل بريدك الإلكتروني لإعادة تعيين كلمة المرور", "error");
-        return;
-      }
-      
-      forgotBtn.textContent = "جارٍ الإرسال...";
-      forgotBtn.disabled = true;
-      
-      try {
-        await sendPasswordResetEmail(auth, email);
-        showMessage("تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني. تحقق من البريد الوارد أو غير الهام.", "success");
-      } catch (error) {
-        showMessage(translateError(error.code), "error");
-      }
-      
-      setTimeout(() => { 
-          forgotBtn.textContent = "نسيت كلمة المرور؟";
-          forgotBtn.disabled = false; 
-      }, 3000); 
-    };
-
-    // **10. دالة إظهار/إخفاء كلمة المرور**
+    // **11. دالة إظهار/إخفاء كلمة المرور**
     window.togglePassword = function(id, btn) {
       const input = document.getElementById(id);
       const openIcon = btn.querySelector('.eye-open');
