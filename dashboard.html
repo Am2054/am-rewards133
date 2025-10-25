@@ -61,7 +61,7 @@
     }  
     .headline h1{margin:0;font-size:20px;color:var(--primary)}  
     .headline .sub{margin-top:4px;font-size:13px;color:var(--muted)}  
-    .profile {  
+    .profile { /* 🛑 تم تعديل هذا الجزء في HTML باستخدام flex-direction: row-reverse */
       display:flex;gap:12px;align-items:center;margin-top:12px;  
       animation: fadeUp .65s ease both;  
     }  
@@ -72,7 +72,7 @@
       box-shadow:0 8px 30px rgba(0,0,0,0.4);  
       flex-shrink:0;  
     }  
-    .profile-info{flex:1;text-align:right}  
+    .profile-info{flex:1;text-align:right} /* 🛑 هذا يضمن أن النص على اليمين */
     .profile-info h3{margin:0;font-size:19px}  
     .profile-info p{margin:4px 0 0 0;color:var(--muted);font-size:13px;word-break:break-all}  
     .profile-actions{display:flex;gap:8px;margin-top:10px}  
@@ -131,7 +131,7 @@
     }  
     @media(max-width:480px){  
       .wrap{padding:12px}  
-      .profile{flex-direction:row-reverse;gap:10px}  
+      .profile{gap:10px} /* 🛑 تم إلغاء row-reverse هنا */  
       .balance-wrap{flex-direction:column-reverse;align-items:flex-end}  
       .progress-card{width:100%;height:84px;border-radius:12px;padding:10px}  
       .circle{width:64px;height:64px}  
@@ -199,20 +199,19 @@
         </button>  
       </div>  
     </header>  
-    <div class="card profile">  
-      <div style="display:flex;flex-direction:column;align-items:flex-end;flex:1">  
-        <div style="display:flex;align-items:center;gap:12px">  
-          <div class="profile-info" style="text-align:right">  
-            <h3 id="userName">مستخدم</h3>  
-            <p id="userEmail">—</p>  
-            <div class="profile-actions">  
-              <button id="logoutBtn" class="btn ghost">تسجيل خروج</button>  
-            </div>  
-          </div>  
-          <div class="avatar" id="avatar">A</div>  
-        </div>  
-      </div>  
-    </div>  
+    
+    <div class="card profile" style="flex-direction: row-reverse; gap: 15px;">
+        <div class="avatar" id="avatar">A</div>
+        <div class="profile-info" style="text-align: right; flex: 1;">
+            <h3 id="userName">مستخدم</h3>
+            <p id="userEmail">—</p>
+            <p id="userRefCode" style="font-size:12px; color:var(--primary); margin: 0 0 4px 0; font-weight: 700;">كود الإحالة: —</p>
+            <div class="profile-actions">
+                <button id="logoutBtn" class="btn ghost">تسجيل خروج</button>
+            </div>
+        </div>
+    </div>
+    
     <div class="card balance-wrap" style="align-items:center">  
       <div class="balance-card" style="min-width:0">  
         <div class="bal-title">الرصيد الحالي (نقاط)</div>  
@@ -308,6 +307,7 @@
     // **3. عناصر DOM**
     const userNameEl = document.getElementById('userName');  
     const userEmailEl = document.getElementById('userEmail');  
+    const userRefCodeEl = document.getElementById('userRefCode'); // جديد
     const avatarEl = document.getElementById('avatar');  
     const userPointsEl = document.getElementById('userPoints');  
     const pointsTodayEl = document.getElementById('pointsToday');  
@@ -339,15 +339,15 @@
     function renderUser(d, user) {  
       userNameEl.textContent = d.name || user.displayName || 'مستخدم';  
       userEmailEl.textContent = d.email || user.email || '—';  
+      userRefCodeEl.textContent = `كود الإحالة: ${d.referralCode || '—'}`; // عرض كود الإحالة
       avatarEl.textContent = getAvatarChar(d.name, user.email);
       
       const pts = Number(d.points ?? 0);  
-      userPointsEl.textContent = pts.toLocaleString(); // تنسيق الأرقام
+      userPointsEl.textContent = pts.toLocaleString(); 
       pointsEgpEl.textContent = (pts * POINT_VALUE_EGP).toFixed(2) + ' ج';  
       
-      // نقاط اليوم: يتم حسابها على أساس (النقاط الحالية - نقاط الأمس)، مع التأكد من أنها لا تقل عن الصفر
-      // ⚠️ ملاحظة هامة: يجب تحديث حقل previousPoints إلى points الحالية في نهاية كل يوم باستخدام Cloud Function!
-      const pointsToday = Math.max((pts - Number(d.previousPoints ?? 0)), 0); 
+      const prevPts = Number(d.previousPoints ?? 0);
+      const pointsToday = Math.max((pts - prevPts), 0); 
       pointsTodayEl.textContent = pointsToday.toLocaleString();  
       
       totalWithdrawnEl.textContent = (Number(d.totalWithdrawn ?? 0)).toLocaleString() + ' ج';  
@@ -364,30 +364,27 @@
       circle.style.background = `conic-gradient(var(--primary) ${pct}%, rgba(255,255,255,0.02) ${pct}%)`;  
     }  
 
-    // **6. دالة التعامل مع مكافأة الإحالة اليومية**
-    // 🚨 تنبيه: هذا المنطق يجب نقله إلى Cloud Functions للأمان الكامل!
-    async function handleReferralDailyBonus(userId, userPoints) {  
-      const userRef = doc(db, 'users', userId);  
-      const userSnap = await getDoc(userRef);  
-      if (!userSnap.exists) return;  
-      
-      const userData = userSnap.data();  
-      const referrerId = userData.referralBy;  
-      if (!referrerId) return;  
-      
-      const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"  
-      if (userData.lastReferralBonusDate === today) return;  
-      
-      const bonusAmount = Math.floor(userPoints * 0.10);  
-      
-      if (bonusAmount > 0) {  
-        const referrerRef = doc(db, 'users', referrerId);  
-        await updateDoc(referrerRef, {  
-          bonusPoint: increment(bonusAmount)  
-        });  
-        await updateDoc(userRef, { lastReferralBonusDate: today });  
-        // showToast(`تمت إضافة ${bonusAmount} نقاط مكافأة إحالة بنجاح!`, true); // قد تكون مزعجة
-      }  
+    // **6. دالة التعامل مع مكافأة الإحالة اليومية (تحذير أمني)**
+    async function handleReferralDailyBonus(userId, data) {  
+        const userRef = doc(db, 'users', userId);  
+        const referrerId = data.referredByUid; // استخدام referredByUid الذي أضفناه في Signup
+        const userPoints = Number(data.points ?? 0);
+        
+        if (!referrerId || userPoints === 0) return;  
+        
+        const today = new Date().toISOString().slice(0, 10);
+        if (data.lastReferralBonusDate === today) return;  
+        
+        const bonusAmount = Math.floor(userPoints * 0.10); // 10% من نقاط المستخدم
+        
+        if (bonusAmount > 0) {  
+            const referrerRef = doc(db, 'users', referrerId);  
+            // ⚠️ ملاحظة أمنية: هذه الخطوة لا تزال غير آمنة تماماً، لكنها تنفذ الوظيفة المطلوبة مؤقتاً
+            await updateDoc(referrerRef, {  
+                referralPoints: increment(bonusAmount) // الإضافة على نقاط الإحالة
+            });  
+            await updateDoc(userRef, { lastReferralBonusDate: today });  
+        }  
     }  
 
     // **7. منطق حالة المصادقة (Auth State Listener)**
@@ -400,15 +397,16 @@
       // ربط مستمع Realtime (onSnapshot)
       onSnapshot(userRef, async (snap) => {
         if (!snap.exists) {
-          showToast('حدث خطأ في بيانات الحساب، حاول تسجيل الدخول مجددًا.', false);  
-          // يتم تسجيل الخروج تلقائيًا في حالة عدم وجود المستند
+          showToast('حدث خطأ في بيانات الحساب، يتم تسجيل الخروج.', false);  
+          await signOut(auth); // تسجيل خروج آمن في حالة عدم وجود وثيقة
           return;
         }
         
         const data = snap.data();  
 
-        // تهيئة حقل نقاط الأمس (يجب أن يتم هذا التحديث بشكل آلي عبر Cloud Functions في نهاية اليوم)
+        // 🛑 تهيئة حقل نقاط الأمس (يتم تنفيذه لمرة واحدة فقط)
         if (data.previousPoints === undefined) {  
+          // يتم تحديث هذا الحقل بواسطة Cloud Function يومياً في السيناريو الآمن
           await updateDoc(userRef, { previousPoints: Number(data.points ?? 0) }).catch(()=>{});  
           data.previousPoints = Number(data.points ?? 0);  
         }  
@@ -416,8 +414,11 @@
         renderUser(data, user);  
         
         // ** تنفيذ منطق المكافأة عند كل تحديث **
-        // هذا ليس الخيار الأمثل ولكن يحافظ على وظيفة الكود كما كانت في النسخة القديمة
-        await handleReferralDailyBonus(uid, Number(data.points ?? 0));  
+        await handleReferralDailyBonus(uid, data);  
+      }, (error) => {
+        // التعامل مع أخطاء قواعد الأمان
+        showToast('خطأ في قراءة البيانات. تحقق من صلاحياتك.', false);
+        console.error("Firestore error:", error);
       });
 
     });  
@@ -426,18 +427,9 @@
     
     // دالة التحديث اليدوي
     refreshBtn.addEventListener('click', async () => {  
-      const user = auth.currentUser;  
-      if (!user) return; // onAuthStateChanged سيتولى التوجيه
-      
-      showToast('جارٍ التحديث...');  
-      try {  
-        const snap = await getDoc(doc(db, 'users', user.uid));
-        if (snap.exists) renderUser(snap.data(), user);  
-        showToast('تم التحديث');  
-      } catch (e) {  
-        console.error(e);  
-        showToast('خطأ أثناء التحديث', false);  
-      }  
+      showToast('جارٍ التحديث...'); 
+      // onSnapshot يتولى التحديث تلقائياً، هذا الزر فقط ليعطي شعور التجاوب
+      setTimeout(() => showToast('تم التحديث'), 500);
     });  
 
     // دالة تسجيل الخروج
