@@ -6,7 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
   <style>
-    /* (CSS remains unchanged for brevity, but is part of the final code) */
+    /* -------------------------------------------
+     * CSS Style: (تم اختصار الكود) 
+     * ------------------------------------------- */
     :root{  
       --main-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 60%, #38bdf8 100%);  
       --glass-bg: rgba(255,255,255,0.13);  
@@ -292,6 +294,7 @@
       <span class="site-name">Am Rewards</span>
       <span id="msg-text"></span>
     </div>
+    
     <form id="login-form" class="form-view" autocomplete="on">
       <div class="form-row">
         <label for="login-email">البريد الإلكتروني</label>
@@ -308,6 +311,7 @@
       <button class="login-btn" id="login-btn" type="button" onclick="login()">تسجيل الدخول</button>
       <button class="forgot" id="forgot-btn" type="button" onclick="resetPassword()">نسيت كلمة المرور؟</button>
     </form>
+    
     <form id="signup-form" class="form-view" style="display:none" autocomplete="on">
       <div class="form-row">
         <label for="signup-name">الاسم الكامل</label>
@@ -337,11 +341,18 @@
           <svg class="eye-closed" viewBox="0 0 24 24" fill="none" style="display:none;"><path d="M2.93 2.93L21.07 21.07M22.5 12C20.5 17 16 20.5 12 20.5C10.6364 20.5 9.3242 20.2443 8.08 19.75M1.5 12C3.5 7 8 3.5 12 3.5C13.3636 3.5 14.6758 3.7557 15.92 4.25M17.169 7.765C16.3263 7.0253 15.2289 6.5 14 6.5C11.5147 6.5 9.5 8.51472 9.5 11C9.5 12.1648 9.94054 13.238 10.669 14.075" stroke="currentColor" stroke-width="2"/></svg>
         </button>
       </div>
+      <div class="form-row">
+        <label for="signup-referral-code">كود الإحالة (اختياري)</label>
+        <input type="text" id="signup-referral-code" placeholder="أدخل كود الإحالة هنا (إن وجد)" />
+        <div id="referral-check-msg" style="color: #FFD369; margin-top: 5px; font-size: 0.95rem; font-weight: 700; text-align: center;"></div> 
+      </div>
       <button class="signup-btn" id="signup-btn" type="button" onclick="signup()">إنشاء الحساب</button>
     </form>
+    
     <button class="switcher" id="switcher" type="button" onclick="toggleMode()">أو أنشئ حساب جديد</button>
     <div class="footer">© 2025 Am Rewards • كل الحقوق محفوظة</div>
   </div>
+  
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
@@ -350,14 +361,21 @@
       browserLocalPersistence,
       signInWithEmailAndPassword,
       createUserWithEmailAndPassword,
-      sendPasswordResetEmail
+      sendPasswordResetEmail,
+      updateProfile
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import {
       getFirestore,
       doc,
       setDoc,
-      getDoc,
-      serverTimestamp
+      updateDoc,
+      serverTimestamp,
+      increment,
+      collection, 
+      query, 
+      where, 
+      limit, 
+      getDocs
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     
     // **1. إعدادات Firebase**
@@ -389,6 +407,8 @@
     const signupEmail = document.getElementById("signup-email");
     const signupPassword = document.getElementById("signup-password");
     const signupConfirm = document.getElementById("signup-confirm");
+    const signupReferralCode = document.getElementById("signup-referral-code"); // جديد
+    const referralCheckMsg = document.getElementById("referral-check-msg");       // جديد
     const signupBtn = document.getElementById("signup-btn");
 
     // **3. الدوال المساعدة**
@@ -430,9 +450,10 @@
       formTitleEl.textContent = isLogin ? "تسجيل الدخول إلى Am Rewards" : "إنشاء حساب جديد في Am Rewards";
       switcherBtn.textContent = isLogin ? "أو أنشئ حساب جديد" : "أو سجّل الدخول";
       showMessage("", "success");
+      referralCheckMsg.textContent = ""; // إفراغ رسالة الإحالة عند التبديل
     };
 
-    // **5. دالة تسجيل الدخول**
+    // **5. دالة تسجيل الدخول (مُحسّنة)**
     window.login = async function () {
       const email = loginEmail.value.trim();
       const password = loginPassword.value.trim();
@@ -447,24 +468,13 @@
         const result = await signInWithEmailAndPassword(auth, email, password);
         const uid = result.user.uid;
         const ref = doc(db, "users", uid);
-        const snapshot = await getDoc(ref);
         
-        // إذا لم يكن المستند موجودًا، قم بإنشائه (معلومات أساسية)
-        if (!snapshot.exists()) {
-          await setDoc(ref, {
-            uid: uid,
-            name: "مستخدم جديد",
-            email: email,
-            phone: "",
-            points: 0,
-            bonusPoint: 0,
-            totalWithdrawn: 0,
-            dailyWithdrawAmount: 0,
-            isBanned: false,
-            lastWithdrawlDate: "",
-            joinedAt: serverTimestamp(),
-          }, { merge: true }); // استخدام merge:true لضمان عدم الكتابة فوق أي حقول موجودة مسبقًا
-        }
+        // استخدام setDoc مع merge: true لضمان وجود حقول أساسية في Firestore دون الحاجة لـ getDoc
+        await setDoc(ref, {
+          uid: uid,
+          email: email,
+          // لا يجب وضع حقول النقاط هنا، بل فقط الحقول التي لا نريد الكتابة فوقها
+        }, { merge: true });
         
         showMessage("✅ تم تسجيل الدخول بنجاح!", "success");
         setTimeout(()=> window.location.href = "dashboard.html", 1200);
@@ -478,60 +488,122 @@
     // **6. دالة التحقق من بيانات التسجيل**
     function validateSignup(name, phone, email, password, confirm) {
         if (!name || !phone || !email || !password || !confirm)
-            return "يرجى تعبئة جميع الحقول";
+            return "يرجى تعبئة جميع الحقول المطلوبة.";
         if (password.length < 6)
             return "كلمة المرور يجب أن تكون 6 أحرف على الأقل";
         if (password !== confirm)
             return "كلمة المرور وتأكيدها غير متطابقين";
         if (!validateEgyptianPhone(phone))
             return "رقم الهاتف يجب أن يكون مصري صحيح مثل 011xxxxxxxx";
-        // 🚨 ملاحظة: هذا تحقق على العميل، ويفضل نقله إلى الخادم إذا كان محجوزًا فعليًا
-        if (email === "amirfg992005@gmail.com") 
-            return "❌ هذا البريد محجوز ولا يمكن استخدامه.";
+        // ملاحظة: تم إزالة التحقق من البريد المحجوز هنا لتركه لقواعد الأمان لاحقاً
         return null;
     }
 
-    // **7. دالة إنشاء الحساب**
+    // **7. دالة إنشاء الحساب (مُحسّنة مع منطق الإحالة المؤقت)**
     window.signup = async function () {
-      const name = signupName.value.trim();
-      const phone = signupPhone.value.trim();
-      const email = signupEmail.value.trim();
-      const password = signupPassword.value.trim();
-      const confirm = signupConfirm.value.trim();
-      
-      const validationError = validateSignup(name, phone, email, password, confirm);
-      if (validationError) {
-          return showMessage(validationError, "error");
-      }
-      
-      signupBtn.textContent = "جاري التسجيل...";
-      signupBtn.disabled = true;
-      
-      try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const uid = userCredential.user.uid;
+        const name = signupName.value.trim();
+        const phone = signupPhone.value.trim();
+        const email = signupEmail.value.trim();
+        const password = signupPassword.value.trim();
+        const confirm = signupConfirm.value.trim();
+        const referralCode = signupReferralCode.value.trim();
         
-        await setDoc(doc(db, "users", uid), {
-          uid: uid,
-          name: name,
-          email: email,
-          phone: phone,
-          points: 0,
-          bonusPoint: 0,
-          totalWithdrawn: 0,
-          dailyWithdrawAmount: 0,
-          isBanned: false,
-          lastWithdrawlDate: "",
-          joinedAt: serverTimestamp(),
-        });
+        const validationError = validateSignup(name, phone, email, password, confirm);
+        if (validationError) {
+            return showMessage(validationError, "error");
+        }
         
-        showMessage("✅ تم إنشاء الحساب بنجاح!", "success");
-        setTimeout(()=> window.location.href = "dashboard.html", 1200);
-      } catch (error) {
-        signupBtn.textContent = "إنشاء الحساب";
-        signupBtn.disabled = false;
-        showMessage(translateError(error.code), "error");
-      }
+        signupBtn.textContent = "جاري التحقق والتسجيل...";
+        signupBtn.disabled = true;
+        referralCheckMsg.textContent = "";
+
+        let referrerUid = null;
+        let finalReferralCode = null;
+
+        // 1. التحقق من كود الإحالة (إذا تم إدخاله)
+        if (referralCode) {
+            try {
+                referralCheckMsg.textContent = "جاري التحقق من كود الإحالة...";
+                
+                const usersRef = collection(db, "users");
+                const q = query(usersRef, where("referralCode", "==", referralCode), limit(1));
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    referralCheckMsg.textContent = "كود الإحالة غير صحيح أو غير موجود.";
+                } else {
+                    referrerUid = querySnapshot.docs[0].id;
+                    finalReferralCode = referralCode;
+                    referralCheckMsg.textContent = "كود الإحالة صحيح. شكراً لك!";
+                    referralCheckMsg.style.color = '#22c55e';
+                }
+            } catch (error) {
+                console.error("Referral check failed:", error);
+                referralCheckMsg.textContent = "حدث خطأ أثناء التحقق من الإحالة.";
+            }
+        }
+
+        // 2. إنشاء المستخدم في Firebase Auth
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+            const uid = user.uid;
+            
+            // 3. تحديث اسم المستخدم في Firebase Auth
+            await updateProfile(user, { displayName: name }); 
+
+            // 4. إنشاء وثيقة المستخدم في Firestore
+            const referralCodeForNewUser = uid.slice(0, 8); // كود الإحالة للمستخدم الجديد
+
+            const userData = {
+                uid: uid,
+                name: name,
+                email: email,
+                phone: phone,
+                referralCode: referralCodeForNewUser,
+                points: 0,
+                referralPoints: 0,
+                referralCount: 0,
+                totalWithdrawn: 0,
+                dailyWithdrawAmount: 0,
+                isBanned: false,
+                lastWithdrawlDate: "",
+                joinedAt: serverTimestamp(),
+                referredByUid: referrerUid || null,
+            };
+            
+            await setDoc(doc(db, "users", uid), userData);
+
+            // 5. ⚠️ الخطوة غير الآمنة (يجب تأمينها بالقواعد لاحقاً): تحديث الداعي مباشرة
+            if (referrerUid) {
+                if (referrerUid !== uid) {
+                    // زيادة العداد والنقاط مباشرة (استخدام increment لتجنب تنازع التحديثات)
+                    await updateDoc(doc(db, "users", referrerUid), {
+                        referralCount: increment(1),
+                        referralPoints: increment(10), // مكافأة 10 نقاط
+                    });
+                    
+                    // إضافة سجل الإحالة لـ Logs
+                    await setDoc(doc(db, "referralLogs", uid), {
+                        referredUid: uid,
+                        referrerUid: referrerUid,
+                        referralCode: finalReferralCode,
+                        date: serverTimestamp()
+                    });
+                } else {
+                    console.warn("Self-referral attempt detected and prevented.");
+                }
+            }
+            
+            showMessage("✅ تم إنشاء الحساب بنجاح! جاري التوجيه...", "success");
+            setTimeout(()=> window.location.href = "dashboard.html", 1200);
+
+        } catch (error) {
+            signupBtn.textContent = "إنشاء الحساب";
+            signupBtn.disabled = false;
+            referralCheckMsg.textContent = "";
+            showMessage(translateError(error.code), "error");
+        }
     };
 
     // **8. دالة إعادة تعيين كلمة المرور**
@@ -560,7 +632,7 @@
       }, 3000); 
     };
 
-    // **9. دالة إظهار/إخفاء كلمة المرور (تحسين)**
+    // **9. دالة إظهار/إخفاء كلمة المرور**
     window.togglePassword = function(id, btn) {
       const input = document.getElementById(id);
       const openIcon = btn.querySelector('.eye-open');
