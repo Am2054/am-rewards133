@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>المهام اليومية | Am Rewards</title>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Tajawal', sans-serif;
@@ -148,7 +148,6 @@
   </style>
 </head>
 <body>
-  <!-- خلفية نجوم SVG -->
   <div class="stars-bg">
     <svg width="100vw" height="100vh">
       <circle cx="50" cy="70" r="2" fill="#fff" opacity="0.4">
@@ -176,7 +175,6 @@
   </div>
   <div class="main-box">
     <h1>المهام اليومية</h1>
-    <!-- عرض النقاط وسعر النقطة -->
     <div class="points-box">
       نقاطك الحالية: <strong id="userPoints">0</strong>
       <span class="point-price">سعر النقطة = 0.07 جنيه</span>
@@ -207,10 +205,8 @@
         <button class="start-btn" onclick="startTask('apps.html')">ابدأ</button>
       </div>
     </div>
-    <!-- زر العودة -->
     <button class="back-btn" onclick="window.location.href='dashboard.html'">⬅️ العودة للوحة التحكم</button>
   </div>
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -228,26 +224,34 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    let currentUser;
-
     auth.onAuthStateChanged(user => {
       if (user) {
-        currentUser = user;
-        listenToPoints();
+        // نمرر UID مباشرة إلى دالة جلب النقاط
+        listenToPoints(user.uid);
       } else {
+        // إذا لم يكن المستخدم مسجلاً للدخول، يتم توجيهه إلى صفحة الدخول
         window.location.href = "index.html";
       }
     });
 
-    function listenToPoints() {
-      db.collection("users").doc(currentUser.uid)
+    /**
+     * تستمع للتغييرات في نقاط المستخدم وتعرضها في الوقت الفعلي.
+     * @param {string} userId - معرّف المستخدم الفريد (UID).
+     */
+    function listenToPoints(userId) {
+      db.collection("users").doc(userId)
         .onSnapshot(doc => {
           if (doc.exists) {
+            // عرض النقاط. إذا لم يكن الحقل موجودًا، يُعرض 0.
             document.getElementById("userPoints").textContent = doc.data().points || 0;
           }
         });
     }
 
+    /**
+     * دالة بسيطة للتوجيه إلى صفحة المهمة.
+     * @param {string} link - رابط صفحة المهمة (shortlinks.html, videos.html, etc.).
+     */
     function startTask(link) {
       window.location.href = link;
     }
