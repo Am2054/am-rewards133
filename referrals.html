@@ -3,7 +3,7 @@
   <meta charset="utf-8" />  
   <title>نظام الإحالات | Am Rewards</title>  
   <meta name="viewport" content="width=device-width,initial-scale=1" />  
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">  
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Montserrat:wght@800&display=swap" rel="stylesheet">  
   <style>  
     :root{  
       --bg-1:#051424; --bg-2:#031226;  
@@ -22,14 +22,14 @@
     }  
     .wrap{max-width:1100px;margin:28px auto;padding:18px}  
     .brand h1{margin:0;color:var(--accent);font-size:22px}  
-    .brand p{margin:0;color:var(--muted);font-size:13px}  
+    .brand p{margin:0;color:var(--muted);font-size:13px; font-weight: 700;} /* 🟢 تحسين شكل آخر تحديث */
     .summary{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center;}  
     .stat-card{  
       background:rgba(255,255,255,0.02);border:1px solid var(--glass);  
       border-radius:12px;padding:12px 16px;min-width:140px;text-align:right;  
     }  
     .stat-card .label{font-size:13px;color:var(--muted)}  
-    .stat-card .value{font-size:20px;font-weight:800}  
+    .stat-card .value{font-size:20px;font-weight:800; font-family: 'Montserrat', sans-serif;} /* 🟢 خط أوضح للأرقام */
     .btn{  
       border:0;padding:10px 14px;border-radius:10px;cursor:pointer;  
       font-weight:800;transition: opacity 0.2s, background 0.2s;  
@@ -44,7 +44,7 @@
       backdrop-filter:blur(8px);  
     }  
     .ref-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}  
-    .ref-code{font-size:18px;font-weight:900;color:#fff}  
+    .ref-code{font-size:18px;font-weight:900;color:#fff; font-family: 'Montserrat', sans-serif;}  
     .ref-link-box{  
       background:rgba(0,0,0,0.25);padding:10px;border-radius:10px;  
       border:1px solid rgba(255,255,255,0.05);color:var(--muted);  
@@ -71,6 +71,13 @@
       background: linear-gradient(90deg,#ff5f5f,#ff9e5f);  
     }  
     #toast.show { opacity: 1; }  
+    @media (max-width: 600px) {
+        .summary {justify-content: flex-end;}
+        .stat-card {min-width: 100px; padding: 10px 12px;}
+        .stat-card:first-child, .stat-card:nth-child(2) {order: 3;}
+        .btn.ghost {order: 2; flex-grow: 1;}
+        .btn.primary {order: 1; flex-grow: 1;}
+    }
   </style>  
 </head>  
 <body>  
@@ -78,56 +85,60 @@
     <div class="brand">  
       <h1>Am Rewards — نظام الإحالات</h1>  
       <p id="relativeLast">آخر تحديث: -</p>  
-    </div>  <div class="summary">  
-  <div class="stat-card"><div class="label">عدد الإحالات</div><div class="value" id="referralCount">0</div></div>  
-  <div class="stat-card"><div class="label">نقاط الإحالات</div><div class="value" id="referralPoints">0</div></div>  
-  <button id="refreshBtn" class="btn ghost">🔄 تحديث</button>  
-  <button id="copyBtn" class="btn primary">  
-    نسخ رابط الإحالة   
-    <svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;stroke-width:2.5; stroke:currentColor;">  
-      <path d="M7 11C7 8.17157 7 6.75736 7.87868 5.87868C8.75736 5 10.1716 5 13 5H14C16.8284 5 18.2426 5 19.1213 5.87868C20 6.75736 20 8.17157 20 11V16C20 18.8284 20 20.2426 19.1213 21.1213C18.2426 22 16.8284 22 14 22H13C10.1716 22 8.75736 22 7.87868 21.1213C7 20.2426 7 18.8284 7 16" stroke-linecap="round"/>  
-      <path d="M10 5C10 3.89543 9.10457 3 8 3H6C4.89543 3 4 3.89543 4 5V16C4 17.1046 4.89543 18 6 18H7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>  
-    </svg>  
-  </button>  
-</div>  
-
-<div class="card">  
-  <div class="ref-row">  
-    <div>  
-      <div class="small-muted">كود الإحالة</div>  
-      <div class="ref-code" id="referralCode">—</div>  
     </div>  
-    <div>  
-      <div class="small-muted" style="text-align:left">رابط التسجيل</div>  
-      <div class="ref-link-box" id="referralLink">-</div>  
+    <div class="summary">  
+      <div class="stat-card"><div class="label">عدد الإحالات</div><div class="value" id="referralCount">0</div></div>  
+      <div class="stat-card"><div class="label">نقاط الإحالات</div><div class="value" id="referralPoints">0</div></div>  
+      <button id="refreshBtn" class="btn ghost">🔄 تحديث</button>  
+      <button id="copyBtn" class="btn primary">  
+        نسخ رابط الإحالة   
+        <svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;stroke-width:2.5; stroke:currentColor;">  
+          <path d="M7 11C7 8.17157 7 6.75736 7.87868 5.87868C8.75736 5 10.1716 5 13 5H14C16.8284 5 18.2426 5 19.1213 5.87868C20 6.75736 20 8.17157 20 11V16C20 18.8284 20 20.2426 19.1213 21.1213C18.2426 22 16.8284 22 14 22H13C10.1716 22 8.75736 22 7.87868 21.1213C7 20.2426 7 18.8284 7 16" stroke-linecap="round"/>  
+          <path d="M10 5C10 3.89543 9.10457 3 8 3H6C4.89543 3 4 3.89543 4 5V16C4 17.1046 4.89543 18 6 18H7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>  
+        </svg>  
+      </button>  
     </div>  
-  </div>  
 
-  <p class="small-muted" style="margin-top:12px;color:var(--gold)">  
-    💡 المكافأة تُحسب تلقائيًا عند كل عملية سحب يقوم بها أحد المدعوين (10٪ من قيمة السحب).  
-  </p>  
+    <div class="card">  
+      <div class="ref-row">  
+        <div>  
+          <div class="small-muted">كود الإحالة</div>  
+          <div class="ref-code" id="referralCode">—</div>  
+        </div>  
+        <div>  
+          <div class="small-muted" style="text-align:left">رابط التسجيل</div>  
+          <div class="ref-link-box" id="referralLink">-</div>  
+        </div>  
+      </div>  
 
-  <div class="table-wrap">  
-    <table>  
-      <thead>  
-        <tr>  
-          <th>#</th>  
-          <th>المدعو</th>  
-          <th>نقاطه الحالية</th>  
-          <th>آخر سحب (ج)</th>  
-          <th>ربحك الإجمالي (ج)</th> </tr>  
-      </thead>  
-      <tbody id="tableBody"><tr><td colspan="5" class="small-muted">جارِ التحميل...</td></tr></tbody>  
-    </table>  
-  </div>  
-  <div id="updateSummary" class="small-muted" style="margin-top:10px">—</div>  
-</div>
+      <p class="small-muted" style="margin-top:12px;color:var(--gold)">  
+        💡 المكافأة تُحسب تلقائيًا عند كل عملية سحب يقوم بها أحد المدعوين (10٪ من قيمة السحب).  
+      </p>  
 
-  </div>    <div id="toast">تم</div>    <script type="module">  
+      <div class="table-wrap">  
+        <table>  
+          <thead>  
+            <tr>  
+              <th>#</th>  
+              <th>المدعو</th>  
+              <th>نقاطه الحالية</th>  
+              <th>آخر سحب (ج)</th>  
+              <th>ربحك الإجمالي (ج)</th> </tr>  
+          </thead>  
+          <tbody id="tableBody"><tr><td colspan="5" class="small-muted">جارِ التحميل...</td></tr></tbody>  
+        </table>  
+      </div>  
+      <div id="updateSummary" class="small-muted" style="margin-top:10px">—</div>  
+    </div>
+
+  </div>    
+  <div id="toast">تم</div>    
+  <script type="module">  
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";  
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";  
     import {   
-      getFirestore, doc, collection, query, where, onSnapshot,  
+      getFirestore, doc, collection, query, where, onSnapshot, updateDoc,
+      serverTimestamp 
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";  
   
     const firebaseConfig = {  
@@ -165,6 +176,7 @@
     // 💡 دالة الوقت النسبي  
     function relativeTime(ts){  
       if(!ts) return "-";  
+      // 🟢 إذا كانت البيانات Timestamp، نحولها. إذا كانت تاريخ JavaScript، نستخدمها مباشرة.
       const d = ts.toDate ? ts.toDate() : new Date(ts);  
       const diff = Math.floor((Date.now() - d.getTime())/60000);  
       if(diff < 1) return "الآن";  
@@ -175,20 +187,19 @@
   
     // 💡 تنسيق الأرقام  
     function formatNumber(num) {  
-      // تنسيق الأرقام كنقاط أو مبالغ مالية (بدون علامة ج)  
+      // 🟢 تم التأكد من استخدام تنسيق رقمي دولي بدون عملة افتراضية
       return Number(num || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });  
     }  
   
-    // 🚨 دالة جديدة: لجلب المدعوين باستخدام كود الإحالة  
+    // 🚨 دالة جديدة: لجلب المدعوين باستخدام كود الإحالة (تعتمد على onSnapshot وتعمل بشكل صحيح)  
     function loadInvitedUsers(userCode){  
         const tableBody = document.getElementById('tableBody');  
         const updateSummary = document.getElementById('updateSummary');  
           
-        // ✅ الاستعلام باستخدام الحقل "referralBy"  
         const q = query(collection(db,"users"), where("referralBy","==",userCode));   
   
         onSnapshot(q, (snapQ)=>{  
-            tableBody.innerHTML = ""; // تصفير الجدول  
+            tableBody.innerHTML = ""; 
               
             if(snapQ.empty){   
               tableBody.innerHTML=`<tr><td colspan="5" class="small-muted">لا يوجد مدعوون حتى الآن.</td></tr>`;   
@@ -204,7 +215,6 @@
               const invited = docSnap.data();  
               const invitedName = invited.name || 'مستخدم';  
               const nowPoints = formatNumber(invited.points);  
-              // 🟢 يُفترض أن referralEarnings مسجلة بالجنيه (ج)  
               const totalEarnedFromInvited = Number(invited.totalReferralEarnings || 0);   
               const lastWithdrawAmount = Number(invited.lastWithdrawAmount || 0);  
   
@@ -236,18 +246,20 @@
           if (!snap.exists()) return;  
           const data = snap.data();  
             
-          const userCode = data.referralCode; // ✅ جلب كود الإحالة  
+          const userCode = data.referralCode; 
           const code = userCode || "—";  
             
           referralCodeEl.textContent = code;  
-          // يتم جلب الرابط من هنا  
           referralLinkEl.textContent = `${location.origin}/signup.html?ref=${code}`;   
   
+          // 🟢 هذه الأرقام تتحدث الآن بشكل لحظي
           referralCountEl.textContent = formatNumber(data.referralCount);  
           referralPointsEl.textContent = formatNumber(data.referralPoints);  
-          relativeLast.textContent = data.lastReferralUpdateDate ? "آخر تحديث: "+relativeTime(data.lastReferralUpdateDate) : "آخر تحديث: -";  
+          
+          // 🟢 تحديث "آخر تحديث" تلقائياً عند جلب البيانات الجديدة
+          const lastUpdateTS = data.lastReferralUpdateDate ? data.lastReferralUpdateDate : new Date();
+          relativeLast.textContent = "آخر تحديث: "+relativeTime(lastUpdateTS);
             
-          // 💡 استدعاء المستمع الثاني بعد الحصول على الكود  
           if(userCode) {  
               loadInvitedUsers(userCode);   
           } else {  
@@ -259,16 +271,33 @@
       });  
     }  
   
-    // ** 4. ربط الأحداث **  
-  
-    onAuthStateChanged(auth,(user)=>{  
+    // ** 4. ربط الأحداث ** onAuthStateChanged(auth,(user)=>{  
       if(!user) return location.href="login.html";  
       loadReferrals(user);  
     });  
   
-    refreshBtn.onclick=()=>{   
-      showToast("جارِ تحديث البيانات...", true); // 🟢 رسالة عند الضغط  
-      setTimeout(() => location.reload(), 500);  
+    // 🟢 تم تغيير وظيفة زر التحديث ليقوم بتحديث حقل "آخر تحديث" يدويًا في Firestore
+    refreshBtn.onclick=async()=>{   
+      try {
+        refreshBtn.disabled = true; // منع الضغط المتكرر
+        showToast("جارِ تحديث تاريخ آخر تحديث...", true); 
+        
+        const user = auth.currentUser;
+        if (user) {
+            const userRef = doc(db, "users", user.uid);
+            await updateDoc(userRef, {
+                // استخدام serverTimestamp لضمان دقة وقت الخادم
+                lastReferralUpdateDate: serverTimestamp() 
+            });
+            // onSnapshot سيقوم بتحديث الشاشة بالوقت الجديد تلقائياً
+            showToast("تم تحديث التاريخ بنجاح ✅");
+        }
+      } catch (e) {
+          showToast("فشل التحديث ❌", false);
+          console.error(e);
+      } finally {
+          setTimeout(() => refreshBtn.disabled = false, 2000);
+      }
     };  
   
     copyBtn.onclick=async()=>{  
@@ -283,4 +312,4 @@
       }  
     };  
   </script>  </body>  
-        </html>  
+        </html>
