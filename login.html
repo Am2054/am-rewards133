@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
   <style>
     /* -------------------------------------------
-     * CSS Style: (تم اختصار الكود) 
+     * CSS Style: (تم تعديل الـ CSS الخاص بالـ Modal هنا) 
      * ------------------------------------------- */
     :root{  
       --main-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 60%, #38bdf8 100%);  
@@ -24,6 +24,7 @@
       --gold: #FFD369;  
       --gold-dark: #bfa243;  
     }  
+    *{box-sizing:border-box}
     html, body {  
       height: 100%;  
       margin: 0;  
@@ -282,6 +283,90 @@
       .message { font-size: .93rem; }  
       label { font-size: .91rem; }  
     }  
+
+    /* --- Modal Styles (سياسة الاستخدام) --- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease-in-out;
+    }
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-content {
+      background: #1e293b;
+      border: 1.5px solid var(--glass-border);
+      border-radius: var(--radius);
+      padding: 30px;
+      width: 90%;
+      max-width: 650px;
+      max-height: 85vh;
+      overflow-y: auto;
+      transform: scale(0.9);
+      transition: transform 0.2s ease-in-out;
+    }
+    .modal-overlay.open .modal-content {
+      transform: scale(1);
+    }
+    .modal-content h1 {
+      font-size: 24px;
+      color: var(--input-focus);
+      margin-top: 0;
+    }
+    .modal-content ul {
+      list-style: none;
+      padding: 0;
+      margin: 15px 0;
+    }
+    .modal-content li {
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 10px;
+      position: relative;
+      padding-right: 18px;
+      color: var(--muted);
+    }
+    .modal-content li::before {
+      content: '✓';
+      position: absolute;
+      right: 0;
+      color: var(--gold);
+      font-weight: 900;
+      font-size: 17px;
+    }
+    .modal-content .note {
+      margin-top: 20px;
+      padding: 10px;
+      background: rgba(255, 211, 105, 0.1);
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--gold);
+      text-align: center;
+    }
+    .modal-close {
+      float: left;
+      background: var(--error);
+      color: white;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      margin-top: 20px;
+      transition: background 0.15s;
+    }
+    .modal-close:hover {
+      background: #d64a4a;
+    }
   </style>  
 </head>
 <body>
@@ -346,6 +431,14 @@
         <input type="text" id="signup-referral-code" placeholder="أدخل كود الإحالة هنا (إن وجد)" />
         <div id="referral-check-msg" style="color: #FFD369; margin-top: 5px; font-size: 0.95rem; font-weight: 700; text-align: center;"></div> 
       </div>
+      
+      <div class="form-row" style="text-align: right; margin-top: 10px;">
+          <label style="display:flex; align-items:center; gap: 8px; font-size: 0.95rem;">
+              <input id="agree-policy" type="checkbox" required style="width: 20px; height: 20px; accent-color: #38bdf8; margin: 0;"/>
+              أوافق على 
+              <button type="button" class="switcher" style="text-decoration: underline; margin: 0; padding: 0; font-size: 1rem; color: #38bdf8;" onclick="openPolicyModal()">سياسة الاستخدام</button>
+          </label>
+      </div>
       <button class="signup-btn" id="signup-btn" type="button" onclick="signup()">إنشاء الحساب</button>
     </form>
     
@@ -353,6 +446,24 @@
     <div class="footer">© 2025 Am Rewards • كل الحقوق محفوظة</div>
   </div>
   
+  <div id="policyModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="policyTitle">
+    <div class="modal-content">
+      <h1 id="policyTitle">سياسة الاستخدام</h1>
+      <ul style="list-style: none; padding: 0;">
+        <li>يُحظر تمامًا استخدام أي وسائل أو أدوات برمجية غير قانونية مثل برامج التكرار أو التلقائية للحصول على النقاط.</li>
+        <li>يجب على المستخدمين إدخال بيانات السحب بدقة، وأي بيانات مزيفة تؤدي إلى إيقاف الحساب نهائيًا.</li>
+        <li>يسمح بإنشاء حساب واحد فقط لكل شخص. الحسابات المكررة يتم حظرها تلقائيًا دون إنذار.</li>
+        <li>الحد الأقصى لمجموع عمليتي السحب اليومية هو <strong>200 جنيه مصري</strong>، ويتم خصم <strong>10%</strong> رسوم إدارية عند السحب.</li>
+        <li>يُمنع استغلال الثغرات أو محاولة التلاعب بالنظام، ويتم التعامل مع تلك الحالات بصرامة.</li>
+        <li>يحق للإدارة تعديل الشروط أو السياسات في أي وقت دون الحاجة لإشعار مسبق.</li>
+        <li>باستخدامك لموقع Am Rewards، فإنك توافق على جميع الشروط والسياسات المذكورة أعلاه.</li>
+      </ul>
+      <div class="note">
+        <span>سعر النقطة حالياً: 0.07 جنيه مصري. تطبّق جميع السياسات على كل العمليات المالية والمهام داخل النظام.</span>
+      </div>
+      <button class="modal-close" onclick="closePolicyModal()">إغلاق</button>
+    </div>
+  </div>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
@@ -368,9 +479,7 @@
       getFirestore,
       doc,
       setDoc,
-      updateDoc,
       serverTimestamp,
-      increment,
       collection, 
       query, 
       where, 
@@ -389,7 +498,7 @@
     const db = getFirestore(app);
     let isLogin = true;
 
-    // **2. جلب عناصر DOM مرة واحدة لزيادة الكفاءة**
+    // **2. جلب عناصر DOM**
     const msgEl = document.getElementById("msg");
     const msgTextEl = document.getElementById("msg-text");
     const formTitleEl = document.getElementById("form-title");
@@ -407,9 +516,11 @@
     const signupEmail = document.getElementById("signup-email");
     const signupPassword = document.getElementById("signup-password");
     const signupConfirm = document.getElementById("signup-confirm");
-    const signupReferralCode = document.getElementById("signup-referral-code"); // جديد
-    const referralCheckMsg = document.getElementById("referral-check-msg");       // جديد
+    const signupReferralCode = document.getElementById("signup-referral-code");
+    const referralCheckMsg = document.getElementById("referral-check-msg");
     const signupBtn = document.getElementById("signup-btn");
+    
+    const policyModal = document.getElementById('policyModal'); // عنصر الـ Modal
 
     // **3. الدوال المساعدة**
     function showMessage(text, type="success") {
@@ -439,7 +550,7 @@
     }
     
     function validateEgyptianPhone(phone) {  
-        return /^(010|011|012|015)[0-9]{8}$/.test(phone);  
+        return /^(010|011|012|015|01)[0-9]{9}$/.test(phone);  
     }  
 
     // **4. دالة التبديل بين النماذج**
@@ -450,10 +561,18 @@
       formTitleEl.textContent = isLogin ? "تسجيل الدخول إلى Am Rewards" : "إنشاء حساب جديد في Am Rewards";
       switcherBtn.textContent = isLogin ? "أو أنشئ حساب جديد" : "أو سجّل الدخول";
       showMessage("", "success");
-      referralCheckMsg.textContent = ""; // إفراغ رسالة الإحالة عند التبديل
+      referralCheckMsg.textContent = "";
     };
+    
+    // **5. دوال التحكم في Modal**
+    window.openPolicyModal = function() {
+        policyModal.classList.add('open');
+    }
+    window.closePolicyModal = function() {
+        policyModal.classList.remove('open');
+    }
 
-    // **5. دالة تسجيل الدخول (مُحسّنة)**
+    // **6. دالة تسجيل الدخول (مُحسّنة)**
     window.login = async function () {
       const email = loginEmail.value.trim();
       const password = loginPassword.value.trim();
@@ -469,11 +588,10 @@
         const uid = result.user.uid;
         const ref = doc(db, "users", uid);
         
-        // استخدام setDoc مع merge: true لضمان وجود حقول أساسية في Firestore دون الحاجة لـ getDoc
+        // تحديث بسيط لضمان وجود حقل UID عند الدخول، محمي بقواعد الأمان
         await setDoc(ref, {
           uid: uid,
           email: email,
-          // لا يجب وضع حقول النقاط هنا، بل فقط الحقول التي لا نريد الكتابة فوقها
         }, { merge: true });
         
         showMessage("✅ تم تسجيل الدخول بنجاح!", "success");
@@ -485,7 +603,7 @@
       }
     };
 
-    // **6. دالة التحقق من بيانات التسجيل**
+    // **7. دالة التحقق من بيانات التسجيل**
     function validateSignup(name, phone, email, password, confirm) {
         if (!name || !phone || !email || !password || !confirm)
             return "يرجى تعبئة جميع الحقول المطلوبة.";
@@ -494,12 +612,11 @@
         if (password !== confirm)
             return "كلمة المرور وتأكيدها غير متطابقين";
         if (!validateEgyptianPhone(phone))
-            return "رقم الهاتف يجب أن يكون مصري صحيح مثل 011xxxxxxxx";
-        // ملاحظة: تم إزالة التحقق من البريد المحجوز هنا لتركه لقواعد الأمان لاحقاً
+            return "رقم الهاتف يجب أن يكون مصري صحيح (11 رقم)";
         return null;
     }
 
-    // **7. دالة إنشاء الحساب (مُحسّنة مع منطق الإحالة المؤقت)**
+    // **8. دالة إنشاء الحساب (مُحسّنة أمنياً)**
     window.signup = async function () {
         const name = signupName.value.trim();
         const phone = signupPhone.value.trim();
@@ -507,10 +624,14 @@
         const password = signupPassword.value.trim();
         const confirm = signupConfirm.value.trim();
         const referralCode = signupReferralCode.value.trim();
+        const agreed = document.getElementById('agree-policy').checked; // التحقق من الموافقة
         
-        const validationError = validateSignup(name, phone, email, password, confirm);
+        let validationError = validateSignup(name, phone, email, password, confirm);
         if (validationError) {
             return showMessage(validationError, "error");
+        }
+        if (!agreed) {
+            return showMessage("يجب الموافقة على سياسة الاستخدام للمتابعة.", "error");
         }
         
         signupBtn.textContent = "جاري التحقق والتسجيل...";
@@ -518,42 +639,38 @@
         referralCheckMsg.textContent = "";
 
         let referrerUid = null;
-        let finalReferralCode = null;
 
-        // 1. التحقق من كود الإحالة (إذا تم إدخاله)
+        // 1. التحقق من كود الإحالة (لـ UX فقط)
         if (referralCode) {
             try {
                 referralCheckMsg.textContent = "جاري التحقق من كود الإحالة...";
-                
                 const usersRef = collection(db, "users");
                 const q = query(usersRef, where("referralCode", "==", referralCode), limit(1));
                 const querySnapshot = await getDocs(q);
 
-                if (querySnapshot.empty) {
-                    referralCheckMsg.textContent = "كود الإحالة غير صحيح أو غير موجود.";
-                } else {
+                if (!querySnapshot.empty) {
                     referrerUid = querySnapshot.docs[0].id;
-                    finalReferralCode = referralCode;
                     referralCheckMsg.textContent = "كود الإحالة صحيح. شكراً لك!";
                     referralCheckMsg.style.color = '#22c55e';
+                } else {
+                    referralCheckMsg.textContent = "كود الإحالة غير صحيح أو غير موجود.";
                 }
             } catch (error) {
                 console.error("Referral check failed:", error);
-                referralCheckMsg.textContent = "حدث خطأ أثناء التحقق من الإحالة.";
+                // لا نوقف التسجيل بسبب فشل التحقق
             }
         }
 
         // 2. إنشاء المستخدم في Firebase Auth
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const userCredential = await createUserWithWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
             const uid = user.uid;
             
-            // 3. تحديث اسم المستخدم في Firebase Auth
             await updateProfile(user, { displayName: name }); 
 
-            // 4. إنشاء وثيقة المستخدم في Firestore
-            const referralCodeForNewUser = uid.slice(0, 8); // كود الإحالة للمستخدم الجديد
+            // 3. إنشاء وثيقة المستخدم في Firestore
+            const referralCodeForNewUser = uid.slice(0, 8).toUpperCase(); 
 
             const userData = {
                 uid: uid,
@@ -569,31 +686,13 @@
                 isBanned: false,
                 lastWithdrawlDate: "",
                 joinedAt: serverTimestamp(),
-                referredByUid: referrerUid || null,
+                // 🔥 الأمان: نرسل UID الداعي فقط. الخادم (Cloud Function) سيتولى منح المكافآت.
+                referredByUid: referrerUid || null, 
             };
             
             await setDoc(doc(db, "users", uid), userData);
 
-            // 5. ⚠️ الخطوة غير الآمنة (يجب تأمينها بالقواعد لاحقاً): تحديث الداعي مباشرة
-            if (referrerUid) {
-                if (referrerUid !== uid) {
-                    // زيادة العداد والنقاط مباشرة (استخدام increment لتجنب تنازع التحديثات)
-                    await updateDoc(doc(db, "users", referrerUid), {
-                        referralCount: increment(1),
-                        referralPoints: increment(10), // مكافأة 10 نقاط
-                    });
-                    
-                    // إضافة سجل الإحالة لـ Logs
-                    await setDoc(doc(db, "referralLogs", uid), {
-                        referredUid: uid,
-                        referrerUid: referrerUid,
-                        referralCode: finalReferralCode,
-                        date: serverTimestamp()
-                    });
-                } else {
-                    console.warn("Self-referral attempt detected and prevented.");
-                }
-            }
+            // تم حذف منطق updateDoc و referralLogs من هنا بالكامل 
             
             showMessage("✅ تم إنشاء الحساب بنجاح! جاري التوجيه...", "success");
             setTimeout(()=> window.location.href = "dashboard.html", 1200);
@@ -606,7 +705,7 @@
         }
     };
 
-    // **8. دالة إعادة تعيين كلمة المرور**
+    // **9. دالة إعادة تعيين كلمة المرور**
     window.resetPassword = async function () {
       const email = loginEmail.value.trim();
       
@@ -625,14 +724,13 @@
         showMessage(translateError(error.code), "error");
       }
       
-      // تأخير بسيط لمنع الضغط المتكرر
       setTimeout(() => { 
           forgotBtn.textContent = "نسيت كلمة المرور؟";
           forgotBtn.disabled = false; 
       }, 3000); 
     };
 
-    // **9. دالة إظهار/إخفاء كلمة المرور**
+    // **10. دالة إظهار/إخفاء كلمة المرور**
     window.togglePassword = function(id, btn) {
       const input = document.getElementById(id);
       const openIcon = btn.querySelector('.eye-open');
