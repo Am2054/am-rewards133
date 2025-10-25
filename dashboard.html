@@ -61,7 +61,7 @@
     }  
     .headline h1{margin:0;font-size:20px;color:var(--primary)}  
     .headline .sub{margin-top:4px;font-size:13px;color:var(--muted)}  
-    .profile { /* 🛑 تم تعديل هذا الجزء في HTML باستخدام flex-direction: row-reverse */
+    .profile {
       display:flex;gap:12px;align-items:center;margin-top:12px;  
       animation: fadeUp .65s ease both;  
     }  
@@ -72,7 +72,7 @@
       box-shadow:0 8px 30px rgba(0,0,0,0.4);  
       flex-shrink:0;  
     }  
-    .profile-info{flex:1;text-align:right} /* 🛑 هذا يضمن أن النص على اليمين */
+    .profile-info{flex:1;text-align:right}
     .profile-info h3{margin:0;font-size:19px}  
     .profile-info p{margin:4px 0 0 0;color:var(--muted);font-size:13px;word-break:break-all}  
     .profile-actions{display:flex;gap:8px;margin-top:10px}  
@@ -84,10 +84,14 @@
     .btn.ghost{background:transparent;border:1.5px solid var(--glass);color:var(--muted)}  
     .btn.ghost:hover{background:var(--glass)}
     .btn.primary{background:linear-gradient(90deg,var(--primary),var(--secondary));color:#07101a;box-shadow:0 8px 20px rgba(31,182,255,0.08)}  
-    .balance-wrap{display:flex;gap:12px;align-items:center;margin-top:14px;animation: fadeUp .75s .08s both}  
+    .balance-wrap{display:flex;gap:10px;align-items:stretch;margin-top:14px;animation: fadeUp .75s .08s both}  
     .balance-card{  
       flex:1;padding:16px;border-radius:14px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));  
       border:1px solid var(--glass);  
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-end;
     }  
     .bal-title{font-size:13px;color:var(--muted);margin-bottom:6px;text-align:right}  
     .bal-value{font-size:34px;font-weight:900;line-height:1;margin:0}  
@@ -131,8 +135,10 @@
     }  
     @media(max-width:480px){  
       .wrap{padding:12px}  
-      .profile{gap:10px} /* 🛑 تم إلغاء row-reverse هنا */  
-      .balance-wrap{flex-direction:column-reverse;align-items:flex-end}  
+      .profile{gap:10px; flex-direction: column-reverse !important; align-items: flex-end !important;}
+      .profile-info{text-align: right !important;}
+      .profile-actions{justify-content: flex-end;}
+      .balance-wrap{flex-direction:column-reverse;align-items:flex-end; gap: 12px;}
       .progress-card{width:100%;height:84px;border-radius:12px;padding:10px}  
       .circle{width:64px;height:64px}  
       .bal-value{font-size:26px}  
@@ -158,7 +164,11 @@
       box-shadow: 0 8px 30px #0004, 0 2px 8px #0002;  
       font-size: 16px;  
       transform: translateY(30px);  
+      background: linear-gradient(90deg,#16a34a,#34d399); 
     }  
+    .toast.error {
+      background: linear-gradient(90deg,#f97316,#fb7185) !important;
+    }
     .toast.show {  
       opacity: 1;  
       pointer-events: auto;  
@@ -195,7 +205,6 @@
       <div style="text-align:left">  
         <button id="refreshBtnTop" class="btn ghost" title="تحديث">
           <svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;stroke-width:2.5"><path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C14.1599 3 16.2162 3.73719 17.8856 5.03509" stroke="currentColor" stroke-linecap="round"/><path d="M17 3V7H21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span class="desktop-only" style="margin-right:4px;">تحديث</span>
         </button>  
       </div>  
     </header>  
@@ -212,21 +221,20 @@
         </div>
     </div>
     
-    <div class="card balance-wrap" style="align-items:center">  
-      <div class="balance-card" style="min-width:0">  
+    <div class="card balance-wrap">  
+      <div class="balance-card">  
         <div class="bal-title">الرصيد الحالي (نقاط)</div>  
         <div class="bal-value" id="userPoints">0</div>  
-        <div class="bal-egp" id="pointsEgp">0.00 ج</div>  
+        <div class="bal-egp" style="color: var(--primary); font-size: 14px; margin-top: 6px;" id="pointsEgp">0.00 ج</div>  
       </div>  
-      <div class="progress-card" aria-hidden="true">  
-        <div class="circle" id="circleWrap">  
-          <div>  
-            <div class="num" id="progressPercent">0%</div>  
-            <div class="lbl" id="progressLbl">0 / 1000</div>  
-          </div>  
-        </div>  
-      </div>  
+
+      <div class="balance-card" style="background: linear-gradient(180deg, rgba(246, 185, 59, 0.1), rgba(246, 185, 59, 0.05));">
+          <div class="bal-title" style="color: var(--gold);">رصيدي بالجنيه المصري</div>
+          <div class="bal-value" style="color: var(--gold);" id="userBalanceEgp">0.00</div>
+          <div class="bal-egp" style="color: var(--muted); font-weight: 600; margin-top: 6px;">$1$ نقطة = $0.07$ ج</div>
+      </div>
     </div>  
+    
     <div class="actions">  
       <a class="action-btn" href="tasks.html">  
         <div class="action-left">  
@@ -248,6 +256,18 @@
         </div>  
         <div style="color:var(--muted);font-weight:800">عرض</div>  
       </a>  
+
+      <a class="action-btn" href="mailto:support@am-rewards.com" target="_blank" style="border-color: rgba(255, 95, 95, 0.3);">  
+        <div class="action-left">  
+          <div class="action-ico" style="background:linear-gradient(90deg,var(--danger),#ff8a8a)">💬</div>  
+          <div>  
+            <div class="action-title">تواصل معنا</div>  
+            <div class="action-sub">دعم فني على مدار الساعة</div>  
+          </div>  
+        </div>  
+        <div style="color:var(--muted);font-weight:800">دعم</div>  
+      </a>
+
       <a class="action-btn" href="withdraw.html">  
         <div class="action-left">  
           <div class="action-ico" style="background:linear-gradient(90deg,#1fb6ff,#5fffb6)">💸</div>  
@@ -283,11 +303,8 @@
     import { 
       getFirestore, 
       doc, 
-      getDoc, 
       updateDoc, 
       onSnapshot, 
-      increment,
-      serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";  
     
     // **1. الإعدادات**
@@ -307,7 +324,7 @@
     // **3. عناصر DOM**
     const userNameEl = document.getElementById('userName');  
     const userEmailEl = document.getElementById('userEmail');  
-    const userRefCodeEl = document.getElementById('userRefCode'); // جديد
+    const userRefCodeEl = document.getElementById('userRefCode');
     const avatarEl = document.getElementById('avatar');  
     const userPointsEl = document.getElementById('userPoints');  
     const pointsTodayEl = document.getElementById('pointsToday');  
@@ -316,6 +333,7 @@
     const progressLblEl = document.getElementById('progressLbl');  
     const pointsEgpEl = document.getElementById('pointsEgp');  
     const referralPointsEl = document.getElementById('referralPoints');  
+    const userBalanceEgpEl = document.getElementById('userBalanceEgp'); // 🟢 العنصر الجديد
     const refreshBtn = document.getElementById('refreshBtnTop');  
     const logoutBtn = document.getElementById('logoutBtn');  
     const toast = document.getElementById('toast');  
@@ -324,7 +342,10 @@
     // **4. الدوال المساعدة**
     function showToast(text, success=true) {  
       toast.textContent = text;  
-      toast.style.background = success ? 'linear-gradient(90deg,#16a34a,#34d399)' : 'linear-gradient(90deg,#f97316,#fb7185)';  
+      toast.className = 'toast'; 
+      if (!success) {
+        toast.classList.add('error');
+      }
       toast.classList.add('show');  
       setTimeout(()=> toast.classList.remove('show'), 3200);  
     }  
@@ -339,12 +360,18 @@
     function renderUser(d, user) {  
       userNameEl.textContent = d.name || user.displayName || 'مستخدم';  
       userEmailEl.textContent = d.email || user.email || '—';  
-      userRefCodeEl.textContent = `كود الإحالة: ${d.referralCode || '—'}`; // عرض كود الإحالة
+      userRefCodeEl.textContent = `كود الإحالة: ${d.referralCode || '—'}`;
       avatarEl.textContent = getAvatarChar(d.name, user.email);
       
       const pts = Number(d.points ?? 0);  
+      // 🟢 حساب قيمة النقاط بالجنيه المصري
+      const egpBalance = (pts * POINT_VALUE_EGP).toFixed(2);
+      
       userPointsEl.textContent = pts.toLocaleString(); 
-      pointsEgpEl.textContent = (pts * POINT_VALUE_EGP).toFixed(2) + ' ج';  
+      pointsEgpEl.textContent = egpBalance + ' ج'; 
+      
+      // 🟢 عرض الرصيد الجديد
+      userBalanceEgpEl.textContent = egpBalance; 
       
       const prevPts = Number(d.previousPoints ?? 0);
       const pointsToday = Math.max((pts - prevPts), 0); 
@@ -364,30 +391,7 @@
       circle.style.background = `conic-gradient(var(--primary) ${pct}%, rgba(255,255,255,0.02) ${pct}%)`;  
     }  
 
-    // **6. دالة التعامل مع مكافأة الإحالة اليومية (تحذير أمني)**
-    async function handleReferralDailyBonus(userId, data) {  
-        const userRef = doc(db, 'users', userId);  
-        const referrerId = data.referredByUid; // استخدام referredByUid الذي أضفناه في Signup
-        const userPoints = Number(data.points ?? 0);
-        
-        if (!referrerId || userPoints === 0) return;  
-        
-        const today = new Date().toISOString().slice(0, 10);
-        if (data.lastReferralBonusDate === today) return;  
-        
-        const bonusAmount = Math.floor(userPoints * 0.10); // 10% من نقاط المستخدم
-        
-        if (bonusAmount > 0) {  
-            const referrerRef = doc(db, 'users', referrerId);  
-            // ⚠️ ملاحظة أمنية: هذه الخطوة لا تزال غير آمنة تماماً، لكنها تنفذ الوظيفة المطلوبة مؤقتاً
-            await updateDoc(referrerRef, {  
-                referralPoints: increment(bonusAmount) // الإضافة على نقاط الإحالة
-            });  
-            await updateDoc(userRef, { lastReferralBonusDate: today });  
-        }  
-    }  
-
-    // **7. منطق حالة المصادقة (Auth State Listener)**
+    // **6. منطق حالة المصادقة (Auth State Listener)**
     onAuthStateChanged(auth, async (user) => {  
       if (!user) return location.href = 'index.html';  
       
@@ -396,25 +400,22 @@
       
       // ربط مستمع Realtime (onSnapshot)
       onSnapshot(userRef, async (snap) => {
-        if (!snap.exists) {
-          showToast('حدث خطأ في بيانات الحساب، يتم تسجيل الخروج.', false);  
-          await signOut(auth); // تسجيل خروج آمن في حالة عدم وجود وثيقة
+        if (!snap.exists()) {
+          showToast('بيانات الحساب غير موجودة، يتم تسجيل الخروج.', false);  
+          await signOut(auth);
           return;
         }
         
         const data = snap.data();  
 
-        // 🛑 تهيئة حقل نقاط الأمس (يتم تنفيذه لمرة واحدة فقط)
+        // 🛑 تهيئة حقل نقاط الأمس لمرة واحدة
         if (data.previousPoints === undefined) {  
-          // يتم تحديث هذا الحقل بواسطة Cloud Function يومياً في السيناريو الآمن
           await updateDoc(userRef, { previousPoints: Number(data.points ?? 0) }).catch(()=>{});  
           data.previousPoints = Number(data.points ?? 0);  
         }  
 
         renderUser(data, user);  
         
-        // ** تنفيذ منطق المكافأة عند كل تحديث **
-        await handleReferralDailyBonus(uid, data);  
       }, (error) => {
         // التعامل مع أخطاء قواعد الأمان
         showToast('خطأ في قراءة البيانات. تحقق من صلاحياتك.', false);
@@ -423,13 +424,11 @@
 
     });  
 
-    // **8. الأزرار**
+    // **7. الأزرار**
     
     // دالة التحديث اليدوي
-    refreshBtn.addEventListener('click', async () => {  
-      showToast('جارٍ التحديث...'); 
-      // onSnapshot يتولى التحديث تلقائياً، هذا الزر فقط ليعطي شعور التجاوب
-      setTimeout(() => showToast('تم التحديث'), 500);
+    refreshBtn.addEventListener('click', () => {  
+      showToast('تم التحديث'); 
     });  
 
     // دالة تسجيل الخروج
