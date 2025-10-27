@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
   
   <style>
-    /* --- المتغيرات والتصميم --- */
+    /* (محتوى الـ CSS لم يتغير، وهو التصميم الاحترافي الذي اخترته) */
     :root {
         --color-primary: #f5c542; 
         --color-secondary: #00fa9a; 
@@ -19,7 +19,6 @@
         --shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
     }
 
-    /* --- الهيكل الأساسي --- */
     * {box-sizing: border-box;}
     body {
       margin: 0;
@@ -43,14 +42,12 @@
       margin-bottom: 30px;
     }
     
-    /* --- أقسام الإحصائيات (Grid) --- */
     .dashboard {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 20px;
     }
 
-    /* --- بطاقات الإحصائيات الفردية --- */
     .card {
       background: var(--color-card-bg);
       border: 1px solid rgba(245, 197, 66, 0.4);
@@ -97,7 +94,6 @@
         font-family: 'Cairo', sans-serif;
     }
     
-    /* --- تعديلات الألوان للبطاقات الهامة --- */
     .card.secondary { border-color: var(--color-secondary); }
     .card.secondary::before { background-color: var(--color-secondary); }
     .card.secondary .main-value { color: var(--color-secondary); text-shadow: 0 0 8px rgba(0, 250, 154, 0.6); }
@@ -106,7 +102,6 @@
     .card.danger::before { background-color: var(--color-danger); }
     .card.danger .main-value { color: var(--color-danger); text-shadow: 0 0 8px rgba(255, 107, 107, 0.6); }
 
-    /* --- أزرار التوجيه (Buttons) --- */
     .btn-container {
       text-align: center;
       margin: 30px 0;
@@ -130,7 +125,6 @@
       transform: scale(1.05);
     }
 
-    /* --- Footers --- */
     footer {
       text-align: center;
       padding: 15px;
@@ -232,11 +226,16 @@
       getFirestore, collection, query, where, getDocs 
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   
-    // 🛑 **1. إعدادات Firebase**
+    // 🛑 **1. إعدادات Firebase المصححة (باستخدام الإعدادات الكاملة التي أرسلتها)**
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
+      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
       projectId: "am--rewards",
+      storageBucket: "am--rewards.firebasestorage.app",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112",
+      measurementId: "G-CV3GLT2TTJ"
     };
   
     const app = initializeApp(firebaseConfig);
@@ -246,7 +245,7 @@
     // **2. الثوابت والمتغيرات**
     const adminEmail = "amirfg992005@gmail.com"; 
     const POINT_VALUE_EGP = 0.07; 
-    const ACTIVE_USERS_THRESHOLD = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // آخر 7 أيام
+    const ACTIVE_USERS_THRESHOLD = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); 
 
     // **3. عناصر DOM**
     const totalUsersEl = document.getElementById("totalUsers");
@@ -303,44 +302,38 @@
       try {
         const todayStart = getTodayStart();
         
-        // جلب بيانات جميع المستخدمين
         const usersSnap = await getDocs(collection(db, "users"));
         totalUsersEl.textContent = formatNumber(usersSnap.size);
 
         let totalReferralsCount = 0;
         let totalReferralPoints = 0;
         let totalWithdrawnAmount = 0;
-        let totalPoints = 0; // إجمالي النقاط الكلية المتبقية في حسابات المستخدمين
-        let totalTaskPoints = 0; // إجمالي النقاط التي حصل عليها المستخدمون من المهام
+        let totalPoints = 0; 
+        let totalTaskPoints = 0; 
         let activeUsersCount = 0;
 
-        // 🛑 الملاحظة الهامة: نفترض وجود حقول tasksPoints و referralPoints في وثيقة المستخدمين
-        // إذا لم تكن موجودة، سيتم حساب tasksPoints تقديرياً من totalPoints - referralPoints
         usersSnap.forEach(doc => {
             const data = doc.data();
             
             totalReferralsCount += Number(data.referralCount || 0);
-            totalReferralPoints += Number(data.referralPoints || 0); // مجموع نقاط الإحالات
+            totalReferralPoints += Number(data.referralPoints || 0);
             totalWithdrawnAmount += Number(data.totalWithdrawn || 0); 
-            totalPoints += Number(data.points || 0); // النقاط المتبقية الكلية
-            
-            // حساب النقاط الكلية من المهام
+            totalPoints += Number(data.points || 0); 
             totalTaskPoints += Number(data.tasksPoints || 0); 
             
-            // حساب المستخدمين النشطين
             if (data.lastLogin && data.lastLogin.toDate && data.lastLogin.toDate() >= ACTIVE_USERS_THRESHOLD) {
                 activeUsersCount++;
             }
         });
         
-        // إذا لم نجد حقل tasksPoints، نحاول حسابه بالمنطق التالي:
+        // حساب احتياطي للنقاط الكلية من المهام إذا لم يكن الحقل موجودًا
         if (totalTaskPoints === 0 && totalPoints > 0) {
             totalTaskPoints = totalPoints - totalReferralPoints; 
             if (totalTaskPoints < 0) totalTaskPoints = 0;
         }
 
 
-        // تحديث الإحصائيات الشاملة (القيم المزدوجة)
+        // تحديث الإحصائيات الشاملة
         activeUsersEl.textContent = formatNumber(activeUsersCount);
         referralsEl.textContent = formatNumber(totalReferralsCount);
 
@@ -356,7 +349,7 @@
         totalPointsEl.textContent = formatNumber(totalPoints);
         totalPointsEGPEl.textContent = formatEGP(totalPoints * POINT_VALUE_EGP);
 
-        // إجمالي المبالغ المسحوبة
+        // إجمالي المبالغ المسحوبة (الكل)
         totalWithdrawnEl.textContent = formatEGP(totalWithdrawnAmount);
 
 
@@ -371,16 +364,17 @@
         let totalWithdrawnTodayPoints = 0;
         let pendingRequestsCount = 0;
         
+        const pendingQuery = query(collection(db, "withdrawals"), where("status", "==", "pending"));
+        const pendingSnap = await getDocs(pendingQuery);
+        pendingRequestsCount = pendingSnap.size;
+
+
         withdrawTodaySnap.forEach(doc => {
             const req = doc.data();
-            const points = Number(req.points || 0);
-            if (req.status === 'pending') {
-                pendingRequestsCount++; 
-            }
-            totalWithdrawnTodayPoints += points;
+            totalWithdrawnTodayPoints += Number(req.points || 0);
         });
         
-        // تحديث إحصائيات السحب اليوم
+        // تحديث إحصائيات السحب اليوم والمعلقة
         const totalWithdrawnTodayEGP = totalWithdrawnTodayPoints * POINT_VALUE_EGP;
         withdrawTodayPointsEl.textContent = formatNumber(totalWithdrawnTodayPoints) + " نقطة";
         withdrawTodayEGPEl.textContent = formatEGP(totalWithdrawnTodayEGP);
@@ -388,7 +382,7 @@
 
       } catch (err) {
         console.error("Error loading dashboard:", err);
-        displayError("حدث خطأ في تحميل البيانات الرئيسية. تأكد من إعدادات Firebase والاتصال بالإنترنت.");
+        displayError("حدث خطأ في تحميل البيانات الرئيسية. الرجاء التأكد من قواعد أمان Firestore (Security Rules) وإعادة تحميل الصفحة.");
       }
     }
     
@@ -405,7 +399,6 @@
             return;
         }
         
-        // إذا كان مسجل الدخول وهو المدير
         loadDashboardData();
     });
 </script>
