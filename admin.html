@@ -150,7 +150,7 @@
         background-color: rgba(255, 107, 107, 0.1);
     }
     
-    /* --- نموذج تسجيل الدخول (جديد) --- */
+    /* --- نموذج تسجيل الدخول --- */
     #login-container {
         max-width: 400px;
         margin: 50px auto;
@@ -184,7 +184,7 @@
     }
     #login-container button:hover { background-color: var(--color-primary); }
 
-    /* --- مؤشر التحميل (جديد) --- */
+    /* --- مؤشر التحميل --- */
     #loading-overlay {
         position: fixed;
         top: 0; left: 0; right: 0; bottom: 0;
@@ -222,6 +222,7 @@
     <div class="spinner"></div>
     <p>جارِ تحميل لوحة الإدارة...</p>
 </div>
+
 <div class="wrap">
     
     <div id="login-container" class="hidden">
@@ -231,6 +232,7 @@
         <button id="loginButton">تسجيل الدخول</button>
         <p id="loginError" class="error-message hidden" style="margin-top: 15px;"></p>
     </div>
+
     <div id="dashboard-content" class="hidden">
         <header>
             لوحة إدارة Am Rewards 👑
@@ -309,7 +311,7 @@
       getFirestore, collection, query, where, getDocs 
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   
-    // 🛑 **1. إعدادات Firebase (مصححة)**
+    // 🛑 **1. إعدادات Firebase**
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
@@ -419,8 +421,6 @@
 
             await signInWithEmailAndPassword(auth, email, password);
             
-            // onAuthStateChanged سيتولى إظهار الداشبورد وإخفاء التحميل عند النجاح
-
         } catch (error) {
             console.error("Login error:", error);
             loginButton.textContent = 'تسجيل الدخول';
@@ -459,13 +459,24 @@
             usersSnap.forEach(doc => {
                 const data = doc.data();
                 
-                totalReferralsCount += Number(data.referralCount || 0);
-                totalReferralPoints += Number(data.referralPoints || 0);
-                totalWithdrawnAmount += Number(data.totalWithdrawn || 0); 
-                totalPoints += Number(data.points || 0); 
-                totalTaskPoints += Number(data.tasksPoints || 0); 
+                // التأكد من أن الحقول التي تُجمع هي أرقام
+                totalReferralsCount += Number(data.referralCount) || 0;
+                totalReferralPoints += Number(data.referralPoints) || 0;
+                totalWithdrawnAmount += Number(data.totalWithdrawn) || 0; 
+                totalPoints += Number(data.points) || 0; 
+                totalTaskPoints += Number(data.tasksPoints) || 0; 
                 
-                if (data.lastLogin && data.lastLogin.toDate && data.lastLogin.toDate() >= ACTIVE_USERS_THRESHOLD) {
+                // التعامل مع خاصية lastLogin
+                let lastLoginDate = null;
+                if (data.lastLogin) {
+                    if (typeof data.lastLogin.toDate === 'function') {
+                        lastLoginDate = data.lastLogin.toDate();
+                    } else if (data.lastLogin instanceof Date) {
+                        lastLoginDate = data.lastLogin;
+                    }
+                }
+
+                if (lastLoginDate && lastLoginDate >= ACTIVE_USERS_THRESHOLD) {
                     activeUsersCount++;
                 }
             });
@@ -475,7 +486,7 @@
                 if (totalTaskPoints < 0) totalTaskPoints = 0;
             }
 
-            // تحديث الإحصائيات
+            // تحديث الإحصائيات الشاملة
             activeUsersEl.textContent = formatNumber(activeUsersCount);
             referralsEl.textContent = formatNumber(totalReferralsCount);
             totalTaskPointsEl.textContent = formatNumber(totalTaskPoints);
@@ -487,11 +498,13 @@
             totalWithdrawnEl.textContent = formatEGP(totalWithdrawnAmount);
 
 
+            // طلبات السحب المعلقة
             const pendingQuery = query(collection(db, "withdrawals"), where("status", "==", "pending"));
             const pendingSnap = await getDocs(pendingQuery);
             pendingWithdrawalsEl.textContent = formatNumber(pendingSnap.size);
 
 
+            // طلبات السحب اليوم (مكتملة ومعلقة)
             const withdrawTodayQuery = query(
               collection(db, "withdrawals"), 
               where("createdAt", ">=", todayStart),
@@ -512,7 +525,8 @@
 
         } catch (err) {
             console.error("Error loading dashboard:", err);
-            displayError("حدث خطأ في تحميل البيانات. الرجاء التأكد من اتصالك بالإنترنت والتحقق من Console لمعرفة الخطأ الحقيقي.");
+            // عرض الخطأ الأكثر احتمالا
+            displayError("حدث خطأ في تحميل البيانات. قد تكون هناك مشكلة في البيانات أو خطأ في الاتصال.");
             hideLoading(); // إخفاء التحميل عند الفشل
         }
     }
@@ -536,7 +550,7 @@
     // ربط زر تسجيل الدخول بالدالة
     loginButton.addEventListener('click', handleLogin);
     
-    // إخفاء التحميل عند بدء التحميل الأولي للصفحة
+    // إخفاء التحميل عند بدء التحميل الأولي للصفحة (لإظهار نموذج تسجيل الدخول)
     document.addEventListener('DOMContentLoaded', () => {
         hideLoading(); 
     });
