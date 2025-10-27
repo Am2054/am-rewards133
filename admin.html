@@ -2,292 +2,486 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>لوحة تحكم المشرف | Am Rewards</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+  <title>لوحة الإدارة | Am Rewards</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
+  
   <style>
+    /* --- المتغيرات والتصميم --- */
     :root {
-      --primary-color: #ffd369; /* gold */
-      --accent: #111; /* dark */
-      --success-color: #10b981;
-      --danger-color: #ef4444;
-      --bg-dark: #0b0b0b;
-      --card-bg: linear-gradient(180deg,#0f0f0f,#171717);
-      --text-light: #f6f3ea;
+        --color-primary: #f5c542; /* الذهبي/الأصفر المميز */
+        --color-secondary: #00fa9a; /* أخضر للإيجابيات */
+        --color-danger: #ff6b6b; /* أحمر للخطورة */
+        --color-background: #0b0b0b;
+        --color-card-bg: #1a1a1a;
+        --text-light: #f0f2f5;
+        --text-muted: #999;
+        --shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
     }
-    body{font-family:'Tajawal',sans-serif;background:var(--bg-dark);color:var(--text-light);margin:0;padding:0}
-    .container{max-width:1200px;margin:20px auto;padding:16px}
-    h1{color:var(--primary-color);text-align:center;margin-bottom:18px}
-    .metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px}
-    .metric-card{background:var(--card-bg);padding:18px;border-radius:10px;border:1px solid rgba(255,211,105,0.07);box-shadow:0 6px 20px rgba(0,0,0,0.6)}
-    .metric-card h3{margin:0;color:#c9b97c;font-size:14px;text-align:right}
-    .metric-card .value{font-weight:900;font-size:26px;margin-top:8px;text-align:right;color:var(--text-light)}
-    .table-responsive{overflow:auto;background:transparent;margin-bottom:18px}
-    table{width:100%;border-collapse:collapse;background:transparent}
-    th,td{padding:10px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.04);white-space:nowrap}
-    th{background:linear-gradient(90deg,#2b2b2b, #1a1a1a);color:var(--primary-color);font-weight:800}
-    .actions-cell button{margin-inline-start:8px;padding:6px 10px;border-radius:6px;border:0;cursor:pointer}
-    .complete-btn{background:var(--success-color);color:#07101a}
-    .reject-btn{background:var(--danger-color);color:white}
-    .logout-btn{display:block;margin:18px auto;padding:10px 18px;border-radius:8px;background:#222;color:var(--primary-color);border:1px solid rgba(255,211,105,0.12);cursor:pointer}
-    @media(max-width:700px){.metric-card .value{font-size:20px}}
+
+    /* --- الهيكل الأساسي --- */
+    * {box-sizing: border-box;}
+    body {
+      margin: 0;
+      font-family: 'Cairo', sans-serif;
+      background-color: var(--color-background);
+      color: var(--text-light);
+      min-height: 100vh;
+      direction: rtl;
+    }
+    .wrap { max-width: 1300px; margin: 0 auto; padding: 20px; }
+
+    header {
+      background-color: var(--color-card-bg);
+      padding: 15px 20px;
+      text-align: center;
+      font-size: 1.8em;
+      font-weight: 900;
+      color: var(--color-primary);
+      box-shadow: var(--shadow);
+      border-radius: 15px;
+      margin-bottom: 30px;
+    }
+    
+    /* --- أقسام الإحصائيات (Grid) --- */
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+    }
+
+    /* --- بطاقات الإحصائيات الفردية --- */
+    .card {
+      background: var(--color-card-bg);
+      border: 1px solid rgba(245, 197, 66, 0.4);
+      border-radius: 15px;
+      padding: 20px;
+      text-align: right;
+      box-shadow: 0 0 10px rgba(245, 197, 66, 0.1);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      position: relative;
+    }
+    .card::before { /* خط جانبي مميز */
+        content: '';
+        position: absolute;
+        top: 0; right: 0; bottom: 0;
+        width: 5px;
+        background-color: var(--color-primary);
+        border-radius: 0 15px 15px 0;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(245, 197, 66, 0.3);
+    }
+
+    .card h3 {
+      margin-bottom: 15px;
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .card p {
+      font-size: 2em;
+      font-weight: 900;
+      color: var(--text-light);
+      font-family: 'Montserrat', sans-serif;
+      text-shadow: 0 0 8px rgba(245, 197, 66, 0.6);
+    }
+    
+    /* --- تعديلات الألوان للبطاقات الهامة --- */
+    /* إضافة فئة خاصة للون الأخضر والخطورة */
+    .card.secondary { border-color: var(--color-secondary); }
+    .card.secondary::before { background-color: var(--color-secondary); }
+    .card.secondary p { color: var(--color-secondary); text-shadow: 0 0 8px rgba(0, 250, 154, 0.6); }
+
+    .card.danger { border-color: var(--color-danger); }
+    .card.danger::before { background-color: var(--color-danger); }
+    .card.danger p { color: var(--color-danger); text-shadow: 0 0 8px rgba(255, 107, 107, 0.6); }
+
+    /* --- أزرار التوجيه (Buttons) --- */
+    .btn-container {
+      text-align: center;
+      margin: 30px 0;
+    }
+
+    .btn {
+      background-color: var(--color-primary);
+      color: var(--color-card-bg);
+      border: none;
+      padding: 12px 25px;
+      font-size: 1em;
+      border-radius: 10px;
+      cursor: pointer;
+      margin: 5px;
+      transition: all 0.3s ease;
+      font-weight: 700;
+    }
+
+    .btn:hover {
+      background-color: var(--text-light);
+      transform: scale(1.05);
+    }
+
+    /* --- الجداول والإجراءات --- */
+    h2 {
+        font-size: 22px;
+        color: var(--color-primary);
+        margin-top: 35px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid rgba(245, 197, 66, 0.3);
+        padding-bottom: 5px;
+    }
+    .table-container {
+        background: var(--color-card-bg);
+        border: 1px solid rgba(245, 197, 66, 0.4);
+        border-radius: 15px;
+        padding: 15px;
+        margin-top: 20px;
+        overflow-x: auto;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 700px; /* لضمان عرض جيد */
+    }
+    thead th {
+        font-size: 13px;
+        color: var(--color-primary);
+        border-bottom: 2px solid rgba(245, 197, 66, 0.4);
+        padding: 12px;
+        text-align: right;
+    }
+    tbody td {
+        padding: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 14px;
+        text-align: right;
+        vertical-align: middle;
+    }
+    .btn-action {
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 12px;
+        cursor: pointer;
+        border: none;
+        font-weight: 700;
+        transition: background 0.2s;
+        margin-right: 5px;
+    }
+    .btn-action.approve { background-color: var(--color-secondary); color: #000; }
+    .btn-action.reject { background-color: var(--color-danger); color: #fff; }
+    .loading-text { text-align: center; color: var(--text-muted); padding: 20px; }
+    
+    /* --- Footers --- */
+    footer {
+      text-align: center;
+      padding: 15px;
+      background-color: #111;
+      color: #666;
+      font-size: 0.9em;
+      margin-top: 40px;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>👑 لوحة تحكم المشرف — Am Rewards</h1>
 
-    <section id="metricsArea">
-      <h2 style="color:var(--primary-color);margin:6px 0 12px 0">📊 مقاييس سريعة</h2>
-      <div class="metrics-grid" id="globalMetrics">
-        <div class="metric-card total-users">
-          <h3>عدد المستخدمين الكلي</h3>
-          <div class="value" id="totalUsers">—</div>
+<div class="wrap">
+    <header>
+        لوحة إدارة Am Rewards 👑
+    </header>
+
+    <section class="dashboard">
+        <div class="card secondary">
+            <h3>👥 عدد المستخدمين</h3>
+            <p id="totalUsers">0</p>
         </div>
-        <div class="metric-card active-users">
-          <h3>المستخدمون النشطون (اليوم)</h3>
-          <div class="value" id="activeUsers">—</div>
+
+        <div class="card">
+            <h3>🧾 المهام المنفذة (الكل)</h3>
+            <p id="tasksCompleted">0</p>
         </div>
-        <div class="metric-card total-withdrawals">
-          <h3>إجمالي المبالغ المسحوبة (جنيه)</h3>
-          <div class="value" id="totalWithdrawals">—</div>
+
+        <div class="card">
+            <h3>🔗 عدد الإحالات</h3>
+            <p id="referrals">0</p>
         </div>
-        <div class="metric-card total-points">
-          <h3>النقاط المدفوعة من الإحالات</h3>
-          <div class="value" id="referralPoints">—</div>
+
+        <div class="card"> 
+            <h3>💎 إجمالي نقاط المستخدمين</h3>
+            <p id="referralPoints">0</p>
         </div>
-        <div class="metric-card total-tasks">
-          <h3>المهام المنفذة (كلي)</h3>
-          <div class="value" id="totalTasks">—</div>
+
+        <div class="card danger">
+            <h3>💰 إجمالي المبالغ المسحوبة</h3>
+            <p id="totalWithdrawn">0 EGP</p>
         </div>
-        <div class="metric-card pending-requests">
-          <h3>طلبات السحب المعلقة</h3>
-          <div class="value" id="pendingRequestsCount">—</div>
+
+        <div class="card">
+            <h3>💸 المبالغ المسحوبة اليوم</h3>
+            <p id="withdrawToday">0 EGP</p>
         </div>
-      </div>
+
+        <div class="card danger">
+            <h3>⏳ طلبات السحب المعلقة</h3>
+            <p id="pendingWithdrawals">0</p>
+        </div>
     </section>
 
-    <h2 style="color:var(--primary-color);margin:8px 0">💸 طلبات السحب المعلقة</h2>
-    <div id="statusMessage" style="margin-bottom:12px;color:#c9b97c">جاري تحميل البيانات...</div>
-
-    <div class="table-responsive">
-      <table id="withdrawalTable" style="display:none">
-        <thead>
-          <tr>
-            <th style="text-align:center">ID</th>
-            <th>المبلغ (ج)</th>
-            <th>الصافي</th>
-            <th>النقاط</th>
-            <th>المحفظة</th>
-            <th>UID</th>
-            <th>التاريخ</th>
-            <th style="text-align:center">إجراءات</th>
-          </tr>
-        </thead>
-        <tbody id="withdrawalList"></tbody>
-      </table>
+    <div id="metricsArea"></div>
+    
+    <h2>طلبات السحب المعلقة 🛎️</h2>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>المستخدم (ID)</th>
+                    <th>القيمة (نقاط)</th>
+                    <th>القيمة (ج)</th>
+                    <th>طريقة السحب</th>
+                    <th>وقت الطلب</th>
+                    <th>الإجراء</th>
+                </tr>
+            </thead>
+            <tbody id="withdrawTableBody">
+                <tr><td colspan="6" class="loading-text">جارِ تحميل الطلبات...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="btn-container">
+        <button class="btn" onclick="location.href='users.html'">👥 المستخدمين</button>
+        <button class="btn" onclick="location.href='tasks.html'">🧾 المهام</button>
+        <button class="btn" onclick="location.href='referrals.html'">🔗 الإحالات</button>
+        <button class="btn" onclick="location.href='withdrawals.html'">💰 السحوبات</button>
+        <button class="btn" onclick="location.href='pending.html'">⏳ المعلقة</button>
     </div>
 
-    <button class="logout-btn" onclick="logoutAdmin()">تسجيل الخروج</button>
-  </div>
+</div>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<footer>
+    © 2025 Am Rewards — لوحة الإدارة الخاصة
+</footer>
 
-  <script>
-    // === إعداد Firebase ===
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { 
+      getFirestore, collection, query, where, getDocs, limit, doc, updateDoc 
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  
+    // 🛑 **1. إعدادات Firebase**
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
     };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+  
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    
+    // **2. الثوابت والمتغيرات**
+    const adminEmail = "amirfg992005@gmail.com"; // 🛑 إيميل المدير (مهم جداً للتحقق)
+    const POINT_VALUE_EGP = 0.07; 
+    const POINTS_PER_TASK = 10; 
 
-    // ضع هنا UIDs المشرفين الحقيقين
-    const ADMIN_UDS = ["YOUR_ADMIN_UID_1", "YOUR_ADMIN_UID_2"];
+    // **3. عناصر DOM بالـ ID الذي أرسلته**
+    const totalUsersEl = document.getElementById("totalUsers");
+    const tasksCompletedEl = document.getElementById("tasksCompleted"); // إجمالي المهام المكتملة
+    const referralsEl = document.getElementById('referrals'); // إجمالي الإحالات
+    const referralPointsEl = document.getElementById('referralPoints'); // إجمالي نقاط المستخدمين الكلية
+    const totalWithdrawnEl = document.getElementById('totalWithdrawn'); // إجمالي المسحوبات الكلية
+    const withdrawTodayEl = document.getElementById("withdrawToday"); // المسحوبات اليوم
+    const pendingWithdrawalsEl = document.getElementById('pendingWithdrawals'); // طلبات السحب المعلقة (عدد)
+    const withdrawTableBody = document.getElementById('withdrawTableBody');
 
-    // عناصر DOM
-    const totalUsersEl = document.getElementById('totalUsers');
-    const activeUsersEl = document.getElementById('activeUsers');
-    const totalWithdrawalsEl = document.getElementById('totalWithdrawals');
-    const referralPointsEl = document.getElementById('referralPoints');
-    const totalTasksEl = document.getElementById('totalTasks');
-    const pendingRequestsCountEl = document.getElementById('pendingRequestsCount');
-    const statusMessage = document.getElementById('statusMessage');
-    const withdrawalTable = document.getElementById('withdrawalTable');
-    const withdrawalList = document.getElementById('withdrawalList');
-
-    // تحويل للأرقام بأمان
-    function toNumber(v){
-      const n = Number(v);
-      return isNaN(n) ? 0 : n;
+    // 💡 دوال مساعدة
+    function formatNumber(num) {
+        return Number(num || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
     }
-    function formatMoney(n){
-      return Number(n || 0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+    function formatEGP(num) {
+        return Number(num || 0).toLocaleString('en-US', { maximumFractionDigits: 2 }) + " EGP";
+    }
+    function formatTime(ts) {
+        const d = ts.toDate ? ts.toDate() : new Date(ts);
+        return d.toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' });
+    }
+    function getTodayStart() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return today;
     }
 
-    // =========== جلب المقاييس العامة ===========
-    async function fetchGlobalMetrics(){
+    // **4. جلب بيانات لوحة التحكم (الدالة الرئيسية)**
+    async function loadDashboardData() {
       try {
-        // عدد المستخدمين (سهل)
-        const usersSnap = await db.collection('users').get();
-        totalUsersEl.textContent = usersSnap.size.toLocaleString();
+        const todayStart = getTodayStart();
+        
+        // جلب بيانات جميع المستخدمين
+        const usersSnap = await getDocs(collection(db, "users"));
+        totalUsersEl.textContent = formatNumber(usersSnap.size);
 
-        // المستخدمون النشطون اليوم -> يعتمد وجود حقل lastActive أو lastLogin في كل user
-        // هنا نجرب حساب من حقل lastLogin (timestamp) إن وجد
-        const startOfDay = new Date();
-        startOfDay.setHours(0,0,0,0);
-        let activeCount = 0;
-        usersSnap.forEach(d => {
-          const data = d.data();
-          if (data.lastLogin && data.lastLogin.toDate){
-            const t = data.lastLogin.toDate();
-            if (t >= startOfDay) activeCount++;
-          }
-        });
-        activeUsersEl.textContent = activeCount.toLocaleString();
+        let totalReferralsCount = 0;
+        let totalWithdrawnAmount = 0;
+        let totalPoints = 0;
+        let totalCompletedTasks = 0; 
 
-        // إجمالي المبالغ المسحوبة (completed)
-        let totalWithdrawalsAmount = 0;
-        const completedWithdrawalsSnap = await db.collection('withdrawals')
-          .where('status', '==', 'completed')
-          .get();
-        completedWithdrawalsSnap.forEach(doc => {
-          const w = doc.data();
-          // قد يكون الحقل stored as string أو number؛ لذلك نحول بأمان
-          totalWithdrawalsAmount += toNumber(w.net || w.amount || 0);
-        });
-        totalWithdrawalsEl.textContent = formatMoney(totalWithdrawalsAmount);
-
-        // نقاط الإحالات المدفوعة: إجمالي حقل referralPoints في users أو جمع من سجل إحالات
-        // أفضل: اجمع referralPoints من users إذا مخزنة per-user
-        let totalReferralPoints = 0;
         usersSnap.forEach(doc => {
-          const u = doc.data();
-          totalReferralPoints += toNumber(u.referralPoints || 0);
+            const data = doc.data();
+            totalReferralsCount += Number(data.referralCount || 0);
+            totalWithdrawnAmount += Number(data.totalWithdrawn || 0);
+            totalPoints += Number(data.points || 0);
+            // نفترض أن المهام المكتملة الكلية يمكن استنتاجها من النقاط
+            totalCompletedTasks += Number(data.tasksCompletedCount || Math.floor(data.points / POINTS_PER_TASK) || 0); 
         });
-        referralPointsEl.textContent = totalReferralPoints.toLocaleString();
 
-        // عدد المهام المنفذة (تحتاج مجموعة tasks_completed أو log)
-        // إذا عندك مجموعة tasks_completed: اجمع_docs.size
-        // هنا نحاول قراءة مجموعة tasks_completed إن وُجدت
+        // تحديث الإحصائيات العامة
+        referralsEl.textContent = formatNumber(totalReferralsCount);
+        totalWithdrawnEl.textContent = formatEGP(totalWithdrawnAmount);
+        referralPointsEl.textContent = formatNumber(totalPoints); // إجمالي النقاط الكلية
+        tasksCompletedEl.textContent = formatNumber(totalCompletedTasks); // إجمالي المهام المنفذة (الكل)
+
+        // المهام المكتملة اليوم (للحصول على عدد أكثر دقة)
+        const tasksQuery = query(
+          collection(db, "tasks_completed"),
+          where("date", ">=", todayStart)
+        );
+        const tasksSnap = await getDocs(tasksQuery);
+        // لا توجد بطاقة "المهام اليوم" في تصميمك، يمكن استخدامها لغرض آخر إذا أردت
+
+        // طلبات السحب اليوم
+        const withdrawTodayQuery = query(
+          collection(db, "withdrawals"), 
+          where("createdAt", ">=", todayStart),
+          where("status", "in", ["pending", "completed"]) // نحسب الطلبات التي تمت اليوم
+        );
+        const withdrawTodaySnap = await getDocs(withdrawTodayQuery);
+        
+        let totalWithdrawnToday = 0;
+        withdrawTodaySnap.forEach(doc => {
+            totalWithdrawnToday += (Number(doc.data().points || 0) * POINT_VALUE_EGP);
+        });
+        withdrawTodayEl.textContent = formatEGP(totalWithdrawnToday);
+
+
+        await loadPendingWithdrawals(); // تحميل جدول المعلقات وتحديث العدد في البطاقة
+
+      } catch (err) {
+        console.error("Error loading dashboard:", err);
+        const errorText = "خطأ في التحميل";
+        totalUsersEl.textContent = errorText;
+        referralsEl.textContent = errorText;
+        totalWithdrawnEl.textContent = errorText;
+        referralPointsEl.textContent = errorText;
+        tasksCompletedEl.textContent = errorText;
+        withdrawTodayEl.textContent = errorText;
+        pendingWithdrawalsEl.textContent = errorText;
+      }
+    }
+
+    // **5. جدول طلبات السحب المعلقة**
+    async function loadPendingWithdrawals() {
+        const q = query(collection(db, 'withdrawals'), where('status', '==', 'pending'), limit(50)); 
+        const requestsSnap = await getDocs(q);
+        
+        pendingWithdrawalsEl.textContent = formatNumber(requestsSnap.size); // تحديث العدد في البطاقة
+
+        withdrawTableBody.innerHTML = '';
+        if (requestsSnap.empty) {
+            withdrawTableBody.innerHTML = '<tr><td colspan="6" class="loading-text">لا توجد طلبات سحب معلقة حالياً.</td></tr>';
+        } else {
+            requestsSnap.forEach(docSnap => {
+                const req = docSnap.data();
+                const reqId = docSnap.id;
+                
+                const egpValue = (Number(req.points || 0) * POINT_VALUE_EGP).toFixed(2);
+                
+                const row = `
+                    <tr>
+                        <td>${req.userId ? req.userId.substring(0, 8) + '...' : '—'}</td>
+                        <td>${formatNumber(req.points || 0)}</td>
+                        <td>${egpValue} ج</td>
+                        <td>${req.method || '—'}</td>
+                        <td>${req.createdAt ? formatTime(req.createdAt) : '—'}</td>
+                        <td>
+                            <button class="btn-action approve" data-id="${reqId}" data-action="approve">موافقة</button>
+                            <button class="btn-action reject" data-id="${reqId}" data-action="reject">رفض</button>
+                        </td>
+                    </tr>`;
+                withdrawTableBody.innerHTML += row;
+            });
+            
+            document.querySelectorAll('.btn-action').forEach(btn => {
+                btn.addEventListener('click', handleWithdrawAction);
+            });
+        }
+    }
+    
+    // **6. معالجة إجراءات السحب**
+    async function handleWithdrawAction(event) {
+        const reqId = event.target.dataset.id;
+        const action = event.target.dataset.action;
+        
+        if (!confirm(`هل أنت متأكد من ${action === 'approve' ? 'الموافقة' : 'رفض'} الطلب ${reqId}?`)) return;
+
         try {
-          const tasksSnap = await db.collection('tasks_completed').get();
-          totalTasksEl.textContent = tasksSnap.size.toLocaleString();
-        } catch (errTasks) {
-          // لو ما فيش مجموعة، نعرض رسالة واضحة
-          totalTasksEl.textContent = 'لا توجد سجلات';
-          console.warn('tasks_completed collection missing or not readable.', errTasks);
+            await updateDoc(doc(db, 'withdrawals', reqId), {
+                status: action === 'approve' ? 'completed' : 'rejected',
+                processedAt: new Date(),
+                processedBy: auth.currentUser.uid 
+            });
+
+            alert(`تم ${action === 'approve' ? 'الموافقة' : 'رفض'} الطلب بنجاح.`);
+            loadDashboardData(); 
+        } catch (error) {
+            console.error("Error processing request:", error);
+            alert("فشل في معالجة الطلب.");
+        }
+    }
+    
+    // **7. بناء منطقة فحص التناسق (كأداة إضافية)**
+    function setupConsistencyCheck() {
+        // (الكود هنا يضيف منطقة فحص التناسق كأداة هامة للمدير)
+        const container = document.getElementById("metricsArea");
+        container.innerHTML = `
+            <h2 style="margin-top: 40px;">🧮 فحص تناسق النقاط والمهام (أداة متقدمة)</h2>
+            <div class="card" style="border-left-color: var(--color-secondary);">
+                <h3>تحذير: هذه الأداة تستهلك قراءات Firebase. استخدمها بعناية.</h3>
+                <button id="refreshCheck" class="btn-action approve" style="margin-top:10px;">🔁 تحديث الفحص الآن</button>
+                <p id="consistencyStatus" style="font-size:1.2em; margin-top:10px;">انقر لتشغيل التحليل...</p>
+            </div>
+        `;
+        document.getElementById("refreshCheck").addEventListener('click', verifyPointsVsTasksNow);
+    }
+    
+    // ** دالة فحص التناسق (الرجاء لصقها بالكامل هنا) **
+    async function verifyPointsVsTasksNow() {
+        const el = document.getElementById("consistencyStatus");
+        el.textContent = "جاري التحليل... (الرجاء لصق محتوى دالة verifyPointsVsTasksNow هنا للعمل)";
+        // يرجى لصق المحتوى الكامل للدالة هنا عند التنفيذ الفعلي
+    }
+  
+    // **8. منطق التحقق من الصلاحيات والتحميل (حل مشكلة عدم التصريح)**
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            alert("الرجاء تسجيل الدخول أولاً كمدير.");
+            // يفضل التوجيه لصفحة تسجيل دخول
+            return;
         }
 
-        // طلبات السحب المعلقة
-        const pendingSnap = await db.collection('withdrawals').where('status','==','pending').get();
-        pendingRequestsCountEl.textContent = pendingSnap.size.toLocaleString();
-
-      } catch (err) {
-        console.error('fetchGlobalMetrics error:', err);
-        statusMessage.textContent = '❌ فشل تحميل المقاييس العامة. فتح الـ Console للمزيد.';
-        statusMessage.style.color = '#ff8a8a';
-      }
-    }
-
-    // =========== جلب طلبات السحب المعلقة وعرضها ===========
-    function fetchWithdrawalsRealtime(){
-      statusMessage.textContent = 'جارِ تحميل طلبات السحب...';
-      db.collection('withdrawals')
-        .where('status','==','pending')
-        .orderBy('date','asc')
-        .onSnapshot(snapshot => {
-          withdrawalList.innerHTML = '';
-          pendingRequestsCountEl.textContent = snapshot.size.toLocaleString();
-          if (snapshot.empty) {
-            statusMessage.textContent = 'لا يوجد طلبات سحب معلّقة حالياً.';
-            withdrawalTable.style.display = 'none';
+        if (user.email !== adminEmail) {
+            alert("غير مصرح لك بالدخول. الإيميل المستخدم ليس إيميل المدير.");
+            await signOut(auth);
+            // يفضل التوجيه لصفحة البداية/تسجيل الدخول
             return;
-          }
-          statusMessage.textContent = '';
-          withdrawalTable.style.display = 'table';
-          snapshot.forEach(doc => {
-            const w = doc.data();
-            const id = doc.id;
-            const tr = document.createElement('tr');
-            const dateText = w.date && w.date.toDate ? (w.date.toDate()).toLocaleString('ar-EG') : '-';
-            tr.innerHTML = `
-              <td style="text-align:center">${id.substring(0,6)}...</td>
-              <td>${formatMoney(toNumber(w.amount))}</td>
-              <td>${formatMoney(toNumber(w.net))}</td>
-              <td>${(toNumber(w.pts)).toLocaleString()}</td>
-              <td>${w.wallet || '-'}</td>
-              <td>${(w.userId||'-').substring(0,8)}...</td>
-              <td>${dateText}</td>
-              <td class="actions-cell" style="text-align:center">
-                <button class="complete-btn" onclick="updateWithdrawalStatus('${id}','completed', this)">✅ إكمال</button>
-                <button class="reject-btn" onclick="updateWithdrawalStatus('${id}','rejected', this)">❌ رفض</button>
-              </td>`;
-            withdrawalList.appendChild(tr);
-          });
-        }, error => {
-          console.error('fetchWithdrawalsRealtime onSnapshot error:', error);
-          statusMessage.textContent = '❌ فشل تحميل طلبات السحب (تحقق من صلاحيات Firestore).';
-          statusMessage.style.color = '#ff8a8a';
-        });
-    }
-
-    // =========== تحديث حالة السحب ===========
-    async function updateWithdrawalStatus(docId, newStatus, btn){
-      if (!confirm(`هل أنت متأكد من تغيير حالة الطلب إلى ${newStatus === 'completed' ? 'مكتمل' : 'مرفوض'}؟`)) return;
-      // تعطل الأزرار مؤقتًا
-      const parent = btn.closest('.actions-cell');
-      parent.querySelectorAll('button').forEach(b => b.disabled = true);
-
-      try {
-        const ref = db.collection('withdrawals').doc(docId);
-        await ref.update({
-          status: newStatus,
-          processedDate: firebase.firestore.FieldValue.serverTimestamp(),
-          processorId: auth.currentUser ? auth.currentUser.uid : 'admin'
-        });
-
-        // ملاحظة: لو تم 'rejected' وترجع نقاط للمستخدم، يجب تنفيذ ذلك عبر Cloud Function آمن
-        alert('تم تحديث حالة الطلب بنجاح.');
-        // إعادة تحميل المقاييس بعد التحديث
-        fetchGlobalMetrics();
-      } catch (err) {
-        console.error('updateWithdrawalStatus error:', err);
-        alert('فشل تحديث الحالة — تحقق من الصلاحيات في Firestore Rules. ' + (err.message||''));
-        parent.querySelectorAll('button').forEach(b => b.disabled = false);
-      }
-    }
-
-    // =========== مصادقة المسؤول ===========
-    auth.onAuthStateChanged(user => {
-      if (!user) {
-        alert('يرجى تسجيل الدخول كمسؤول.');
-        window.location.href = 'index.html';
-        return;
-      }
-      // تحقق أن UID في قائمة المشرفين
-      if (!ADMIN_UDS.includes(user.uid)) {
-        document.getElementById('statusMessage').textContent = 'غير مصرح لك بالدخول لهذه الصفحة.';
-        document.getElementById('statusMessage').style.color = '#ff9b9b';
-        return;
-      }
-
-      // لو كل شيء تمام، شغّل الـ listeners
-      fetchGlobalMetrics();
-      fetchWithdrawalsRealtime();
+        }
+        
+        // إذا كان مسجل الدخول وهو المدير
+        loadDashboardData();
+        setupConsistencyCheck();
     });
-
-    function logoutAdmin(){
-      auth.signOut().then(()=> window.location.href = 'index.html');
-    }
-
-    // اختصار لو عايز تجرّب يدويًا في الكونسول
-    window._adminHelpers = { fetchGlobalMetrics, fetchWithdrawalsRealtime, updateWithdrawalStatus };
-  </script>
+</script>
 </body>
-            </html>
+</html>
