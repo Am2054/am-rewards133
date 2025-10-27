@@ -439,16 +439,24 @@
     }
 
 
-    // **5. جلب بيانات لوحة التحكم**
+    // **5. جلب بيانات لوحة التحكم (مُعدَّل تشخيصي)**
     async function loadDashboardData() {
         try {
             showLoading(); 
-
             const todayStart = getTodayStart();
             
-            const usersSnap = await getDocs(collection(db, "users"));
-            totalUsersEl.textContent = formatNumber(usersSnap.size);
-
+            // --- 1. جلب بيانات المستخدمين والحسابات الكلية ---
+            let usersSnap = null;
+            try {
+                usersSnap = await getDocs(collection(db, "users"));
+                totalUsersEl.textContent = formatNumber(usersSnap.size);
+            } catch (err) {
+                console.error("FIREBASE ERROR: Failed to fetch users collection.", err);
+                displayError("فشل في جلب مجموعة المستخدمين (users).", true);
+                hideLoading();
+                return; 
+            }
+            
             let totalReferralsCount = 0;
             let totalReferralPoints = 0;
             let totalWithdrawnAmount = 0;
@@ -459,12 +467,12 @@
             usersSnap.forEach(doc => {
                 const data = doc.data();
                 
-                // التأكد من أن الحقول التي تُجمع هي أرقام
-                totalReferralsCount += Number(data.referralCount) || 0;
-                totalReferralPoints += Number(data.referralPoints) || 0;
-                totalWithdrawnAmount += Number(data.totalWithdrawn) || 0; 
-                totalPoints += Number(data.points) || 0; 
-                totalTaskPoints += Number(data.tasksPoints) || 0; 
+                // استخدام معالجة قوية للقيم لضمان عدم حدوث Null/Undefined Errors
+                totalReferralsCount += Number(data.referralCount || 0) || 0;
+                totalReferralPoints += Number(data.referralPoints || 0) || 0;
+                totalWithdrawnAmount += Number(data.totalWithdrawn || 0) || 0; 
+                totalPoints += Number(data.points || 0) || 0; 
+                totalTaskPoints += Number(data.tasksPoints || 0) || 0; 
                 
                 // التعامل مع خاصية lastLogin
                 let lastLoginDate = null;
@@ -498,36 +506,50 @@
             totalWithdrawnEl.textContent = formatEGP(totalWithdrawnAmount);
 
 
-            // طلبات السحب المعلقة
-            const pendingQuery = query(collection(db, "withdrawals"), where("status", "==", "pending"));
-            const pendingSnap = await getDocs(pendingQuery);
-            pendingWithdrawalsEl.textContent = formatNumber(pendingSnap.size);
+            // --- 2. جلب طلبات السحب المعلقة ---
+            let pendingSnap = null;
+            try {
+                const pendingQuery = query(collection(db, "withdrawals"), where("status", "==", "pending"));
+                pendingSnap = await getDocs(pendingQuery);
+                pendingWithdrawalsEl.textContent = formatNumber(pendingSnap.size);
+            } catch (err) {
+                console.error("FIREBASE ERROR: Failed to fetch pending withdrawals. Ignoring for dashboard integrity.", err);
+                pendingWithdrawalsEl.textContent = "Error"; 
+            }
 
 
-            // طلبات السحب اليوم (مكتملة ومعلقة)
-            const withdrawTodayQuery = query(
-              collection(db, "withdrawals"), 
-              where("createdAt", ">=", todayStart),
-              where("status", "in", ["pending", "completed"])
-            );
-            const withdrawTodaySnap = await getDocs(withdrawTodayQuery);
+            // --- 3. جلب طلبات السحب اليوم ---
+            let withdrawTodaySnap = null;
+            try {
+                const withdrawTodayQuery = query(
+                  collection(db, "withdrawals"), 
+                  where("createdAt", ">=", todayStart),
+                  where("status", "in", ["pending", "completed"])
+                );
+                withdrawTodaySnap = await getDocs(withdrawTodayQuery);
+
+                let totalWithdrawnTodayPoints = 0;
+                withdrawTodaySnap.forEach(doc => {
+                    totalWithdrawnTodayPoints += Number(doc.data().points || 0);
+                });
+                
+                const totalWithdrawnTodayEGP = totalWithdrawnTodayPoints * POINT_VALUE_EGP;
+                withdrawTodayPointsEl.textContent = formatNumber(totalWithdrawnTodayPoints) + " نقطة";
+                withdrawTodayEGPEl.textContent = formatEGP(totalWithdrawnTodayEGP);
+            } catch (err) {
+                console.error("FIREBASE ERROR: Failed to fetch today withdrawals. Ignoring for dashboard integrity.", err);
+                withdrawTodayPointsEl.textContent = "Error";
+                withdrawTodayEGPEl.textContent = "Error";
+            }
+
             
-            let totalWithdrawnTodayPoints = 0;
-            withdrawTodaySnap.forEach(doc => {
-                totalWithdrawnTodayPoints += Number(doc.data().points || 0);
-            });
-            
-            const totalWithdrawnTodayEGP = totalWithdrawnTodayPoints * POINT_VALUE_EGP;
-            withdrawTodayPointsEl.textContent = formatNumber(totalWithdrawnTodayPoints) + " نقطة";
-            withdrawTodayEGPEl.textContent = formatEGP(totalWithdrawnTodayEGP);
-            
-            hideLoading(); // إخفاء التحميل عند النجاح
+            hideLoading(); // إخفاء التحميل عند النجاح النهائي
 
         } catch (err) {
-            console.error("Error loading dashboard:", err);
-            // عرض الخطأ الأكثر احتمالا
-            displayError("حدث خطأ في تحميل البيانات. قد تكون هناك مشكلة في البيانات أو خطأ في الاتصال.");
-            hideLoading(); // إخفاء التحميل عند الفشل
+            // هذا الجزء سيتم الوصول إليه فقط في حالة حدوث خطأ غير متوقع قبل أو بعد الكتل الأخرى
+            console.error("FATAL ERROR in loadDashboardData:", err);
+            displayError("حدث خطأ قاتل أثناء تحميل البيانات. الرجاء مراجعة Console.");
+            hideLoading(); 
         }
     }
 
