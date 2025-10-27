@@ -9,9 +9,9 @@
   <style>
     /* --- المتغيرات والتصميم --- */
     :root {
-        --color-primary: #f5c542; /* الذهبي/الأصفر المميز */
-        --color-secondary: #00fa9a; /* أخضر للإيجابيات */
-        --color-danger: #ff6b6b; /* أحمر للخطورة */
+        --color-primary: #f5c542; 
+        --color-secondary: #00fa9a; 
+        --color-danger: #ff6b6b; 
         --color-background: #0b0b0b;
         --color-card-bg: #1a1a1a;
         --text-light: #f0f2f5;
@@ -61,7 +61,7 @@
       transition: transform 0.2s ease, box-shadow 0.2s ease;
       position: relative;
     }
-    .card::before { /* خط جانبي مميز */
+    .card::before { 
         content: '';
         position: absolute;
         top: 0; right: 0; bottom: 0;
@@ -69,7 +69,6 @@
         background-color: var(--color-primary);
         border-radius: 0 15px 15px 0;
     }
-
     .card:hover {
       transform: translateY(-5px);
       box-shadow: 0 10px 30px rgba(245, 197, 66, 0.3);
@@ -82,23 +81,30 @@
       font-weight: 400;
     }
 
-    .card p {
-      font-size: 2em;
+    .card .main-value {
+      font-size: 1.8em;
       font-weight: 900;
       color: var(--text-light);
       font-family: 'Montserrat', sans-serif;
       text-shadow: 0 0 8px rgba(245, 197, 66, 0.6);
+      margin-bottom: 5px;
+    }
+    .card .sub-value {
+        display: block;
+        font-size: 1em;
+        color: var(--color-primary);
+        font-weight: 700;
+        font-family: 'Cairo', sans-serif;
     }
     
     /* --- تعديلات الألوان للبطاقات الهامة --- */
-    /* إضافة فئة خاصة للون الأخضر والخطورة */
     .card.secondary { border-color: var(--color-secondary); }
     .card.secondary::before { background-color: var(--color-secondary); }
-    .card.secondary p { color: var(--color-secondary); text-shadow: 0 0 8px rgba(0, 250, 154, 0.6); }
+    .card.secondary .main-value { color: var(--color-secondary); text-shadow: 0 0 8px rgba(0, 250, 154, 0.6); }
 
     .card.danger { border-color: var(--color-danger); }
     .card.danger::before { background-color: var(--color-danger); }
-    .card.danger p { color: var(--color-danger); text-shadow: 0 0 8px rgba(255, 107, 107, 0.6); }
+    .card.danger .main-value { color: var(--color-danger); text-shadow: 0 0 8px rgba(255, 107, 107, 0.6); }
 
     /* --- أزرار التوجيه (Buttons) --- */
     .btn-container {
@@ -124,56 +130,6 @@
       transform: scale(1.05);
     }
 
-    /* --- الجداول والإجراءات --- */
-    h2 {
-        font-size: 22px;
-        color: var(--color-primary);
-        margin-top: 35px;
-        margin-bottom: 20px;
-        border-bottom: 2px solid rgba(245, 197, 66, 0.3);
-        padding-bottom: 5px;
-    }
-    .table-container {
-        background: var(--color-card-bg);
-        border: 1px solid rgba(245, 197, 66, 0.4);
-        border-radius: 15px;
-        padding: 15px;
-        margin-top: 20px;
-        overflow-x: auto;
-    }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: 700px; /* لضمان عرض جيد */
-    }
-    thead th {
-        font-size: 13px;
-        color: var(--color-primary);
-        border-bottom: 2px solid rgba(245, 197, 66, 0.4);
-        padding: 12px;
-        text-align: right;
-    }
-    tbody td {
-        padding: 12px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        font-size: 14px;
-        text-align: right;
-        vertical-align: middle;
-    }
-    .btn-action {
-        padding: 6px 10px;
-        border-radius: 8px;
-        font-size: 12px;
-        cursor: pointer;
-        border: none;
-        font-weight: 700;
-        transition: background 0.2s;
-        margin-right: 5px;
-    }
-    .btn-action.approve { background-color: var(--color-secondary); color: #000; }
-    .btn-action.reject { background-color: var(--color-danger); color: #fff; }
-    .loading-text { text-align: center; color: var(--text-muted); padding: 20px; }
-    
     /* --- Footers --- */
     footer {
       text-align: center;
@@ -182,6 +138,17 @@
       color: #666;
       font-size: 0.9em;
       margin-top: 40px;
+    }
+    
+    .error-message {
+        color: var(--color-danger);
+        font-weight: 700;
+        text-align: center;
+        padding: 10px;
+        margin: 20px 0;
+        border: 1px solid var(--color-danger);
+        border-radius: 8px;
+        background-color: rgba(255, 107, 107, 0.1);
     }
   </style>
 </head>
@@ -193,62 +160,56 @@
     </header>
 
     <section class="dashboard">
+        
         <div class="card secondary">
-            <h3>👥 عدد المستخدمين</h3>
-            <p id="totalUsers">0</p>
+            <h3>👥 عدد المستخدمين الكلي</h3>
+            <p id="totalUsers" class="main-value">0</p>
         </div>
 
+        <div class="card secondary">
+            <h3>🏃‍♂️ عدد المستخدمين النشطين (آخر 7 أيام)</h3>
+            <p id="activeUsers" class="main-value">0</p>
+        </div>
+        
         <div class="card">
-            <h3>🧾 المهام المنفذة (الكل)</h3>
-            <p id="tasksCompleted">0</p>
+            <h3>🧾 إجمالي النقاط من المهام المنجزة</h3>
+            <p id="totalTaskPoints" class="main-value">0</p>
+            <span id="totalTaskPointsEGP" class="sub-value">0 EGP</span>
         </div>
-
+        
         <div class="card">
             <h3>🔗 عدد الإحالات</h3>
-            <p id="referrals">0</p>
+            <p id="referrals" class="main-value">0</p>
         </div>
 
-        <div class="card"> 
-            <h3>💎 إجمالي نقاط المستخدمين</h3>
-            <p id="referralPoints">0</p>
+        <div class="card">
+            <h3>🌟 مجموع النقاط من الإحالات</h3>
+            <p id="referralPoints" class="main-value">0</p>
+            <span id="referralPointsEGP" class="sub-value">0 EGP</span>
+        </div>
+
+        <div class="card">
+            <h3>💎 إجمالي نقاط المستخدمين الكلية</h3>
+            <p id="totalPoints" class="main-value">0</p>
+            <span id="totalPointsEGP" class="sub-value">0 EGP</span>
         </div>
 
         <div class="card danger">
-            <h3>💰 إجمالي المبالغ المسحوبة</h3>
-            <p id="totalWithdrawn">0 EGP</p>
+            <h3>💸 إجمالي المبالغ المسحوبة (الكل)</h3>
+            <p id="totalWithdrawn" class="main-value">0 EGP</p>
         </div>
 
         <div class="card">
-            <h3>💸 المبالغ المسحوبة اليوم</h3>
-            <p id="withdrawToday">0 EGP</p>
+            <h3>💵 المبالغ المسحوبة اليوم</h3>
+            <p id="withdrawTodayPoints" class="main-value">0 نقطة</p>
+            <span id="withdrawTodayEGP" class="sub-value">0 EGP</span>
         </div>
 
         <div class="card danger">
             <h3>⏳ طلبات السحب المعلقة</h3>
-            <p id="pendingWithdrawals">0</p>
+            <p id="pendingWithdrawals" class="main-value">0</p>
         </div>
     </section>
-
-    <div id="metricsArea"></div>
-    
-    <h2>طلبات السحب المعلقة 🛎️</h2>
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>المستخدم (ID)</th>
-                    <th>القيمة (نقاط)</th>
-                    <th>القيمة (ج)</th>
-                    <th>طريقة السحب</th>
-                    <th>وقت الطلب</th>
-                    <th>الإجراء</th>
-                </tr>
-            </thead>
-            <tbody id="withdrawTableBody">
-                <tr><td colspan="6" class="loading-text">جارِ تحميل الطلبات...</td></tr>
-            </tbody>
-        </table>
-    </div>
     
     <div class="btn-container">
         <button class="btn" onclick="location.href='users.html'">👥 المستخدمين</button>
@@ -268,7 +229,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { 
-      getFirestore, collection, query, where, getDocs, limit, doc, updateDoc 
+      getFirestore, collection, query, where, getDocs 
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   
     // 🛑 **1. إعدادات Firebase**
@@ -283,19 +244,25 @@
     const auth = getAuth(app);
     
     // **2. الثوابت والمتغيرات**
-    const adminEmail = "amirfg992005@gmail.com"; // 🛑 إيميل المدير (مهم جداً للتحقق)
+    const adminEmail = "amirfg992005@gmail.com"; 
     const POINT_VALUE_EGP = 0.07; 
-    const POINTS_PER_TASK = 10; 
+    const ACTIVE_USERS_THRESHOLD = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // آخر 7 أيام
 
-    // **3. عناصر DOM بالـ ID الذي أرسلته**
+    // **3. عناصر DOM**
     const totalUsersEl = document.getElementById("totalUsers");
-    const tasksCompletedEl = document.getElementById("tasksCompleted"); // إجمالي المهام المكتملة
-    const referralsEl = document.getElementById('referrals'); // إجمالي الإحالات
-    const referralPointsEl = document.getElementById('referralPoints'); // إجمالي نقاط المستخدمين الكلية
-    const totalWithdrawnEl = document.getElementById('totalWithdrawn'); // إجمالي المسحوبات الكلية
-    const withdrawTodayEl = document.getElementById("withdrawToday"); // المسحوبات اليوم
-    const pendingWithdrawalsEl = document.getElementById('pendingWithdrawals'); // طلبات السحب المعلقة (عدد)
-    const withdrawTableBody = document.getElementById('withdrawTableBody');
+    const activeUsersEl = document.getElementById("activeUsers");
+    const totalTaskPointsEl = document.getElementById("totalTaskPoints");
+    const totalTaskPointsEGPEl = document.getElementById("totalTaskPointsEGP");
+    const referralsEl = document.getElementById('referrals');
+    const referralPointsEl = document.getElementById('referralPoints');
+    const referralPointsEGPEl = document.getElementById('referralPointsEGP');
+    const totalPointsEl = document.getElementById('totalPoints');
+    const totalPointsEGPEl = document.getElementById('totalPointsEGP');
+    const totalWithdrawnEl = document.getElementById('totalWithdrawn');
+    const withdrawTodayPointsEl = document.getElementById("withdrawTodayPoints");
+    const withdrawTodayEGPEl = document.getElementById("withdrawTodayEGP");
+    const pendingWithdrawalsEl = document.getElementById('pendingWithdrawals');
+
 
     // 💡 دوال مساعدة
     function formatNumber(num) {
@@ -304,14 +271,31 @@
     function formatEGP(num) {
         return Number(num || 0).toLocaleString('en-US', { maximumFractionDigits: 2 }) + " EGP";
     }
-    function formatTime(ts) {
-        const d = ts.toDate ? ts.toDate() : new Date(ts);
-        return d.toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' });
-    }
     function getTodayStart() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         return today;
+    }
+    function displayError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.textContent = `❌ ${message}`;
+        document.querySelector('.wrap').prepend(errorDiv);
+        
+        const errorText = "خطأ في التحميل";
+        totalUsersEl.textContent = errorText;
+        activeUsersEl.textContent = errorText;
+        totalTaskPointsEl.textContent = errorText;
+        totalTaskPointsEGPEl.textContent = errorText;
+        referralsEl.textContent = errorText;
+        referralPointsEl.textContent = errorText;
+        referralPointsEGPEl.textContent = errorText;
+        totalPointsEl.textContent = errorText;
+        totalPointsEGPEl.textContent = errorText;
+        totalWithdrawnEl.textContent = errorText;
+        withdrawTodayPointsEl.textContent = errorText;
+        withdrawTodayEGPEl.textContent = errorText;
+        pendingWithdrawalsEl.textContent = errorText;
     }
 
     // **4. جلب بيانات لوحة التحكم (الدالة الرئيسية)**
@@ -324,163 +308,105 @@
         totalUsersEl.textContent = formatNumber(usersSnap.size);
 
         let totalReferralsCount = 0;
+        let totalReferralPoints = 0;
         let totalWithdrawnAmount = 0;
-        let totalPoints = 0;
-        let totalCompletedTasks = 0; 
+        let totalPoints = 0; // إجمالي النقاط الكلية المتبقية في حسابات المستخدمين
+        let totalTaskPoints = 0; // إجمالي النقاط التي حصل عليها المستخدمون من المهام
+        let activeUsersCount = 0;
 
+        // 🛑 الملاحظة الهامة: نفترض وجود حقول tasksPoints و referralPoints في وثيقة المستخدمين
+        // إذا لم تكن موجودة، سيتم حساب tasksPoints تقديرياً من totalPoints - referralPoints
         usersSnap.forEach(doc => {
             const data = doc.data();
+            
             totalReferralsCount += Number(data.referralCount || 0);
-            totalWithdrawnAmount += Number(data.totalWithdrawn || 0);
-            totalPoints += Number(data.points || 0);
-            // نفترض أن المهام المكتملة الكلية يمكن استنتاجها من النقاط
-            totalCompletedTasks += Number(data.tasksCompletedCount || Math.floor(data.points / POINTS_PER_TASK) || 0); 
+            totalReferralPoints += Number(data.referralPoints || 0); // مجموع نقاط الإحالات
+            totalWithdrawnAmount += Number(data.totalWithdrawn || 0); 
+            totalPoints += Number(data.points || 0); // النقاط المتبقية الكلية
+            
+            // حساب النقاط الكلية من المهام
+            totalTaskPoints += Number(data.tasksPoints || 0); 
+            
+            // حساب المستخدمين النشطين
+            if (data.lastLogin && data.lastLogin.toDate && data.lastLogin.toDate() >= ACTIVE_USERS_THRESHOLD) {
+                activeUsersCount++;
+            }
         });
+        
+        // إذا لم نجد حقل tasksPoints، نحاول حسابه بالمنطق التالي:
+        if (totalTaskPoints === 0 && totalPoints > 0) {
+            totalTaskPoints = totalPoints - totalReferralPoints; 
+            if (totalTaskPoints < 0) totalTaskPoints = 0;
+        }
 
-        // تحديث الإحصائيات العامة
+
+        // تحديث الإحصائيات الشاملة (القيم المزدوجة)
+        activeUsersEl.textContent = formatNumber(activeUsersCount);
         referralsEl.textContent = formatNumber(totalReferralsCount);
+
+        // إجمالي النقاط من المهام المنجزة
+        totalTaskPointsEl.textContent = formatNumber(totalTaskPoints);
+        totalTaskPointsEGPEl.textContent = formatEGP(totalTaskPoints * POINT_VALUE_EGP);
+        
+        // مجموع النقاط من الإحالات
+        referralPointsEl.textContent = formatNumber(totalReferralPoints);
+        referralPointsEGPEl.textContent = formatEGP(totalReferralPoints * POINT_VALUE_EGP);
+        
+        // إجمالي نقاط المستخدمين الكلية (المتبقية)
+        totalPointsEl.textContent = formatNumber(totalPoints);
+        totalPointsEGPEl.textContent = formatEGP(totalPoints * POINT_VALUE_EGP);
+
+        // إجمالي المبالغ المسحوبة
         totalWithdrawnEl.textContent = formatEGP(totalWithdrawnAmount);
-        referralPointsEl.textContent = formatNumber(totalPoints); // إجمالي النقاط الكلية
-        tasksCompletedEl.textContent = formatNumber(totalCompletedTasks); // إجمالي المهام المنفذة (الكل)
 
-        // المهام المكتملة اليوم (للحصول على عدد أكثر دقة)
-        const tasksQuery = query(
-          collection(db, "tasks_completed"),
-          where("date", ">=", todayStart)
-        );
-        const tasksSnap = await getDocs(tasksQuery);
-        // لا توجد بطاقة "المهام اليوم" في تصميمك، يمكن استخدامها لغرض آخر إذا أردت
 
-        // طلبات السحب اليوم
+        // طلبات السحب اليوم والمعلقة
         const withdrawTodayQuery = query(
           collection(db, "withdrawals"), 
           where("createdAt", ">=", todayStart),
-          where("status", "in", ["pending", "completed"]) // نحسب الطلبات التي تمت اليوم
+          where("status", "in", ["pending", "completed"])
         );
         const withdrawTodaySnap = await getDocs(withdrawTodayQuery);
         
-        let totalWithdrawnToday = 0;
+        let totalWithdrawnTodayPoints = 0;
+        let pendingRequestsCount = 0;
+        
         withdrawTodaySnap.forEach(doc => {
-            totalWithdrawnToday += (Number(doc.data().points || 0) * POINT_VALUE_EGP);
+            const req = doc.data();
+            const points = Number(req.points || 0);
+            if (req.status === 'pending') {
+                pendingRequestsCount++; 
+            }
+            totalWithdrawnTodayPoints += points;
         });
-        withdrawTodayEl.textContent = formatEGP(totalWithdrawnToday);
-
-
-        await loadPendingWithdrawals(); // تحميل جدول المعلقات وتحديث العدد في البطاقة
+        
+        // تحديث إحصائيات السحب اليوم
+        const totalWithdrawnTodayEGP = totalWithdrawnTodayPoints * POINT_VALUE_EGP;
+        withdrawTodayPointsEl.textContent = formatNumber(totalWithdrawnTodayPoints) + " نقطة";
+        withdrawTodayEGPEl.textContent = formatEGP(totalWithdrawnTodayEGP);
+        pendingWithdrawalsEl.textContent = formatNumber(pendingRequestsCount);
 
       } catch (err) {
         console.error("Error loading dashboard:", err);
-        const errorText = "خطأ في التحميل";
-        totalUsersEl.textContent = errorText;
-        referralsEl.textContent = errorText;
-        totalWithdrawnEl.textContent = errorText;
-        referralPointsEl.textContent = errorText;
-        tasksCompletedEl.textContent = errorText;
-        withdrawTodayEl.textContent = errorText;
-        pendingWithdrawalsEl.textContent = errorText;
+        displayError("حدث خطأ في تحميل البيانات الرئيسية. تأكد من إعدادات Firebase والاتصال بالإنترنت.");
       }
     }
-
-    // **5. جدول طلبات السحب المعلقة**
-    async function loadPendingWithdrawals() {
-        const q = query(collection(db, 'withdrawals'), where('status', '==', 'pending'), limit(50)); 
-        const requestsSnap = await getDocs(q);
-        
-        pendingWithdrawalsEl.textContent = formatNumber(requestsSnap.size); // تحديث العدد في البطاقة
-
-        withdrawTableBody.innerHTML = '';
-        if (requestsSnap.empty) {
-            withdrawTableBody.innerHTML = '<tr><td colspan="6" class="loading-text">لا توجد طلبات سحب معلقة حالياً.</td></tr>';
-        } else {
-            requestsSnap.forEach(docSnap => {
-                const req = docSnap.data();
-                const reqId = docSnap.id;
-                
-                const egpValue = (Number(req.points || 0) * POINT_VALUE_EGP).toFixed(2);
-                
-                const row = `
-                    <tr>
-                        <td>${req.userId ? req.userId.substring(0, 8) + '...' : '—'}</td>
-                        <td>${formatNumber(req.points || 0)}</td>
-                        <td>${egpValue} ج</td>
-                        <td>${req.method || '—'}</td>
-                        <td>${req.createdAt ? formatTime(req.createdAt) : '—'}</td>
-                        <td>
-                            <button class="btn-action approve" data-id="${reqId}" data-action="approve">موافقة</button>
-                            <button class="btn-action reject" data-id="${reqId}" data-action="reject">رفض</button>
-                        </td>
-                    </tr>`;
-                withdrawTableBody.innerHTML += row;
-            });
-            
-            document.querySelectorAll('.btn-action').forEach(btn => {
-                btn.addEventListener('click', handleWithdrawAction);
-            });
-        }
-    }
     
-    // **6. معالجة إجراءات السحب**
-    async function handleWithdrawAction(event) {
-        const reqId = event.target.dataset.id;
-        const action = event.target.dataset.action;
-        
-        if (!confirm(`هل أنت متأكد من ${action === 'approve' ? 'الموافقة' : 'رفض'} الطلب ${reqId}?`)) return;
-
-        try {
-            await updateDoc(doc(db, 'withdrawals', reqId), {
-                status: action === 'approve' ? 'completed' : 'rejected',
-                processedAt: new Date(),
-                processedBy: auth.currentUser.uid 
-            });
-
-            alert(`تم ${action === 'approve' ? 'الموافقة' : 'رفض'} الطلب بنجاح.`);
-            loadDashboardData(); 
-        } catch (error) {
-            console.error("Error processing request:", error);
-            alert("فشل في معالجة الطلب.");
-        }
-    }
-    
-    // **7. بناء منطقة فحص التناسق (كأداة إضافية)**
-    function setupConsistencyCheck() {
-        // (الكود هنا يضيف منطقة فحص التناسق كأداة هامة للمدير)
-        const container = document.getElementById("metricsArea");
-        container.innerHTML = `
-            <h2 style="margin-top: 40px;">🧮 فحص تناسق النقاط والمهام (أداة متقدمة)</h2>
-            <div class="card" style="border-left-color: var(--color-secondary);">
-                <h3>تحذير: هذه الأداة تستهلك قراءات Firebase. استخدمها بعناية.</h3>
-                <button id="refreshCheck" class="btn-action approve" style="margin-top:10px;">🔁 تحديث الفحص الآن</button>
-                <p id="consistencyStatus" style="font-size:1.2em; margin-top:10px;">انقر لتشغيل التحليل...</p>
-            </div>
-        `;
-        document.getElementById("refreshCheck").addEventListener('click', verifyPointsVsTasksNow);
-    }
-    
-    // ** دالة فحص التناسق (الرجاء لصقها بالكامل هنا) **
-    async function verifyPointsVsTasksNow() {
-        const el = document.getElementById("consistencyStatus");
-        el.textContent = "جاري التحليل... (الرجاء لصق محتوى دالة verifyPointsVsTasksNow هنا للعمل)";
-        // يرجى لصق المحتوى الكامل للدالة هنا عند التنفيذ الفعلي
-    }
-  
-    // **8. منطق التحقق من الصلاحيات والتحميل (حل مشكلة عدم التصريح)**
+    // **5. منطق التحقق من الصلاحيات والتحميل**
     onAuthStateChanged(auth, async (user) => {
         if (!user) {
-            alert("الرجاء تسجيل الدخول أولاً كمدير.");
-            // يفضل التوجيه لصفحة تسجيل دخول
+            displayError("غير مصرح لك بالدخول. الرجاء تسجيل الدخول أولاً كمدير.");
             return;
         }
 
         if (user.email !== adminEmail) {
-            alert("غير مصرح لك بالدخول. الإيميل المستخدم ليس إيميل المدير.");
+            displayError("غير مصرح لك بالدخول. الإيميل المستخدم ليس إيميل المدير.");
             await signOut(auth);
-            // يفضل التوجيه لصفحة البداية/تسجيل الدخول
             return;
         }
         
         // إذا كان مسجل الدخول وهو المدير
         loadDashboardData();
-        setupConsistencyCheck();
     });
 </script>
 </body>
