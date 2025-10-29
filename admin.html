@@ -370,13 +370,13 @@
     }
 
 
-    // **5. جلب بيانات لوحة التحكم (الإصدار النهائي المُصحَّح للسحب وحقل التاريخ)**
+    // **5. جلب بيانات لوحة التحكم (الإصدار النهائي المُصحَّح للحقول: status, date, amount)**
     async function loadDashboardData() {
         try {
             showLoading(); 
             const todayStart = getTodayStart();
             
-            // --- 1. جلب بيانات المستخدمين والحسابات الكلية (للمستخدمين والإحالات والنقاط) ---
+            // --- 1. جلب بيانات المستخدمين ... (يعمل) ---
             let usersSnap = null;
             try {
                 usersSnap = await getDocs(collection(db, "users"));
@@ -437,14 +437,14 @@
             // --- 2. جلب الإجمالي الكلي للمبالغ المسحوبة (من Withdrawals) ---
             let totalWithdrawnAmount = 0; 
             try {
-                // استعلام لجمع جميع السحوبات المكتملة
-                const allCompletedQuery = query(collection(db, "withdrawals"), where("state", "==", "completed")); 
+                // 🛑 استخدام 'status' وجمع حقل 'amount'
+                const allCompletedQuery = query(collection(db, "withdrawals"), where("status", "==", "completed")); 
                 const completedSnap = await getDocs(allCompletedQuery);
                 
                 completedSnap.forEach(doc => {
-                    // نجمع قيمة حقل 'net' (صافي المبلغ بالجنيه)
-                    const netAmount = doc.data().net ? Number(doc.data().net) : 0;
-                    totalWithdrawnAmount += netAmount;
+                    // 🥳 الإصلاح هنا: نجمع قيمة حقل 'amount'
+                    const totalAmount = doc.data().amount ? Number(doc.data().amount) : 0;
+                    totalWithdrawnAmount += totalAmount;
                 });
                 
                 // تحديث إجمالي المسحوبات (الكل)
@@ -459,8 +459,8 @@
             // --- 3. جلب طلبات السحب المعلقة ---
             let pendingSnap = null;
             try {
-                // استخدام 'state' بدلاً من 'status'
-                const pendingQuery = query(collection(db, "withdrawals"), where("state", "==", "pending")); 
+                // 🛑 استخدام 'status'
+                const pendingQuery = query(collection(db, "withdrawals"), where("status", "==", "pending")); 
                 pendingSnap = await getDocs(pendingQuery);
                 pendingWithdrawalsEl.textContent = formatNumber(pendingSnap.size);
             } catch (err) {
@@ -469,14 +469,15 @@
             }
 
 
-            // --- 4. جلب طلبات السحب اليوم (تصحيح الحقل إلى date) ---
+            // --- 4. جلب طلبات السحب اليوم (باستخدام حقل date و status) ---
             let withdrawTodaySnap = null;
             try {
                 const withdrawTodayQuery = query(
                   collection(db, "withdrawals"), 
-                  // 🥳 تم التعديل إلى حقل 'date'
+                  // باستخدام حقل 'date'
                   where("date", ">=", todayStart), 
-                  where("state", "in", ["pending", "completed"]) 
+                  // 🛑 استخدام 'status'
+                  where("status", "in", ["pending", "completed"]) 
                 );
                 withdrawTodaySnap = await getDocs(withdrawTodayQuery);
 
@@ -490,7 +491,7 @@
                 withdrawTodayPointsEl.textContent = formatNumber(totalWithdrawnTodayPoints) + " نقطة";
                 withdrawTodayEGPEl.textContent = formatEGP(totalWithdrawnTodayEGP);
             } catch (err) {
-                // ملاحظة: إذا فشل هذا الجزء الآن، فعليك التأكد أن الفهرس مركب على (date, state)
+                // ملاحظة: إذا فشل هذا الجزء الآن، فعليك التأكد أن الفهرس مركب على (date, status)
                 console.error("FIREBASE ERROR: Failed to fetch today withdrawals. Index or date field type is the issue.", err);
                 withdrawTodayPointsEl.textContent = "Error";
                 withdrawTodayEGPEl.textContent = "Error";
