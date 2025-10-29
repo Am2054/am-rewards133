@@ -212,8 +212,7 @@
             <div class="card danger">
                 <h3>💸 إجمالي المبالغ المسحوبة (الكل)</h3>
                 <p id="totalWithdrawn" class="main-value">0 EGP</p>
-                <span id="totalWithdrawnPointsEl" class="sub-value">0 نقطة</span> 
-            </div>
+                </div>
 
             <div class="card">
                 <h3>💵 المبالغ المسحوبة اليوم</h3>
@@ -284,11 +283,11 @@
     const totalTaskPointsEGPEl = document.getElementById("totalTaskPointsEGP");
     const referralsEl = document.getElementById('referrals');
     const referralPointsEl = document.getElementById('referralPoints');
-    const referralPointsEGPEl = document.getElementById('referralPointsEGPEl');
+    const referralPointsEGPEl = document.getElementById('referralPointsEGP');
     const totalPointsEl = document.getElementById('totalPoints');
     const totalPointsEGPEl = document.getElementById('totalPointsEGPEl');
     const totalWithdrawnEl = document.getElementById('totalWithdrawn');
-    const totalWithdrawnPointsEl = document.getElementById('totalWithdrawnPointsEl'); // 🥳 تعريف العنصر الجديد
+    // **تم حذف totalWithdrawnPointsEl**
     const withdrawTodayPointsEl = document.getElementById("withdrawTodayPoints");
     const withdrawTodayEGPEl = document.getElementById("withdrawTodayEGP");
     const pendingWithdrawalsEl = document.getElementById('pendingWithdrawals');
@@ -333,7 +332,7 @@
         totalPointsEl.textContent = errorText;
         totalPointsEGPEl.textContent = errorText;
         totalWithdrawnEl.textContent = errorText;
-        totalWithdrawnPointsEl.textContent = errorText; // تم تضمين العنصر الجديد
+        // **تم حذف totalWithdrawnPointsEl من هنا**
         withdrawTodayPointsEl.textContent = errorText;
         withdrawTodayEGPEl.textContent = errorText;
         pendingWithdrawalsEl.textContent = errorText;
@@ -373,7 +372,7 @@
     }
 
 
-    // **5. جلب بيانات لوحة التحكم (الإصدار النهائي المُصحَّح للحقول: status, net, processedAt)**
+    // **5. جلب بيانات لوحة التحكم (النسخة المضمونة: status, net, processedAt)**
     async function loadDashboardData() {
         try {
             showLoading(); 
@@ -439,7 +438,7 @@
 
             // --- 2. جلب الإجمالي الكلي للمبالغ المسحوبة (من Withdrawals) ---
             let totalWithdrawnAmount = 0; 
-            let totalWithdrawnPoints = 0; // 🥳 تعريف المتغير الجديد
+            // **تم حذف totalWithdrawnPoints**
             try {
                 // استخدام 'status' وجمع حقل 'net'
                 const allCompletedQuery = query(collection(db, "withdrawals"), where("status", "==", "completed")); 
@@ -450,20 +449,17 @@
                     const netAmount = doc.data().net ? Number(doc.data().net) : 0;
                     totalWithdrawnAmount += netAmount;
 
-                    // 🥳 نجمع قيمة 'points'
-                    const points = doc.data().points ? Number(doc.data().points) : 0;
-                    totalWithdrawnPoints += points;
+                    // **تم حذف جمع النقاط**
                 });
                 
                 // تحديث إجمالي المسحوبات (الكل)
                 totalWithdrawnEl.textContent = formatEGP(totalWithdrawnAmount);
-                // 🥳 تحديث إجمالي النقاط المسحوبة
-                totalWithdrawnPointsEl.textContent = formatNumber(totalWithdrawnPoints) + " نقطة"; 
+                // **تم حذف تحديث النقاط**
 
             } catch (err) {
                 console.error("FIREBASE ERROR: Failed to fetch total withdrawn from withdrawals collection.", err);
                 totalWithdrawnEl.textContent = "Error";
-                totalWithdrawnPointsEl.textContent = "Error"; // تحديث رسالة الخطأ للعنصر الجديد
+                // **تم حذف رسالة الخطأ للنقاط**
             }
             
             
@@ -493,7 +489,6 @@
                 withdrawTodaySnap = await getDocs(withdrawTodayQuery);
 
                 let totalWithdrawnTodayPoints = 0;
-                // هذا الجزء يعرض النقاط المسحوبة اليوم (يعمل بالفعل)
                 withdrawTodaySnap.forEach(doc => {
                     const points = doc.data().points ? Number(doc.data().points) : 0;
                     totalWithdrawnTodayPoints += points;
