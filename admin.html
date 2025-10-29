@@ -213,6 +213,7 @@
                 <h3>💸 إجمالي المبالغ المسحوبة (الكل)</h3>
                 <p id="totalWithdrawn" class="main-value">0 EGP</p>
                 <span id="totalWithdrawnPointsEl" class="sub-value">0 نقطة</span> 
+                <span id="totalWithdrawnPointsEGPEl" class="sub-value" style="color: var(--color-danger);">0 EGP (قيمة النقاط)</span>
             </div>
 
             <div class="card danger">
@@ -281,11 +282,10 @@
     const referralPointsEGPEl = document.getElementById('referralPointsEGP');
     const totalPointsEl = document.getElementById('totalPoints');
     const totalPointsEGPEl = document.getElementById('totalPointsEGPEl');
- const totalWithdrawnEl = document.getElementById('totalWithdrawn');
-  const totalPointsEGPEl = document.getElementById('totalPoints'):
-    // 🥳 تعريف عنصر النقاط المسحوبة الكلية
+    const totalWithdrawnEl = document.getElementById('totalWithdrawn');
     const totalWithdrawnPointsEl = document.getElementById('totalWithdrawnPointsEl');
-    // ❌ تم حذف عناصر السحوبات اليومية
+    // 🥳 تعريف عنصر النقاط المسحوبة بالجنيه
+    const totalWithdrawnPointsEGPEl = document.getElementById('totalWithdrawnPointsEGPEl'); 
     const pendingWithdrawalsEl = document.getElementById('pendingWithdrawals');
 
 
@@ -328,8 +328,8 @@
         totalPointsEl.textContent = errorText;
         totalPointsEGPEl.textContent = errorText;
         totalWithdrawnEl.textContent = errorText;
-        totalWithdrawnPointsEl.textContent = errorText; // تم تضمين العنصر الجديد
-        // ❌ تم حذف عناصر السحوبات اليومية من هنا
+        totalWithdrawnPointsEl.textContent = errorText; 
+        totalWithdrawnPointsEGPEl.textContent = errorText; // تم تضمين العنصر الجديد
         pendingWithdrawalsEl.textContent = errorText;
     }
 
@@ -433,7 +433,7 @@
 
             // --- 2. جلب الإجمالي الكلي للمبالغ المسحوبة (الكل: net + points + status) ---
             let totalWithdrawnAmount = 0; 
-            let totalWithdrawnPoints = 0; // 🥳 متغير النقاط
+            let totalWithdrawnPoints = 0;
             try {
                 // استخدام 'status' وجمع حقل 'net'
                 const allCompletedQuery = query(collection(db, "withdrawals"), where("status", "==", "completed")); 
@@ -444,19 +444,25 @@
                     const netAmount = doc.data().net ? Number(doc.data().net) : 0;
                     totalWithdrawnAmount += netAmount;
 
-                    // 🥳 نجمع قيمة 'points'
+                    // نجمع قيمة 'points'
                     const points = doc.data().points ? Number(doc.data().points) : 0;
                     totalWithdrawnPoints += points;
                 });
+
+                // حساب قيمة النقاط المسحوبة بالجنيه
+                const totalWithdrawnPointsEGP = totalWithdrawnPoints * POINT_VALUE_EGP;
                 
-                // تحديث إجمالي المسحوبات (الكل)
+                // تحديث العناصر
                 totalWithdrawnEl.textContent = formatEGP(totalWithdrawnAmount);
-                totalWithdrawnPointsEl.textContent = formatNumber(totalWithdrawnPoints) + " نقطة"; // 🥳 تحديث النقاط
+                totalWithdrawnPointsEl.textContent = formatNumber(totalWithdrawnPoints) + " نقطة";
+                // 🥳 تحديث قيمة النقاط بالجنيه
+                totalWithdrawnPointsEGPEl.textContent = formatEGP(totalWithdrawnPointsEGP) + " (قيمة النقاط)"; 
 
             } catch (err) {
                 console.error("FIREBASE ERROR: Failed to fetch total withdrawn from withdrawals collection.", err);
                 totalWithdrawnEl.textContent = "Error";
-                totalWithdrawnPointsEl.textContent = "Error"; // رسالة خطأ للنقاط
+                totalWithdrawnPointsEl.textContent = "Error";
+                totalWithdrawnPointsEGPEl.textContent = "Error"; 
             }
             
             
@@ -472,9 +478,7 @@
                 pendingWithdrawalsEl.textContent = "Error"; 
             }
 
-            // ❌ تم حذف الجزء رقم 4 (جلب السحوبات اليومية) بالكامل
-
-            hideLoading(); // إخفاء التحميل عند النجاح النهائي
+            hideLoading(); 
 
         } catch (err) {
             console.error("FATAL ERROR in loadDashboardData:", err);
