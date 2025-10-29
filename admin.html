@@ -212,12 +212,7 @@
             <div class="card danger">
                 <h3>💸 إجمالي المبالغ المسحوبة (الكل)</h3>
                 <p id="totalWithdrawn" class="main-value">0 EGP</p>
-                </div>
-
-            <div class="card">
-                <h3>💵 المبالغ المسحوبة اليوم</h3>
-                <p id="withdrawTodayPoints" class="main-value">0 نقطة</p>
-                <span id="withdrawTodayEGP" class="sub-value">0 EGP</span>
+                <span id="totalWithdrawnPointsEl" class="sub-value">0 نقطة</span> 
             </div>
 
             <div class="card danger">
@@ -287,9 +282,9 @@
     const totalPointsEl = document.getElementById('totalPoints');
     const totalPointsEGPEl = document.getElementById('totalPointsEGPEl');
     const totalWithdrawnEl = document.getElementById('totalWithdrawn');
-    // **تم حذف totalWithdrawnPointsEl**
-    const withdrawTodayPointsEl = document.getElementById("withdrawTodayPoints");
-    const withdrawTodayEGPEl = document.getElementById("withdrawTodayEGP");
+    // 🥳 تعريف عنصر النقاط المسحوبة الكلية
+    const totalWithdrawnPointsEl = document.getElementById('totalWithdrawnPointsEl');
+    // ❌ تم حذف عناصر السحوبات اليومية
     const pendingWithdrawalsEl = document.getElementById('pendingWithdrawals');
 
 
@@ -332,9 +327,8 @@
         totalPointsEl.textContent = errorText;
         totalPointsEGPEl.textContent = errorText;
         totalWithdrawnEl.textContent = errorText;
-        // **تم حذف totalWithdrawnPointsEl من هنا**
-        withdrawTodayPointsEl.textContent = errorText;
-        withdrawTodayEGPEl.textContent = errorText;
+        totalWithdrawnPointsEl.textContent = errorText; // تم تضمين العنصر الجديد
+        // ❌ تم حذف عناصر السحوبات اليومية من هنا
         pendingWithdrawalsEl.textContent = errorText;
     }
 
@@ -372,7 +366,7 @@
     }
 
 
-    // **5. جلب بيانات لوحة التحكم (النسخة المضمونة: status, net, processedAt)**
+    // **5. جلب بيانات لوحة التحكم (النسخة النهائية)**
     async function loadDashboardData() {
         try {
             showLoading(); 
@@ -436,9 +430,9 @@
             totalPointsEGPEl.textContent = formatEGP(totalPoints * POINT_VALUE_EGP);
 
 
-            // --- 2. جلب الإجمالي الكلي للمبالغ المسحوبة (من Withdrawals) ---
+            // --- 2. جلب الإجمالي الكلي للمبالغ المسحوبة (الكل: net + points + status) ---
             let totalWithdrawnAmount = 0; 
-            // **تم حذف totalWithdrawnPoints**
+            let totalWithdrawnPoints = 0; // 🥳 متغير النقاط
             try {
                 // استخدام 'status' وجمع حقل 'net'
                 const allCompletedQuery = query(collection(db, "withdrawals"), where("status", "==", "completed")); 
@@ -449,17 +443,19 @@
                     const netAmount = doc.data().net ? Number(doc.data().net) : 0;
                     totalWithdrawnAmount += netAmount;
 
-                    // **تم حذف جمع النقاط**
+                    // 🥳 نجمع قيمة 'points'
+                    const points = doc.data().points ? Number(doc.data().points) : 0;
+                    totalWithdrawnPoints += points;
                 });
                 
                 // تحديث إجمالي المسحوبات (الكل)
                 totalWithdrawnEl.textContent = formatEGP(totalWithdrawnAmount);
-                // **تم حذف تحديث النقاط**
+                totalWithdrawnPointsEl.textContent = formatNumber(totalWithdrawnPoints) + " نقطة"; // 🥳 تحديث النقاط
 
             } catch (err) {
                 console.error("FIREBASE ERROR: Failed to fetch total withdrawn from withdrawals collection.", err);
                 totalWithdrawnEl.textContent = "Error";
-                // **تم حذف رسالة الخطأ للنقاط**
+                totalWithdrawnPointsEl.textContent = "Error"; // رسالة خطأ للنقاط
             }
             
             
@@ -475,35 +471,8 @@
                 pendingWithdrawalsEl.textContent = "Error"; 
             }
 
+            // ❌ تم حذف الجزء رقم 4 (جلب السحوبات اليومية) بالكامل
 
-            // --- 4. جلب طلبات السحب اليوم (باستخدام حقل processedAt و status) ---
-            let withdrawTodaySnap = null;
-            try {
-                const withdrawTodayQuery = query(
-                  collection(db, "withdrawals"), 
-                  // استخدام 'processedAt' (Timestamp) لاستعلام اليوم
-                  where("processedAt", ">=", todayStart), 
-                  // استخدام 'status'
-                  where("status", "in", ["pending", "completed"]) 
-                );
-                withdrawTodaySnap = await getDocs(withdrawTodayQuery);
-
-                let totalWithdrawnTodayPoints = 0;
-                withdrawTodaySnap.forEach(doc => {
-                    const points = doc.data().points ? Number(doc.data().points) : 0;
-                    totalWithdrawnTodayPoints += points;
-                });
-                
-                const totalWithdrawnTodayEGP = totalWithdrawnTodayPoints * POINT_VALUE_EGP;
-                withdrawTodayPointsEl.textContent = formatNumber(totalWithdrawnTodayPoints) + " نقطة";
-                withdrawTodayEGPEl.textContent = formatEGP(totalWithdrawnTodayEGP);
-            } catch (err) {
-                console.error("FIREBASE ERROR: Failed to fetch today withdrawals. **Check the Index for (processedAt, status)**.", err);
-                withdrawTodayPointsEl.textContent = "Error";
-                withdrawTodayEGPEl.textContent = "Error";
-            }
-
-            
             hideLoading(); // إخفاء التحميل عند النجاح النهائي
 
         } catch (err) {
