@@ -212,6 +212,7 @@
             <div class="card danger">
                 <h3>💸 إجمالي المبالغ المسحوبة (الكل)</h3>
                 <p id="totalWithdrawn" class="main-value">0 EGP</p>
+                <span id="totalWithdrawnPointsEl" class="sub-value">0 نقطة</span> 
             </div>
 
             <div class="card">
@@ -283,10 +284,11 @@
     const totalTaskPointsEGPEl = document.getElementById("totalTaskPointsEGP");
     const referralsEl = document.getElementById('referrals');
     const referralPointsEl = document.getElementById('referralPoints');
-    const referralPointsEGPEl = document.getElementById('referralPointsEGP');
+    const referralPointsEGPEl = document.getElementById('referralPointsEGPEl');
     const totalPointsEl = document.getElementById('totalPoints');
     const totalPointsEGPEl = document.getElementById('totalPointsEGPEl');
     const totalWithdrawnEl = document.getElementById('totalWithdrawn');
+    const totalWithdrawnPointsEl = document.getElementById('totalWithdrawnPointsEl'); // 🥳 تعريف العنصر الجديد
     const withdrawTodayPointsEl = document.getElementById("withdrawTodayPoints");
     const withdrawTodayEGPEl = document.getElementById("withdrawTodayEGP");
     const pendingWithdrawalsEl = document.getElementById('pendingWithdrawals');
@@ -331,6 +333,7 @@
         totalPointsEl.textContent = errorText;
         totalPointsEGPEl.textContent = errorText;
         totalWithdrawnEl.textContent = errorText;
+        totalWithdrawnPointsEl.textContent = errorText; // تم تضمين العنصر الجديد
         withdrawTodayPointsEl.textContent = errorText;
         withdrawTodayEGPEl.textContent = errorText;
         pendingWithdrawalsEl.textContent = errorText;
@@ -370,7 +373,7 @@
     }
 
 
-    // **5. جلب بيانات لوحة التحكم (الإصدار النهائي المُصحَّح للحقول: status, date, amount)**
+    // **5. جلب بيانات لوحة التحكم (الإصدار النهائي المُصحَّح للحقول: status, net, processedAt)**
     async function loadDashboardData() {
         try {
             showLoading(); 
@@ -436,30 +439,38 @@
 
             // --- 2. جلب الإجمالي الكلي للمبالغ المسحوبة (من Withdrawals) ---
             let totalWithdrawnAmount = 0; 
+            let totalWithdrawnPoints = 0; // 🥳 تعريف المتغير الجديد
             try {
-                // 🛑 استخدام 'status' وجمع حقل 'amount'
+                // استخدام 'status' وجمع حقل 'net'
                 const allCompletedQuery = query(collection(db, "withdrawals"), where("status", "==", "completed")); 
                 const completedSnap = await getDocs(allCompletedQuery);
                 
                 completedSnap.forEach(doc => {
-                    // 🥳 الإصلاح هنا: نجمع قيمة حقل 'amount'
-                    const totalAmount = doc.data().amount ? Number(doc.data().amount) : 0;
-                    totalWithdrawnAmount += totalAmount;
+                    // نجمع قيمة 'net' (المبلغ بعد الخصم)
+                    const netAmount = doc.data().net ? Number(doc.data().net) : 0;
+                    totalWithdrawnAmount += netAmount;
+
+                    // 🥳 نجمع قيمة 'points'
+                    const points = doc.data().points ? Number(doc.data().points) : 0;
+                    totalWithdrawnPoints += points;
                 });
                 
                 // تحديث إجمالي المسحوبات (الكل)
                 totalWithdrawnEl.textContent = formatEGP(totalWithdrawnAmount);
+                // 🥳 تحديث إجمالي النقاط المسحوبة
+                totalWithdrawnPointsEl.textContent = formatNumber(totalWithdrawnPoints) + " نقطة"; 
 
             } catch (err) {
                 console.error("FIREBASE ERROR: Failed to fetch total withdrawn from withdrawals collection.", err);
                 totalWithdrawnEl.textContent = "Error";
+                totalWithdrawnPointsEl.textContent = "Error"; // تحديث رسالة الخطأ للعنصر الجديد
             }
             
             
             // --- 3. جلب طلبات السحب المعلقة ---
             let pendingSnap = null;
             try {
-                // 🛑 استخدام 'status'
+                // استخدام 'status'
                 const pendingQuery = query(collection(db, "withdrawals"), where("status", "==", "pending")); 
                 pendingSnap = await getDocs(pendingQuery);
                 pendingWithdrawalsEl.textContent = formatNumber(pendingSnap.size);
@@ -469,19 +480,20 @@
             }
 
 
-            // --- 4. جلب طلبات السحب اليوم (باستخدام حقل date و status) ---
+            // --- 4. جلب طلبات السحب اليوم (باستخدام حقل processedAt و status) ---
             let withdrawTodaySnap = null;
             try {
                 const withdrawTodayQuery = query(
                   collection(db, "withdrawals"), 
-                  // باستخدام حقل 'date'
-                  where("date", ">=", todayStart), 
-                  // 🛑 استخدام 'status'
+                  // استخدام 'processedAt' (Timestamp) لاستعلام اليوم
+                  where("processedAt", ">=", todayStart), 
+                  // استخدام 'status'
                   where("status", "in", ["pending", "completed"]) 
                 );
                 withdrawTodaySnap = await getDocs(withdrawTodayQuery);
 
                 let totalWithdrawnTodayPoints = 0;
+                // هذا الجزء يعرض النقاط المسحوبة اليوم (يعمل بالفعل)
                 withdrawTodaySnap.forEach(doc => {
                     const points = doc.data().points ? Number(doc.data().points) : 0;
                     totalWithdrawnTodayPoints += points;
@@ -491,8 +503,7 @@
                 withdrawTodayPointsEl.textContent = formatNumber(totalWithdrawnTodayPoints) + " نقطة";
                 withdrawTodayEGPEl.textContent = formatEGP(totalWithdrawnTodayEGP);
             } catch (err) {
-                // ملاحظة: إذا فشل هذا الجزء الآن، فعليك التأكد أن الفهرس مركب على (date, status)
-                console.error("FIREBASE ERROR: Failed to fetch today withdrawals. Index or date field type is the issue.", err);
+                console.error("FIREBASE ERROR: Failed to fetch today withdrawals. **Check the Index for (processedAt, status)**.", err);
                 withdrawTodayPointsEl.textContent = "Error";
                 withdrawTodayEGPEl.textContent = "Error";
             }
