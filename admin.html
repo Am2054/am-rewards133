@@ -210,10 +210,10 @@
             </div>
 
             <div class="card danger">
-                <h3>💸 إجمالي المبالغ المسحوبة (الكل)</h3>
-                <p id="totalWithdrawn" class="main-value">0 EGP</p>
-                <span id="totalWithdrawnPointsEl" class="sub-value">0 نقطة</span> 
-                <span id="totalWithdrawnPointsEGPEl" class="sub-value" style="color: var(--color-danger);">0 EGP (قيمة النقاط)</span>
+                <h3>💸 إجمالي النقاط والمبالغ المسحوبة (الكل)</h3>
+                <p id="totalWithdrawnPointsEl" class="main-value">0 نقطة</p>
+                <span id="totalWithdrawnPointsEGPEl" class="sub-value">0 EGP (قيمة النقاط)</span>
+                <span id="totalWithdrawn" class="sub-value" style="color: var(--color-danger);">0 EGP (صافي المبلغ)</span>
             </div>
 
             <div class="card danger">
@@ -282,10 +282,10 @@
     const referralPointsEGPEl = document.getElementById('referralPointsEGP');
     const totalPointsEl = document.getElementById('totalPoints');
     const totalPointsEGPEl = document.getElementById('totalPointsEGPEl');
-    const totalWithdrawnEl = document.getElementById('totalWithdrawn');
-    const totalWithdrawnPointsEl = document.getElementById('totalWithdrawnPointsEl');
-    // 🥳 تعريف عنصر النقاط المسحوبة بالجنيه
-    const totalWithdrawnPointsEGPEl = document.getElementById('totalWithdrawnPointsEGPEl'); 
+    // 💡 تم تبديل الأدوار في HTML، لكن ID's تبقى كما هي
+    const totalWithdrawnEl = document.getElementById('totalWithdrawn'); // صافي المبلغ المسحوب
+    const totalWithdrawnPointsEl = document.getElementById('totalWithdrawnPointsEl'); // النقاط المسحوبة
+    const totalWithdrawnPointsEGPEl = document.getElementById('totalWithdrawnPointsEGPEl'); // قيمة النقاط بالجنيه
     const pendingWithdrawalsEl = document.getElementById('pendingWithdrawals');
 
 
@@ -327,9 +327,12 @@
         referralPointsEGPEl.textContent = errorText;
         totalPointsEl.textContent = errorText;
         totalPointsEGPEl.textContent = errorText;
-        totalWithdrawnEl.textContent = errorText;
+        
+        // تحديث رسائل الخطأ للعناصر الثلاثة الجديدة
         totalWithdrawnPointsEl.textContent = errorText; 
-        totalWithdrawnPointsEGPEl.textContent = errorText; // تم تضمين العنصر الجديد
+        totalWithdrawnPointsEGPEl.textContent = errorText; 
+        totalWithdrawnEl.textContent = errorText; 
+        
         pendingWithdrawalsEl.textContent = errorText;
     }
 
@@ -432,19 +435,19 @@
 
 
             // --- 2. جلب الإجمالي الكلي للمبالغ المسحوبة (الكل: net + points + status) ---
-            let totalWithdrawnAmount = 0; 
-            let totalWithdrawnPoints = 0;
+            let totalWithdrawnAmount = 0; // المبلغ الصافي (net)
+            let totalWithdrawnPoints = 0; // مجموع النقاط
             try {
                 // استخدام 'status' وجمع حقل 'net'
                 const allCompletedQuery = query(collection(db, "withdrawals"), where("status", "==", "completed")); 
                 const completedSnap = await getDocs(allCompletedQuery);
                 
                 completedSnap.forEach(doc => {
-                    // نجمع قيمة 'net' (المبلغ بعد الخصم)
+                    // جمع قيمة 'net' (المبلغ بعد الخصم)
                     const netAmount = doc.data().net ? Number(doc.data().net) : 0;
                     totalWithdrawnAmount += netAmount;
 
-                    // نجمع قيمة 'points'
+                    // جمع قيمة 'points'
                     const points = doc.data().points ? Number(doc.data().points) : 0;
                     totalWithdrawnPoints += points;
                 });
@@ -452,17 +455,16 @@
                 // حساب قيمة النقاط المسحوبة بالجنيه
                 const totalWithdrawnPointsEGP = totalWithdrawnPoints * POINT_VALUE_EGP;
                 
-                // تحديث العناصر
-                totalWithdrawnEl.textContent = formatEGP(totalWithdrawnAmount);
-                totalWithdrawnPointsEl.textContent = formatNumber(totalWithdrawnPoints) + " نقطة";
-                // 🥳 تحديث قيمة النقاط بالجنيه
-                totalWithdrawnPointsEGPEl.textContent = formatEGP(totalWithdrawnPointsEGP) + " (قيمة النقاط)"; 
+                // 💡 تحديث العناصر بالتنسيق الجديد (النقاط أولًا)
+                totalWithdrawnPointsEl.textContent = formatNumber(totalWithdrawnPoints) + " نقطة"; // القيمة الرئيسية
+                totalWithdrawnPointsEGPEl.textContent = formatEGP(totalWithdrawnPointsEGP) + " (قيمة النقاط)"; // القيمة الفرعية 1
+                totalWithdrawnEl.textContent = formatEGP(totalWithdrawnAmount) + " (صافي المبلغ)"; // القيمة الفرعية 2
 
             } catch (err) {
                 console.error("FIREBASE ERROR: Failed to fetch total withdrawn from withdrawals collection.", err);
-                totalWithdrawnEl.textContent = "Error";
                 totalWithdrawnPointsEl.textContent = "Error";
                 totalWithdrawnPointsEGPEl.textContent = "Error"; 
+                totalWithdrawnEl.textContent = "Error"; 
             }
             
             
