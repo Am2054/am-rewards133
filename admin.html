@@ -370,7 +370,7 @@
     }
 
 
-    // **5. جلب بيانات لوحة التحكم (الإصدار النهائي المُصحَّح للسحب)**
+    // **5. جلب بيانات لوحة التحكم (الإصدار النهائي المُصحَّح للسحب وحقل التاريخ)**
     async function loadDashboardData() {
         try {
             showLoading(); 
@@ -399,8 +399,6 @@
                 
                 totalReferralsCount += Number(data.referralCount || 0) || 0;
                 totalReferralPoints += Number(data.referralPoints || 0) || 0;
-                
-                // 🛑 تم إزالة جمع totalWithdrawn من هنا
                 
                 totalPoints += Number(data.points || 0) || 0; 
                 totalTaskPoints += Number(data.tasksPoints || 0) || 0; 
@@ -440,7 +438,7 @@
             let totalWithdrawnAmount = 0; 
             try {
                 // استعلام لجمع جميع السحوبات المكتملة
-                const allCompletedQuery = query(collection(db, "withdrawals"), where("status", "==", "completed")); 
+                const allCompletedQuery = query(collection(db, "withdrawals"), where("state", "==", "completed")); 
                 const completedSnap = await getDocs(allCompletedQuery);
                 
                 completedSnap.forEach(doc => {
@@ -471,14 +469,14 @@
             }
 
 
-            // --- 4. جلب طلبات السحب اليوم ---
+            // --- 4. جلب طلبات السحب اليوم (تصحيح الحقل إلى date) ---
             let withdrawTodaySnap = null;
             try {
                 const withdrawTodayQuery = query(
                   collection(db, "withdrawals"), 
-                  where("date", ">=", todayStart),
-                  // استخدام 'state' بدلاً من 'status'
-                  where("status", "in", ["pending", "completed"]) 
+                  // 🥳 تم التعديل إلى حقل 'date'
+                  where("date", ">=", todayStart), 
+                  where("state", "in", ["pending", "completed"]) 
                 );
                 withdrawTodaySnap = await getDocs(withdrawTodayQuery);
 
@@ -492,7 +490,8 @@
                 withdrawTodayPointsEl.textContent = formatNumber(totalWithdrawnTodayPoints) + " نقطة";
                 withdrawTodayEGPEl.textContent = formatEGP(totalWithdrawnTodayEGP);
             } catch (err) {
-                console.error("FIREBASE ERROR: Failed to fetch today withdrawals (Check Index).", err);
+                // ملاحظة: إذا فشل هذا الجزء الآن، فعليك التأكد أن الفهرس مركب على (date, state)
+                console.error("FIREBASE ERROR: Failed to fetch today withdrawals. Index or date field type is the issue.", err);
                 withdrawTodayPointsEl.textContent = "Error";
                 withdrawTodayEGPEl.textContent = "Error";
             }
