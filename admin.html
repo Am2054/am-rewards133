@@ -321,7 +321,6 @@
         document.querySelector('.wrap').prepend(errorDiv);
         
         const errorText = "خطأ في التحميل";
-        // تحديث جميع القيم إلى "خطأ" للتأكيد
         totalUsersEl.textContent = errorText;
         activeUsersEl.textContent = errorText;
         totalTaskPointsEl.textContent = errorText;
@@ -371,13 +370,13 @@
     }
 
 
-    // **5. جلب بيانات لوحة التحكم (مُعدَّل مع تصحيح حقل السحب)**
+    // **5. جلب بيانات لوحة التحكم (الإصدار النهائي المُصحَّح للسحب)**
     async function loadDashboardData() {
         try {
             showLoading(); 
             const todayStart = getTodayStart();
             
-            // --- 1. جلب بيانات المستخدمين والحسابات الكلية ---
+            // --- 1. جلب بيانات المستخدمين والحسابات الكلية (للمستخدمين والإحالات والنقاط) ---
             let usersSnap = null;
             try {
                 usersSnap = await getDocs(collection(db, "users"));
@@ -391,7 +390,6 @@
             
             let totalReferralsCount = 0;
             let totalReferralPoints = 0;
-            let totalWithdrawnAmount = 0; // 👈 المتغير الذي نجمع فيه المبالغ المسحوبة
             let totalPoints = 0; 
             let totalTaskPoints = 0; 
             let activeUsersCount = 0;
@@ -402,9 +400,7 @@
                 totalReferralsCount += Number(data.referralCount || 0) || 0;
                 totalReferralPoints += Number(data.referralPoints || 0) || 0;
                 
-                // 🛠️ التصحيح هنا: قراءة حقل totalWithdrawn بشكل آمن
-                const withdrawn = data.totalWithdrawn ? Number(data.totalWithdrawn) : 0;
-                totalWithdrawnAmount += withdrawn; 
+                // 🛑 تم إزالة جمع totalWithdrawn من هنا
                 
                 totalPoints += Number(data.points || 0) || 0; 
                 totalTaskPoints += Number(data.tasksPoints || 0) || 0; 
@@ -429,7 +425,7 @@
                 if (totalTaskPoints < 0) totalTaskPoints = 0;
             }
 
-            // تحديث الإحصائيات الشاملة
+            // تحديث الإحصائيات الشاملة (للمستخدمين، النقاط، الإحالات)
             activeUsersEl.textContent = formatNumber(activeUsersCount);
             referralsEl.textContent = formatNumber(totalReferralsCount);
             totalTaskPointsEl.textContent = formatNumber(totalTaskPoints);
@@ -438,15 +434,35 @@
             referralPointsEGPEl.textContent = formatEGP(totalReferralPoints * POINT_VALUE_EGP);
             totalPointsEl.textContent = formatNumber(totalPoints);
             totalPointsEGPEl.textContent = formatEGP(totalPoints * POINT_VALUE_EGP);
+
+
+            // --- 2. جلب الإجمالي الكلي للمبالغ المسحوبة (من Withdrawals) ---
+            let totalWithdrawnAmount = 0; 
+            try {
+                // استعلام لجمع جميع السحوبات المكتملة
+                const allCompletedQuery = query(collection(db, "withdrawals"), where("state", "==", "completed")); 
+                const completedSnap = await getDocs(allCompletedQuery);
+                
+                completedSnap.forEach(doc => {
+                    // نجمع قيمة حقل 'net' (صافي المبلغ بالجنيه)
+                    const netAmount = doc.data().net ? Number(doc.data().net) : 0;
+                    totalWithdrawnAmount += netAmount;
+                });
+                
+                // تحديث إجمالي المسحوبات (الكل)
+                totalWithdrawnEl.textContent = formatEGP(totalWithdrawnAmount);
+
+            } catch (err) {
+                console.error("FIREBASE ERROR: Failed to fetch total withdrawn from withdrawals collection.", err);
+                totalWithdrawnEl.textContent = "Error";
+            }
             
-            // 🛠️ تحديث إجمالي المسحوبات (الكل)
-            totalWithdrawnEl.textContent = formatEGP(totalWithdrawnAmount);
-
-
-            // --- 2. جلب طلبات السحب المعلقة ---
+            
+            // --- 3. جلب طلبات السحب المعلقة ---
             let pendingSnap = null;
             try {
-                const pendingQuery = query(collection(db, "withdrawals"), where("status", "==", "pending"));
+                // استخدام 'state' بدلاً من 'status'
+                const pendingQuery = query(collection(db, "withdrawals"), where("state", "==", "pending")); 
                 pendingSnap = await getDocs(pendingQuery);
                 pendingWithdrawalsEl.textContent = formatNumber(pendingSnap.size);
             } catch (err) {
@@ -455,19 +471,19 @@
             }
 
 
-            // --- 3. جلب طلبات السحب اليوم ---
+            // --- 4. جلب طلبات السحب اليوم ---
             let withdrawTodaySnap = null;
             try {
                 const withdrawTodayQuery = query(
                   collection(db, "withdrawals"), 
                   where("createdAt", ">=", todayStart),
-                  where("status", "in", ["pending", "completed"])
+                  // استخدام 'state' بدلاً من 'status'
+                  where("state", "in", ["pending", "completed"]) 
                 );
                 withdrawTodaySnap = await getDocs(withdrawTodayQuery);
 
                 let totalWithdrawnTodayPoints = 0;
                 withdrawTodaySnap.forEach(doc => {
-                    // 🛠️ التصحيح هنا: قراءة حقل points بشكل آمن
                     const points = doc.data().points ? Number(doc.data().points) : 0;
                     totalWithdrawnTodayPoints += points;
                 });
@@ -476,7 +492,7 @@
                 withdrawTodayPointsEl.textContent = formatNumber(totalWithdrawnTodayPoints) + " نقطة";
                 withdrawTodayEGPEl.textContent = formatEGP(totalWithdrawnTodayEGP);
             } catch (err) {
-                console.error("FIREBASE ERROR: Failed to fetch today withdrawals. Ignoring for dashboard integrity.", err);
+                console.error("FIREBASE ERROR: Failed to fetch today withdrawals (Check Index).", err);
                 withdrawTodayPointsEl.textContent = "Error";
                 withdrawTodayEGPEl.textContent = "Error";
             }
