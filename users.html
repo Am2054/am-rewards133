@@ -6,6 +6,7 @@
   <title>المستخدمون — Am Rewards (لوحة الإدارة)</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
+    /* ... (تنسيقات CSS بدون تغيير) ... */
     :root{
       --bg:#070707; --card:#0f0f10; --gold:#f5c542; --muted:#9aa4b2; --text:#eef2f7;
       --accent:#00fa9a;
@@ -68,8 +69,8 @@
         <h3>👥 المستخدمين الكلي</h3>
         <p id="metricAllUsersVal">0</p>
       </div>
-      <div class="metric" id="metricActiveUsers" title="عرض المستخدمين النشطين (آخر 7 أيام)">
-        <h3>⚡ المستخدمون النشطون (7 أيام)</h3>
+      <div class="metric" id="metricActiveUsers" title="عرض المستخدمين النشطين (آخر 24 ساعة)">
+        <h3>⚡ المستخدمون النشطون (24 ساعة)</h3>
         <p id="metricActiveUsersVal">0</p>
       </div>
       <div class="metric" id="metricTop20" title="أفضل 20 مستخدم">
@@ -128,7 +129,6 @@
     </div>
   </div>
 
-  <!-- Login modal -->
   <div id="loginBox">
     <div id="loginCard">
       <h2>تسجيل دخول الأدمن</h2>
@@ -158,7 +158,8 @@
 
     // ====== ثوابت ======
     const ADMIN_EMAIL = "amirfg992005@gmail.com";
-    const ACTIVE_DAYS = 7; // تعريف "نشط"
+    // [تم التعديل] تحديد النشاط خلال 1 يوم (24 ساعة)
+    const ACTIVE_DAYS = 1; 
     const POINT_VALUE_EGP = 0.07;
 
     // ====== عناصر DOM ======
@@ -230,6 +231,7 @@
     }
 
     function computeActiveUsers(users) {
+      // [تم التعديل] حساب الحد الأدنى للوقت (الآن - عدد الأيام النشطة * 24 ساعة * ... )
       const threshold = Date.now() - ACTIVE_DAYS * 24*60*60*1000;
       return users.filter(u => {
         const last = toDateSafe(u.lastLogin);
@@ -247,7 +249,6 @@
       metricNewTodayVal.textContent = newToday;
 
       // total points added today — requires a field pointsToday or tasksCompleted logs
-      // We'll try: use field pointsToday on users if present; otherwise show '-'
       let pointsTodaySum = 0;
       let hasPointsToday = false;
       for (const u of users) {
@@ -260,7 +261,6 @@
 
       // most active today via tasksCompleted collection (if exists)
       try {
-        // We'll query tasksCompleted where date >= todayStart and aggregate per user
         const tasksCol = collection(db, 'tasksCompleted');
         const q = query(tasksCol, where('date', '>=', getTodayStart()));
         const snap = await getDocs(q);
@@ -271,7 +271,6 @@
             const uid = d.userId || 'unknown';
             counts[uid] = (counts[uid] || 0) + 1;
           });
-          // find max
           let maxUid = null, maxCount = 0;
           for (const [uid,c] of Object.entries(counts)) {
             if (c > maxCount) { maxCount = c; maxUid = uid; }
@@ -337,8 +336,8 @@
           const info = `
 الاسم: ${u.name||'-'}
 الإيميل: ${u.email||'-'}
-النقاط: ${u.points||0}
-الإحالات: ${u.referralCount||0}
+النقاط: ${formatNumber(u.points||0)}
+الإحالات: ${formatNumber(u.referralCount||0)}
 تاريخ الإنشاء: ${formatDateShort(toDateSafe(u.createdAt))}
 آخر دخول: ${formatDateShort(toDateSafe(u.lastLogin))}
 UID: ${u.id}
@@ -464,9 +463,6 @@ UID: ${u.id}
 
     // initial column visibility
     updateColumnVisibility();
-
-    // Auto attempt to load (will show login if not authed)
-    // loadPageData(); // will be called after successful auth
   </script>
 </body>
           </html>
