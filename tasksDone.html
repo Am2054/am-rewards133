@@ -1,167 +1,252 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>📊 إحصائيات المهام المنفذة | Am Rewards</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>تحليل المهام — Am Rewards</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <style>
-    body {
-      font-family: 'Cairo', sans-serif;
-      background-color: #000;
-      color: #FFD700;
-      text-align: center;
-      padding: 20px;
+    :root{
+      --bg:#070707; --card:#0f0f10; --gold:#f5c542; --muted:#9aa4b2; --text:#eef2f7;
+      --accent:#00fa9a; --blue: #3b82f6;
     }
+    *{box-sizing:border-box}
+    body{font-family:"Cairo",sans-serif;background:linear-gradient(180deg,var(--bg),#0b0b0b);color:var(--text);margin:0;padding:16px}
+    .wrap{max-width:1200px;margin:0 auto}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:24px}
+    header h1{margin:0;color:var(--gold);font-size:24px}
+    .card{background:var(--card);padding:24px;border-radius:12px;border:1px solid rgba(245,197,66,0.12);box-shadow: 0 4px 12px rgba(0,0,0,0.2)}
+    .chart-container{width:100%;max-width:900px;margin:0 auto;height:450px;}
+    .chart-container canvas{width:100%!important; height:100%!important;}
+    .notice{margin-top:8px;color:var(--muted);font-size:14px; text-align: center;}
 
-    h1 {
-      font-size: 30px;
-      margin-bottom: 10px;
-      color: #FFD700;
-    }
-
-    .chart-container {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 20px;
-      padding: 20px;
-      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
-      margin: 25px 0;
-    }
-
-    button {
-      background-color: #FFD700;
-      color: #000;
-      border: none;
-      border-radius: 25px;
-      padding: 12px 30px;
-      font-size: 17px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-
-    button:hover {
-      transform: scale(1.08);
-      background-color: #ffea00;
-    }
-
-    footer {
-      margin-top: 25px;
-      font-size: 13px;
-      color: #888;
-    }
+    /* Filter Controls */
+    .controls{display:flex;gap:12px;align-items:center;justify-content:center;margin-bottom:20px;flex-wrap:wrap;}
+    .controls select, .controls button{padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#0b1113;color:var(--text);cursor:pointer;}
+    .controls button.btn-primary{background:var(--blue);border-color:var(--blue);color:var(--text);font-weight:700;}
+    .controls select{min-width:150px;}
   </style>
 </head>
-
 <body>
-  <h1>📊 إحصائيات المهام المنفذة</h1>
+  <div class="wrap">
+    <header>
+      <h1>📊 تحليل المهام المنفذة</h1>
+      <a href="index.html" style="text-decoration:none;">
+        <button class="btn" style="background:var(--accent); color: var(--bg); font-weight: 700;">العودة للرئيسية</button>
+      </a>
+    </header>
 
-  <div class="chart-container">
-    <canvas id="tasksChart" width="400" height="250"></canvas>
+    <div class="card">
+      <h2>أكثر 10 مهام تنفيذًا</h2>
+      <div class="controls">
+          <label>الفترة الزمنية:</label>
+          <select id="timeFilter">
+              <option value="today">اليوم</option>
+              <option value="7days">آخر 7 أيام</option>
+              <option value="30days" selected>آخر 30 يومًا</option>
+              <option value="all">الكل</option>
+          </select>
+          <button id="refreshBtn" class="btn-primary">🔄 تحديث الرسم البياني</button>
+      </div>
+      <div class="chart-container">
+        <canvas id="tasksChart"></canvas>
+      </div>
+      <div class="notice" id="chartStatus">جارِ تحميل بيانات المهام...</div>
+    </div>
   </div>
-
-  <div class="chart-container">
-    <canvas id="tasksPieChart" width="400" height="250"></canvas>
-  </div>
-
-  <button onclick="refreshData()">🔄 تحديث البيانات</button>
-
-  <footer>Am Rewards © 2025</footer>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { Chart } from "https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js";
 
-    // إعداد Firebase
+    // ====== إعدادات Firebase (استخدم بيانات مشروعك) ======
+    // يجب أن تكون بيانات Firebase هي نفسها المستخدمة في صفحة الإدارة
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
-      storageBucket: "am--rewards.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
     };
-
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    async function loadChartData() {
-      const tasksRef = collection(db, "tasksCompleted");
-      const snapshot = await getDocs(tasksRef);
+    // ====== عناصر DOM ======
+    const tasksChartCanvas = document.getElementById('tasksChart');
+    const chartStatus = document.getElementById('chartStatus');
+    const timeFilter = document.getElementById('timeFilter');
+    const refreshBtn = document.getElementById('refreshBtn');
 
-      const taskCounts = {};
-      snapshot.forEach((doc) => {
-        const taskName = doc.data().taskName || "مهمة غير معروفة";
-        taskCounts[taskName] = (taskCounts[taskName] || 0) + 1;
-      });
+    let tasksChart = null; // للاحتفاظ بمرجع الرسم البياني
 
-      const labels = Object.keys(taskCounts);
-      const data = Object.values(taskCounts);
-
-      // 🔹 الرسم البياني العمودي (الأكثر تنفيذًا)
-      const ctx = document.getElementById("tasksChart").getContext("2d");
-      if (window.tasksChartInstance) window.tasksChartInstance.destroy();
-
-      window.tasksChartInstance = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            label: "عدد مرات التنفيذ",
-            data,
-            borderWidth: 2,
-            backgroundColor: "rgba(255, 205, 86, 0.8)",
-            borderColor: "#FFD700"
-          }]
-        },
-        options: {
-          scales: {
-            y: { beginAtZero: true }
-          },
-          plugins: {
-            legend: {
-              labels: { font: { family: 'Cairo', size: 14 } }
-            }
-          }
+    // ====== Helpers ======
+    function getStartDate(filter) {
+        const now = new Date();
+        now.setHours(0, 0, 0, 0); // للبدء من بداية اليوم
+        if (filter === 'today') {
+            return now;
+        } else if (filter === '7days') {
+            const date = new Date(now);
+            date.setDate(now.getDate() - 7);
+            return date;
+        } else if (filter === '30days') {
+            const date = new Date(now);
+            date.setDate(now.getDate() - 30);
+            return date;
         }
-      });
-
-      // 🔹 الرسم البياني الدائري (النسبة المئوية)
-      const ctx2 = document.getElementById("tasksPieChart").getContext("2d");
-      if (window.tasksPieChartInstance) window.tasksPieChartInstance.destroy();
-
-      window.tasksPieChartInstance = new Chart(ctx2, {
-        type: "pie",
-        data: {
-          labels,
-          datasets: [{
-            data,
-            backgroundColor: [
-              "rgba(255, 205, 86, 0.8)",
-              "rgba(255, 99, 132, 0.8)",
-              "rgba(75, 192, 192, 0.8)",
-              "rgba(54, 162, 235, 0.8)",
-              "rgba(153, 102, 255, 0.8)",
-              "rgba(255, 159, 64, 0.8)"
-            ],
-            borderColor: "#000",
-            borderWidth: 1
-          }]
-        },
-        options: {
-          plugins: {
-            legend: {
-              labels: { font: { family: 'Cairo', size: 14 } }
-            }
-          }
-        }
-      });
+        return null; // 'all'
     }
 
-    window.onload = loadChartData;
-    window.refreshData = loadChartData;
+    // لتوليد ألوان متناسقة للرسم البياني
+    function getChartColors(count) {
+        const baseColor = 'rgba(0, 250, 154, '; // لون الـ accent (أخضر فوسفوري)
+        const colors = [];
+        for (let i = 0; i < count; i++) {
+            // تدرج بسيط في الشفافية
+            const alpha = 0.8 - (i * 0.05); 
+            colors.push(baseColor + alpha + ')');
+        }
+        return colors;
+    }
+
+    // ====== وظيفة جلب وتحليل البيانات ======
+    async function fetchAndAnalyzeTasks() {
+        chartStatus.textContent = 'جاري جلب وتحليل البيانات من Firestore...';
+        const filter = timeFilter.value;
+        const startDate = getStartDate(filter);
+        
+        try {
+            const tasksCol = collection(db, 'tasksCompleted');
+            let q;
+
+            if (startDate) {
+                q = query(tasksCol, where('date', '>=', startDate));
+            } else {
+                q = tasksCol; // 'all' - جلب كل شيء
+            }
+
+            const snap = await getDocs(q);
+            
+            if (snap.empty) {
+                chartStatus.textContent = 'لم يتم العثور على أي مهام منفذة في هذه الفترة.';
+                updateChart([], []);
+                return;
+            }
+
+            // 1. تجميع تكرار المهام
+            const taskCounts = {}; // { taskId: count, ... }
+            const taskNames = {}; // { taskId: taskName, ... }
+
+            snap.forEach(doc => {
+                const d = doc.data();
+                // نفترض أن كل مستند يحتوي على taskId و taskName (أو title)
+                const taskId = d.taskId; 
+                const taskName = d.taskName || d.title || 'مهمة غير معرفة'; 
+
+                if (taskId) {
+                    taskCounts[taskId] = (taskCounts[taskId] || 0) + 1;
+                    taskNames[taskId] = taskName;
+                }
+            });
+
+            // 2. تحويلها إلى مصفوفة للفرز
+            const sortedTasks = Object.entries(taskCounts).map(([id, count]) => ({
+                id,
+                name: taskNames[id],
+                count
+            }));
+
+            // 3. فرز البيانات تنازلياً واختيار أفضل 10
+            sortedTasks.sort((a, b) => b.count - a.count);
+            const top10 = sortedTasks.slice(0, 10);
+
+            // 4. إعداد البيانات للرسم البياني
+            const labels = top10.map(t => t.name);
+            const data = top10.map(t => t.count);
+
+            updateChart(labels, data);
+
+            chartStatus.textContent = `تم عرض ${top10.length} مهام من إجمالي ${snap.docs.length} عملية تنفيذ.`;
+
+        } catch (error) {
+            console.error("Error fetching task analytics:", error);
+            chartStatus.textContent = '❌ حدث خطأ أثناء تحميل البيانات. تحقق من اتصالك وقواعد Firestore.';
+            updateChart([], []);
+        }
+    }
+
+    // ====== وظيفة تحديث الرسم البياني ======
+    function updateChart(labels, data) {
+        if (tasksChart) {
+            tasksChart.destroy();
+        }
+
+        if (data.length === 0) {
+            return;
+        }
+
+        const backgroundColors = getChartColors(data.length);
+        
+        // رسم بياني شريطي أفقي (لأنه مثالي لإظهار الترتيب والتسميات الطويلة)
+        tasksChart = new Chart(tasksChartCanvas, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'عدد مرات التنفيذ',
+                    data: data,
+                    backgroundColor: backgroundColors,
+                    borderColor: 'var(--accent)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                indexAxis: 'y', // لجعل الرسم البياني أفقي
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false, // لا نحتاج للأسطورة لأن هناك مجموعة بيانات واحدة
+                    },
+                    tooltip: {
+                        rtl: true,
+                        titleFont: { family: 'Cairo' },
+                        bodyFont: { family: 'Cairo' }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'عدد مرات التنفيذ',
+                            color: 'var(--muted)'
+                        },
+                        ticks: { color: 'var(--muted)' },
+                        grid: { color: 'rgba(255,255,255,0.05)' }
+                    },
+                    y: {
+                        ticks: { color: 'var(--text)' },
+                        grid: { color: 'rgba(255,255,255,0.02)' }
+                    }
+                },
+                // تنسيق الألوان لتناسب النمط الداكن
+                elements: {
+                    bar: {
+                        backgroundColor: backgroundColors[0] || 'var(--accent)'
+                    }
+                }
+            }
+        });
+    }
+
+    // ====== تفعيل الوظائف عند التحميل وتغيير الفلتر ======
+    timeFilter.addEventListener('change', fetchAndAnalyzeTasks);
+    refreshBtn.addEventListener('click', fetchAndAnalyzeTasks);
+
+    // التحميل الأولي للبيانات
+    fetchAndAnalyzeTasks(); 
   </script>
 </body>
 </html>
