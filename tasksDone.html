@@ -3,70 +3,78 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>المهام المنفذة | Am Rewards</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+  <title>📊 إحصائيات المهام المنفذة | Am Rewards</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     body {
+      font-family: 'Cairo', sans-serif;
       background-color: #000;
       color: #FFD700;
-      font-family: 'Cairo', sans-serif;
-      margin: 0;
-      padding: 0;
       text-align: center;
+      padding: 20px;
     }
+
     h1 {
-      margin-top: 20px;
-      font-size: 2rem;
+      font-size: 30px;
+      margin-bottom: 10px;
+      color: #FFD700;
     }
-    #chartContainer {
-      width: 90%;
-      max-width: 700px;
-      margin: 40px auto;
-      background: rgba(255, 215, 0, 0.05);
+
+    .chart-container {
+      background: rgba(255, 255, 255, 0.05);
       border-radius: 20px;
       padding: 20px;
-      box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+      margin: 25px 0;
     }
+
     button {
-      background: #FFD700;
-      border: none;
-      padding: 12px 20px;
-      font-size: 1rem;
-      border-radius: 30px;
-      cursor: pointer;
+      background-color: #FFD700;
       color: #000;
-      margin-top: 20px;
+      border: none;
+      border-radius: 25px;
+      padding: 12px 30px;
+      font-size: 17px;
+      font-weight: bold;
+      cursor: pointer;
       transition: 0.3s;
     }
+
     button:hover {
-      background: #ffed4a;
-      transform: scale(1.05);
+      transform: scale(1.08);
+      background-color: #ffea00;
     }
-    button:active {
-      animation: pulse 0.3s;
-    }
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); }
-    }
-    canvas {
-      margin-top: 30px;
+
+    footer {
+      margin-top: 25px;
+      font-size: 13px;
+      color: #888;
     }
   </style>
 </head>
+
 <body>
   <h1>📊 إحصائيات المهام المنفذة</h1>
-  <div id="chartContainer">
-    <canvas id="tasksChart"></canvas>
-  </div>
-  <button onclick="loadData()">🔄 تحديث البيانات</button>
 
-  <script>
-    // Firebase configuration
+  <div class="chart-container">
+    <canvas id="tasksChart" width="400" height="250"></canvas>
+  </div>
+
+  <div class="chart-container">
+    <canvas id="tasksPieChart" width="400" height="250"></canvas>
+  </div>
+
+  <button onclick="refreshData()">🔄 تحديث البيانات</button>
+
+  <footer>Am Rewards © 2025</footer>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // إعداد Firebase
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
       authDomain: "am--rewards.firebaseapp.com",
@@ -76,61 +84,84 @@
       appId: "YOUR_APP_ID"
     };
 
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-    let chartInstance;
-
-    async function loadData() {
-      const tasksRef = db.collection("tasksCompleted");
-      const snapshot = await tasksRef.get();
+    async function loadChartData() {
+      const tasksRef = collection(db, "tasksCompleted");
+      const snapshot = await getDocs(tasksRef);
 
       const taskCounts = {};
-
-      snapshot.forEach(doc => {
-        const task = doc.data().taskName || "غير محدد";
-        taskCounts[task] = (taskCounts[task] || 0) + 1;
+      snapshot.forEach((doc) => {
+        const taskName = doc.data().taskName || "مهمة غير معروفة";
+        taskCounts[taskName] = (taskCounts[taskName] || 0) + 1;
       });
 
       const labels = Object.keys(taskCounts);
       const data = Object.values(taskCounts);
 
-      const chartData = {
-        labels,
-        datasets: [{
-          label: "عدد مرات تنفيذ المهمة",
-          data,
-          backgroundColor: [
-            "#FFD700", "#FFA500", "#FF6347", "#ADFF2F", "#1E90FF", "#FF69B4"
-          ],
-          borderColor: "#000",
-          borderWidth: 2
-        }]
-      };
-
+      // 🔹 الرسم البياني العمودي (الأكثر تنفيذًا)
       const ctx = document.getElementById("tasksChart").getContext("2d");
+      if (window.tasksChartInstance) window.tasksChartInstance.destroy();
 
-      if (chartInstance) chartInstance.destroy();
-
-      chartInstance = new Chart(ctx, {
+      window.tasksChartInstance = new Chart(ctx, {
         type: "bar",
-        data: chartData,
+        data: {
+          labels,
+          datasets: [{
+            label: "عدد مرات التنفيذ",
+            data,
+            borderWidth: 2,
+            backgroundColor: "rgba(255, 205, 86, 0.8)",
+            borderColor: "#FFD700"
+          }]
+        },
         options: {
-          responsive: true,
-          plugins: {
-            legend: { labels: { color: "#FFD700" } },
-            title: { display: true, text: "أكثر المهام تنفيذًا", color: "#FFD700", font: { size: 18 } }
-          },
           scales: {
-            x: { ticks: { color: "#FFD700" } },
-            y: { ticks: { color: "#FFD700" } }
+            y: { beginAtZero: true }
+          },
+          plugins: {
+            legend: {
+              labels: { font: { family: 'Cairo', size: 14 } }
+            }
+          }
+        }
+      });
+
+      // 🔹 الرسم البياني الدائري (النسبة المئوية)
+      const ctx2 = document.getElementById("tasksPieChart").getContext("2d");
+      if (window.tasksPieChartInstance) window.tasksPieChartInstance.destroy();
+
+      window.tasksPieChartInstance = new Chart(ctx2, {
+        type: "pie",
+        data: {
+          labels,
+          datasets: [{
+            data,
+            backgroundColor: [
+              "rgba(255, 205, 86, 0.8)",
+              "rgba(255, 99, 132, 0.8)",
+              "rgba(75, 192, 192, 0.8)",
+              "rgba(54, 162, 235, 0.8)",
+              "rgba(153, 102, 255, 0.8)",
+              "rgba(255, 159, 64, 0.8)"
+            ],
+            borderColor: "#000",
+            borderWidth: 1
+          }]
+        },
+        options: {
+          plugins: {
+            legend: {
+              labels: { font: { family: 'Cairo', size: 14 } }
+            }
           }
         }
       });
     }
 
-    // تحميل البيانات أول ما الصفحة تفتح
-    loadData();
+    window.onload = loadChartData;
+    window.refreshData = loadChartData;
   </script>
 </body>
-  </html>
+</html>
