@@ -94,19 +94,25 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    // تم حذف Timestamp من الاستيراد
+    import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { Chart } from "https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js";
 
-    // ====== إعدادات Firebase (استخدم بيانات مشروعك) ======
+    // ====== إعدادات Firebase (تم إضافة جميع المعاملات من index.html) ======
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
+      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
       projectId: "am--rewards",
+      storageBucket: "am--rewards.firebasestorage.app",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112",
+      measurementId: "G-CV3GLT2TTJ"
     };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // ====== عناصر DOM ======
+    // ====== عناصر DOM (باقي كما هو) ======
     const tasksChartCanvas = document.getElementById('tasksChart');
     const statusText = document.getElementById('statusText');
     const loadingSpinner = document.getElementById('loadingSpinner');
@@ -120,7 +126,7 @@
     
     let tasksChart = null; 
 
-    // ====== Helpers ======
+    // ====== Helpers (باقي كما هو) ======
     function formatNumber(n) { return Number(n||0).toLocaleString('en-US'); }
 
     function toDateSafe(ts) {
@@ -166,8 +172,8 @@
             let q;
 
             if (startDate) {
-                // 🛑 تم تطبيق التعديل هنا: استخدام Timestamp.fromDate
-                q = query(tasksCol, where('date', '>=', Timestamp.fromDate(startDate)));
+                // ✅ تم التصحيح: نستخدم كائن Date مباشرة مثل index.html
+                q = query(tasksCol, where('date', '>=', startDate)); 
             } else {
                 q = tasksCol; 
             }
@@ -183,7 +189,7 @@
                 return;
             }
 
-            // 1. تجميع تكرار المهام وحساب إجمالي اليوم
+            // 1. تجميع تكرار المهام وحساب إجمالي اليوم (باقي كما هو)
             const taskCounts = {}; 
             const uniqueTaskTypes = new Set(); 
             
@@ -206,12 +212,12 @@
                 }
             });
 
-            // 2. تحديث الإحصائيات العلوية
+            // 2. تحديث الإحصائيات العلوية (باقي كما هو)
             totalTasksEl.textContent = formatNumber(totalExecutions);
             uniqueTasksEl.textContent = formatNumber(uniqueTaskTypes.size);
             todayTasksEl.textContent = formatNumber(todayCount); 
 
-            // 3. تحويلها إلى مصفوفة للفرز واختيار أفضل 10
+            // 3. تحويلها إلى مصفوفة للفرز واختيار أفضل 10 (باقي كما هو)
             const sortedTasks = Object.entries(taskCounts).map(([type, count]) => ({
                 name: type, 
                 count
@@ -220,7 +226,7 @@
             sortedTasks.sort((a, b) => b.count - a.count);
             const top10 = sortedTasks.slice(0, 10);
 
-            // 4. إعداد البيانات للرسم البياني
+            // 4. إعداد البيانات للرسم البياني (باقي كما هو)
             const labels = top10.map(t => t.name);
             const data = top10.map(t => t.count);
 
@@ -243,7 +249,7 @@
         }
     }
 
-    // ====== وظيفة تحديث الرسم البياني (مع Animation و Gradient) ======
+    // ====== وظيفة تحديث الرسم البياني (باقي كما هو) ======
     function updateChart(labels, data) {
         if (tasksChart) {
             tasksChart.destroy();
