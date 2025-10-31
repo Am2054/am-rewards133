@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>إدارة الإحالات — Am Rewards</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#070707; --card:#0f0f10; --gold:#f5c542; --muted:#9aa4b2; --text:#eef2f7;
+      --accent:#00fa9a; --blue: #3b82f6;
+    }
+    *{box-sizing:border-box}
+    body{font-family:"Cairo",sans-serif;background:linear-gradient(180deg,var(--bg),#0b0b0b);color:var(--text);margin:0;padding:16px}
+    .wrap{max-width:1200px;margin:0 auto}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:24px}
+    header h1{margin:0;color:var(--gold);font-size:24px}
+    .card{background:var(--card);padding:24px;border-radius:12px;border:1px solid rgba(245,197,66,0.12);box-shadow: 0 4px 12px rgba(0,0,0,0.2); margin-bottom: 20px;}
+    
+    /* Stats Box Styles (نفس تنسيق المهام) */
+    .stats{display:flex;justify-content:center;gap:20px;margin-bottom:20px;flex-wrap:wrap;}
+    .stat-box{background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.15);padding:12px 20px;border-radius:10px;text-align:center;min-width:200px;}
+    .stat-box strong{display:block;font-size:24px;color:var(--gold);font-weight:900;}
+    .stat-box span{display:block;font-size:12px;color:var(--muted);margin-top:4px;}
+
+    /* Table Styles */
+    .table-container{overflow-x:auto; margin-top: 15px;}
+    .referrals-table{width:100%; border-collapse: collapse; min-width: 800px;}
+    .referrals-table th, .referrals-table td{padding:12px 15px; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.08);}
+    .referrals-table th{background:rgba(245,197,66,0.1); color: var(--gold); font-size: 14px; font-weight: 700; position: sticky; top: 0;}
+    .referrals-table tr:hover td{background:rgba(255,255,255,0.02);}
+    .no-data { text-align: center; padding: 20px; color: var(--muted); }
+    .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; }
+    .status-granted { background: var(--accent); color: var(--bg); }
+    .status-pending { background: var(--blue); color: var(--text); }
+
+    /* Controls & Loader */
+    .controls{display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap; justify-content: flex-start;}
+    .controls input, .controls button{padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#0b1113;color:var(--text);cursor:pointer;}
+    .controls button.btn-primary{background:var(--blue);border-color:var(--blue);color:var(--text);font-weight:700;}
+    .loading-status { display: flex; align-items: center; justify-content: center; padding: 10px; color: var(--muted); }
+    .loader {
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top: 4px solid var(--accent);
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      margin-left: 8px; 
+    }
+    .hidden { display: none !important; }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>🔗 إدارة الإحالات</h1>
+      <a href="index.html" style="text-decoration:none;">
+        <button class="btn" style="background:var(--accent); color: var(--bg); font-weight: 700;">العودة للرئيسية</button>
+      </a>
+    </header>
+
+    <div class="card">
+      <h2 style="text-align:center; margin-top:0;">ملخص الإحالات</h2>
+      
+      <div class="stats">
+        <div class="stat-box"><strong id="totalReferrals">0</strong><span>إجمالي الإحالات الناجحة</span></div>
+        <div class="stat-box"><strong id="totalRewardPoints">0</strong><span>إجمالي نقاط المكافأة المدفوعة</span></div>
+        <div class="stat-box"><strong id="topReferrer">-</strong><span>🥇 أعلى مُحيل</span></div>
+      </div>
+    </div>
+    
+    <div class="card">
+        <h2 style="margin-top:0;">سجل الإحالات التفصيلي</h2>
+
+        <div class="controls">
+            <input type="text" id="searchReferral" placeholder="ابحث باسم المُحيل أو المُحال..." />
+            <button id="refreshBtn" class="btn-primary">🔄 تحديث البيانات</button>
+        </div>
+
+        <div class="table-container">
+            <table class="referrals-table">
+                <thead>
+                    <tr>
+                        <th>المُحيل (Referrer)</th>
+                        <th>المُحال (Referred)</th>
+                        <th>تاريخ التسجيل</th>
+                        <th>نقاط المُحيل</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody id="referralsTableBody">
+                    <tr><td colspan="5" class="no-data">جاري تحميل البيانات...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="loading-status" id="loadingStatus">
+            <div id="loadingSpinner" class="loader"></div>
+            <span style="margin-right: 8px;">جاري جلب بيانات الإحالات...</span>
+        </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // ====== إعدادات Firebase (يجب أن تتطابق مع ملفاتك الأخرى) ======
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.firebasestorage.app",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112",
+      measurementId: "G-CV3GLT2TTJ"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // ====== عناصر DOM ======
+    const totalReferralsEl = document.getElementById('totalReferrals');
+    const totalRewardPointsEl = document.getElementById('totalRewardPoints');
+    const topReferrerEl = document.getElementById('topReferrer');
+    const referralsTableBody = document.getElementById('referralsTableBody');
+    const loadingStatusEl = document.getElementById('loadingStatus');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const refreshBtn = document.getElementById('refreshBtn');
+
+    // ====== Helpers ======
+    function formatNumber(n) { return Number(n || 0).toLocaleString('en-US'); }
+
+    // ====== وظيفة جلب وعرض البيانات ======
+    async function fetchReferralsData() {
+        loadingSpinner.classList.remove('hidden');
+        loadingStatusEl.style.display = 'flex';
+        referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data">جاري تحميل البيانات...</td></tr>';
+        
+        // إعادة تعيين الإحصائيات
+        totalReferralsEl.textContent = 0;
+        totalRewardPointsEl.textContent = 0;
+        topReferrerEl.textContent = '-';
+
+        try {
+            // 🛑 افتراض: يتم جلب كل مستخدم في النظام
+            const usersColRef = collection(db, 'users');
+            const snapshot = await getDocs(usersColRef);
+
+            let allUsers = {};
+            let totalReferrals = 0;
+            let totalRewardPoints = 0;
+            let referralEvents = []; 
+            let referrerCounts = {};
+
+            // حلقة أولى: لتجميع جميع المستخدمين حسب UID
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const uid = doc.id;
+                allUsers[uid] = { 
+                    ...data, 
+                    uid,
+                    displayName: data.name || data.email || uid.substring(0, 8),
+                    referralsCount: data.referralsCount || 0, // هذا الحقل مفترض للمحيل الأعلى
+                    points: data.points || 0
+                };
+            });
+
+            // حلقة ثانية: لتحديد المحالين (الذين لديهم مُحيل) وتجميع الإحصائيات
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const referredUser = allUsers[doc.id];
+                
+                // البحث عن المحالين: المستخدم الذي لديه حقل referrerId (أو أي حقل يدل على الإحالة)
+                if (data.referrerId && allUsers[data.referrerId]) {
+                    const referrerUser = allUsers[data.referrerId];
+
+                    // 1. تجميع بيانات الجدول
+                    referralEvents.push({
+                        referrerName: referrerUser.displayName,
+                        referredName: referredUser.displayName,
+                        // إذا كان لديك حقل تاريخ تسجيل في المستخدم
+                        date: data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleDateString('ar-EG') : 'غير متوفر', 
+                        referrerPoints: 50, // نقطة افتراضية، يجب جلبها من مكانها الفعلي
+                        status: 'مُكافأة مُنحت' 
+                    });
+
+                    // 2. تجميع الإحصائيات
+                    totalReferrals++;
+                    
+                    // افتراض أن كل إحالة ناجحة تمنح 50 نقطة للمحيل والمحال (100 نقطة إجمالاً)
+                    totalRewardPoints += (referrerUser.referralReward || 50); 
+                    
+                    // حساب الإحالات للمحيل الأعلى
+                    referrerCounts[referrerUser.uid] = (referrerCounts[referrerUser.uid] || 0) + 1;
+                }
+            });
+
+            // 3. تحديث الإحصائيات
+            totalReferralsEl.textContent = formatNumber(totalReferrals);
+            totalRewardPointsEl.textContent = formatNumber(totalRewardPoints);
+            
+            // تحديد المحيل الأعلى
+            let topReferrerUID = null;
+            let maxCount = 0;
+            for (const uid in referrerCounts) {
+                if (referrerCounts[uid] > maxCount) {
+                    maxCount = referrerCounts[uid];
+                    topReferrerUID = uid;
+                }
+            }
+            if (topReferrerUID && allUsers[topReferrerUID]) {
+                topReferrerEl.textContent = `${allUsers[topReferrerUID].displayName} (${formatNumber(maxCount)})`;
+            } else {
+                 topReferrerEl.textContent = `-`;
+            }
+
+            // 4. عرض الجدول
+            renderTable(referralEvents);
+
+        } catch (error) {
+            console.error("Error fetching referrals data:", error);
+            referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data error" style="color:red;">❌ فشل جلب البيانات: تحقق من Console.</td></tr>';
+        } finally {
+            loadingSpinner.classList.add('hidden');
+            loadingStatusEl.style.display = 'none';
+        }
+    }
+
+    function renderTable(events) {
+        if (events.length === 0) {
+            referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data">لا توجد إحالات مسجلة.</td></tr>';
+            return;
+        }
+
+        referralsTableBody.innerHTML = ''; // مسح المحتوى
+        events.forEach(event => {
+            const row = referralsTableBody.insertRow();
+            
+            // 🛑 ملاحظة: يتم هنا عرض نقاط المحيل فقط لتبسيط الجدول
+            const statusClass = event.status === 'مُكافأة مُنحت' ? 'status-granted' : 'status-pending';
+
+            row.innerHTML = `
+                <td>${event.referrerName}</td>
+                <td>${event.referredName}</td>
+                <td>${event.date}</td>
+                <td>${formatNumber(event.referrerPoints)}</td>
+                <td><span class="status-badge ${statusClass}">${event.status}</span></td>
+            `;
+        });
+    }
+
+    // ====== التفعيل ======
+    document.addEventListener('DOMContentLoaded', fetchReferralsData);
+    refreshBtn.addEventListener('click', fetchReferralsData);
+
+  </script>
+</body>
+</html>
