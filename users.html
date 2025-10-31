@@ -6,7 +6,6 @@
   <title>المستخدمون — Am Rewards (لوحة الإدارة)</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
-    /* ... (تنسيقات CSS بدون تغيير) ... */
     :root{
       --bg:#070707; --card:#0f0f10; --gold:#f5c542; --muted:#9aa4b2; --text:#eef2f7;
       --accent:#00fa9a;
@@ -81,7 +80,7 @@
         <h3>🆕 مستخدمين جدد اليوم</h3>
         <p id="metricNewTodayVal">0</p>
       </div>
-      <div class="metric" id="metricPointsToday" title="مجموع النقاط المكتسبة اليوم (إن وجدت سجلات)">
+      <div class="metric" id="metricPointsToday" title="مجموع النقاط المكتسبة اليوم (تعتمد على سجلات tasksCompleted)">
         <h3>📈 نقاط اليوم (مجموع)</h3>
         <p id="metricPointsTodayVal">-</p>
       </div>
@@ -158,7 +157,7 @@
 
     // ====== ثوابت ======
     const ADMIN_EMAIL = "amirfg992005@gmail.com";
-    // [تم التعديل] تحديد النشاط خلال 1 يوم (24 ساعة)
+    // تم التعديل إلى 1 يوم (24 ساعة)
     const ACTIVE_DAYS = 1; 
     const POINT_VALUE_EGP = 0.07;
 
@@ -231,7 +230,6 @@
     }
 
     function computeActiveUsers(users) {
-      // [تم التعديل] حساب الحد الأدنى للوقت (الآن - عدد الأيام النشطة * 24 ساعة * ... )
       const threshold = Date.now() - ACTIVE_DAYS * 24*60*60*1000;
       return users.filter(u => {
         const last = toDateSafe(u.lastLogin);
@@ -239,6 +237,7 @@
       });
     }
 
+    // [تم تعديل هذه الدالة لحساب نقاط اليوم من مجموعة tasksCompleted]
     async function computeDailyStats(users) {
       // new users today
       const todayStart = getTodayStart().getTime();
@@ -248,40 +247,50 @@
       }).length;
       metricNewTodayVal.textContent = newToday;
 
-      // total points added today — requires a field pointsToday or tasksCompleted logs
       let pointsTodaySum = 0;
-      let hasPointsToday = false;
-      for (const u of users) {
-        if (u.pointsToday !== undefined) {
-          hasPointsToday = true;
-          pointsTodaySum += Number(u.pointsToday || 0);
-        }
-      }
-      metricPointsTodayVal.textContent = hasPointsToday ? formatNumber(pointsTodaySum) + " نقطة" : "-";
-
-      // most active today via tasksCompleted collection (if exists)
+      
       try {
+        // الاستعلام عن المهام المكتملة لليوم الحالي
         const tasksCol = collection(db, 'tasksCompleted');
         const q = query(tasksCol, where('date', '>=', getTodayStart()));
         const snap = await getDocs(q);
+
         if (!snap.empty) {
-          const counts = {};
+          const counts = {}; // لحساب المهام المكتملة لكل مستخدم (لتحديد الأكثر نشاطًا)
+          
           snap.forEach(doc => {
             const d = doc.data();
+            // تجميع حقل النقاط المكتسبة. تأكد من أن اسم الحقل هو `pointsEarned` في قاعدة بياناتك.
+            const points = Number(d.pointsEarned || 0); 
+            pointsTodaySum += points; 
+
+            // حساب المهام لكل مستخدم (لتلميح الأداة)
             const uid = d.userId || 'unknown';
             counts[uid] = (counts[uid] || 0) + 1;
           });
+
+          // تحديث قيمة النقاط في المؤشر
+          metricPointsTodayVal.textContent = formatNumber(pointsTodaySum) + " نقطة";
+
+          // تحديد الأكثر نشاطًا لتلميح الأداة (Tooltip)
           let maxUid = null, maxCount = 0;
           for (const [uid,c] of Object.entries(counts)) {
             if (c > maxCount) { maxCount = c; maxUid = uid; }
           }
           if (maxUid) {
             const uu = allUsers.find(x => x.id === maxUid);
-            metricPointsTodayVal.title = `أكثر نشاطًا اليوم: ${uu ? (uu.name||uu.email||uu.id) : maxUid} — ${maxCount} مهمة`;
+            metricPointsTodayVal.title = `مجموع النقاط المكتسبة اليوم: ${formatNumber(pointsTodaySum)} نقطة. الأكثر نشاطًا: ${uu ? (uu.name||uu.email||uu.id) : maxUid} (${maxCount} مهمة).`;
           }
+
+        } else {
+            // لا توجد مهام مكتملة اليوم
+            metricPointsTodayVal.textContent = "0 نقطة";
+            metricPointsTodayVal.title = `مجموع النقاط المكتسبة اليوم: 0 نقطة.`;
         }
+
       } catch(e){
-        // ignore; optional feature
+        console.error("Failed to query tasksCompleted for daily stats:", e);
+        metricPointsTodayVal.textContent = "خطأ في التحميل";
       }
     }
 
