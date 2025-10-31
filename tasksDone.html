@@ -94,7 +94,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { Chart } from "https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js";
 
     // ====== إعدادات Firebase (استخدم بيانات مشروعك) ======
@@ -166,7 +166,8 @@
             let q;
 
             if (startDate) {
-                q = query(tasksCol, where('date', '>=', startDate));
+                // 🛑 تم تطبيق التعديل هنا: استخدام Timestamp.fromDate
+                q = query(tasksCol, where('date', '>=', Timestamp.fromDate(startDate)));
             } else {
                 q = tasksCol; 
             }
@@ -191,12 +192,10 @@
 
             snap.forEach(doc => {
                 const d = doc.data();
-                // ✅ المنطق النهائي: استخدم taskType، وإلا استخدم taskId كنوع للتجميع
                 const typeOrId = d.taskType || d.taskId; 
                 const taskDate = toDateSafe(d.date);
 
                 if (typeOrId) {
-                    // التجميع يتم بناءً على القيمة الموجودة (TaskType أو TaskId)
                     taskCounts[typeOrId] = (taskCounts[typeOrId] || 0) + 1;
                     uniqueTaskTypes.add(typeOrId); 
                 }
@@ -255,7 +254,6 @@
         }
 
         const ctx = tasksChartCanvas.getContext('2d');
-        // إنشاء التدرج الأفقي (من اليسار لليمين)
         const gradient = ctx.createLinearGradient(0, 0, tasksChartCanvas.width, 0); 
         gradient.addColorStop(0, 'rgba(0,250,154,0.8)'); 
         gradient.addColorStop(1, 'rgba(245,197,66,0.8)'); 
@@ -274,7 +272,6 @@
                 }]
             },
             options: {
-                // 📈 إضافة Animation
                 animation: {
                     duration: 1000,
                     easing: 'easeOutQuart'
