@@ -66,7 +66,7 @@
       <div class="stats">
         <div class="stat-box"><strong id="totalTasks">0</strong><span>إجمالي المهام المنفذة (في الفترة)</span></div>
         <div class="stat-box"><strong id="todayTasks">0</strong><span>✳️ مهام اليوم فقط</span></div>
-        <div class="stat-box"><strong id="uniqueTasks">0</strong><span>أنواع المهام المختلفة</span></div>
+        <div class="stat-box"><strong id="uniqueTasks">0</strong><span>أنواع/معرفات المهام الفريدة</span></div>
       </div>
       
       <div class="controls">
@@ -80,7 +80,7 @@
           <button id="refreshBtn" class="btn-primary">🔄 تحديث الرسم البياني</button>
       </div>
       
-      <h3 style="color:var(--gold); text-align:center; margin-bottom:15px;">أكثر 10 مهام تنفيذًا</h3>
+      <h3 style="color:var(--gold); text-align:center; margin-bottom:15px;">أكثر 10 أنواع مهام تنفيذًا</h3>
       
       <div class="chart-container">
         <canvas id="tasksChart"></canvas>
@@ -115,7 +115,7 @@
 
     // Stats Boxes
     const totalTasksEl = document.getElementById('totalTasks');
-    const todayTasksEl = document.getElementById('todayTasks'); // ✳️ جديد
+    const todayTasksEl = document.getElementById('todayTasks');
     const uniqueTasksEl = document.getElementById('uniqueTasks');
     
     let tasksChart = null; 
@@ -123,10 +123,9 @@
     // ====== Helpers ======
     function formatNumber(n) { return Number(n||0).toLocaleString('en-US'); }
 
-    // تحويل Timestamp إلى تاريخ آمن
     function toDateSafe(ts) {
       if (ts && ts.toDate) return ts.toDate();
-      if (ts && ts.seconds) return new Date(ts.seconds * 1000); // التعامل مع Firestore Timestamp
+      if (ts && ts.seconds) return new Date(ts.seconds * 1000); 
       return null;
     }
 
@@ -159,15 +158,13 @@
         
         // إعادة تعيين الإحصائيات قبل التحميل
         totalTasksEl.textContent = 0;
-        todayTasksEl.textContent = 0; // ✳️ إعادة تعيين لعداد اليوم
+        todayTasksEl.textContent = 0; 
         uniqueTasksEl.textContent = 0;
 
         try {
             const tasksCol = collection(db, 'tasksCompleted');
             let q;
 
-            // في حالة 'all'، يجب أن يتم جلب كل المهام لحساب الإحصائيات بدقة
-            // وإلا يتم تطبيق الفلتر الزمني على الاستعلام
             if (startDate) {
                 q = query(tasksCol, where('date', '>=', startDate));
             } else {
@@ -187,25 +184,24 @@
 
             // 1. تجميع تكرار المهام وحساب إجمالي اليوم
             const taskCounts = {}; 
-            const taskNames = {}; 
-            const uniqueTaskIds = new Set(); 
+            const uniqueTaskTypes = new Set(); 
             
-            let todayCount = 0; // ✳️ عداد مهام اليوم
+            let todayCount = 0; 
             const todayString = new Date().toDateString();
 
             snap.forEach(doc => {
                 const d = doc.data();
-                const taskId = d.taskId; 
-                const taskName = d.taskName || d.title || 'مهمة غير معرفة'; 
+                // ✅ المنطق النهائي: استخدم taskType، وإلا استخدم taskId كنوع للتجميع
+                const typeOrId = d.taskType || d.taskId; 
                 const taskDate = toDateSafe(d.date);
 
-                if (taskId) {
-                    taskCounts[taskId] = (taskCounts[taskId] || 0) + 1;
-                    taskNames[taskId] = taskName;
-                    uniqueTaskIds.add(taskId); 
+                if (typeOrId) {
+                    // التجميع يتم بناءً على القيمة الموجودة (TaskType أو TaskId)
+                    taskCounts[typeOrId] = (taskCounts[typeOrId] || 0) + 1;
+                    uniqueTaskTypes.add(typeOrId); 
                 }
 
-                // ✳️ حساب مهام اليوم فقط
+                // حساب مهام اليوم فقط
                 if (taskDate && taskDate.toDateString() === todayString) {
                     todayCount++;
                 }
@@ -213,13 +209,12 @@
 
             // 2. تحديث الإحصائيات العلوية
             totalTasksEl.textContent = formatNumber(totalExecutions);
-            uniqueTasksEl.textContent = formatNumber(uniqueTaskIds.size);
-            todayTasksEl.textContent = formatNumber(todayCount); // ✳️ تحديث عداد مهام اليوم
+            uniqueTasksEl.textContent = formatNumber(uniqueTaskTypes.size);
+            todayTasksEl.textContent = formatNumber(todayCount); 
 
             // 3. تحويلها إلى مصفوفة للفرز واختيار أفضل 10
-            const sortedTasks = Object.entries(taskCounts).map(([id, count]) => ({
-                id,
-                name: taskNames[id],
+            const sortedTasks = Object.entries(taskCounts).map(([type, count]) => ({
+                name: type, 
                 count
             }));
 
@@ -232,11 +227,10 @@
 
             updateChart(labels, data);
 
-            let statusMsg = `تم عرض ${top10.length} مهام من إجمالي ${formatNumber(totalExecutions)} عملية تنفيذ في الفترة المختارة.`;
+            let statusMsg = `تم عرض ${top10.length} نوع/معرف مهمة من إجمالي ${formatNumber(totalExecutions)} عملية تنفيذ في الفترة المختارة.`;
             
-            // 🧠 لو البيانات قليلة، أضف رسالة لطيفة
             if (labels.length > 0 && labels.length < 3) {
-              statusMsg += ' ⚠️ البيانات قليلة لتحليل دقيق لأكثر المهام تنفيذاً. حاول توسيع الفترة الزمنية.';
+              statusMsg += ' ⚠️ البيانات قليلة لتحليل دقيق لأكثر أنواع المهام تنفيذاً. حاول توسيع الفترة الزمنية.';
             }
 
             statusText.textContent = statusMsg;
@@ -260,12 +254,11 @@
             return;
         }
 
-        // 🌙 خلفية تدريجية للرسم البياني (Gradient Fill)
         const ctx = tasksChartCanvas.getContext('2d');
-        // إنشاء التدرج الأفقي (من 0% إلى 100% عرض)
+        // إنشاء التدرج الأفقي (من اليسار لليمين)
         const gradient = ctx.createLinearGradient(0, 0, tasksChartCanvas.width, 0); 
-        gradient.addColorStop(0, 'rgba(0,250,154,0.8)'); // الأخضر الفوسفوري (Accent)
-        gradient.addColorStop(1, 'rgba(245,197,66,0.8)'); // الذهبي (Gold)
+        gradient.addColorStop(0, 'rgba(0,250,154,0.8)'); 
+        gradient.addColorStop(1, 'rgba(245,197,66,0.8)'); 
 
         tasksChart = new Chart(tasksChartCanvas, {
             type: 'bar',
@@ -274,7 +267,6 @@
                 datasets: [{
                     label: 'عدد مرات التنفيذ',
                     data: data,
-                    // تطبيق التدرج
                     backgroundColor: gradient, 
                     borderColor: 'rgba(245,197,66,0.5)',
                     borderWidth: 1,
