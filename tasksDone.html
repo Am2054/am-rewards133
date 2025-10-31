@@ -41,7 +41,7 @@
       width: 20px;
       height: 20px;
       animation: spin 1s linear infinite;
-      margin-left: 8px; /* تباعد عن النص */
+      margin-left: 8px; 
     }
     .hidden { display: none !important; }
 
@@ -64,12 +64,13 @@
       <h2 style="text-align:center; margin-top:0;">إحصائيات تنفيذ المهام</h2>
       
       <div class="stats">
-        <div class="stat-box"><strong id="totalTasks">0</strong><span>إجمالي المهام المنفذة</span></div>
+        <div class="stat-box"><strong id="totalTasks">0</strong><span>إجمالي المهام المنفذة (في الفترة)</span></div>
+        <div class="stat-box"><strong id="todayTasks">0</strong><span>✳️ مهام اليوم فقط</span></div>
         <div class="stat-box"><strong id="uniqueTasks">0</strong><span>أنواع المهام المختلفة</span></div>
-        </div>
+      </div>
       
       <div class="controls">
-          <label>الفترة الزمنية:</label>
+          <label>الفترة الزمنية للرسم البياني:</label>
           <select id="timeFilter">
               <option value="today">اليوم</option>
               <option value="7days">آخر 7 أيام</option>
@@ -96,7 +97,7 @@
     import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { Chart } from "https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js";
 
-    // ====== إعدادات Firebase ======
+    // ====== إعدادات Firebase (استخدم بيانات مشروعك) ======
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
@@ -114,12 +115,20 @@
 
     // Stats Boxes
     const totalTasksEl = document.getElementById('totalTasks');
+    const todayTasksEl = document.getElementById('todayTasks'); // ✳️ جديد
     const uniqueTasksEl = document.getElementById('uniqueTasks');
     
     let tasksChart = null; 
 
     // ====== Helpers ======
     function formatNumber(n) { return Number(n||0).toLocaleString('en-US'); }
+
+    // تحويل Timestamp إلى تاريخ آمن
+    function toDateSafe(ts) {
+      if (ts && ts.toDate) return ts.toDate();
+      if (ts && ts.seconds) return new Date(ts.seconds * 1000); // التعامل مع Firestore Timestamp
+      return null;
+    }
 
     function getStartDate(filter) {
         const now = new Date();
@@ -136,17 +145,7 @@
             date.setDate(now.getDate() - 30);
             return date;
         }
-        return null; // 'all'
-    }
-
-    function getChartColors(count) {
-        const baseColor = 'rgba(0, 250, 154, '; 
-        const colors = [];
-        for (let i = 0; i < count; i++) {
-            const alpha = 0.8 - (i * 0.05); 
-            colors.push(baseColor + alpha + ')');
-        }
-        return colors;
+        return null; 
     }
 
     // ====== وظيفة جلب وتحليل البيانات ======
@@ -160,12 +159,15 @@
         
         // إعادة تعيين الإحصائيات قبل التحميل
         totalTasksEl.textContent = 0;
+        todayTasksEl.textContent = 0; // ✳️ إعادة تعيين لعداد اليوم
         uniqueTasksEl.textContent = 0;
 
         try {
             const tasksCol = collection(db, 'tasksCompleted');
             let q;
 
+            // في حالة 'all'، يجب أن يتم جلب كل المهام لحساب الإحصائيات بدقة
+            // وإلا يتم تطبيق الفلتر الزمني على الاستعلام
             if (startDate) {
                 q = query(tasksCol, where('date', '>=', startDate));
             } else {
@@ -174,7 +176,7 @@
 
             const snap = await getDocs(q);
             
-            const totalExecutions = snap.docs.length; // إجمالي المهام المنفذة
+            const totalExecutions = snap.docs.length; 
             
             if (snap.empty) {
                 statusText.textContent = 'لم يتم العثور على أي مهام منفذة في هذه الفترة.';
@@ -183,26 +185,36 @@
                 return;
             }
 
-            // 1. تجميع تكرار المهام
+            // 1. تجميع تكرار المهام وحساب إجمالي اليوم
             const taskCounts = {}; 
             const taskNames = {}; 
-            const uniqueTaskIds = new Set(); // لتحديد الأنواع الفريدة
+            const uniqueTaskIds = new Set(); 
+            
+            let todayCount = 0; // ✳️ عداد مهام اليوم
+            const todayString = new Date().toDateString();
 
             snap.forEach(doc => {
                 const d = doc.data();
                 const taskId = d.taskId; 
                 const taskName = d.taskName || d.title || 'مهمة غير معرفة'; 
+                const taskDate = toDateSafe(d.date);
 
                 if (taskId) {
                     taskCounts[taskId] = (taskCounts[taskId] || 0) + 1;
                     taskNames[taskId] = taskName;
-                    uniqueTaskIds.add(taskId); // تجميع الأنواع الفريدة
+                    uniqueTaskIds.add(taskId); 
+                }
+
+                // ✳️ حساب مهام اليوم فقط
+                if (taskDate && taskDate.toDateString() === todayString) {
+                    todayCount++;
                 }
             });
 
             // 2. تحديث الإحصائيات العلوية
             totalTasksEl.textContent = formatNumber(totalExecutions);
             uniqueTasksEl.textContent = formatNumber(uniqueTaskIds.size);
+            todayTasksEl.textContent = formatNumber(todayCount); // ✳️ تحديث عداد مهام اليوم
 
             // 3. تحويلها إلى مصفوفة للفرز واختيار أفضل 10
             const sortedTasks = Object.entries(taskCounts).map(([id, count]) => ({
@@ -220,7 +232,14 @@
 
             updateChart(labels, data);
 
-            statusText.textContent = `تم عرض ${top10.length} مهام من إجمالي ${formatNumber(totalExecutions)} عملية تنفيذ.`;
+            let statusMsg = `تم عرض ${top10.length} مهام من إجمالي ${formatNumber(totalExecutions)} عملية تنفيذ في الفترة المختارة.`;
+            
+            // 🧠 لو البيانات قليلة، أضف رسالة لطيفة
+            if (labels.length > 0 && labels.length < 3) {
+              statusMsg += ' ⚠️ البيانات قليلة لتحليل دقيق لأكثر المهام تنفيذاً. حاول توسيع الفترة الزمنية.';
+            }
+
+            statusText.textContent = statusMsg;
 
         } catch (error) {
             console.error("Error fetching task analytics:", error);
@@ -231,7 +250,7 @@
         }
     }
 
-    // ====== وظيفة تحديث الرسم البياني (بدون تغيير في المنطق) ======
+    // ====== وظيفة تحديث الرسم البياني (مع Animation و Gradient) ======
     function updateChart(labels, data) {
         if (tasksChart) {
             tasksChart.destroy();
@@ -240,8 +259,13 @@
         if (data.length === 0) {
             return;
         }
-        
-        const backgroundColors = getChartColors(data.length);
+
+        // 🌙 خلفية تدريجية للرسم البياني (Gradient Fill)
+        const ctx = tasksChartCanvas.getContext('2d');
+        // إنشاء التدرج الأفقي (من 0% إلى 100% عرض)
+        const gradient = ctx.createLinearGradient(0, 0, tasksChartCanvas.width, 0); 
+        gradient.addColorStop(0, 'rgba(0,250,154,0.8)'); // الأخضر الفوسفوري (Accent)
+        gradient.addColorStop(1, 'rgba(245,197,66,0.8)'); // الذهبي (Gold)
 
         tasksChart = new Chart(tasksChartCanvas, {
             type: 'bar',
@@ -250,13 +274,19 @@
                 datasets: [{
                     label: 'عدد مرات التنفيذ',
                     data: data,
-                    backgroundColor: backgroundColors,
-                    borderColor: 'var(--accent)',
+                    // تطبيق التدرج
+                    backgroundColor: gradient, 
+                    borderColor: 'rgba(245,197,66,0.5)',
                     borderWidth: 1,
                     borderRadius: 4,
                 }]
             },
             options: {
+                // 📈 إضافة Animation
+                animation: {
+                    duration: 1000,
+                    easing: 'easeOutQuart'
+                },
                 indexAxis: 'y', 
                 responsive: true,
                 maintainAspectRatio: false,
@@ -284,9 +314,6 @@
                         grid: { color: 'rgba(255,255,255,0.02)' }
                     }
                 },
-                elements: {
-                    bar: { backgroundColor: backgroundColors[0] || 'var(--accent)' }
-                }
             }
         });
     }
