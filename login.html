@@ -335,6 +335,8 @@
       getFirestore,
       doc,
       setDoc,
+      serverTimestamp, // تم استيراد دالة serverTimestamp
+      updateDoc // تم استيراد دالة updateDoc
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     
     // **1. إعدادات Firebase**
@@ -377,8 +379,25 @@
         default: return "حدث خطأ، حاول مرة أخرى أو تحقق من بياناتك.";
       }
     }
+
+    /**
+     * **[جديد]** دالة لتحديث حقل lastLogin في وثيقة المستخدم.
+     */
+    async function updateLastLogin(uid) {
+        try {
+            const userRef = doc(db, "users", uid);
+            // استخدام updateDoc لتجنب إعادة كتابة الوثيقة بالكامل
+            await updateDoc(userRef, {
+                lastLogin: serverTimestamp()
+            });
+            console.log(`lastLogin updated for user: ${uid}`);
+        } catch (error) {
+            console.error("Failed to update lastLogin, check Firestore rules:", error);
+            // إذا فشل التحديث (ربما بسبب مشاكل في قواعد الأمان)، لا نمنع المستخدم من الدخول.
+        }
+    }
     
-    // **4. دالة تسجيل الدخول (مع منطق المشرف)**
+    // **4. دالة تسجيل الدخول**
     window.login = async function () {
       const email = loginEmail.value.trim();
       const password = loginPassword.value.trim();
@@ -405,11 +424,19 @@
         await setPersistence(auth, browserLocalPersistence);
         const result = await signInWithEmailAndPassword(auth, email, password);
         const uid = result.user.uid;
-        const ref = doc(db, "users", uid);
         
-        await setDoc(ref, {
-          uid: uid,
-          email: email,
+        // **[تعديل 1: تحديث حقل lastLogin]**
+        // تنفيذ التحديث فور نجاح المصادقة
+        await updateLastLogin(uid); 
+        
+        // **[تعديل 2: تحديث حقول أخرى (مثل الإيميل والـ UID) في حال كانت الوثيقة جديدة]**
+        // نستخدم setDoc مع merge: true هنا للتأكد من وجود الوثيقة والبيانات الأساسية.
+        const userRef = doc(db, "users", uid);
+        await setDoc(userRef, {
+            uid: uid,
+            email: email,
+            // لا نحتاج لـ lastLogin هنا، فقد تم تحديثه بالفعل في الدالة السابقة، 
+            // لكن setDoc مع merge: true مفيد لضمان وجود حقول أخرى مثل createdAt إذا كانت أول عملية تسجيل دخول.
         }, { merge: true });
         
         showMessage("✅ تم تسجيل الدخول بنجاح!", "success");
