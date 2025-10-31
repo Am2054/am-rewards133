@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
   
   <style>
-    /* ... (جميع الـ CSS كما هو) ... */
+    /* ... (جميع الـ CSS كما هو، لم يتم تعديله) ... */
     :root {
         --color-primary: #f5c542; 
         --color-secondary: #00fa9a; 
@@ -181,16 +181,10 @@
                 <p id="totalUsers" class="main-value">0</p>
             </div>
 
-            <div class="card secondary">
-                <h3>🏃‍♂️ عدد المستخدمين النشطين (آخر 7 أيام)</h3>
-                <p id="activeUsers" class="main-value">0</p>
-            </div>
-            
             <div class="card">
-                <h3>🧾 إجمالي النقاط من المهام المنجزة</h3>
-                <p id="totalTaskPoints" class="main-value">0</p>
-                <span id="totalTaskPointsEGP" class="sub-value">0 EGP</span>
-            </div>
+                <h3>✅ إجمالي المهام المنجزة</h3>
+                <p id="totalCompletedTasks" class="main-value">0</p>
+                </div>
             
             <div class="card">
                 <h3>🔗 عدد الإحالات</h3>
@@ -260,7 +254,7 @@
     // **2. الثوابت والمتغيرات**
     const adminEmail = "amirfg992005@gmail.com"; 
     const POINT_VALUE_EGP = 0.07; 
-    const ACTIVE_USERS_THRESHOLD = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); 
+    // تم حذف: const ACTIVE_USERS_THRESHOLD = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); 
 
     // **3. عناصر DOM**
     const loadingOverlay = document.getElementById('loading-overlay');
@@ -272,17 +266,16 @@
     const loginError = document.getElementById('loginError');
 
     const totalUsersEl = document.getElementById("totalUsers");
-    const activeUsersEl = document.getElementById("activeUsers");
-    const totalTaskPointsEl = document.getElementById("totalTaskPoints");
-    const totalTaskPointsEGPEl = document.getElementById("totalTaskPointsEGP");
+    // تم حذف: const activeUsersEl = document.getElementById("activeUsers");
+    // تغيير اسم العنصر هنا
+    const totalCompletedTasksEl = document.getElementById("totalCompletedTasks");
+    // تم حذف: const totalTaskPointsEGPEl = document.getElementById("totalTaskPointsEGP");
     const referralsEl = document.getElementById('referrals');
     const referralPointsEl = document.getElementById('referralPoints');
     const referralPointsEGPEl = document.getElementById('referralPointsEGP');
     const totalPointsEl = document.getElementById('totalPoints');
     const totalPointsEGPEl = document.getElementById('totalPointsEGPEl');
     const totalWithdrawnEl = document.getElementById('totalWithdrawn');
-    // تم حذف: const withdrawTodayPointsEl = document.getElementById("withdrawTodayPoints");
-    // تم حذف: const withdrawTodayEGPEl = document.getElementById("withdrawTodayEGP");
     const pendingWithdrawalsEl = document.getElementById('pendingWithdrawals');
 
 
@@ -316,17 +309,15 @@
         
         const errorText = "خطأ في التحميل";
         totalUsersEl.textContent = errorText;
-        activeUsersEl.textContent = errorText;
-        totalTaskPointsEl.textContent = errorText;
-        totalTaskPointsEGPEl.textContent = errorText;
+        // تم حذف: activeUsersEl.textContent = errorText;
+        totalCompletedTasksEl.textContent = errorText;
+        // تم حذف: totalTaskPointsEGPEl.textContent = errorText;
         referralsEl.textContent = errorText;
         referralPointsEl.textContent = errorText;
         referralPointsEGPEl.textContent = errorText;
         totalPointsEl.textContent = errorText;
         totalPointsEGPEl.textContent = errorText;
         totalWithdrawnEl.textContent = errorText;
-        // تم حذف: withdrawTodayPointsEl.textContent = errorText;
-        // تم حذف: withdrawTodayEGPEl.textContent = errorText;
         pendingWithdrawalsEl.textContent = errorText;
     }
 
@@ -385,43 +376,39 @@
             let totalReferralsCount = 0;
             let totalReferralPoints = 0;
             let totalPoints = 0; 
-            let totalTaskPoints = 0; 
-            let activeUsersCount = 0;
+            // تم حذف: let totalTaskPoints = 0; 
+            // تم حذف: let activeUsersCount = 0;
 
             usersSnap.forEach(doc => {
                 const data = doc.data();
                 
                 totalReferralsCount += Number(data.referralCount || 0) || 0;
                 totalReferralPoints += Number(data.referralPoints || 0) || 0;
-                
                 totalPoints += Number(data.points || 0) || 0; 
-                totalTaskPoints += Number(data.tasksPoints || 0) || 0; 
                 
-                // التعامل مع خاصية lastLogin
-                let lastLoginDate = null;
-                if (data.lastLogin) {
-                    if (typeof data.lastLogin.toDate === 'function') {
-                        lastLoginDate = data.lastLogin.toDate();
-                    } else if (data.lastLogin instanceof Date) {
-                        lastLoginDate = data.lastLogin;
-                    }
-                }
-
-                if (lastLoginDate && lastLoginDate >= ACTIVE_USERS_THRESHOLD) {
-                    activeUsersCount++;
-                }
+                // تم حذف: totalTaskPoints += Number(data.tasksPoints || 0) || 0; 
+                
+                // تم حذف: منطق حساب المستخدمين النشطين
             });
             
-            if (totalTaskPoints === 0 && totalPoints > 0) {
-                totalTaskPoints = totalPoints - totalReferralPoints; 
-                if (totalTaskPoints < 0) totalTaskPoints = 0;
+            // تم حذف: منطق معالجة totalTaskPoints عندما يكون 0
+            
+            // --- 1.1. جلب عدد المهام المنجزة من tasksCompleted ---
+            let completedTasksCount = 0;
+            try {
+                const tasksCompletedSnap = await getDocs(collection(db, "tasksCompleted")); 
+                completedTasksCount = tasksCompletedSnap.size;
+                totalCompletedTasksEl.textContent = formatNumber(completedTasksCount);
+            } catch (err) {
+                console.error("FIREBASE ERROR: Failed to fetch tasksCompleted collection.", err);
+                totalCompletedTasksEl.textContent = "Error";
             }
 
             // تحديث الإحصائيات الشاملة (للمستخدمين، النقاط، الإحالات)
-            activeUsersEl.textContent = formatNumber(activeUsersCount);
+            // تم حذف: activeUsersEl.textContent = formatNumber(activeUsersCount);
             referralsEl.textContent = formatNumber(totalReferralsCount);
-            totalTaskPointsEl.textContent = formatNumber(totalTaskPoints);
-            totalTaskPointsEGPEl.textContent = formatEGP(totalTaskPoints * POINT_VALUE_EGP);
+            // تم حذف: totalTaskPointsEl.textContent = formatNumber(totalTaskPoints);
+            // تم حذف: totalTaskPointsEGPEl.textContent = formatEGP(totalTaskPoints * POINT_VALUE_EGP);
             referralPointsEl.textContent = formatNumber(totalReferralPoints);
             referralPointsEGPEl.textContent = formatEGP(totalReferralPoints * POINT_VALUE_EGP);
             totalPointsEl.textContent = formatNumber(totalPoints);
@@ -461,10 +448,6 @@
                 console.error("FIREBASE ERROR: Failed to fetch pending withdrawals. Ignoring for dashboard integrity.", err);
                 pendingWithdrawalsEl.textContent = "Error"; 
             }
-
-
-            // --- 4. جلب طلبات السحب اليوم (تم حذفه بالكامل) ---
-            // تم حذف الكود الخاص بجلب السحوبات اليومية
 
             
             hideLoading(); // إخفاء التحميل عند النجاح النهائي
