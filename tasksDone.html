@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المهام المنفذة | Am Rewards</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background-color: #000;
+      color: #FFD700;
+      font-family: 'Cairo', sans-serif;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+    h1 {
+      margin-top: 20px;
+      font-size: 2rem;
+    }
+    #chartContainer {
+      width: 90%;
+      max-width: 700px;
+      margin: 40px auto;
+      background: rgba(255, 215, 0, 0.05);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+    }
+    button {
+      background: #FFD700;
+      border: none;
+      padding: 12px 20px;
+      font-size: 1rem;
+      border-radius: 30px;
+      cursor: pointer;
+      color: #000;
+      margin-top: 20px;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #ffed4a;
+      transform: scale(1.05);
+    }
+    button:active {
+      animation: pulse 0.3s;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    canvas {
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <h1>📊 إحصائيات المهام المنفذة</h1>
+  <div id="chartContainer">
+    <canvas id="tasksChart"></canvas>
+  </div>
+  <button onclick="loadData()">🔄 تحديث البيانات</button>
+
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let chartInstance;
+
+    async function loadData() {
+      const tasksRef = db.collection("tasksCompleted");
+      const snapshot = await tasksRef.get();
+
+      const taskCounts = {};
+
+      snapshot.forEach(doc => {
+        const task = doc.data().taskName || "غير محدد";
+        taskCounts[task] = (taskCounts[task] || 0) + 1;
+      });
+
+      const labels = Object.keys(taskCounts);
+      const data = Object.values(taskCounts);
+
+      const chartData = {
+        labels,
+        datasets: [{
+          label: "عدد مرات تنفيذ المهمة",
+          data,
+          backgroundColor: [
+            "#FFD700", "#FFA500", "#FF6347", "#ADFF2F", "#1E90FF", "#FF69B4"
+          ],
+          borderColor: "#000",
+          borderWidth: 2
+        }]
+      };
+
+      const ctx = document.getElementById("tasksChart").getContext("2d");
+
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(ctx, {
+        type: "bar",
+        data: chartData,
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { labels: { color: "#FFD700" } },
+            title: { display: true, text: "أكثر المهام تنفيذًا", color: "#FFD700", font: { size: 18 } }
+          },
+          scales: {
+            x: { ticks: { color: "#FFD700" } },
+            y: { ticks: { color: "#FFD700" } }
+          }
+        }
+      });
+    }
+
+    // تحميل البيانات أول ما الصفحة تفتح
+    loadData();
+  </script>
+</body>
+  </html>
