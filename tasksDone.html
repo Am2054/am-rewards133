@@ -12,12 +12,11 @@
     }
     *{box-sizing:border-box}
     body{font-family:"Cairo",sans-serif;background:linear-gradient(180deg,var(--bg),#0b0b0b);color:var(--text);margin:0;padding:16px}
-    .wrap{max-width:1200px;margin:0 auto}
+    .wrap{max-width:1000px;margin:0 auto}
     header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:24px}
     header h1{margin:0;color:var(--gold);font-size:24px}
     .card{background:var(--card);padding:24px;border-radius:12px;border:1px solid rgba(245,197,66,0.12);box-shadow: 0 4px 12px rgba(0,0,0,0.2)}
-    /* تم حذف ستايلات الرسم البياني */
-
+    
     .notice{margin-top:8px;color:var(--muted);font-size:14px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px;}
 
     /* Filter Controls */
@@ -31,6 +30,37 @@
     .stat-box{background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.15);padding:12px 20px;border-radius:10px;text-align:center;min-width:180px;}
     .stat-box strong{display:block;font-size:24px;color:var(--gold);font-weight:900;}
     .stat-box span{display:block;font-size:12px;color:var(--muted);margin-top:4px;}
+
+    /* New: Top Tasks List Styles */
+    #topTasksList {
+        list-style: none;
+        padding: 0;
+        margin: 20px 0 0;
+    }
+    .task-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 15px;
+        margin-bottom: 8px;
+        background: #1a1a1e;
+        border-radius: 6px;
+        font-size: 16px;
+        border-left: 4px solid var(--accent);
+    }
+    .task-item span:first-child {
+        font-weight: 700;
+        color: var(--text);
+    }
+    .task-item span:last-child {
+        font-weight: 900;
+        color: var(--gold);
+        background: #0f0f10;
+        padding: 4px 10px;
+        border-radius: 4px;
+        min-width: 50px;
+        text-align: center;
+    }
 
     /* Loader Styles */
     .loader {
@@ -79,6 +109,11 @@
           <button id="refreshBtn" class="btn-primary">🔄 تحديث البيانات</button>
       </div>
       
+      <h3 style="color:var(--gold); text-align:center; margin-bottom:15px; margin-top: 30px;">🥇 أكثر 10 أنواع مهام تنفيذًا</h3>
+      
+      <ul id="topTasksList">
+          </ul>
+      
       <div class="notice" id="chartStatus">
           <div id="loadingSpinner" class="loader hidden"></div>
           <span id="statusText">جارِ تحميل بيانات المهام...</span>
@@ -89,9 +124,8 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    // تم حذف استيراد Chart.js
 
-    // ====== إعدادات Firebase (الكاملة من index.html) ======
+    // ====== إعدادات Firebase (الكاملة والموحدة) ======
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
@@ -106,7 +140,6 @@
     const db = getFirestore(app);
 
     // ====== عناصر DOM ======
-    // تم حذف tasksChartCanvas
     const statusText = document.getElementById('statusText');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const timeFilter = document.getElementById('timeFilter');
@@ -117,8 +150,9 @@
     const todayTasksEl = document.getElementById('todayTasks');
     const uniqueTasksEl = document.getElementById('uniqueTasks');
     
-    // تم حذف let tasksChart = null; 
-
+    // 💡 عنصر القائمة الجديد
+    const topTasksListEl = document.getElementById('topTasksList'); 
+    
     // ====== Helpers ======
     function formatNumber(n) { return Number(n||0).toLocaleString('en-US'); }
 
@@ -146,6 +180,33 @@
         return null; 
     }
 
+    // 💡 دالة جديدة لعرض القائمة 
+    function renderTopTasks(topTasks) {
+        topTasksListEl.innerHTML = ''; // مسح القائمة القديمة
+
+        if (topTasks.length === 0) {
+            topTasksListEl.innerHTML = '<li style="text-align: center; color: var(--muted);">لا توجد مهام لتصنيفها في هذه الفترة.</li>';
+            return;
+        }
+
+        topTasks.forEach((task, index) => {
+            const listItem = document.createElement('li');
+            listItem.className = 'task-item';
+            
+            // إضافة الترتيب
+            const rank = document.createElement('span');
+            rank.textContent = `${index + 1}. ${task.name}`;
+            
+            // إضافة عدد مرات التنفيذ
+            const count = document.createElement('span');
+            count.textContent = formatNumber(task.count);
+            
+            listItem.appendChild(rank);
+            listItem.appendChild(count);
+            topTasksListEl.appendChild(listItem);
+        });
+    }
+
     // ====== وظيفة جلب وتحليل البيانات ======
     async function fetchAndAnalyzeTasks() {
         statusText.textContent = 'جاري جلب وتحليل البيانات من Firestore...';
@@ -157,13 +218,13 @@
         totalTasksEl.textContent = 0;
         todayTasksEl.textContent = 0; 
         uniqueTasksEl.textContent = 0;
+        topTasksListEl.innerHTML = ''; // مسح القائمة مؤقتاً
 
         try {
             const tasksCol = collection(db, 'tasksCompleted');
             let q;
 
             if (startDate) {
-                // نستخدم كائن Date مباشرة
                 q = query(tasksCol, where('date', '>=', startDate)); 
             } else {
                 q = tasksCol; 
@@ -175,6 +236,7 @@
             
             if (snap.empty) {
                 statusText.textContent = 'لم يتم العثور على أي مهام منفذة في هذه الفترة.';
+                renderTopTasks([]); // عرض قائمة فارغة
                 loadingSpinner.classList.add('hidden');
                 return;
             }
@@ -205,7 +267,7 @@
             uniqueTasksEl.textContent = formatNumber(uniqueTaskTypes.size);
             todayTasksEl.textContent = formatNumber(todayCount); 
 
-            // 3. إعداد بيانات للمساعدة في التشخيص
+            // 3. إعداد بيانات أكثر 10 مهام تنفيذاً
             const sortedTasks = Object.entries(taskCounts).map(([type, count]) => ({
                 name: type, 
                 count
@@ -213,6 +275,9 @@
 
             sortedTasks.sort((a, b) => b.count - a.count);
             const top10 = sortedTasks.slice(0, 10);
+            
+            // 💡 عرض القائمة
+            renderTopTasks(top10); 
             
             let statusMsg = `تم تحليل ${formatNumber(totalExecutions)} عملية تنفيذ. أنواع المهام الفريدة: ${formatNumber(uniqueTaskTypes.size)}.`;
             statusText.textContent = statusMsg;
@@ -225,7 +290,6 @@
         }
     }
 
-    // ====== تم حذف وظيفة تحديث الرسم البياني updateChart ======
 
     // ====== تفعيل الوظائف عند التحميل وتغيير الفلتر ======
     timeFilter.addEventListener('change', fetchAndAnalyzeTasks);
