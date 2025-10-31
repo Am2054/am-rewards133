@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>المستخدمون — Am Rewards (لوحة الإدارة)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#070707; --card:#0f0f10; --gold:#f5c542; --muted:#9aa4b2; --text:#eef2f7;
+      --accent:#00fa9a;
+    }
+    *{box-sizing:border-box}
+    body{font-family:"Cairo",sans-serif;background:linear-gradient(180deg,var(--bg),#0b0b0b);color:var(--text);margin:0;padding:16px}
+    .wrap{max-width:1200px;margin:0 auto}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+    header h1{margin:0;color:var(--gold);font-size:20px}
+    .metrics{display:flex;gap:12px;flex-wrap:wrap}
+    .metric{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(245,197,66,0.12);padding:14px;border-radius:12px;min-width:160px;cursor:pointer}
+    .metric h3{margin:0;font-size:12px;color:var(--muted)}
+    .metric p{margin:6px 0 0 0;font-weight:900;font-size:18px}
+    .controls{display:flex;gap:10px;align-items:center;margin:14px 0;flex-wrap:wrap}
+    .search{flex:1;min-width:180px}
+    input[type="search"]{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:#0b1113;color:var(--text)}
+    .btn{background:var(--gold);color:#07101a;padding:10px 12px;border-radius:10px;border:0;font-weight:800;cursor:pointer}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+    .toggles{display:flex;gap:8px;align-items:center}
+    .table-wrap{overflow:auto;background:transparent;border-radius:10px;margin-top:12px;border:1px solid rgba(255,255,255,0.03)}
+    table{width:100%;border-collapse:collapse;min-width:920px}
+    th,td{padding:10px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.03);font-size:14px}
+    th{background:linear-gradient(90deg, rgba(245,197,66,0.06), rgba(0,250,154,0.02));position:sticky;top:0}
+    tr:hover td{background:rgba(255,255,255,0.01)}
+    .actions button{margin-left:6px;padding:6px 8px;border-radius:8px;border:0;font-weight:800;cursor:pointer}
+    .view-btn{background:#0ea5e9;color:#07101a}
+    .edit-btn{background:var(--accent);color:#07101a}
+    .small{font-size:12px;color:var(--muted)}
+    /* responsive */
+    @media(max-width:900px){ table{min-width:700px} .metric p{font-size:16px} }
+    @media(max-width:600px){ header{flex-direction:column;align-items:flex-end} .controls{flex-direction:column;align-items:stretch} }
+    /* login modal */
+    #loginBox{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:999}
+    #loginCard{background:var(--card);padding:20px;border-radius:12px;width:360px;max-width:94%}
+    #loginCard h2{margin:0 0 10px;color:var(--gold)}
+    #loginCard input{width:100%;padding:10px;margin:8px 0;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:#071018;color:var(--text)}
+    .hidden{display:none}
+    .notice{margin-top:8px;color:var(--muted);font-size:13px}
+    .cols-toggle{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    .col-toggle input{margin-left:6px}
+    /* top badge */
+    .badge{background:rgba(245,197,66,0.12);color:var(--gold);padding:6px 10px;border-radius:10px;font-weight:800}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>لوحة المستخدمين — Am Rewards</h1>
+        <div class="small">عرض بيانات المستخدمين: نقاط، إحالات، مهام، وتفاصيل سريعة</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="badge" id="totalUsersBadge">0 مستخدم</div>
+        <button id="logoutBtn" class="btn ghost hidden">تسجيل خروج</button>
+      </div>
+    </header>
+
+    <div class="metrics">
+      <div class="metric" id="metricAllUsers" title="عرض كل المستخدمين">
+        <h3>👥 المستخدمين الكلي</h3>
+        <p id="metricAllUsersVal">0</p>
+      </div>
+      <div class="metric" id="metricActiveUsers" title="عرض المستخدمين النشطين (آخر 7 أيام)">
+        <h3>⚡ المستخدمون النشطون (7 أيام)</h3>
+        <p id="metricActiveUsersVal">0</p>
+      </div>
+      <div class="metric" id="metricTop20" title="أفضل 20 مستخدم">
+        <h3>🏆 أفضل 20 مستخدم</h3>
+        <p id="metricTop20Val">—</p>
+      </div>
+      <div class="metric" id="metricNewToday" title="المستخدمون الجدد اليوم">
+        <h3>🆕 مستخدمين جدد اليوم</h3>
+        <p id="metricNewTodayVal">0</p>
+      </div>
+      <div class="metric" id="metricPointsToday" title="مجموع النقاط المكتسبة اليوم (إن وجدت سجلات)">
+        <h3>📈 نقاط اليوم (مجموع)</h3>
+        <p id="metricPointsTodayVal">-</p>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="search">
+        <input id="searchInput" type="search" placeholder="ابحث باسم أو ايميل..." />
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="btnShowAll" class="btn">عرض كل المستخدمين</button>
+        <button id="btnShowActive" class="btn">عرض النشطين</button>
+        <button id="btnShowTop20" class="btn">أفضل 20</button>
+        <button id="refreshBtn" class="btn ghost">🔄 تحديث</button>
+      </div>
+
+      <div class="toggles" style="margin-left:auto">
+        <div class="cols-toggle small">
+          إظهار الأعمدة:
+          <label class="col-toggle"><input type="checkbox" data-col="referrals" checked/> إحالات</label>
+          <label class="col-toggle"><input type="checkbox" data-col="points" checked/> النقاط</label>
+          <label class="col-toggle"><input type="checkbox" data-col="lastLogin" checked/> آخر دخول</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table id="usersTable" aria-live="polite">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>الاسم</th>
+            <th>الإيميل</th>
+            <th class="col-referrals">الإحالات</th>
+            <th class="col-points">النقاط</th>
+            <th class="col-lastLogin">آخر دخول</th>
+            <th>أفعال</th>
+          </tr>
+        </thead>
+        <tbody id="usersTbody">
+          <tr><td colspan="7" class="small">جارِ التحميل...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Login modal -->
+  <div id="loginBox">
+    <div id="loginCard">
+      <h2>تسجيل دخول الأدمن</h2>
+      <input id="adminEmail" type="email" placeholder="البريد الإلكتروني" value="amirfg992005@gmail.com" />
+      <input id="adminPass" type="password" placeholder="كلمة المرور" />
+      <button id="loginBtn" class="btn">تسجيل الدخول</button>
+      <div class="notice">هتحتاج صلاحيات الأدمن لتعديل النقاط وعرض كل البيانات.</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore, collection, getDocs, query, where, orderBy, limit, doc, updateDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // ====== إعدادات Firebase (استخدم بيانات مشروعك) ======
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // ====== ثوابت ======
+    const ADMIN_EMAIL = "amirfg992005@gmail.com";
+    const ACTIVE_DAYS = 7; // تعريف "نشط"
+    const POINT_VALUE_EGP = 0.07;
+
+    // ====== عناصر DOM ======
+    const loginBox = document.getElementById('loginBox');
+    const loginBtn = document.getElementById('loginBtn');
+    const adminEmailInput = document.getElementById('adminEmail');
+    const adminPassInput = document.getElementById('adminPass');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    const metricAllUsersVal = document.getElementById('metricAllUsersVal');
+    const metricActiveUsersVal = document.getElementById('metricActiveUsersVal');
+    const metricTop20Val = document.getElementById('metricTop20Val');
+    const metricNewTodayVal = document.getElementById('metricNewTodayVal');
+    const metricPointsTodayVal = document.getElementById('metricPointsTodayVal');
+    const totalUsersBadge = document.getElementById('totalUsersBadge');
+
+    const btnShowAll = document.getElementById('btnShowAll');
+    const btnShowActive = document.getElementById('btnShowActive');
+    const btnShowTop20 = document.getElementById('btnShowTop20');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const searchInput = document.getElementById('searchInput');
+
+    const usersTbody = document.getElementById('usersTbody');
+
+    // column toggles
+    const colCheckboxes = document.querySelectorAll('input[data-col]');
+
+    // ====== Helpers ======
+    function toDateSafe(ts) {
+      if (!ts) return null;
+      if (ts.toDate) return ts.toDate();
+      if (ts instanceof Date) return ts;
+      return new Date(ts);
+    }
+    function formatDateShort(d) {
+      if (!d) return '-';
+      try {
+        return new Date(d).toLocaleString('ar-EG', {dateStyle:'short', timeStyle:'short'});
+      } catch(e){ return '-'; }
+    }
+    function formatNumber(n) { return Number(n||0).toLocaleString('en-US'); }
+
+    function getTodayStart() {
+      const t = new Date();
+      t.setHours(0,0,0,0);
+      return t;
+    }
+
+    // ====== State ======
+    let allUsers = []; // raw user objects {id, ...data}
+    let filteredUsers = [];
+    let currentFilter = 'all'; // 'all' | 'active' | 'top20'
+    let currentUser = null;
+
+    // ====== Fetch functions ======
+    async function loadAllUsers() {
+      usersTbody.innerHTML = `<tr><td colspan="7" class="small">جارِ تحميل المستخدمين...</td></tr>`;
+      try {
+        const usersSnap = await getDocs(collection(db, 'users'));
+        allUsers = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        totalUsersBadge.textContent = `${allUsers.length} مستخدم`;
+        metricAllUsersVal.textContent = allUsers.length;
+        return allUsers;
+      } catch (err) {
+        console.error("Failed fetch users:", err);
+        usersTbody.innerHTML = `<tr><td colspan="7" class="small">❌ خطأ في تحميل المستخدمين — تحقق من قواعد Firestore</td></tr>`;
+        throw err;
+      }
+    }
+
+    function computeActiveUsers(users) {
+      const threshold = Date.now() - ACTIVE_DAYS * 24*60*60*1000;
+      return users.filter(u => {
+        const last = toDateSafe(u.lastLogin);
+        return last && last.getTime() >= threshold;
+      });
+    }
+
+    async function computeDailyStats(users) {
+      // new users today
+      const todayStart = getTodayStart().getTime();
+      const newToday = users.filter(u => {
+        const created = toDateSafe(u.createdAt);
+        return created && created.getTime() >= todayStart;
+      }).length;
+      metricNewTodayVal.textContent = newToday;
+
+      // total points added today — requires a field pointsToday or tasksCompleted logs
+      // We'll try: use field pointsToday on users if present; otherwise show '-'
+      let pointsTodaySum = 0;
+      let hasPointsToday = false;
+      for (const u of users) {
+        if (u.pointsToday !== undefined) {
+          hasPointsToday = true;
+          pointsTodaySum += Number(u.pointsToday || 0);
+        }
+      }
+      metricPointsTodayVal.textContent = hasPointsToday ? formatNumber(pointsTodaySum) + " نقطة" : "-";
+
+      // most active today via tasksCompleted collection (if exists)
+      try {
+        // We'll query tasksCompleted where date >= todayStart and aggregate per user
+        const tasksCol = collection(db, 'tasksCompleted');
+        const q = query(tasksCol, where('date', '>=', getTodayStart()));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          const counts = {};
+          snap.forEach(doc => {
+            const d = doc.data();
+            const uid = d.userId || 'unknown';
+            counts[uid] = (counts[uid] || 0) + 1;
+          });
+          // find max
+          let maxUid = null, maxCount = 0;
+          for (const [uid,c] of Object.entries(counts)) {
+            if (c > maxCount) { maxCount = c; maxUid = uid; }
+          }
+          if (maxUid) {
+            const uu = allUsers.find(x => x.id === maxUid);
+            metricPointsTodayVal.title = `أكثر نشاطًا اليوم: ${uu ? (uu.name||uu.email||uu.id) : maxUid} — ${maxCount} مهمة`;
+          }
+        }
+      } catch(e){
+        // ignore; optional feature
+      }
+    }
+
+    // ====== Render table ======
+    function renderUsersTable(users) {
+      filteredUsers = users.slice(); // copy
+      applySearchAndRender();
+    }
+
+    function applySearchAndRender() {
+      const q = searchInput.value.trim().toLowerCase();
+      const shown = filteredUsers.filter((u, idx) => {
+        if (!q) return true;
+        const name = (u.name||'').toString().toLowerCase();
+        const email = (u.email||'').toString().toLowerCase();
+        return name.includes(q) || email.includes(q) || u.id.includes(q);
+      });
+      // sort by points desc by default
+      shown.sort((a,b)=> (Number(b.points||0) - Number(a.points||0)));
+      // render rows
+      if (shown.length === 0) {
+        usersTbody.innerHTML = `<tr><td colspan="7" class="small">لا يوجد نتائج.</td></tr>`;
+        return;
+      }
+      usersTbody.innerHTML = '';
+      shown.forEach((u, i) => {
+        const tr = document.createElement('tr');
+        const lastLogin = toDateSafe(u.lastLogin);
+        tr.innerHTML = `
+          <td>${i+1}</td>
+          <td>${u.name || '-'}</td>
+          <td>${u.email || '-'}</td>
+          <td class="col-referrals">${formatNumber(u.referralCount||0)}</td>
+          <td class="col-points">${formatNumber(u.points||0)}</td>
+          <td class="col-lastLogin">${lastLogin ? formatDateShort(lastLogin) : '-'}</td>
+          <td class="actions">
+            <button class="view-btn" data-id="${u.id}">عرض</button>
+            <button class="edit-btn" data-id="${u.id}">تعديل نقاط</button>
+          </td>`;
+        usersTbody.appendChild(tr);
+      });
+      wireActionButtons();
+      updateColumnVisibility();
+    }
+
+    function wireActionButtons() {
+      document.querySelectorAll('.view-btn').forEach(b=>{
+        b.onclick = (e)=>{
+          const id = e.currentTarget.dataset.id;
+          const u = allUsers.find(x=>x.id===id);
+          if (!u) return alert('المستخدم غير موجود');
+          const info = `
+الاسم: ${u.name||'-'}
+الإيميل: ${u.email||'-'}
+النقاط: ${u.points||0}
+الإحالات: ${u.referralCount||0}
+تاريخ الإنشاء: ${formatDateShort(toDateSafe(u.createdAt))}
+آخر دخول: ${formatDateShort(toDateSafe(u.lastLogin))}
+UID: ${u.id}
+          `;
+          alert(info);
+        };
+      });
+
+      document.querySelectorAll('.edit-btn').forEach(b=>{
+        b.onclick = async (e)=>{
+          const id = e.currentTarget.dataset.id;
+          const u = allUsers.find(x=>x.id===id);
+          if (!u) return alert('المستخدم غير موجود');
+          const newPtsStr = prompt(`تعديل نقاط المستخدم ${u.name||u.email||u.id}\nالنقاط الحالية: ${u.points||0}\nاكتب القيمة الجديدة (رقم):`, u.points||0);
+          if (newPtsStr === null) return;
+          const newPts = Number(newPtsStr);
+          if (isNaN(newPts)) return alert('قيمة غير صحيحة');
+          if (!confirm(`هل متأكد من تحديث نقاط ${u.name||u.email} إلى ${newPts}?`)) return;
+          try {
+            // update in firestore
+            const userRef = doc(db, 'users', id);
+            await updateDoc(userRef, { points: newPts });
+            alert('تم التحديث بنجاح ✅');
+            // update local copy and re-render
+            u.points = newPts;
+            applySearchAndRender();
+          } catch (err) {
+            console.error('Update error:', err);
+            alert('فشل التحديث — تأكد من صلاحيات Firestore Rules');
+          }
+        };
+      });
+    }
+
+    function updateColumnVisibility() {
+      colCheckboxes.forEach(cb=>{
+        const col = cb.dataset.col;
+        const checked = cb.checked;
+        document.querySelectorAll('.col-'+col).forEach(el=>{
+          el.style.display = checked ? '' : 'none';
+        });
+      });
+    }
+
+    // ====== Filters ======
+    async function showAllUsers() {
+      currentFilter = 'all';
+      renderUsersTable(allUsers);
+    }
+    async function showActiveUsers() {
+      currentFilter = 'active';
+      const act = computeActiveUsers(allUsers);
+      metricActiveUsersVal.textContent = act.length;
+      renderUsersTable(act);
+    }
+    async function showTop20() {
+      currentFilter = 'top20';
+      const sorted = [...allUsers].sort((a,b)=> (Number(b.points||0)-Number(a.points||0)));
+      const top20 = sorted.slice(0,20);
+      metricTop20Val.textContent = top20.length;
+      renderUsersTable(top20);
+    }
+
+    // ====== Main loader ======
+    async function loadPageData() {
+      try {
+        // load users
+        const users = await loadAllUsers();
+        // compute and display active users
+        const act = computeActiveUsers(users);
+        metricActiveUsersVal.textContent = act.length;
+        // top20 quick value
+        const sorted = [...users].sort((a,b)=> (Number(b.points||0)-Number(a.points||0)));
+        metricTop20Val.textContent = Math.min(20, sorted.length);
+        // daily stats
+        await computeDailyStats(users);
+        // default render: all users
+        renderUsersTable(users);
+      } catch (err) {
+        console.error('loadPageData failed', err);
+      }
+    }
+
+    // ====== Auth handling ======
+    loginBtn.onclick = async () => {
+      const email = adminEmailInput.value.trim();
+      const pass = adminPassInput.value;
+      if (!email || !pass) return alert('أدخل البريد وكلمة المرور');
+      try {
+        loginBtn.disabled = true; loginBtn.textContent = 'جاري تسجيل الدخول...';
+        await signInWithEmailAndPassword(auth, email, pass);
+      } catch (err) {
+        console.error('login error', err);
+        alert('فشل تسجيل الدخول — تأكد من البيانات');
+      } finally {
+        loginBtn.disabled = false; loginBtn.textContent = 'تسجيل الدخول';
+      }
+    };
+
+    logoutBtn.onclick = async () => {
+      await signOut(auth);
+    };
+
+    onAuthStateChanged(auth, user=>{
+      if (user && user.email === ADMIN_EMAIL) {
+        loginBox.style.display = 'none';
+        logoutBtn.classList.remove('hidden');
+        loadPageData();
+      } else {
+        // show login overlay
+        loginBox.style.display = 'flex';
+        logoutBtn.classList.add('hidden');
+      }
+    });
+
+    // ====== UI wiring ======
+    btnShowAll.onclick = ()=> showAllUsers();
+    btnShowActive.onclick = ()=> showActiveUsers();
+    btnShowTop20.onclick = ()=> showTop20();
+    refreshBtn.onclick = ()=> loadPageData();
+    searchInput.addEventListener('input', ()=> applySearchAndRender());
+    colCheckboxes.forEach(cb => cb.addEventListener('change', updateColumnVisibility));
+
+    // initial column visibility
+    updateColumnVisibility();
+
+    // Auto attempt to load (will show login if not authed)
+    // loadPageData(); // will be called after successful auth
+  </script>
+</body>
+          </html>
