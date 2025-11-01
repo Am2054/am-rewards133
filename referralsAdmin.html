@@ -8,7 +8,7 @@
   <style>
     :root{
       --bg:#070707; --card:#0f0f10; --gold:#f5c542; --muted:#9aa4b2; --text:#eef2f7;
-      --accent:#00fa9a; --blue: #3b82f6; --red: #ef4444; --light-gold: #f5c54233;
+      --accent:#00fa9a; --blue: #3b82f6; --light-gold: #f5c54233; /* إضافة لون إضافي */
     }
     *{box-sizing:border-box}
     body{font-family:"Cairo",sans-serif;background:linear-gradient(180deg,var(--bg),#0b0b0b);color:var(--text);margin:0;padding:16px}
@@ -40,9 +40,29 @@
 
     /* Top Referrers Table Styles */
     #topReferrersTable thead th { background: #0b1113; color: var(--accent); }
-    #topReferrersTable td:last-child, #topReferrersTable td:nth-child(4) { font-weight: 700; color: var(--gold); }
+    #topReferrersTable td:last-child { font-weight: 700; color: var(--gold); }
     #topReferrersTable td:nth-child(3) { font-weight: 700; color: var(--accent); }
     #topReferrersTable td:first-child { font-weight: 900; color: var(--text); }
+    
+    /* Controls & Loader */
+    .controls{display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap; justify-content: flex-start;}
+    .controls input, .controls button{padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#0b1113;color:var(--text);cursor:pointer;}
+    .controls button.btn-primary{background:var(--blue);border-color:var(--blue);color:var(--text);font-weight:700;}
+    .loading-status { display: flex; align-items: center; justify-content: center; padding: 10px; color: var(--muted); }
+    .loader {
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top: 4px solid var(--accent);
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      margin-left: 8px; 
+    }
+    .hidden { display: none !important; }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
     
     /* Sorting Buttons Styles */
     .sort-controls button {
@@ -60,25 +80,6 @@
         font-weight: 700;
         border-color: var(--gold);
     }
-    
-    /* Modal Styles */
-    .modal {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-      background-color: rgba(0, 0, 0, 0.85); display: flex; 
-      justify-content: center; align-items: center; z-index: 1000;
-      backdrop-filter: blur(5px);
-    }
-    .modal-content {
-      background: var(--card); padding: 30px; border-radius: 15px; 
-      width: 90%; max-width: 800px; max-height: 90%; overflow-y: auto;
-      border: 1px solid var(--light-gold);
-      position: relative;
-    }
-    .modal-close {
-      position: absolute; top: 10px; left: 15px; font-size: 28px; 
-      color: var(--muted); cursor: pointer; transition: color 0.2s;
-    }
-    .modal-close:hover { color: var(--red); }
   </style>
 </head>
 <body>
@@ -116,11 +117,10 @@
                         <th>كود المُحيل</th>
                         <th>عدد الإحالات</th>
                         <th>إجمالي النقاط المكتسبة</th>
-                        <th>التفاصيل</th>
                     </tr>
                 </thead>
                 <tbody id="topReferrersTableBody">
-                    <tr><td colspan="5" class="no-data">جاري تحديد أفضل المحيلين...</td></tr>
+                    <tr><td colspan="4" class="no-data">جاري تحديد أفضل المحيلين...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -161,25 +161,6 @@
       آخر تحديث: <span id="lastUpdated">--:--</span>
     </p>
   </div>
-  
-  <div id="detailsModal" class="modal hidden">
-    <div class="modal-content">
-      <span class="modal-close" id="closeModal">&times;</span>
-      <h3 style="color: var(--gold); margin-top: 0;">تفاصيل المحيل: <span id="modalReferrerCode"></span></h3>
-      
-      <div id="modalContentBody">
-        <p style="color: var(--muted); text-align: center; padding: 20px;">
-          هذا الجزء مخصص لعرض التفاصيل الخاصة بالمحيل. 
-          تم حذف منطق جلب بيانات المدعوين ومهامهم بناءً على طلبك.
-        </p>
-        <p style="color: var(--accent); text-align: center;">
-          يمكنك الآن إضافة المنطق الجديد الذي تريده لعرض التفاصيل هنا.
-        </p>
-      </div>
-
-    </div>
-  </div>
-
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -187,8 +168,8 @@
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     
     const DEFAULT_REWARD_VALUE = 50; 
-    let currentSort = 'points';
-    let allReferrerData = []; 
+    let currentSort = 'points'; // لتتبع حالة الفرز الحالية
+    let allReferrerData = []; // لتخزين البيانات الأساسية للمحيلين
 
     // ====== إعدادات Firebase ======
     const firebaseConfig = {
@@ -219,13 +200,9 @@
     const searchInput = document.getElementById('searchReferral'); 
     const lastUpdatedEl = document.getElementById('lastUpdated'); 
     
+    // عناصر الأزرار الجديدة
     const sortByPointsBtn = document.getElementById('sortByPointsBtn');
     const sortByCountBtn = document.getElementById('sortByCountBtn');
-    
-    const detailsModal = document.getElementById('detailsModal');
-    const closeModalBtn = document.getElementById('closeModal');
-    const modalReferrerCodeEl = document.getElementById('modalReferrerCode');
-    const modalContentBody = document.getElementById('modalContentBody');
 
     // ====== Helpers ======
     function formatNumber(n) { return Number(n || 0).toLocaleString('en-US'); }
@@ -253,8 +230,13 @@
         }
     }
 
-    // ====== وظيفة عرض جدول Top 20 ======
+    // ====== وظيفة عرض جدول Top 20 (مع إضافة خيار الفرز) ======
     function renderTopReferrers(referrerData, rewardValue, sortBy) {
+        if (referrerData.length === 0) {
+            topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data">لا توجد بيانات كافية لتحديد أفضل المحيلين.</td></tr>';
+            return;
+        }
+
         topReferrersTableBody.innerHTML = '';
         
         const rankedData = referrerData.map(item => ({
@@ -263,9 +245,10 @@
             totalPoints: item.count * rewardValue
         }));
 
+        // 🥇 الترتيب حسب الخيار المحدد
         if (sortBy === 'points') {
             rankedData.sort((a, b) => b.totalPoints - a.totalPoints);
-        } else { 
+        } else { // الفرز حسب عدد الإحالات
             rankedData.sort((a, b) => b.count - a.count);
         }
         
@@ -278,15 +261,10 @@
                 <td>${item.code}</td>
                 <td>${formatNumber(item.count)}</td>
                 <td>${formatNumber(item.totalPoints)}</td>
-                <td>
-                    <button class="btn-primary" style="background:var(--blue); font-size: 12px; padding: 6px 10px;" 
-                            onclick="showReferrerDetails('${item.code}')">
-                        التفاصيل
-                    </button>
-                </td>
             `;
         });
         
+        // تحديث حالة الأزرار
         sortByPointsBtn.classList.remove('active');
         sortByCountBtn.classList.remove('active');
         if (sortBy === 'points') {
@@ -305,7 +283,7 @@
         totalReferralsEl.textContent = 0;
         totalRewardPointsEl.textContent = 0;
         referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data">جاري تحميل البيانات...</td></tr>';
-        topReferrersTableBody.innerHTML = '<tr><td colspan="5" class="no-data">جاري تحديد أفضل المحيلين...</td></tr>';
+        topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data">جاري تحديد أفضل المحيلين...</td></tr>';
         
         const rewardValue = await getReferralRewardValue();
         
@@ -339,21 +317,26 @@
                 referrerCounts[referrerCode] = (referrerCounts[referrerCode] || 0) + 1;
             });
 
+            // تحديث الإحصائيات الرئيسية باستخدام القيمة الدقيقة
             totalReferralsEl.textContent = formatNumber(totalReferrals);
             totalRewardPointsEl.textContent = formatNumber(totalReferrals * rewardValue); 
             
+            // تجهيز بيانات Top 20 وتخزينها
             allReferrerData = Object.entries(referrerCounts).map(([code, count]) => ({
                 code,
                 count
             }));
 
+            // عرض جدول Top 20 (باستخدام حالة الفرز الحالية)
             renderTopReferrers(allReferrerData, rewardValue, currentSort);
+
+            // عرض جدول السجل التفصيلي
             renderTable(referralEvents);
 
         } catch (error) {
             console.error("Firebase Fetch Error:", error);
             referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data error" style="color:red;">❌ فشل جلب بيانات السجل.</td></tr>';
-            topReferrersTableBody.innerHTML = '<tr><td colspan="5" class="no-data error" style="color:red;">❌ فشل جلب بيانات المحيلين.</td></tr>';
+            topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data error" style="color:red;">❌ فشل جلب بيانات المحيلين.</td></tr>';
 
         } finally {
             loadingSpinner.classList.add('hidden');
@@ -382,26 +365,6 @@
             `;
         });
     }
-    
-    // ====== وظيفة عرض التفاصيل الجديدة (بسيطة) ======
-    function showReferrerDetails(referrerCode) {
-        modalReferrerCodeEl.textContent = referrerCode;
-        
-        // محتوى بسيط بعد حذف منطق جلب البيانات
-        modalContentBody.innerHTML = `
-            <p style="color: var(--muted); text-align: center; padding: 20px;">
-                تم فتح نافذة التفاصيل بنجاح لكود المحيل **${referrerCode}**.
-            </p>
-            <p style="color: var(--accent); text-align: center;">
-                يمكنك إضافة المنطق المطلوب (مثل البحث عن بيانات أخرى في Firestore) هنا الآن.
-            </p>
-        `;
-
-        detailsModal.classList.remove('hidden');
-    }
-    window.showReferrerDetails = showReferrerDetails;
-    
-    // ====== تفاعلات DOM ======
 
     // تفعيل خاصية البحث اللحظي
     searchInput.addEventListener("input", e => {
@@ -412,25 +375,17 @@
       });
     });
 
-    // تفعيل أزرار التبديل
+    // ====== تفاعلات أزرار الفرز ======
     sortByPointsBtn.addEventListener('click', () => {
+        // نحتاج قيمة المكافأة لإعادة الحساب والفرز
         const rewardValue = totalRewardPointsEl.textContent.replace(/,/g, '') / totalReferralsEl.textContent.replace(/,/g, '') || DEFAULT_REWARD_VALUE;
         renderTopReferrers(allReferrerData, rewardValue, 'points');
     });
 
     sortByCountBtn.addEventListener('click', () => {
+        // نحتاج قيمة المكافأة لإعادة الحساب والفرز
         const rewardValue = totalRewardPointsEl.textContent.replace(/,/g, '') / totalReferralsEl.textContent.replace(/,/g, '') || DEFAULT_REWARD_VALUE;
         renderTopReferrers(allReferrerData, rewardValue, 'count');
-    });
-    
-    // إغلاق النافذة المنبثقة
-    closeModalBtn.addEventListener('click', () => {
-        detailsModal.classList.add('hidden');
-    });
-    detailsModal.addEventListener('click', (e) => {
-        if (e.target === detailsModal) {
-            detailsModal.classList.add('hidden');
-        }
     });
 
     // ====== التفعيل ======
