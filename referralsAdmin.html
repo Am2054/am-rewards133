@@ -8,7 +8,7 @@
   <style>
     :root{
       --bg:#070707; --card:#0f0f10; --gold:#f5c542; --muted:#9aa4b2; --text:#eef2f7;
-      --accent:#00fa9a; --blue: #3b82f6;
+      --accent:#00fa9a; --blue: #3b82f6; --red: #ef4444; --light-gold: #f5c54233;
     }
     *{box-sizing:border-box}
     body{font-family:"Cairo",sans-serif;background:linear-gradient(180deg,var(--bg),#0b0b0b);color:var(--text);margin:0;padding:16px}
@@ -40,29 +40,52 @@
 
     /* Top Referrers Table Styles */
     #topReferrersTable thead th { background: #0b1113; color: var(--accent); }
-    #topReferrersTable td:last-child { font-weight: 700; color: var(--gold); }
+    #topReferrersTable td:last-child, #topReferrersTable td:nth-child(4) { font-weight: 700; color: var(--gold); }
     #topReferrersTable td:nth-child(3) { font-weight: 700; color: var(--accent); }
     #topReferrersTable td:first-child { font-weight: 900; color: var(--text); }
     
-    /* Controls & Loader */
-    .controls{display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap; justify-content: flex-start;}
-    .controls input, .controls button{padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#0b1113;color:var(--text);cursor:pointer;}
-    .controls button.btn-primary{background:var(--blue);border-color:var(--blue);color:var(--text);font-weight:700;}
-    .loading-status { display: flex; align-items: center; justify-content: center; padding: 10px; color: var(--muted); }
-    .loader {
-      border: 4px solid rgba(255, 255, 255, 0.1);
-      border-top: 4px solid var(--accent);
-      border-radius: 50%;
-      width: 20px;
-      height: 20px;
-      animation: spin 1s linear infinite;
-      margin-left: 8px; 
+    /* Sorting Buttons Styles */
+    .sort-controls button {
+        background: var(--card);
+        color: var(--muted);
+        border: 1px solid rgba(245,197,66,0.12);
+        padding: 8px 15px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
     }
-    .hidden { display: none !important; }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+    .sort-controls button.active {
+        background: var(--gold);
+        color: var(--bg);
+        font-weight: 700;
+        border-color: var(--gold);
     }
+    
+    /* Modal Styles */
+    .modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background-color: rgba(0, 0, 0, 0.85); display: flex; 
+      justify-content: center; align-items: center; z-index: 1000;
+      backdrop-filter: blur(5px);
+    }
+    .modal-content {
+      background: var(--card); padding: 30px; border-radius: 15px; 
+      width: 90%; max-width: 800px; max-height: 90%; overflow-y: auto;
+      border: 1px solid var(--light-gold);
+      position: relative;
+    }
+    .modal-close {
+      position: absolute; top: 10px; left: 15px; font-size: 28px; 
+      color: var(--muted); cursor: pointer; transition: color 0.2s;
+    }
+    .modal-close:hover { color: var(--red); }
+
+    /* Modal List Styles */
+    .referred-list { list-style: none; padding: 0; margin-top: 15px; }
+    .referred-item { background: #1a1a1a; padding: 15px; margin-bottom: 10px; border-radius: 8px; }
+    .referred-item strong { color: var(--accent); }
+    .task-details { margin-top: 10px; padding: 10px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+    .task-details p { margin: 5px 0; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -84,7 +107,13 @@
     </div>
     
     <div class="card">
-        <h2 style="margin-top:0; text-align: center;">💰 أفضل 20 مُحيل (حسب النقاط المكتسبة)</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2 style="margin:0; text-align: right;">🏆 أفضل 20 مُحيل</h2>
+            <div class="sort-controls" id="sortControls">
+                <button id="sortByPointsBtn" class="active">حسب النقاط</button>
+                <button id="sortByCountBtn">حسب الإحالات</button>
+            </div>
+        </div>
         
         <div class="table-container">
             <table class="referrals-table" id="topReferrersTable">
@@ -94,10 +123,11 @@
                         <th>كود المُحيل</th>
                         <th>عدد الإحالات</th>
                         <th>إجمالي النقاط المكتسبة</th>
+                        <th>التفاصيل</th>
                     </tr>
                 </thead>
                 <tbody id="topReferrersTableBody">
-                    <tr><td colspan="4" class="no-data">جاري تحديد أفضل المحيلين...</td></tr>
+                    <tr><td colspan="5" class="no-data">جاري تحديد أفضل المحيلين...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -138,13 +168,28 @@
       آخر تحديث: <span id="lastUpdated">--:--</span>
     </p>
   </div>
+  
+  <div id="detailsModal" class="modal hidden">
+    <div class="modal-content">
+      <span class="modal-close" id="closeModal">&times;</span>
+      <h3 style="color: var(--gold); margin-top: 0;">تفاصيل المحيل: <span id="modalReferrerCode"></span></h3>
+      <p style="color: var(--muted);">جاري جلب بيانات المدعوين ومهامهم...</p>
+      
+      <div id="modalContentBody">
+        </div>
+
+    </div>
+  </div>
+
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     
     const DEFAULT_REWARD_VALUE = 50; 
+    let currentSort = 'points'; // حالة الترتيب الحالية: 'points' أو 'count'
+    let allReferrerData = []; // لتخزين البيانات الأساسية للمحيلين
 
     // ====== إعدادات Firebase ======
     const firebaseConfig = {
@@ -174,6 +219,14 @@
     const refreshBtn = document.getElementById('refreshBtn');
     const searchInput = document.getElementById('searchReferral'); 
     const lastUpdatedEl = document.getElementById('lastUpdated'); 
+    
+    const sortByPointsBtn = document.getElementById('sortByPointsBtn');
+    const sortByCountBtn = document.getElementById('sortByCountBtn');
+    
+    const detailsModal = document.getElementById('detailsModal');
+    const closeModalBtn = document.getElementById('closeModal');
+    const modalReferrerCodeEl = document.getElementById('modalReferrerCode');
+    const modalContentBody = document.getElementById('modalContentBody');
 
     // ====== Helpers ======
     function formatNumber(n) { return Number(n || 0).toLocaleString('en-US'); }
@@ -184,7 +237,7 @@
         return null;
     }
 
-    // ====== دالة جلب قيمة المكافأة (تمت استعادتها) ======
+    // ====== دالة جلب قيمة المكافأة ======
     async function getReferralRewardValue() {
         try {
             const usersSnap = await getDocs(query(collection(db, 'users')));
@@ -201,24 +254,23 @@
         }
     }
 
-    // ====== وظيفة عرض جدول Top 20 (تم الترتيب حسب النقاط) ======
-    function renderTopReferrers(referrerData, rewardValue) {
-        if (referrerData.length === 0) {
-            topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data">لا توجد بيانات كافية لتحديد أفضل المحيلين.</td></tr>';
-            return;
-        }
-
+    // ====== وظيفة عرض جدول Top 20 ======
+    function renderTopReferrers(referrerData, rewardValue, sortBy) {
         topReferrersTableBody.innerHTML = '';
         
         const rankedData = referrerData.map(item => ({
             code: item.code,
             count: item.count,
-            // الحساب الدقيق لإجمالي النقاط
-            totalPoints: item.count * rewardValue 
+            totalPoints: item.count * rewardValue
         }));
 
-        // 🥇 الترتيب حسب النقاط المكتسبة (TotalPoints) تنازلياً
-        rankedData.sort((a, b) => b.totalPoints - a.totalPoints);
+        // الترتيب حسب الزر المضغوط
+        if (sortBy === 'points') {
+            rankedData.sort((a, b) => b.totalPoints - a.totalPoints);
+        } else { // sortBy === 'count'
+            rankedData.sort((a, b) => b.count - a.count);
+        }
+        
         const top20 = rankedData.slice(0, 20);
 
         top20.forEach((item, index) => {
@@ -228,8 +280,24 @@
                 <td>${item.code}</td>
                 <td>${formatNumber(item.count)}</td>
                 <td>${formatNumber(item.totalPoints)}</td>
+                <td>
+                    <button class="btn-primary" style="background:var(--blue); font-size: 12px; padding: 6px 10px;" 
+                            onclick="showReferrerDetails('${item.code}')">
+                        التفاصيل
+                    </button>
+                </td>
             `;
         });
+        
+        // تحديث حالة الأزرار
+        sortByPointsBtn.classList.remove('active');
+        sortByCountBtn.classList.remove('active');
+        if (sortBy === 'points') {
+            sortByPointsBtn.classList.add('active');
+        } else {
+            sortByCountBtn.classList.add('active');
+        }
+        currentSort = sortBy;
     }
 
     // ====== وظيفة جلب وعرض البيانات الرئيسية ======
@@ -240,9 +308,8 @@
         totalReferralsEl.textContent = 0;
         totalRewardPointsEl.textContent = 0;
         referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data">جاري تحميل البيانات...</td></tr>';
-        topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data">جاري تحديد أفضل المحيلين...</td></tr>';
+        topReferrersTableBody.innerHTML = '<tr><td colspan="5" class="no-data">جاري تحديد أفضل المحيلين...</td></tr>';
         
-        // 1. جلب قيمة المكافأة الدقيقة
         const rewardValue = await getReferralRewardValue();
         
         try {
@@ -275,18 +342,18 @@
                 referrerCounts[referrerCode] = (referrerCounts[referrerCode] || 0) + 1;
             });
 
-            // 2. تحديث الإحصائيات الرئيسية باستخدام القيمة الدقيقة
+            // 2. تحديث الإحصائيات الرئيسية
             totalReferralsEl.textContent = formatNumber(totalReferrals);
             totalRewardPointsEl.textContent = formatNumber(totalReferrals * rewardValue); 
             
-            // 3. تجهيز بيانات Top 20
-            const referrerData = Object.entries(referrerCounts).map(([code, count]) => ({
+            // 3. تجهيز بيانات Top 20 وتخزينها
+            allReferrerData = Object.entries(referrerCounts).map(([code, count]) => ({
                 code,
                 count
             }));
 
-            // 4. عرض جدول Top 20 (المرتب حسب النقاط)
-            renderTopReferrers(referrerData, rewardValue);
+            // 4. عرض جدول Top 20
+            renderTopReferrers(allReferrerData, rewardValue, currentSort);
 
             // 5. عرض جدول السجل التفصيلي
             renderTable(referralEvents);
@@ -294,7 +361,7 @@
         } catch (error) {
             console.error("Firebase Fetch Error:", error);
             referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data error" style="color:red;">❌ فشل جلب بيانات السجل.</td></tr>';
-            topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data error" style="color:red;">❌ فشل جلب بيانات المحيلين.</td></tr>';
+            topReferrersTableBody.innerHTML = '<tr><td colspan="5" class="no-data error" style="color:red;">❌ فشل جلب بيانات المحيلين.</td></tr>';
 
         } finally {
             loadingSpinner.classList.add('hidden');
@@ -323,6 +390,81 @@
             `;
         });
     }
+    
+    // ====== 3. وظيفة عرض التفاصيل ======
+    async function showReferrerDetails(referrerCode) {
+        modalReferrerCodeEl.textContent = referrerCode;
+        modalContentBody.innerHTML = '<p style="text-align:center; color: var(--gold);">جاري جلب البيانات...</p>';
+        detailsModal.classList.remove('hidden');
+
+        try {
+            // 1. جلب بيانات المدعوين (users) الذين استخدموا هذا الكود
+            const usersColRef = collection(db, 'users');
+            const usersQuery = query(usersColRef, where('referrerCode', '==', referrerCode));
+            const usersSnap = await getDocs(usersQuery);
+
+            let htmlContent = '';
+            
+            if (usersSnap.empty) {
+                htmlContent = `<p style="color: var(--muted);">لم يتم العثور على أي مدعوين باستخدام الكود: ${referrerCode}</p>`;
+            } else {
+                let referredListHTML = '<ul class="referred-list">';
+                
+                // 2. تكرار على كل مدعو للحصول على تفاصيل مهامه
+                for (const userDoc of usersSnap.docs) {
+                    const userData = userDoc.data();
+                    const userEmail = userData.email || 'غير متوفر';
+                    const userUID = userDoc.id; // UID المستخدم هو اسم المستند
+
+                    referredListHTML += `<li class="referred-item">
+                        <strong>الإيميل:</strong> ${userEmail}
+                    `;
+                    
+                    // جلب تفاصيل مهام المدعو
+                    const tasksColRef = collection(db, 'users', userUID, 'tasks');
+                    const tasksSnap = await getDocs(tasksColRef);
+
+                    let taskDetailsHTML = '';
+                    let totalTasks = 0;
+
+                    if (!tasksSnap.empty) {
+                        taskDetailsHTML += '<div class="task-details">';
+                        tasksSnap.forEach(taskDoc => {
+                            const taskData = taskDoc.data();
+                            const taskName = taskData.taskName || 'مهمة غير مسماة';
+                            const taskStatus = taskData.status || 'غير محدد';
+                            const taskType = taskData.type || 'عام';
+                            
+                            taskDetailsHTML += `<p>
+                                <strong>${taskName}</strong> 
+                                (<span style="color: var(--gold);">${taskType}</span>): 
+                                الحالة: ${taskStatus}
+                            </p>`;
+                            totalTasks++;
+                        });
+                        taskDetailsHTML += `</div><p style="font-size: 14px; color: var(--blue);">إجمالي المهام المكتملة/الموجودة: ${totalTasks}</p>`;
+                    } else {
+                        taskDetailsHTML = `<p class="task-details" style="color: var(--muted);">لا توجد مهام مسجلة لهذا المستخدم.</p>`;
+                    }
+
+                    referredListHTML += taskDetailsHTML + '</li>';
+                }
+
+                referredListHTML += '</ul>';
+                htmlContent = referredListHTML;
+            }
+
+            modalContentBody.innerHTML = htmlContent;
+
+        } catch (error) {
+            console.error("Error fetching referrer details:", error);
+            modalContentBody.innerHTML = `<p style="color: var(--red);">❌ حدث خطأ أثناء جلب التفاصيل. يرجى التحقق من اتصال Firebase. (الخطأ: ${error.message})</p>`;
+        }
+    }
+    // جعل الدالة متاحة عالميًا ليتم استدعاؤها من زر HTML
+    window.showReferrerDetails = showReferrerDetails;
+    
+    // ====== تفاعلات DOM ======
 
     // تفعيل خاصية البحث اللحظي
     searchInput.addEventListener("input", e => {
@@ -331,6 +473,27 @@
       rows.forEach(r => {
         r.style.display = r.textContent.toLowerCase().includes(q) ? "" : "none";
       });
+    });
+
+    // 1. تفعيل أزرار التبديل
+    sortByPointsBtn.addEventListener('click', () => {
+        const rewardValue = totalRewardPointsEl.textContent.replace(/,/g, '') / totalReferralsEl.textContent.replace(/,/g, '') || DEFAULT_REWARD_VALUE;
+        renderTopReferrers(allReferrerData, rewardValue, 'points');
+    });
+
+    sortByCountBtn.addEventListener('click', () => {
+        const rewardValue = totalRewardPointsEl.textContent.replace(/,/g, '') / totalReferralsEl.textContent.replace(/,/g, '') || DEFAULT_REWARD_VALUE;
+        renderTopReferrers(allReferrerData, rewardValue, 'count');
+    });
+    
+    // إغلاق النافذة المنبثقة
+    closeModalBtn.addEventListener('click', () => {
+        detailsModal.classList.add('hidden');
+    });
+    detailsModal.addEventListener('click', (e) => {
+        if (e.target === detailsModal) {
+            detailsModal.classList.add('hidden');
+        }
     });
 
     // ====== التفعيل ======
