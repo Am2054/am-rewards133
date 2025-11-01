@@ -109,36 +109,41 @@
   
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, orderBy, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     
     // =======================================================
     // ====== ⚠️  تحديث الإعدادات هنا ببيانات مشروعك الحقيقية ⚠️ ======
+    // (تم نسخ الإعدادات من الكود الذي يعمل لديك)
     // =======================================================
     
     const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
-      authDomain: "am--rewards.firebaseapp.com",      
-      projectId: "am--rewards",                        
-      // ... باقي الإعدادات
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.firebasestorage.app",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112",
+      measurementId: "G-CV3GLT2TTJ"
     };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app); 
 
     const ADMIN_EMAIL = "amirfg992005@gmail.com"; 
+    // التأكد من أن المستخدم مدير قبل تحميل البيانات
     onAuthStateChanged(auth, user => {
         if (!user || user.email !== ADMIN_EMAIL) {
-            console.warn("Access restricted to admin email.");
+            console.warn("Access restricted or user not logged in as admin.");
+            // يمكنك توجيه المستخدم لصفحة الدخول هنا إذا لم يكن مسجلاً
         }
     });
-
-    let allWithdrawalsData = [];
 
     // ====== عناصر DOM ======
     const loadingStatusEl = document.getElementById('loadingStatus');
 
-    // العناصر الجديدة/المصححة للإحصائيات
+    // العناصر الخاصة بالإحصائيات
     const totalPaidAmountEl = document.getElementById('totalPaidAmount');
     const totalPendingCountEl = document.getElementById('totalPendingCount');
     const totalPendingAmountEl = document.getElementById('totalPendingAmount');
@@ -151,21 +156,13 @@
     
     function formatCurrency(n) { 
         const egp = (n || 0); 
-        // نستخدم 'ar-EG' للعرض العربي للجنيه المصري، ونضبط الفواصل
         return `${egp.toLocaleString('ar-EG', { minimumFractionDigits: 2 })} EGP`; 
     }
     
     function showLoading() { loadingStatusEl.style.display = 'flex'; }
     function hideLoading() { loadingStatusEl.style.display = 'none'; }
     
-    function toDateSafe(ts) {
-        if (ts && ts.toDate) return ts.toDate();
-        if (ts && ts.seconds) return new Date(ts.seconds * 1000); 
-        return null;
-    }
-
-
-    // ====== دالة جلب البيانات وتحديث الإحصائيات ======
+    // ====== دالة جلب البيانات وتحديث الإحصائيات (المنطق الذي يعمل في كودك) ======
     async function fetchWithdrawalsData() {
         showLoading();
         
@@ -176,60 +173,45 @@
         totalCompletedCountEl.textContent = '0';
 
         try {
-            const withdrawalsColRef = collection(db, 'withdrawals');
-            // هنا لا نحتاج لـ orderBy، لكن نتركها query عادية
-            const q = query(withdrawalsColRef); 
-            const withdrawalsSnapshot = await getDocs(q);
-            
-            const rawWithdrawals = withdrawalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            // ⚡️ جلب السحوبات المكتملة والمعلقة مباشرة من Firebase
+            const [
+                completedSnap,
+                pendingSnap
+            ] = await Promise.all([
+                getDocs(query(collection(db, "withdrawals"), where("status", "==", "Completed"))),
+                getDocs(query(collection(db, "withdrawals"), where("status", "==", "Pending")))
+            ]);
 
-            const userIds = [...new Set(rawWithdrawals.map(w => w.userId).filter(id => id))];
-            
-            const usersMap = {};
-            if (userIds.length > 0) {
-                 const usersColRef = collection(db, 'users');
-                 // جلب بيانات المستخدمين بشكل متوازٍ (للتأكد من وجود الإذن)
-                 const userPromises = userIds.map(async (uid) => {
-                    const userDoc = await getDoc(doc(usersColRef, uid));
-                    if (userDoc.exists()) {
-                        usersMap[uid] = userDoc.data();
-                    }
-                 });
-                 await Promise.all(userPromises); 
-            }
-            
-            allWithdrawalsData = rawWithdrawals.map(data => {
-                
-                const amount = Number(data.amount) || 0; 
-                const net = Number(data.net) || amount; 
-                const pts = Number(data.pts || data.points) || 0;       
-                
-                return { 
-                    id: data.id,
-                    ...data,
-                    points: pts,
-                    amount: amount,
-                    netAmount: net, 
-                    status: data.status || 'Pending',
-                };
+
+            // --- 1. حساب المبالغ المدفوعة (Completed) ---
+            let totalPaid = 0;
+            completedSnap.forEach(doc => {
+                // نستخدم doc.data().net كما في كودك الرئيسي
+                const netAmount = doc.data().net ? Number(doc.data().net) : 0;
+                totalPaid += netAmount;
             });
-            
-            // 💡 حساب وتحديث الإحصائيات
-            const completed = allWithdrawalsData.filter(x => x.status === 'Completed');
-            const pending = allWithdrawalsData.filter(x => x.status === 'Pending');
+            const completedCount = completedSnap.size;
 
-            const totalPaid = completed.reduce((s, it) => s + it.netAmount, 0);
-            const pendingAmount = pending.reduce((s, it) => s + it.netAmount, 0);
 
-            // ربط الأرقام المحسوبة بعناصر DOM
+            // --- 2. حساب المبالغ المعلقة (Pending) ---
+            let pendingAmount = 0;
+            pendingSnap.forEach(doc => {
+                // نستخدم doc.data().net كما في كودك الرئيسي
+                const netAmount = doc.data().net ? Number(doc.data().net) : 0;
+                pendingAmount += netAmount;
+            });
+            const pendingCount = pendingSnap.size;
+
+
+            // 💡 تحديث عناصر DOM
             totalPaidAmountEl.textContent = formatCurrency(totalPaid);
-            totalPendingCountEl.textContent = formatNumber(pending.length);
+            totalPendingCountEl.textContent = formatNumber(pendingCount);
             totalPendingAmountEl.textContent = formatCurrency(pendingAmount);
-            totalCompletedCountEl.textContent = formatNumber(completed.length);
+            totalCompletedCountEl.textContent = formatNumber(completedCount);
             
 
         } catch (error) {
-            console.error("Firebase Fetch Error (withdrawals/users):", error);
+            console.error("Firebase Fetch Error (Withdrawals Status):", error);
             alert("❌ فشل جلب البيانات. قد تكون مشكلة في قواعد أمان Firestore.");
         } finally {
             hideLoading();
