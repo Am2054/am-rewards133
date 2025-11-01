@@ -225,8 +225,7 @@
     // ====== ⚠️  تحديث الإعدادات هنا ببيانات مشروعك الحقيقية ⚠️ ======
     // =======================================================
     
-    // **سعر الصرف: 1 دولار مقابل الجنيه المصري (عدّل القيمة حسب السعر الحالي)**
-    const EXCHANGE_RATE = 48; 
+    // 💡 تم حذف سعر الصرف لأن القيم تعتبر بالجنيه المصري بالفعل.
     
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", // استبدل
@@ -238,13 +237,12 @@
     const db = getFirestore(app);
     const auth = getAuth(app); 
 
-    // 🔐 تحسين الأمان (تأكد أن الإيميل في قواعد أمان Firestore مطابق لهذا الإيميل)
+    // 🔐 إيميل المشرف لتحديد صلاحية الوصول
     const ADMIN_EMAIL = "amirfg992005@gmail.com"; 
 
     onAuthStateChanged(auth, user => {
         if (!user || user.email !== ADMIN_EMAIL) {
             console.warn("Access restricted to admin email.");
-            // يمكنك إضافة: window.location.href = "login.html";
         }
     });
 
@@ -281,9 +279,9 @@
     // ====== Helpers ======
     function formatNumber(n) { return Number(n || 0).toLocaleString('en-US'); }
     
-    // دالة مُعدّلة لعرض العملة بالجنيه المصري
+    // 💡 دالة لتنسيق الرقم كجنيه مصري فقط
     function formatCurrency(n) { 
-        const egp = (n || 0) * EXCHANGE_RATE;
+        const egp = (n || 0); 
         // عرض الرقم بصيغة الجنيه المصري
         return `${egp.toLocaleString('ar-EG', { minimumFractionDigits: 2 })} EGP`; 
     }
@@ -312,13 +310,13 @@
         
         try {
             const withdrawalsColRef = collection(db, 'withdrawals');
-            // الترتيب حسب تاريخ الطلب تنازلياً (الأحدث أولاً)
+            // الاستعلام من مجموعة 'withdrawals'
             const q = query(withdrawalsColRef, orderBy('date', 'desc'));
             const snapshot = await getDocs(q);
             
             allWithdrawalsData = snapshot.docs.map(doc => {
                 const data = doc.data();
-                // التأكد من أن 'amount' قيمة رقمية (في Firestore يجب أن تكون Number)
+                // التأكد أن 'amount' قيمة رقمية (في Firestore يجب أن تكون Number)
                 const amount = Number(data.amount) || 0; 
                 
                 return { 
@@ -330,7 +328,7 @@
                     amount: amount,
                     uid: data.uid || 'N/A', 
                     email: data.email || 'N/A', 
-                    // إضافة القيمة بالجنيه لتسهيل العرض في الـ Modal
+                    // عرض القيمة المنسقة بالجنيه
                     amountEGP: formatCurrency(amount) 
                 };
             });
@@ -341,7 +339,9 @@
         } catch (error) {
             console.error("Firebase Fetch Error (withdrawals):", error);
             allWithdrawalsData = [];
-            withdrawalsTableBody.innerHTML = '<tr><td colspan="8" class="no-data error" style="color:red;">❌ فشل جلب بيانات السحوبات. تحقق من (1) إعدادات Firebase (2) قواعد الأمان (3) الاتصال بالإنترنت.</td></tr>';
+            withdrawalsTableBody.innerHTML = `<tr><td colspan="8" class="no-data error" style="color:red; font-weight:700; padding: 20px;">
+                ❌ فشل جلب بيانات السحوبات. الأسباب المحتملة: (1) لم تُحدّث إعدادات Firebase في الكود. (2) قواعد أمان Firestore لا تسمح بالقراءة. (3) لست مسجلاً الدخول كـ ${ADMIN_EMAIL}.
+            </td></tr>`;
         } finally {
             applyFilters();
             hideLoading();
@@ -407,7 +407,7 @@
             row.innerHTML = `
                 <td>${w.uid}</td>
                 <td>${w.email}</td>
-                <td>${formatCurrency(w.amount)}</td>
+                <td>${w.amountEGP}</td>
                 <td>${formatNumber(w.points)}</td>
                 <td>${w.method || 'N/A'}</td>
                 <td>${w.dateFormatted}</td>
@@ -429,7 +429,7 @@
         modalIDEl.textContent = id;
         modalUIDEl.textContent = w.uid;
         modalEmailEl.textContent = w.email;
-        modalAmountEl.textContent = w.amountEGP; // عرض القيمة المحولة
+        modalAmountEl.textContent = w.amountEGP; // عرض القيمة المنسقة
         modalPointsEl.textContent = formatNumber(w.points);
         modalMethodEl.textContent = w.method || 'N/A';
         modalPaymentDetailsEl.textContent = w.details || 'لا توجد تفاصيل دفع إضافية.';
