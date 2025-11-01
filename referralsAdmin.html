@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>إدارة الإحالات — Am Rewards</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <style>
     :root{
       --bg:#070707; --card:#0f0f10; --gold:#f5c542; --muted:#9aa4b2; --text:#eef2f7;
@@ -45,15 +44,7 @@
     #topReferrersTable td:last-child, #topReferrersTable td:nth-child(3) { font-weight: 700; color: var(--gold); }
     #topReferrersTable td:first-child { font-weight: 900; color: var(--text); }
     
-    /* 📊 Chart container */
-    .chart-box {
-        max-width: 400px; 
-        margin: 20px auto; 
-        padding: 15px; 
-        background: #0f0f10; 
-        border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.3);
-    }
+    /* تم حذف ستايل .chart-box */
 
     /* Controls & Loader */
     .controls{display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap; justify-content: flex-start;}
@@ -97,11 +88,6 @@
     
     <div class="card">
         <h2 style="margin-top:0; text-align: center;">🏆 أعلى 20 مُحيل (حسب الكود)</h2>
-        
-        <div class="chart-box">
-             <canvas id="referralsChart" height="120"></canvas>
-             <p style="color: var(--muted); font-size: 12px; text-align: center; margin-top: 10px;">نسبة الإحالات لأفضل 10 محيلين</p>
-        </div>
         
         <div class="table-container">
             <table class="referrals-table" id="topReferrersTable">
@@ -160,7 +146,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { Chart } from "https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js";
+    // تم حذف استيراد Chart
 
     // ====== إعدادات Firebase ======
     const firebaseConfig = {
@@ -175,14 +161,13 @@
     };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const auth = getAuth(app); // 🔐 لغرض الأمان
+    const auth = getAuth(app); 
 
-    // 🔐 5. تحسين الأمان: حصر الدخول بالإيميل الإداري
+    // 🔐 تحسين الأمان: حصر الدخول بالإيميل الإداري
     onAuthStateChanged(auth, user => {
         if (!user || user.email !== "amirfg992005@gmail.com") {
-            // ملاحظة: قد تحتاج لتسجيل الدخول أولاً ليتم التحقق
             alert("صلاحية الوصول مرفوضة أو لم يتم تسجيل الدخول.");
-            // window.location.href = "index.html";
+            // window.location.href = "index.html"; // تم التعليق لتسهيل الاختبار
         }
     });
 
@@ -194,10 +179,10 @@
     const topReferrersTableBody = document.getElementById('topReferrersTableBody');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const refreshBtn = document.getElementById('refreshBtn');
-    const searchInput = document.getElementById('searchReferral'); // 🔍 حقل البحث
-    const lastUpdatedEl = document.getElementById('lastUpdated'); // 🛠️ تاريخ التحديث
+    const searchInput = document.getElementById('searchReferral'); 
+    const lastUpdatedEl = document.getElementById('lastUpdated'); 
 
-    let topReferralsChart = null; // 📊 متغير للرسم البياني
+    // تم حذف let topReferralsChart = null; 
 
     // ====== Helpers ======
     function formatNumber(n) { return Number(n || 0).toLocaleString('en-US'); }
@@ -210,7 +195,6 @@
 
     // ====== دالة جلب قيمة المكافأة ======
     async function getReferralRewardValue() {
-        // نستخدم نفس المنطق للبحث عن الحقل في أول 100 مستخدم
         try {
             const usersSnap = await getDocs(query(collection(db, 'users')));
             if (!usersSnap.empty) {
@@ -243,11 +227,7 @@
 
         rankedData.sort((a, b) => b.count - a.count);
         const top20 = rankedData.slice(0, 20);
-        const top10ChartData = rankedData.slice(0, 10); // 📊 بيانات لأعلى 10 للرسم
 
-        // 📊 تحديث الرسم البياني
-        updateMiniChart(top10ChartData);
-        
         top20.forEach((item, index) => {
             const row = topReferrersTableBody.insertRow();
             row.innerHTML = `
@@ -259,68 +239,24 @@
         });
     }
 
-    // 📊 دالة تحديث الرسم البياني
-    function updateMiniChart(data) {
-        if (topReferralsChart) {
-            topReferralsChart.destroy();
-        }
-
-        const labels = data.map(item => item.code);
-        const counts = data.map(item => item.count);
-        const backgroundColors = [
-            '#f5c542', '#00fa9a', '#3b82f6', '#ef4444', '#f97316', 
-            '#10b981', '#3b82f6', '#a855f7', '#ec4899', '#facc15'
-        ];
-
-        const ctx = document.getElementById('referralsChart').getContext('2d');
-        topReferralsChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: counts,
-                    backgroundColor: backgroundColors.slice(0, data.length),
-                    borderColor: 'var(--card)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: {
-                            color: 'var(--text)',
-                            font: { family: 'Cairo' }
-                        }
-                    },
-                    title: { display: false },
-                    tooltip: { rtl: true, titleFont: { family: 'Cairo' }, bodyFont: { family: 'Cairo' } }
-                }
-            }
-        });
-    }
+    // تم حذف دالة updateMiniChart 
 
     // ====== وظيفة جلب وعرض البيانات الرئيسية ======
     async function fetchReferralsData() {
-        // عرض حالة التحميل
         loadingSpinner.classList.remove('hidden');
         document.getElementById('loadingStatus').style.display = 'flex';
         
-        // إعادة تعيين الإحصائيات والقوائم
         totalReferralsEl.textContent = 0;
         totalRewardPointsEl.textContent = 0;
         referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data">جاري تحميل البيانات...</td></tr>';
         topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data">جاري تحديد أفضل المحيلين...</td></tr>';
         
-        // 1. جلب قيمة المكافأة
         const rewardValue = await getReferralRewardValue();
         referralPointsValueEl.textContent = formatNumber(rewardValue);
 
         try {
             const logsColRef = collection(db, 'referralLogs'); 
-            // 🧠 1. تحسين الأداء: الفرز بالتاريخ تنازليًا
+            // تحسين الأداء: الفرز بالتاريخ تنازليًا
             const q = query(logsColRef, orderBy('date', 'desc')); 
             const snapshot = await getDocs(q);
 
@@ -349,20 +285,20 @@
                 referrerCounts[referrerCode] = (referrerCounts[referrerCode] || 0) + 1;
             });
 
-            // 2. تحديث الإحصائيات الرئيسية
+            // تحديث الإحصائيات الرئيسية
             totalReferralsEl.textContent = formatNumber(totalReferrals);
             totalRewardPointsEl.textContent = formatNumber(totalReferrals * rewardValue); 
             
-            // 3. تجهيز بيانات Top 20
+            // تجهيز بيانات Top 20
             const referrerData = Object.entries(referrerCounts).map(([code, count]) => ({
                 code,
                 count
             }));
 
-            // 4. عرض جدول Top 20 والرسم البياني
+            // عرض جدول Top 20 
             renderTopReferrers(referrerData, rewardValue);
 
-            // 5. عرض جدول السجل التفصيلي
+            // عرض جدول السجل التفصيلي
             renderTable(referralEvents);
 
         } catch (error) {
@@ -373,7 +309,7 @@
         } finally {
             loadingSpinner.classList.add('hidden');
             document.getElementById('loadingStatus').style.display = 'none';
-            // 🛠️ تحديث تاريخ آخر تحديث
+            // تحديث تاريخ آخر تحديث
             lastUpdatedEl.textContent = new Date().toLocaleString('ar-EG'); 
         }
     }
@@ -399,13 +335,11 @@
         });
     }
 
-    // 🔍 3. تفعيل خاصية البحث اللحظي
+    // تفعيل خاصية البحث اللحظي
     searchInput.addEventListener("input", e => {
       const q = e.target.value.toLowerCase();
-      // نحصل على جميع الصفوف باستثناء صفوف الرأس (tbody)
       const rows = referralsTableBody.querySelectorAll("tr"); 
       rows.forEach(r => {
-        // البحث عن النص داخل محتوى الصف بالكامل
         r.style.display = r.textContent.toLowerCase().includes(q) ? "" : "none";
       });
     });
