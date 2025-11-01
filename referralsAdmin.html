@@ -32,7 +32,13 @@
     .no-data { text-align: center; padding: 20px; color: var(--muted); }
     .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; }
     .status-granted { background: var(--accent); color: var(--bg); }
-    .status-pending { background: var(--blue); color: var(--text); } /* لم نعد نستخدم هذا ولكن نبقيه للتوثيق */
+    .status-pending { background: var(--blue); color: var(--text); } 
+    
+    /* Top 20 Table Styles */
+    #topReferrersTable thead th { background: #0b1113; color: var(--accent); }
+    #topReferrersTable td:last-child, #topReferrersTable td:nth-child(3) { font-weight: 700; color: var(--gold); }
+    #topReferrersTable td:first-child { font-weight: 900; color: var(--text); }
+
 
     /* Controls & Loader */
     .controls{display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap; justify-content: flex-start;}
@@ -65,15 +71,34 @@
     </header>
 
     <div class="card">
-      <h2 style="text-align:center; margin-top:0;">ملخص الإحالات</h2>
+      <h2 style="text-align:center; margin-top:0;">ملخص الإحالات والإعدادات</h2>
       
       <div class="stats">
         <div class="stat-box"><strong id="totalReferrals">0</strong><span>إجمالي الإحالات الناجحة</span></div>
-        <div class="stat-box"><strong id="totalRewardPoints">0</strong><span>إجمالي نقاط المكافأة (تقديري)</span></div>
-        <div class="stat-box"><strong id="topReferrer">-</strong><span>🥇 أعلى كود مُحيل</span></div>
+        <div class="stat-box"><strong id="referralPointsValue">...</strong><span>نقاط مكافأة الإحالة الواحدة</span></div>
+        <div class="stat-box"><strong id="totalRewardPoints">0</strong><span>إجمالي نقاط المكافأة المدفوعة</span></div>
       </div>
     </div>
     
+    <div class="card">
+        <h2 style="margin-top:0;">🏆 أعلى 20 مُحيل (حسب الكود)</h2>
+        <div class="table-container">
+            <table class="referrals-table" id="topReferrersTable">
+                <thead>
+                    <tr>
+                        <th>الترتيب</th>
+                        <th>كود المُحيل</th>
+                        <th>عدد الإحالات</th>
+                        <th>إجمالي النقاط المكتسبة</th>
+                    </tr>
+                </thead>
+                <tbody id="topReferrersTableBody">
+                    <tr><td colspan="4" class="no-data">جاري تحديد أفضل المحيلين...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <div class="card">
         <h2 style="margin-top:0;">سجل الإحالات التفصيلي</h2>
 
@@ -89,7 +114,7 @@
                         <th>كود المُحيل (Code)</th>
                         <th>إيميل المُحال</th>
                         <th>تاريخ التسجيل</th>
-                        <th>نقاط المُحيل (تقديري)</th>
+                        <th>نقاط المُحيل (للإحالة)</th>
                         <th>حالة الإحالة</th>
                     </tr>
                 </thead>
@@ -110,7 +135,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // ====== إعدادات Firebase (يجب أن تتطابق مع ملفاتك الأخرى) ======
+    // ====== إعدادات Firebase (الكاملة والموحدة) ======
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
@@ -127,8 +152,9 @@
     // ====== عناصر DOM ======
     const totalReferralsEl = document.getElementById('totalReferrals');
     const totalRewardPointsEl = document.getElementById('totalRewardPoints');
-    const topReferrerEl = document.getElementById('topReferrer');
+    const referralPointsValueEl = document.getElementById('referralPointsValue');
     const referralsTableBody = document.getElementById('referralsTableBody');
+    const topReferrersTableBody = document.getElementById('topReferrersTableBody');
     const loadingStatusEl = document.getElementById('loadingStatus');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const refreshBtn = document.getElementById('refreshBtn');
@@ -142,19 +168,71 @@
         return null;
     }
 
-    // ====== وظيفة جلب وعرض البيانات ======
+    // ====== دالة جلب قيمة المكافأة ======
+    async function getReferralRewardValue() {
+        try {
+            // 🛑 الافتراض: قيمة المكافأة موجودة في أول مستند من مجموعة users (ربما مستند الإدارة)
+            const usersSnap = await getDocs(collection(db, 'users'));
+            if (!usersSnap.empty) {
+                // نبحث عن أي مستند يحتوي على حقل referralPoints
+                const rewardDoc = usersSnap.docs.find(doc => doc.data().referralPoints !== undefined);
+                if (rewardDoc) {
+                     return rewardDoc.data().referralPoints || 0;
+                }
+            }
+            // إذا لم يتم العثور عليها، نستخدم قيمة افتراضية
+            return 50; 
+        } catch (error) {
+            console.error("Error fetching referral points value:", error);
+            return 50; // قيمة افتراضية في حالة الفشل
+        }
+    }
+
+    // ====== وظيفة عرض جدول Top 20 ======
+    function renderTopReferrers(referrerData, rewardValue) {
+        if (referrerData.length === 0) {
+            topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data">لا توجد بيانات كافية لتحديد أعلى المحيلين.</td></tr>';
+            return;
+        }
+
+        topReferrersTableBody.innerHTML = '';
+        
+        // حساب إجمالي النقاط وفرز البيانات
+        const rankedData = referrerData.map(item => ({
+            code: item.code,
+            count: item.count,
+            totalPoints: item.count * rewardValue
+        }));
+
+        rankedData.sort((a, b) => b.count - a.count); // الفرز حسب عدد الإحالات تنازليًا
+        const top20 = rankedData.slice(0, 20);
+
+        top20.forEach((item, index) => {
+            const row = topReferrersTableBody.insertRow();
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${item.code}</td>
+                <td>${formatNumber(item.count)}</td>
+                <td>${formatNumber(item.totalPoints)}</td>
+            `;
+        });
+    }
+
+    // ====== وظيفة جلب وعرض البيانات الرئيسية ======
     async function fetchReferralsData() {
         loadingSpinner.classList.remove('hidden');
         loadingStatusEl.style.display = 'flex';
         referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data">جاري تحميل البيانات...</td></tr>';
+        topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data">جاري تحديد أفضل المحيلين...</td></tr>';
         
-        // إعادة تعيين الإحصائيات
         totalReferralsEl.textContent = 0;
         totalRewardPointsEl.textContent = 0;
-        topReferrerEl.textContent = '-';
+        
+        // 1. جلب قيمة المكافأة
+        const rewardValue = await getReferralRewardValue();
+        referralPointsValueEl.textContent = formatNumber(rewardValue);
 
         try {
-            // 🛑 تم تعديل اسم المجموعة هنا
             const logsColRef = collection(db, 'referralLogs'); 
             const snapshot = await getDocs(logsColRef);
 
@@ -165,9 +243,8 @@
             snapshot.forEach(doc => {
                 const data = doc.data();
                 
-                // 1. تجميع بيانات الجدول بناءً على الحقول الجديدة
                 const referrerCode = data.referralCode || 'N/A';
-                const referredEmail = data.email || 'N/A'; // استخدام حقل email للمُحال
+                const referredEmail = data.email || 'N/A';
                 
                 const dateObj = toDateSafe(data.date); 
                 const dateString = dateObj ? dateObj.toLocaleDateString('ar-EG') : 'غير متوفر';
@@ -176,44 +253,37 @@
                     referrerCode: referrerCode,
                     referredEmail: referredEmail,
                     date: dateString,
-                    // 🚨 افتراض أن المكافأة هي 50 نقطة (يجب تعديلها إذا كانت مختلفة)
-                    referrerPoints: 50, 
+                    referrerPoints: rewardValue, 
                     status: 'مُكافأة مُنحت' 
                 });
 
-                // 2. تجميع الإحصائيات
                 totalReferrals++;
                 
-                // حساب عدد الإحالات لكل كود (للمحيل الأعلى)
+                // تجميع الإحالات حسب الكود
                 referrerCounts[referrerCode] = (referrerCounts[referrerCode] || 0) + 1;
             });
 
-            // 3. تحديث الإحصائيات
+            // 2. تحديث الإحصائيات الرئيسية
             totalReferralsEl.textContent = formatNumber(totalReferrals);
-            // حساب إجمالي نقاط المكافأة (إجمالي الإحالات * نقاط المكافأة الافتراضية)
-            totalRewardPointsEl.textContent = formatNumber(totalReferrals * 50); 
+            totalRewardPointsEl.textContent = formatNumber(totalReferrals * rewardValue); 
             
-            // تحديد الكود المحيل الأعلى
-            let topCode = null;
-            let maxCount = 0;
-            for (const code in referrerCounts) {
-                if (referrerCounts[code] > maxCount) {
-                    maxCount = referrerCounts[code];
-                    topCode = code;
-                }
-            }
-            if (topCode) {
-                topReferrerEl.textContent = `${topCode} (${formatNumber(maxCount)})`;
-            } else {
-                 topReferrerEl.textContent = `-`;
-            }
+            // 3. تجهيز بيانات Top 20
+            const referrerData = Object.entries(referrerCounts).map(([code, count]) => ({
+                code,
+                count
+            }));
 
-            // 4. عرض الجدول
+            // 4. عرض جدول Top 20
+            renderTopReferrers(referrerData, rewardValue);
+
+            // 5. عرض جدول السجل التفصيلي
             renderTable(referralEvents);
 
         } catch (error) {
             console.error("Firebase Fetch Error:", error);
-            referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data error" style="color:red;">❌ فشل جلب البيانات: تحقق من Console.</td></tr>';
+            referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data error" style="color:red;">❌ فشل جلب بيانات السجل.</td></tr>';
+            topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data error" style="color:red;">❌ فشل جلب بيانات المحيلين.</td></tr>';
+
         } finally {
             loadingSpinner.classList.add('hidden');
             loadingStatusEl.style.display = 'none';
@@ -244,7 +314,6 @@
     // ====== التفعيل ======
     document.addEventListener('DOMContentLoaded', fetchReferralsData);
     refreshBtn.addEventListener('click', fetchReferralsData);
-
   </script>
 </body>
 </html>
