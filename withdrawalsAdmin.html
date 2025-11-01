@@ -112,7 +112,7 @@
       
       <div class="stats">
         <div class="stat-box total-paid">
-            <strong id="totalPaidAmount">$0.00</strong>
+            <strong id="totalPaidAmount">0.00 EGP</strong>
             <span>💰 إجمالي المبالغ المسحوبة (المدفوعة)</span>
         </div>
         <div class="stat-box pending">
@@ -120,7 +120,7 @@
             <span>إجمالي الطلبات المعلقة</span>
         </div>
         <div class="stat-box pending">
-            <strong id="totalPendingAmount">$0.00</strong>
+            <strong id="totalPendingAmount">0.00 EGP</strong>
             <span>إجمالي المبلغ المستحق دفعه حالياً</span>
         </div>
         <div class="stat-box paid">
@@ -151,7 +151,7 @@
                     <tr>
                         <th>كود المستخدم (UID)</th>
                         <th>الإيميل</th>
-                        <th>المبلغ المطلوب ($)</th>
+                        <th>المبلغ المطلوب (EGP)</th>
                         <th>النقاط المحولة</th>
                         <th>طريقة الدفع</th>
                         <th>تاريخ الطلب</th>
@@ -221,23 +221,30 @@
     import { getFirestore, collection, getDocs, query, orderBy, doc, updateDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     
-    // ====== إعدادات Firebase (يجب تغييرها ببياناتك الحقيقية) ======
+    // =======================================================
+    // ====== ⚠️  تحديث الإعدادات هنا ببيانات مشروعك الحقيقية ⚠️ ======
+    // =======================================================
+    
+    // **سعر الصرف: 1 دولار مقابل الجنيه المصري (عدّل القيمة حسب السعر الحالي)**
+    const EXCHANGE_RATE = 48; 
+    
     const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards",
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", // استبدل
+      authDomain: "am--rewards.firebaseapp.com",      // استبدل
+      projectId: "am--rewards",                        // استبدل
       // ... باقي الإعدادات
     };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app); 
 
-    // 🔐 تحسين الأمان
+    // 🔐 تحسين الأمان (تأكد أن الإيميل في قواعد أمان Firestore مطابق لهذا الإيميل)
+    const ADMIN_EMAIL = "amirfg992005@gmail.com"; 
+
     onAuthStateChanged(auth, user => {
-        if (!user || user.email !== "amirfg992005@gmail.com") {
-            // يمكنك توجيههم لصفحة تسجيل الدخول إذا لم يكونوا مشرفين
-            // window.location.href = "index.html"; 
+        if (!user || user.email !== ADMIN_EMAIL) {
             console.warn("Access restricted to admin email.");
+            // يمكنك إضافة: window.location.href = "login.html";
         }
     });
 
@@ -255,7 +262,7 @@
     const totalPendingCountEl = document.getElementById('totalPendingCount');
     const totalPendingAmountEl = document.getElementById('totalPendingAmount');
     const totalCompletedCountEl = document.getElementById('totalCompletedCount');
-    const totalPaidAmountEl = document.getElementById('totalPaidAmount'); // جديد: إجمالي المبلغ المدفوع
+    const totalPaidAmountEl = document.getElementById('totalPaidAmount'); 
 
     // Modal elements
     const actionModal = document.getElementById('actionModal');
@@ -273,7 +280,14 @@
 
     // ====== Helpers ======
     function formatNumber(n) { return Number(n || 0).toLocaleString('en-US'); }
-    function formatCurrency(n) { return `$${(n || 0).toFixed(2)}`; }
+    
+    // دالة مُعدّلة لعرض العملة بالجنيه المصري
+    function formatCurrency(n) { 
+        const egp = (n || 0) * EXCHANGE_RATE;
+        // عرض الرقم بصيغة الجنيه المصري
+        return `${egp.toLocaleString('ar-EG', { minimumFractionDigits: 2 })} EGP`; 
+    }
+    
     function showLoading() { loadingStatusEl.style.display = 'flex'; }
     function hideLoading() { loadingStatusEl.style.display = 'none'; }
     
@@ -283,7 +297,6 @@
         return null;
     }
     
-    // دالة تحويل التاريخ
     function formatDate(timestamp) {
         const dateObj = toDateSafe(timestamp);
         if (dateObj) {
@@ -305,17 +318,20 @@
             
             allWithdrawalsData = snapshot.docs.map(doc => {
                 const data = doc.data();
+                // التأكد من أن 'amount' قيمة رقمية (في Firestore يجب أن تكون Number)
+                const amount = Number(data.amount) || 0; 
+                
                 return { 
                     id: doc.id,
                     ...data,
-                    // تحويل التاريخ والوقت إلى صيغة قابلة للعرض ومقارنة
                     dateFormatted: formatDate(data.date),
                     timestamp: toDateSafe(data.date)?.getTime() || 0,
-                    // تأكد من وجود حقل النقاط والمبلغ 
-                    points: data.points || 0,
-                    amount: data.amount || 0,
+                    points: Number(data.points) || 0,
+                    amount: amount,
                     uid: data.uid || 'N/A', 
                     email: data.email || 'N/A', 
+                    // إضافة القيمة بالجنيه لتسهيل العرض في الـ Modal
+                    amountEGP: formatCurrency(amount) 
                 };
             });
             
@@ -325,7 +341,7 @@
         } catch (error) {
             console.error("Firebase Fetch Error (withdrawals):", error);
             allWithdrawalsData = [];
-            withdrawalsTableBody.innerHTML = '<tr><td colspan="8" class="no-data error" style="color:red;">❌ فشل جلب بيانات السحوبات. تحقق من اتصال Firebase وصلاحية البيانات.</td></tr>';
+            withdrawalsTableBody.innerHTML = '<tr><td colspan="8" class="no-data error" style="color:red;">❌ فشل جلب بيانات السحوبات. تحقق من (1) إعدادات Firebase (2) قواعد الأمان (3) الاتصال بالإنترنت.</td></tr>';
         } finally {
             applyFilters();
             hideLoading();
@@ -338,14 +354,12 @@
         const completed = data.filter(w => w.status === 'Completed');
         
         const totalPendingAmount = pending.reduce((sum, w) => sum + w.amount, 0);
-        // حساب إجمالي المبالغ التي تم دفعها (حالتها Completed)
         const totalPaidAmount = completed.reduce((sum, w) => sum + w.amount, 0); 
 
         totalPendingCountEl.textContent = formatNumber(pending.length);
         totalPendingAmountEl.textContent = formatCurrency(totalPendingAmount);
         totalCompletedCountEl.textContent = formatNumber(completed.length);
         
-        // تحديث العنصر الجديد لإجمالي المبالغ المدفوعة
         totalPaidAmountEl.textContent = formatCurrency(totalPaidAmount); 
     }
 
@@ -363,7 +377,6 @@
             return statusMatch && searchMatch;
         });
         
-        // فرز البيانات (المعلقة أولاً، ثم حسب التاريخ)
         filteredData.sort((a, b) => {
             if (a.status === 'Pending' && b.status !== 'Pending') return -1;
             if (a.status !== 'Pending' && b.status === 'Pending') return 1;
@@ -385,7 +398,6 @@
             const row = withdrawalsTableBody.insertRow();
             const statusClass = `status-${w.status}`;
 
-            // الأزرار تُعرض فقط للطلبات المعلقة
             const actionsHTML = w.status === 'Pending' ? `
                 <button class="controls button btn-primary" style="padding: 6px 12px; font-size: 14px;" onclick="openModal('${w.id}', 'Accept')">قبول</button>
                 <button class="controls button btn-reject" style="padding: 6px 12px; font-size: 14px;" onclick="openModal('${w.id}', 'Reject')">رفض</button>
@@ -413,11 +425,11 @@
         
         const w = currentSelectedWithdrawal;
 
-        // تعبئة البيانات
+        // تعبئة البيانات بالجنيه المصري
         modalIDEl.textContent = id;
         modalUIDEl.textContent = w.uid;
         modalEmailEl.textContent = w.email;
-        modalAmountEl.textContent = formatCurrency(w.amount);
+        modalAmountEl.textContent = w.amountEGP; // عرض القيمة المحولة
         modalPointsEl.textContent = formatNumber(w.points);
         modalMethodEl.textContent = w.method || 'N/A';
         modalPaymentDetailsEl.textContent = w.details || 'لا توجد تفاصيل دفع إضافية.';
@@ -434,7 +446,6 @@
         acceptBtn.style.display = isPending ? 'inline-block' : 'none';
         rejectBtn.style.display = isPending ? 'inline-block' : 'none';
         
-        // تفعيل/إلغاء تفعيل زر الرفض بناءً على المحتوى عند الفتح
         if (isPending) {
              rejectBtn.disabled = rejectionReasonEl.value.trim() === '';
         }
@@ -459,7 +470,7 @@
             batch.update(withdrawalRef, { 
                 status: status, 
                 rejectionReason: reason,
-                processedDate: new Date() // إضافة تاريخ المعالجة
+                processedDate: new Date()
             });
             
             // 2. تحديث رصيد المستخدم (إذا كان رفضاً)
@@ -472,14 +483,13 @@
             await batch.commit();
 
             actionModal.classList.add('hidden');
-            // إعادة تحميل البيانات المحدثة
             await fetchWithdrawalsData(); 
             
             alert(`تم تحديث الطلب #${w.id} إلى: ${status === 'Completed' ? 'مكتمل' : 'مرفوض'}.`);
 
         } catch (error) {
             console.error("Error updating withdrawal (Batch Commit failed):", error);
-            alert("❌ فشل في تحديث حالة الطلب. تحقق من اتصال Firebase ورصيد المستخدم.");
+            alert("❌ فشل في تحديث حالة الطلب. تأكد من قواعد أمان Firestore (users و withdrawals).");
         } finally {
             hideLoading();
             currentSelectedWithdrawal = null;
@@ -487,14 +497,12 @@
     }
 
     // ====== تفعيل المستمعات ======
-
-    // تفعيل/إلغاء تفعيل زر الرفض حسب وجود سبب
     rejectionReasonEl.addEventListener('input', () => {
         rejectBtn.disabled = rejectionReasonEl.value.trim() === '';
     });
 
     acceptBtn.addEventListener('click', () => {
-        const confirmed = confirm("هل أنت متأكد من دفع هذا المبلغ وإكمال عملية السحب؟ لن يتم خصم النقاط لأن هذا افتراضياً تم عند تقديم الطلب.");
+        const confirmed = confirm("هل أنت متأكد من دفع هذا المبلغ وإكمال عملية السحب؟");
         if (confirmed) {
             updateWithdrawalStatus('Completed');
         }
