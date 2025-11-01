@@ -1,247 +1,250 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>لوحة الإحالات الإدارية | Am Rewards</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>إدارة الإحالات — Am Rewards</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: "Cairo", sans-serif;
-      background: linear-gradient(180deg, #0a0a0a, #101012);
-      color: #f4f4f4;
-      padding: 20px;
+    :root{
+      --bg:#070707; --card:#0f0f10; --gold:#f5c542; --muted:#9aa4b2; --text:#eef2f7;
+      --accent:#00fa9a; --blue: #3b82f6;
     }
-    h1 {
-      text-align: center;
-      color: #f5c542;
-      margin-bottom: 30px;
+    *{box-sizing:border-box}
+    body{font-family:"Cairo",sans-serif;background:linear-gradient(180deg,var(--bg),#0b0b0b);color:var(--text);margin:0;padding:16px}
+    .wrap{max-width:1200px;margin:0 auto}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:24px}
+    header h1{margin:0;color:var(--gold);font-size:24px}
+    .card{background:var(--card);padding:24px;border-radius:12px;border:1px solid rgba(245,197,66,0.12);box-shadow: 0 4px 12px rgba(0,0,0,0.2); margin-bottom: 20px;}
+    
+    /* Stats Box Styles */
+    .stats{display:flex;justify-content:center;gap:20px;margin-bottom:20px;flex-wrap:wrap;}
+    .stat-box{background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.15);padding:12px 20px;border-radius:10px;text-align:center;min-width:200px;}
+    .stat-box strong{display:block;font-size:24px;color:var(--gold);font-weight:900;}
+    .stat-box span{display:block;font-size:12px;color:var(--muted);margin-top:4px;}
+
+    /* Table Styles */
+    .table-container{overflow-x:auto; margin-top: 15px;}
+    .referrals-table{width:100%; border-collapse: collapse; min-width: 800px;}
+    .referrals-table th, .referrals-table td{padding:12px 15px; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.08);}
+    .referrals-table th{background:rgba(245,197,66,0.1); color: var(--gold); font-size: 14px; font-weight: 700; position: sticky; top: 0;}
+    .referrals-table tr:hover td{background:rgba(255,255,255,0.02);}
+    .no-data { text-align: center; padding: 20px; color: var(--muted); }
+    .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; }
+    .status-granted { background: var(--accent); color: var(--bg); }
+    .status-pending { background: var(--blue); color: var(--text); } /* لم نعد نستخدم هذا ولكن نبقيه للتوثيق */
+
+    /* Controls & Loader */
+    .controls{display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap; justify-content: flex-start;}
+    .controls input, .controls button{padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#0b1113;color:var(--text);cursor:pointer;}
+    .controls button.btn-primary{background:var(--blue);border-color:var(--blue);color:var(--text);font-weight:700;}
+    .loading-status { display: flex; align-items: center; justify-content: center; padding: 10px; color: var(--muted); }
+    .loader {
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top: 4px solid var(--accent);
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      margin-left: 8px; 
     }
-    .stats {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 15px;
-      margin-bottom: 25px;
-    }
-    .stat-box {
-      background: #161616;
-      border: 1px solid rgba(245,197,66,0.2);
-      border-radius: 10px;
-      padding: 15px 25px;
-      text-align: center;
-      min-width: 180px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.4);
-    }
-    .stat-box strong {
-      font-size: 24px;
-      color: #00fa9a;
-      display: block;
-    }
-    .stat-box span {
-      font-size: 13px;
-      color: #9aa4b2;
-    }
-    .chart-container {
-      background: #0f0f10;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-      margin-bottom: 25px;
-    }
-    .chart-container canvas {
-      max-height: 400px;
-      width: 100%;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #141414;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-    }
-    th, td {
-      padding: 10px;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      text-align: center;
-    }
-    th {
-      background: #f5c542;
-      color: #000;
-    }
-    tr:hover { background: rgba(255,255,255,0.05); }
-    input {
-      margin-bottom: 15px;
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: 1px solid #555;
-      background: #0b0b0b;
-      color: #fff;
-      width: 100%;
-      max-width: 300px;
-      display: block;
-      margin-right: auto;
-      margin-left: auto;
-    }
-    button {
-      background: #00fa9a;
-      border: none;
-      color: #000;
-      font-weight: bold;
-      border-radius: 8px;
-      padding: 10px 15px;
-      cursor: pointer;
-      display: block;
-      margin: 10px auto;
+    .hidden { display: none !important; }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
-  <h1>📈 لوحة الإحالات الإدارية</h1>
+  <div class="wrap">
+    <header>
+      <h1>🔗 إدارة الإحالات</h1>
+      <a href="index.html" style="text-decoration:none;">
+        <button class="btn" style="background:var(--accent); color: var(--bg); font-weight: 700;">العودة للرئيسية</button>
+      </a>
+    </header>
 
-  <div class="stats">
-    <div class="stat-box"><strong id="totalReferrals">0</strong><span>إجمالي الإحالات</span></div>
-    <div class="stat-box"><strong id="totalPoints">0</strong><span>إجمالي نقاط الإحالات</span></div>
-    <div class="stat-box"><strong id="topUser">-</strong><span>أعلى مُحيل</span></div>
+    <div class="card">
+      <h2 style="text-align:center; margin-top:0;">ملخص الإحالات</h2>
+      
+      <div class="stats">
+        <div class="stat-box"><strong id="totalReferrals">0</strong><span>إجمالي الإحالات الناجحة</span></div>
+        <div class="stat-box"><strong id="totalRewardPoints">0</strong><span>إجمالي نقاط المكافأة (تقديري)</span></div>
+        <div class="stat-box"><strong id="topReferrer">-</strong><span>🥇 أعلى كود مُحيل</span></div>
+      </div>
+    </div>
+    
+    <div class="card">
+        <h2 style="margin-top:0;">سجل الإحالات التفصيلي</h2>
+
+        <div class="controls">
+            <input type="text" id="searchReferral" placeholder="ابحث بكود المحيل أو إيميل المُحال..." />
+            <button id="refreshBtn" class="btn-primary">🔄 تحديث البيانات</button>
+        </div>
+
+        <div class="table-container">
+            <table class="referrals-table">
+                <thead>
+                    <tr>
+                        <th>كود المُحيل (Code)</th>
+                        <th>إيميل المُحال</th>
+                        <th>تاريخ التسجيل</th>
+                        <th>نقاط المُحيل (تقديري)</th>
+                        <th>حالة الإحالة</th>
+                    </tr>
+                </thead>
+                <tbody id="referralsTableBody">
+                    <tr><td colspan="5" class="no-data">جاري تحميل البيانات...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="loading-status" id="loadingStatus">
+            <div id="loadingSpinner" class="loader"></div>
+            <span style="margin-right: 8px;">جاري جلب بيانات الإحالات...</span>
+        </div>
+    </div>
   </div>
-
-  <div class="chart-container">
-    <canvas id="referralChart"></canvas>
-  </div>
-
-  <input type="text" id="searchInput" placeholder="🔍 ابحث باسم المستخدم أو المُحيل..." />
-
-  <table id="referralsTable">
-    <thead>
-      <tr>
-        <th>المُحيل</th>
-        <th>المستخدم المدعو</th>
-        <th>نقاط الإحالة</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <button id="exportBtn">⬇️ تحميل CSV</button>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { Chart } from "https://cdn.jsdelivr.net/npm/chart.js";
 
+    // ====== إعدادات Firebase (يجب أن تتطابق مع ملفاتك الأخرى) ======
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
+      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
       projectId: "am--rewards",
+      storageBucket: "am--rewards.firebasestorage.app",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112",
+      measurementId: "G-CV3GLT2TTJ"
     };
-
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const auth = getAuth(app);
 
-    const totalReferralsEl = document.getElementById("totalReferrals");
-    const totalPointsEl = document.getElementById("totalPoints");
-    const topUserEl = document.getElementById("topUser");
-    const tableBody = document.querySelector("#referralsTable tbody");
-    const searchInput = document.getElementById("searchInput");
-    const exportBtn = document.getElementById("exportBtn");
+    // ====== عناصر DOM ======
+    const totalReferralsEl = document.getElementById('totalReferrals');
+    const totalRewardPointsEl = document.getElementById('totalRewardPoints');
+    const topReferrerEl = document.getElementById('topReferrer');
+    const referralsTableBody = document.getElementById('referralsTableBody');
+    const loadingStatusEl = document.getElementById('loadingStatus');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const refreshBtn = document.getElementById('refreshBtn');
 
-    let chart;
+    // ====== Helpers ======
+    function formatNumber(n) { return Number(n || 0).toLocaleString('en-US'); }
 
-    onAuthStateChanged(auth, async (user) => {
-      if (!user || user.email !== "amirfg992005@gmail.com") {
-        document.body.innerHTML = "<h2 style='text-align:center;color:red;'>🚫 صلاحية مرفوضة. هذه الصفحة للأدمن فقط.</h2>";
-        return;
-      }
-      loadReferrals();
-    });
-
-    async function loadReferrals() {
-      const snap = await getDocs(collection(db, "users"));
-      let totalReferrals = 0;
-      let totalPoints = 0;
-      const referrals = [];
-      const refCount = {};
-
-      snap.forEach(doc => {
-        const d = doc.data();
-        if (d.referrer) {
-          totalReferrals++;
-          const pts = d.referralPoints || 0;
-          totalPoints += pts;
-          referrals.push({ referrer: d.referrer, user: doc.id, points: pts });
-          refCount[d.referrer] = (refCount[d.referrer] || 0) + 1;
-        }
-      });
-
-      totalReferralsEl.textContent = totalReferrals.toLocaleString();
-      totalPointsEl.textContent = totalPoints.toLocaleString();
-      const top = Object.entries(refCount).sort((a,b)=>b[1]-a[1])[0];
-      topUserEl.textContent = top ? `${top[0]} (${top[1]} إحالة)` : "-";
-
-      renderTable(referrals);
-      renderChart(refCount);
+    function toDateSafe(ts) {
+        if (ts && ts.toDate) return ts.toDate();
+        if (ts && ts.seconds) return new Date(ts.seconds * 1000); 
+        return null;
     }
 
-    function renderTable(referrals) {
-      tableBody.innerHTML = "";
-      referrals.forEach(r => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${r.referrer}</td><td>${r.user}</td><td>${r.points}</td>`;
-        tableBody.appendChild(tr);
-      });
+    // ====== وظيفة جلب وعرض البيانات ======
+    async function fetchReferralsData() {
+        loadingSpinner.classList.remove('hidden');
+        loadingStatusEl.style.display = 'flex';
+        referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data">جاري تحميل البيانات...</td></tr>';
+        
+        // إعادة تعيين الإحصائيات
+        totalReferralsEl.textContent = 0;
+        totalRewardPointsEl.textContent = 0;
+        topReferrerEl.textContent = '-';
 
-      searchInput.addEventListener("input", () => {
-        const val = searchInput.value.toLowerCase();
-        Array.from(tableBody.children).forEach(row => {
-          const txt = row.textContent.toLowerCase();
-          row.style.display = txt.includes(val) ? "" : "none";
+        try {
+            // 🛑 تم تعديل اسم المجموعة هنا
+            const logsColRef = collection(db, 'referralLogs'); 
+            const snapshot = await getDocs(logsColRef);
+
+            let totalReferrals = 0;
+            let referrerCounts = {};
+            let referralEvents = []; 
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                
+                // 1. تجميع بيانات الجدول بناءً على الحقول الجديدة
+                const referrerCode = data.referralCode || 'N/A';
+                const referredEmail = data.email || 'N/A'; // استخدام حقل email للمُحال
+                
+                const dateObj = toDateSafe(data.date); 
+                const dateString = dateObj ? dateObj.toLocaleDateString('ar-EG') : 'غير متوفر';
+
+                referralEvents.push({
+                    referrerCode: referrerCode,
+                    referredEmail: referredEmail,
+                    date: dateString,
+                    // 🚨 افتراض أن المكافأة هي 50 نقطة (يجب تعديلها إذا كانت مختلفة)
+                    referrerPoints: 50, 
+                    status: 'مُكافأة مُنحت' 
+                });
+
+                // 2. تجميع الإحصائيات
+                totalReferrals++;
+                
+                // حساب عدد الإحالات لكل كود (للمحيل الأعلى)
+                referrerCounts[referrerCode] = (referrerCounts[referrerCode] || 0) + 1;
+            });
+
+            // 3. تحديث الإحصائيات
+            totalReferralsEl.textContent = formatNumber(totalReferrals);
+            // حساب إجمالي نقاط المكافأة (إجمالي الإحالات * نقاط المكافأة الافتراضية)
+            totalRewardPointsEl.textContent = formatNumber(totalReferrals * 50); 
+            
+            // تحديد الكود المحيل الأعلى
+            let topCode = null;
+            let maxCount = 0;
+            for (const code in referrerCounts) {
+                if (referrerCounts[code] > maxCount) {
+                    maxCount = referrerCounts[code];
+                    topCode = code;
+                }
+            }
+            if (topCode) {
+                topReferrerEl.textContent = `${topCode} (${formatNumber(maxCount)})`;
+            } else {
+                 topReferrerEl.textContent = `-`;
+            }
+
+            // 4. عرض الجدول
+            renderTable(referralEvents);
+
+        } catch (error) {
+            console.error("Firebase Fetch Error:", error);
+            referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data error" style="color:red;">❌ فشل جلب البيانات: تحقق من Console.</td></tr>';
+        } finally {
+            loadingSpinner.classList.add('hidden');
+            loadingStatusEl.style.display = 'none';
+        }
+    }
+
+    function renderTable(events) {
+        if (events.length === 0) {
+            referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data">لا توجد إحالات مسجلة.</td></tr>';
+            return;
+        }
+
+        referralsTableBody.innerHTML = ''; 
+        events.forEach(event => {
+            const row = referralsTableBody.insertRow();
+            const statusClass = event.status === 'مُكافأة مُنحت' ? 'status-granted' : 'status-pending';
+
+            row.innerHTML = `
+                <td>${event.referrerCode}</td>
+                <td>${event.referredEmail}</td>
+                <td>${event.date}</td>
+                <td>${formatNumber(event.referrerPoints)}</td>
+                <td><span class="status-badge ${statusClass}">${event.status}</span></td>
+            `;
         });
-      });
-
-      exportBtn.addEventListener("click", () => {
-        const csv = ["المُحيل,المستخدم المدعو,نقاط الإحالة"];
-        referrals.forEach(r => csv.push(`${r.referrer},${r.user},${r.points}`));
-        const blob = new Blob([csv.join("\n")], { type: "text/csv" });
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = "referrals_report.csv";
-        a.click();
-      });
     }
 
-    function renderChart(refCount) {
-      const labels = Object.keys(refCount).slice(0,10);
-      const data = Object.values(refCount).slice(0,10);
-      const ctx = document.getElementById("referralChart");
+    // ====== التفعيل ======
+    document.addEventListener('DOMContentLoaded', fetchReferralsData);
+    refreshBtn.addEventListener('click', fetchReferralsData);
 
-      if (chart) chart.destroy();
-
-      chart = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            label: "عدد الإحالات",
-            data,
-            backgroundColor: "rgba(245,197,66,0.8)",
-            borderColor: "rgba(255,255,255,0.3)",
-            borderWidth: 1,
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { ticks: { color: "#ccc" } },
-            y: { ticks: { color: "#ccc" } }
-          }
-        }
-      });
-    }
   </script>
 </body>
-  </html>
+</html>
