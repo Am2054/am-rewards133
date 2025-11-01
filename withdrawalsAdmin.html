@@ -36,7 +36,7 @@
 
     /* Table Styles */
     .table-container{overflow-x:auto; margin-top: 15px;}
-    .withdrawals-table{width:100%; border-collapse: collapse; min-width: 1300px;} /* تم زيادة الحد الأدنى للعرض */
+    .withdrawals-table{width:100%; border-collapse: collapse; min-width: 1300px;} 
     .withdrawals-table th, .withdrawals-table td{padding:12px 15px; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.08);}
     .withdrawals-table th{background:rgba(245,197,66,0.1); color: var(--gold); font-size: 14px; font-weight: 700; position: sticky; top: 0;}
     .withdrawals-table tr:hover td{background:rgba(255,255,255,0.02);}
@@ -94,7 +94,16 @@
     .modal-detail-row strong { color: var(--gold); }
     .modal-detail-row span { color: var(--text); }
     /* textarea style */
-    #rejectionReason { width: 100%; background: #0b1113; color: var(--text); border: 1px solid var(--muted); border-radius: 4px; padding: 10px; }
+    #rejectionReason { 
+        width: 100%; 
+        background: #0b1113; 
+        color: var(--text); 
+        border: 1px solid var(--muted); 
+        border-radius: 4px; 
+        padding: 10px;
+        resize: vertical;
+        opacity: 1 !important; 
+    }
 
   </style>
 </head>
@@ -141,7 +150,7 @@
                 <option value="Rejected">مرفوض</option>
             </select>
             
-            <input type="text" id="searchWithdrawal" placeholder="ابحث بالإيميل أو كود المستخدم (UID)..." />
+            <input type="text" id="searchWithdrawal" placeholder="ابحث بالإيميل أو كود المستخدم (UID) أو رقم المحفظة..." />
             <button id="refreshBtn" class="btn-primary">🔄 تحديث البيانات</button>
         </div>
 
@@ -155,7 +164,8 @@
                         <th>النقاط المحولة</th>
                         <th>صافي المبلغ (EGP)</th> 
                         <th>طريقة الدفع</th>
-                        <th>رقم المحفظة</th> <th>تاريخ الطلب</th> 
+                        <th>رقم المحفظة</th> 
+                        <th>تاريخ الطلب</th> 
                         <th>الحالة</th>
                         <th>الإجراءات</th>
                     </tr>
@@ -205,7 +215,8 @@
         </div>
         <div class="modal-detail-row">
             <span>رقم المحفظة:</span>
-            <strong id="modalWallet"></strong> </div>
+            <strong id="modalWallet"></strong> 
+        </div>
         <div class="modal-detail-row">
             <span>تاريخ الطلب:</span>
             <span id="modalRequestDate"></span>
@@ -230,7 +241,8 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, orderBy, doc, updateDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    // 💡 تم استيراد doc و getDoc للبحث في مجموعة المستخدمين
+    import { getFirestore, collection, getDocs, query, orderBy, doc, getDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     
     // =======================================================
@@ -282,7 +294,7 @@
     const modalPointsEl = document.getElementById('modalPoints');
     const modalNetAmountEl = document.getElementById('modalNetAmount'); 
     const modalMethodEl = document.getElementById('modalMethod');
-    const modalWalletEl = document.getElementById('modalWallet'); // حقل Wallet في الـ Modal
+    const modalWalletEl = document.getElementById('modalWallet'); 
     const modalPaymentDetailsEl = document.getElementById('modalPaymentDetails');
     const modalRequestDateEl = document.getElementById('modalRequestDate');
     const rejectionReasonEl = document.getElementById('rejectionReason');
@@ -292,10 +304,8 @@
     // ====== Helpers ======
     function formatNumber(n) { return Number(n || 0).toLocaleString('en-US'); }
     
-    // دالة لتنسيق الرقم كجنيه مصري فقط
     function formatCurrency(n) { 
         const egp = (n || 0); 
-        // عرض الرقم بصيغة الجنيه المصري
         return `${egp.toLocaleString('ar-EG', { minimumFractionDigits: 2 })} EGP`; 
     }
     
@@ -322,32 +332,58 @@
         showLoading();
         
         try {
+            // 1. جلب بيانات السحوبات
             const withdrawalsColRef = collection(db, 'withdrawals');
             const q = query(withdrawalsColRef, orderBy('date', 'desc'));
-            const snapshot = await getDocs(q);
+            const withdrawalsSnapshot = await getDocs(q);
             
-            allWithdrawalsData = snapshot.docs.map(doc => {
-                const data = doc.data();
+            const rawWithdrawals = withdrawalsSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+
+            // 2. تجميع أكواد المستخدمين الفريدة
+            const userIds = [...new Set(rawWithdrawals.map(w => w.userId).filter(id => id))];
+            
+            // 3. جلب بيانات المستخدمين المقابلة (دفعة واحدة باستخدام getDoc لكل ID)
+            const usersMap = {};
+            if (userIds.length > 0) {
+                 const usersColRef = collection(db, 'users');
+                 // استخدام Promise.all لـ getDoc لكل UID
+                 const userPromises = userIds.map(async (uid) => {
+                    // نفترض أن ID المستند في مجموعة 'users' هو نفسه userId
+                    const userDoc = await getDoc(doc(usersColRef, uid));
+                    if (userDoc.exists()) {
+                        usersMap[uid] = userDoc.data();
+                    }
+                 });
+                 await Promise.all(userPromises);
+            }
+            
+            // 4. دمج البيانات
+            allWithdrawalsData = rawWithdrawals.map(data => {
                 
-                // استخدام أسماء الحقول الفعلية من لقطة الشاشة
+                const user = usersMap[data.userId] || {}; // بيانات المستخدم
+                
                 const amount = Number(data.amount) || 0; 
-                const net = Number(data.net) || amount; // صافي المبلغ هو حقل 'net'
-                const pts = Number(data.pts) || 0;       // النقاط المحولة هي حقل 'pts'
+                const net = Number(data.net) || amount; 
+                const pts = Number(data.pts) || 0;       
                 
                 return { 
-                    id: doc.id,
+                    id: data.id,
                     ...data,
+                    
                     dateFormatted: formatDate(data.date), 
                     timestamp: toDateSafe(data.date)?.getTime() || 0,
                     
-                    // تحديث أسماء الحقول لتطابق Firestore
                     points: pts,
                     amount: amount,
-                    netAmount: net, // الصافي
+                    netAmount: net, 
                     
-                    uid: data.userId || 'N/A', // كود المستخدم هو 'userId'
-                    email: data.email || 'N/A', // افترض وجود حقل email أو اتركه N/A إذا كان يجب جلبه من users
-                    wallet: data.wallet || 'N/A', // رقم المحفظة
+                    uid: data.userId || 'N/A', 
+                    // 💡 هنا يتم جلب الإيميل من مستند المستخدم
+                    email: user.email || 'غير متوفر (Users Collection)', 
+                    wallet: data.wallet || 'N/A', 
                     
                     amountEGP: formatCurrency(amount),
                     netAmountEGP: formatCurrency(net),
@@ -358,10 +394,10 @@
             updateStats(allWithdrawalsData);
 
         } catch (error) {
-            console.error("Firebase Fetch Error (withdrawals):", error);
+            console.error("Firebase Fetch Error (withdrawals/users):", error);
             allWithdrawalsData = [];
             withdrawalsTableBody.innerHTML = `<tr><td colspan="10" class="no-data error" style="color:red; font-weight:700; padding: 20px;">
-                ❌ فشل جلب بيانات السحوبات. الأسباب المحتملة: (1) لم تُحدّث إعدادات Firebase. (2) قواعد أمان Firestore لا تسمح بالقراءة. (3) لست مسجلاً الدخول كـ ${ADMIN_EMAIL}.
+                ❌ فشل جلب بيانات السحوبات. الأسباب المحتملة: (1) مشكلة في قواعد أمان Firestore (القراءة من collections 'withdrawals' و 'users'). (2) لم تُحدّث إعدادات Firebase.
             </td></tr>`;
         } finally {
             applyFilters();
@@ -387,7 +423,7 @@
     // ====== تطبيق الفلاتر والبحث ======
     function applyFilters() {
         const statusFilter = statusFilterEl.value;
-        const searchTerm = searchInput.value.toLowerCase();
+        const searchTerm = searchInput.value.toLowerCase().trim();
 
         let filteredData = allWithdrawalsData.filter(w => {
             const statusMatch = statusFilter === 'All' || w.status === statusFilter;
@@ -395,7 +431,7 @@
                               w.email.toLowerCase().includes(searchTerm) ||
                               w.uid.toLowerCase().includes(searchTerm) ||
                               w.id.toLowerCase().includes(searchTerm) ||
-                              w.wallet.toLowerCase().includes(searchTerm); // البحث برقم المحفظة
+                              w.wallet.toLowerCase().includes(searchTerm);
             return statusMatch && searchMatch;
         });
         
@@ -433,8 +469,9 @@
                 <td>${formatNumber(w.points)}</td>
                 <td>${w.netAmountEGP}</td> 
                 <td>${w.method || 'N/A'}</td>
-                <td>${w.wallet || 'N/A'}</td> <td>${w.dateFormatted}</td>
-                <td><span class="status-badge ${statusClass}">${w.status === 'Pending' ? 'معلّق' : w.status === 'Completed' ? 'مكتمل' : 'مرفوض'}</span></td>
+                <td>${w.wallet || 'N/A'}</td> 
+                <td>${w.dateFormatted}</td>
+                <td><span class="status-badge ${statusClass}">${w.status === 'Pending' ? 'معلّق' : w.status === 'Completed' ? 'مكتمل' : w.status === 'Rejected' ? 'مرفوض' : w.status}</span></td>
                 <td>${actionsHTML}</td>
             `;
         });
@@ -448,7 +485,7 @@
         
         const w = currentSelectedWithdrawal;
 
-        // تعبئة البيانات
+        // تعبئة البيانات الأساسية
         modalIDEl.textContent = id;
         modalUIDEl.textContent = w.uid;
         modalEmailEl.textContent = w.email;
@@ -456,28 +493,32 @@
         modalPointsEl.textContent = formatNumber(w.points);
         modalNetAmountEl.textContent = w.netAmountEGP;
         modalMethodEl.textContent = w.method || 'N/A';
-        modalWalletEl.textContent = w.wallet || 'N/A'; // تعبئة رقم المحفظة
+        modalWalletEl.textContent = w.wallet || 'N/A'; 
         modalRequestDateEl.textContent = w.dateFormatted;
         
-        // تفاصيل الدفع (المُدخلة من المستخدم) - في لقطة الشاشة هي موجودة تحت 'wallet' لذا نستخدمها بدلاً من حقل details غير الموجود
-        // نستخدم حقل الـ 'wallet' في مكان تفاصيل الدفع أيضاً لضمان ظهور البيانات المهمة
         modalPaymentDetailsEl.textContent = `طريقة الدفع: ${w.method || 'N/A'}\nرقم المحفظة/الحساب: ${w.wallet || 'N/A'}`;
+        rejectionReasonEl.value = w.rejectionReason || '';
 
 
-        // إدارة ظهور الأزرار ونموذج الرفض
+        // إدارة ظهور الأزرار وتفعيل حقل سبب الرفض
         const isPending = w.status === 'Pending';
         
-        acceptBtn.disabled = !isPending;
-        rejectBtn.disabled = !isPending;
         rejectionReasonEl.disabled = !isPending;
-        rejectionReasonEl.value = w.rejectionReason || '';
-        rejectionReasonEl.style.borderColor = isPending ? 'var(--muted)' : 'transparent';
-        
-        acceptBtn.style.display = isPending ? 'inline-block' : 'none';
-        rejectBtn.style.display = isPending ? 'inline-block' : 'none';
+        acceptBtn.disabled = !isPending;
         
         if (isPending) {
              rejectBtn.disabled = rejectionReasonEl.value.trim() === '';
+        } else {
+             rejectBtn.disabled = true;
+        }
+
+        acceptBtn.style.display = isPending ? 'inline-block' : 'none';
+        rejectBtn.style.display = isPending ? 'inline-block' : 'none';
+        
+        if (!isPending) {
+            rejectionReasonEl.disabled = true;
+            rejectBtn.style.display = 'none'; 
+            acceptBtn.style.display = 'none';
         }
 
         actionModal.classList.remove('hidden');
@@ -500,14 +541,12 @@
             batch.update(withdrawalRef, { 
                 status: status, 
                 rejectionReason: reason,
-                // تحديث حقل processedAt الحالي في المستند بتاريخ ووقت المعالجة
                 processedAt: new Date() 
             });
             
             // 2. تحديث رصيد المستخدم (إذا كان رفضاً)
             if (status === 'Rejected') {
                 const userRef = doc(db, 'users', w.uid);
-                // إعادة النقاط إلى رصيد المستخدم باستخدام حقل pts
                 batch.update(userRef, { points: increment(w.points) });
             }
 
@@ -527,9 +566,12 @@
         }
     }
 
-    // ====== تفعيل المستمعات ======
+    // ====== تفعيل المستمعات (Event Listeners) ======
+    
     rejectionReasonEl.addEventListener('input', () => {
-        rejectBtn.disabled = rejectionReasonEl.value.trim() === '';
+        if (currentSelectedWithdrawal && currentSelectedWithdrawal.status === 'Pending') {
+            rejectBtn.disabled = rejectionReasonEl.value.trim() === '';
+        }
     });
 
     acceptBtn.addEventListener('click', () => {
@@ -551,8 +593,6 @@
         }
     });
 
-
-    // المستمعات الأخرى
     closeModalBtn.addEventListener('click', () => {
         actionModal.classList.add('hidden');
         currentSelectedWithdrawal = null;
