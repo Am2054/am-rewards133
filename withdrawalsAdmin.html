@@ -35,7 +35,7 @@
     .stat-box.total-paid strong { color: var(--gold); }
     .stat-box span{display:block;font-size:14px;color:var(--muted);margin-top:4px;}
 
-    /* Controls & Loader (تم تركها احتياطاً في حال أردت زر تحديث) */
+    /* Controls & Loader */
     .controls{display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap; justify-content: flex-start;}
     .controls button{padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#0b1113;color:var(--text);cursor:pointer;}
     .controls button.btn-primary{background:var(--blue);border-color:var(--blue);color:var(--text);font-weight:700;}
@@ -177,7 +177,7 @@
 
         try {
             const withdrawalsColRef = collection(db, 'withdrawals');
-            // لا نحتاج لـ orderBy بما أننا لا نعرض جدولاً، ولكن نتركها لتقليل زمن الاستجابة قليلاً
+            // هنا لا نحتاج لـ orderBy، لكن نتركها query عادية
             const q = query(withdrawalsColRef); 
             const withdrawalsSnapshot = await getDocs(q);
             
@@ -188,7 +188,7 @@
             const usersMap = {};
             if (userIds.length > 0) {
                  const usersColRef = collection(db, 'users');
-                 // جلب بيانات المستخدمين بشكل متوازٍ
+                 // جلب بيانات المستخدمين بشكل متوازٍ (للتأكد من وجود الإذن)
                  const userPromises = userIds.map(async (uid) => {
                     const userDoc = await getDoc(doc(usersColRef, uid));
                     if (userDoc.exists()) {
@@ -214,18 +214,19 @@
                 };
             });
             
-            // 💡 تحديث الإحصائيات هنا
+            // 💡 حساب وتحديث الإحصائيات
             const completed = allWithdrawalsData.filter(x => x.status === 'Completed');
             const pending = allWithdrawalsData.filter(x => x.status === 'Pending');
 
             const totalPaid = completed.reduce((s, it) => s + it.netAmount, 0);
             const pendingAmount = pending.reduce((s, it) => s + it.netAmount, 0);
 
+            // ربط الأرقام المحسوبة بعناصر DOM
             totalPaidAmountEl.textContent = formatCurrency(totalPaid);
             totalPendingCountEl.textContent = formatNumber(pending.length);
             totalPendingAmountEl.textContent = formatCurrency(pendingAmount);
             totalCompletedCountEl.textContent = formatNumber(completed.length);
-            // نهاية تحديث الإحصائيات
+            
 
         } catch (error) {
             console.error("Firebase Fetch Error (withdrawals/users):", error);
