@@ -15,7 +15,6 @@
     .wrap{max-width:1200px;margin:0 auto}
     header{
       display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:24px;
-      /* 🪶 لمسة شكلية: خلفية متدرجة */
       background: linear-gradient(90deg, #f5c54210, #0f0f10);
       padding: 10px 15px;
       border-radius: 10px;
@@ -24,8 +23,9 @@
     .card{background:var(--card);padding:24px;border-radius:12px;border:1px solid rgba(245,197,66,0.12);box-shadow: 0 4px 12px rgba(0,0,0,0.2); margin-bottom: 20px;}
     
     /* Stats Box Styles */
+    /* تم تعديل عرض الصناديق لأننا حذفنا واحدًا */
     .stats{display:flex;justify-content:center;gap:20px;margin-bottom:20px;flex-wrap:wrap;}
-    .stat-box{background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.15);padding:12px 20px;border-radius:10px;text-align:center;min-width:200px;}
+    .stat-box{background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.15);padding:12px 20px;border-radius:10px;text-align:center;min-width:280px;}
     .stat-box strong{display:block;font-size:24px;color:var(--gold);font-weight:900;}
     .stat-box span{display:block;font-size:12px;color:var(--muted);margin-top:4px;}
 
@@ -44,8 +44,6 @@
     #topReferrersTable td:last-child, #topReferrersTable td:nth-child(3) { font-weight: 700; color: var(--gold); }
     #topReferrersTable td:first-child { font-weight: 900; color: var(--text); }
     
-    /* تم حذف ستايل .chart-box */
-
     /* Controls & Loader */
     .controls{display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap; justify-content: flex-start;}
     .controls input, .controls button{padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#0b1113;color:var(--text);cursor:pointer;}
@@ -77,11 +75,10 @@
     </header>
 
     <div class="card">
-      <h2 style="text-align:center; margin-top:0;">ملخص الإحالات والإعدادات</h2>
+      <h2 style="text-align:center; margin-top:0;">ملخص الإحالات</h2>
       
       <div class="stats">
         <div class="stat-box"><strong id="totalReferrals">0</strong><span>إجمالي الإحالات الناجحة</span></div>
-        <div class="stat-box"><strong id="referralPointsValue">...</strong><span>نقاط مكافأة الإحالة الواحدة</span></div>
         <div class="stat-box"><strong id="totalRewardPoints">0</strong><span>إجمالي نقاط المكافأة المدفوعة</span></div>
       </div>
     </div>
@@ -121,7 +118,7 @@
                         <th>كود المُحيل (Code)</th>
                         <th>إيميل المُحال</th>
                         <th>تاريخ التسجيل</th>
-                        <th>نقاط المُحيل (للإحالة)</th>
+                        <th>نقاط الإحالة (مكافأة)</th>
                         <th>حالة الإحالة</th>
                     </tr>
                 </thead>
@@ -146,18 +143,16 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    // تم حذف استيراد Chart
+    
+    // قيمة افتراضية لسهولة الحساب في حالة عدم جلب القيمة من DB
+    const DEFAULT_REWARD_VALUE = 50; 
 
     // ====== إعدادات Firebase ======
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
-      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
       projectId: "am--rewards",
-      storageBucket: "am--rewards.firebasestorage.app",
-      messagingSenderId: "744783579735",
-      appId: "1:744783579735:web:45e00de9998893bbc9b112",
-      measurementId: "G-CV3GLT2TTJ"
+      // ... باقي الإعدادات
     };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -167,22 +162,20 @@
     onAuthStateChanged(auth, user => {
         if (!user || user.email !== "amirfg992005@gmail.com") {
             alert("صلاحية الوصول مرفوضة أو لم يتم تسجيل الدخول.");
-            // window.location.href = "index.html"; // تم التعليق لتسهيل الاختبار
+            // window.location.href = "index.html"; 
         }
     });
 
     // ====== عناصر DOM ======
     const totalReferralsEl = document.getElementById('totalReferrals');
     const totalRewardPointsEl = document.getElementById('totalRewardPoints');
-    const referralPointsValueEl = document.getElementById('referralPointsValue');
+    // تم حذف referralPointsValueEl
     const referralsTableBody = document.getElementById('referralsTableBody');
     const topReferrersTableBody = document.getElementById('topReferrersTableBody');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const refreshBtn = document.getElementById('refreshBtn');
     const searchInput = document.getElementById('searchReferral'); 
     const lastUpdatedEl = document.getElementById('lastUpdated'); 
-
-    // تم حذف let topReferralsChart = null; 
 
     // ====== Helpers ======
     function formatNumber(n) { return Number(n || 0).toLocaleString('en-US'); }
@@ -193,25 +186,8 @@
         return null;
     }
 
-    // ====== دالة جلب قيمة المكافأة ======
-    async function getReferralRewardValue() {
-        try {
-            const usersSnap = await getDocs(query(collection(db, 'users')));
-            if (!usersSnap.empty) {
-                const rewardDoc = usersSnap.docs.find(doc => doc.data().referralPoints !== undefined);
-                if (rewardDoc) {
-                     return rewardDoc.data().referralPoints || 0;
-                }
-            }
-            return 50; 
-        } catch (error) {
-            console.error("Error fetching referral points value:", error);
-            return 50;
-        }
-    }
-
     // ====== وظيفة عرض جدول Top 20 ======
-    function renderTopReferrers(referrerData, rewardValue) {
+    function renderTopReferrers(referrerData) {
         if (referrerData.length === 0) {
             topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data">لا توجد بيانات كافية لتحديد أعلى المحيلين.</td></tr>';
             return;
@@ -222,7 +198,8 @@
         const rankedData = referrerData.map(item => ({
             code: item.code,
             count: item.count,
-            totalPoints: item.count * rewardValue
+            // نستخدم قيمة افتراضية لحساب إجمالي النقاط المكتسبة
+            totalPoints: item.count * DEFAULT_REWARD_VALUE 
         }));
 
         rankedData.sort((a, b) => b.count - a.count);
@@ -239,8 +216,6 @@
         });
     }
 
-    // تم حذف دالة updateMiniChart 
-
     // ====== وظيفة جلب وعرض البيانات الرئيسية ======
     async function fetchReferralsData() {
         loadingSpinner.classList.remove('hidden');
@@ -251,12 +226,11 @@
         referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data">جاري تحميل البيانات...</td></tr>';
         topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data">جاري تحديد أفضل المحيلين...</td></tr>';
         
-        const rewardValue = await getReferralRewardValue();
-        referralPointsValueEl.textContent = formatNumber(rewardValue);
-
+        // تم حذف جلب قيمة المكافأة الواحدة
+        const rewardValue = DEFAULT_REWARD_VALUE; // استخدام القيمة الافتراضية
+        
         try {
             const logsColRef = collection(db, 'referralLogs'); 
-            // تحسين الأداء: الفرز بالتاريخ تنازليًا
             const q = query(logsColRef, orderBy('date', 'desc')); 
             const snapshot = await getDocs(q);
 
@@ -296,7 +270,7 @@
             }));
 
             // عرض جدول Top 20 
-            renderTopReferrers(referrerData, rewardValue);
+            renderTopReferrers(referrerData);
 
             // عرض جدول السجل التفصيلي
             renderTable(referralEvents);
@@ -309,7 +283,6 @@
         } finally {
             loadingSpinner.classList.add('hidden');
             document.getElementById('loadingStatus').style.display = 'none';
-            // تحديث تاريخ آخر تحديث
             lastUpdatedEl.textContent = new Date().toLocaleString('ar-EG'); 
         }
     }
