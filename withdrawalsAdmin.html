@@ -6,10 +6,10 @@
   <title>إدارة السحوبات — Am Rewards Master</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
-    /* ... (CSS Styles remain the same for consistency) ... */
+    /* ... (CSS Styles for Layout and Stats - Same as previous) ... */
     :root{
       --bg:#070707; --card:#0f0f10; --gold:#f5c542; --muted:#9aa4b2; --text:#eef2f7;
-      --accent:#00fa9a; --blue: #3b82f6; --red: #ef4444; --orange: #f97316;
+      --accent:#00fa9a; --blue: #3b82f6; --red: #ef4444; --orange: #f97316; --danger: #ef4444;
     }
     *{box-sizing:border-box}
     body{font-family:"Cairo",sans-serif;background:linear-gradient(180deg,var(--bg),#0b0b0b);color:var(--text);margin:0;padding:16px}
@@ -39,6 +39,11 @@
     .controls{display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap; justify-content: flex-start;}
     .controls button{padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#0b1113;color:var(--text);cursor:pointer;}
     .controls button.btn-primary{background:var(--blue);border-color:var(--blue);color:var(--text);font-weight:700;}
+    .controls input, .controls select {
+        padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(245, 197, 66, 0.2);
+        background: #1e1e1e; color: var(--text); outline: none; transition: border-color 0.3s;
+    }
+    .controls input:focus, .controls select:focus { border-color: var(--gold); }
 
     .loading-status { 
       display: none; 
@@ -61,13 +66,76 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+
+    /* Table Styles */
+    .table-container { overflow-x: auto; margin-top: 20px; }
+    .data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
+    .data-table th, .data-table td { 
+        padding: 12px 15px; text-align: right; border-bottom: 1px solid #1a1a1a; 
+        white-space: nowrap; /* منع انقسام النص */
+    }
+    .data-table th { 
+        background-color: rgba(245, 197, 66, 0.1); 
+        color: var(--gold); 
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .data-table tr:hover { background-color: rgba(245, 197, 66, 0.05); }
+
+    .status-badge {
+        display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700;
+        text-align: center;
+    }
+    .status-badge.Pending { background-color: var(--orange); color: var(--text); }
+    .status-badge.Completed { background-color: var(--accent); color: var(--bg); }
+    .status-badge.Rejected { background-color: var(--danger); color: var(--text); }
     
+    .action-button {
+        padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700;
+        transition: background-color 0.2s; margin: 2px;
+    }
+    .action-button.process { background-color: var(--blue); color: var(--text); }
+    .action-button.reject { background-color: var(--danger); color: var(--text); }
+    .action-button:hover { opacity: 0.8; }
+    
+    .pagination {
+        display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px;
+        color: var(--muted);
+    }
+    .pagination button {
+        background: #1e1e1e; color: var(--text); border: 1px solid #333; padding: 8px 15px; 
+        border-radius: 6px; cursor: pointer; transition: background 0.2s;
+    }
+    .pagination button:hover:not(:disabled) { background: #333; }
+    .pagination button:disabled { opacity: 0.5; cursor: default; }
+
+    /* Modal Styles */
+    .modal {
+        display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
+        overflow: auto; background-color: rgba(0,0,0,0.8); justify-content: center; align-items: center;
+    }
+    .modal-content {
+        background-color: var(--card); padding: 30px; border-radius: 12px; width: 90%; max-width: 500px;
+        box-shadow: var(--shadow); position: relative;
+    }
+    .close-btn { color: var(--muted); float: left; font-size: 28px; font-weight: bold; cursor: pointer; }
+    .close-btn:hover { color: var(--red); }
+    .modal-content h3 { color: var(--gold); margin-top: 0; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px;}
+    .modal-content p { margin-bottom: 15px; font-size: 14px; }
+    .modal-content p strong { color: var(--accent); }
+    .modal-content label { display: block; margin-top: 15px; margin-bottom: 5px; color: var(--muted); }
+    .modal-content input, .modal-content textarea { 
+        width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; 
+        color: var(--text); margin-bottom: 15px; 
+    }
+    .modal-footer { text-align: center; margin-top: 20px; }
+    .modal-footer button { margin: 0 10px; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <h1>💰 إدارة السحوبات (ملخص)</h1>
+      <h1>💰 إدارة السحوبات</h1>
       <a href="index.html" style="text-decoration:none;">
         <button class="btn" style="background:var(--accent); color: var(--bg); font-weight: 700;">العودة للرئيسية</button>
       </a>
@@ -101,20 +169,81 @@
 
     </div>
     
+    <div class="card">
+        <h2 style="margin-top:0;">سجل السحب</h2>
+        
+        <div class="controls">
+            <input type="text" id="searchBar" placeholder="البحث باسم المستخدم أو رقم الطلب">
+            <select id="statusFilter">
+                <option value="All">جميع الحالات</option>
+                <option value="Pending">معلق</option>
+                <option value="Completed">مكتمل</option>
+                <option value="Rejected">مرفوض</option>
+            </select>
+        </div>
+
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th data-sort="timestamp">التاريخ ⬇️</th>
+                        <th data-sort="userName">اسم المستخدم</th>
+                        <th data-sort="netAmount">صافي المبلغ (EGP)</th>
+                        <th data-sort="points">النقاط</th>
+                        <th data-sort="status">الحالة</th>
+                        <th>طريقة الدفع</th>
+                        <th>الإجراء</th>
+                    </tr>
+                </thead>
+                <tbody id="withdrawalsTableBody">
+                    </tbody>
+            </table>
+        </div>
+
+        <div class="pagination">
+            <button id="prevPageBtn" disabled>السابق</button>
+            <span id="currentPageInfo">الصفحة 1 من 1</span>
+            <button id="nextPageBtn" disabled>التالي</button>
+        </div>
+    </div>
+    
     <div class="loading-status" id="loadingStatus">
         <div id="loadingSpinner" class="loader"></div>
-        <span style="margin-right: 8px;">جاري جلب بيانات الإحصائيات...</span>
+        <span style="margin-right: 8px;">جاري جلب بيانات السحوبات...</span>
     </div>
   </div>
   
+  <div id="actionModal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn">&times;</span>
+      <h3 id="modalTitle">تعديل حالة السحب</h3>
+      <div id="modalDetails">
+          </div>
+      
+      <label for="paymentDetails">تفاصيل الدفع (المحفظة/الحساب):</label>
+      <input type="text" id="paymentDetails" readonly>
+      
+      <label for="actionNotes">ملاحظات (سبب الرفض/تأكيد الدفع):</label>
+      <textarea id="actionNotes" placeholder="أضف ملاحظاتك هنا..."></textarea>
+      
+      <div class="modal-footer">
+        <button id="completeBtn" class="action-button process">إتمام (Completed)</button>
+        <button id="rejectBtn" class="action-button reject">رفض (Rejected)</button>
+        <button id="closeModalBtn" class="action-button">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { 
+        getFirestore, collection, query, where, getDocs, doc, getDoc, updateDoc, 
+        writeBatch
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     
     // =======================================================
     // ====== ⚠️  تحديث الإعدادات هنا ببيانات مشروعك الحقيقية ⚠️ ======
-    // (تم نسخ الإعدادات من الكود الذي يعمل لديك)
     // =======================================================
     
     const firebaseConfig = {
@@ -132,87 +261,309 @@
     const auth = getAuth(app); 
 
     const ADMIN_EMAIL = "amirfg992005@gmail.com"; 
-    // التأكد من أن المستخدم مدير قبل تحميل البيانات
+    
     onAuthStateChanged(auth, user => {
         if (!user || user.email !== ADMIN_EMAIL) {
             console.warn("Access restricted or user not logged in as admin.");
-            // يمكنك توجيه المستخدم لصفحة الدخول هنا إذا لم يكن مسجلاً
         }
     });
+
 
     // ====== عناصر DOM ======
     const loadingStatusEl = document.getElementById('loadingStatus');
 
-    // العناصر الخاصة بالإحصائيات
+    // الإحصائيات
     const totalPaidAmountEl = document.getElementById('totalPaidAmount');
     const totalPendingCountEl = document.getElementById('totalPendingCount');
     const totalPendingAmountEl = document.getElementById('totalPendingAmount');
     const totalCompletedCountEl = document.getElementById('totalCompletedCount');
     const refreshBtn = document.getElementById('refreshBtn');
 
+    // الجدول والفلاتر والترقيم
+    const withdrawalsTableBody = document.getElementById('withdrawalsTableBody');
+    const searchBar = document.getElementById('searchBar');
+    const statusFilter = document.getElementById('statusFilter');
+    const prevPageBtn = document.getElementById('prevPageBtn');
+    const nextPageBtn = document.getElementById('nextPageBtn');
+    const currentPageInfo = document.getElementById('currentPageInfo');
+    const tableHeaders = document.querySelectorAll('.data-table th');
+    
+    // المودال (النافذة المنبثقة)
+    const actionModal = document.getElementById('actionModal');
+    const closeModalBtns = document.querySelectorAll('.close-btn, #closeModalBtn');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalDetails = document.getElementById('modalDetails');
+    const paymentDetailsInput = document.getElementById('paymentDetails');
+    const actionNotesInput = document.getElementById('actionNotes');
+    const completeBtn = document.getElementById('completeBtn');
+    const rejectBtn = document.getElementById('rejectBtn');
+
+    
+    // ====== حالة البيانات ======
+    let allWithdrawalsData = []; 
+    let filteredData = [];
+    let currentPage = 1;
+    const rowsPerPage = 10;
+    let currentSortColumn = 'timestamp';
+    let currentSortDirection = 'desc';
+    let currentWithdrawalId = null;
+    let usersMap = {};
+
 
     // ====== Helpers ======
     function formatNumber(n) { return Number(n || 0).toLocaleString('en-US'); }
-    
     function formatCurrency(n) { 
         const egp = (n || 0); 
         return `${egp.toLocaleString('ar-EG', { minimumFractionDigits: 2 })} EGP`; 
     }
-    
-    function showLoading() { loadingStatusEl.style.display = 'flex'; }
+    function showLoading(message = 'جاري جلب بيانات السحوبات...') { 
+        loadingStatusEl.style.display = 'flex';
+        loadingStatusEl.querySelector('span').textContent = message;
+    }
     function hideLoading() { loadingStatusEl.style.display = 'none'; }
+    function formatDate(ts) {
+        if (!ts) return 'غير محدد';
+        const date = ts.toDate ? ts.toDate() : new Date(ts.seconds * 1000);
+        return date.toLocaleDateString('ar-EG') + ' ' + date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+    }
     
-    // ====== دالة جلب البيانات وتحديث الإحصائيات (المنطق الذي يعمل في كودك) ======
-    async function fetchWithdrawalsData() {
-        showLoading();
+    
+    // ====== 1. جلب البيانات الأساسية (السحوبات والمستخدمين) ======
+    async function fetchAllData() {
+        showLoading("جاري جلب جميع بيانات السحوبات والمستخدمين...");
         
-        // إعادة تعيين الإحصائيات مؤقتًا
-        totalPaidAmountEl.textContent = 'EGP -,--';
-        totalPendingCountEl.textContent = '0';
-        totalPendingAmountEl.textContent = 'EGP -,--';
-        totalCompletedCountEl.textContent = '0';
-
         try {
-            // ⚡️ جلب السحوبات المكتملة والمعلقة مباشرة من Firebase
-            const [
-                completedSnap,
-                pendingSnap
-            ] = await Promise.all([
-                getDocs(query(collection(db, "withdrawals"), where("status", "==", "completed"))),
-                getDocs(query(collection(db, "withdrawals"), where("status", "==", "pending")))
-            ]);
-
-
-            // --- 1. حساب المبالغ المدفوعة (Completed) ---
-            let totalPaid = 0;
-            completedSnap.forEach(doc => {
-                // نستخدم doc.data().net كما في كودك الرئيسي
-                const netAmount = doc.data().net ? Number(doc.data().net) : 0;
-                totalPaid += netAmount;
-            });
-            const completedCount = completedSnap.size;
-
-
-            // --- 2. حساب المبالغ المعلقة (Pending) ---
-            let pendingAmount = 0;
-            pendingSnap.forEach(doc => {
-                // نستخدم doc.data().net كما في كودك الرئيسي
-                const netAmount = doc.data().net ? Number(doc.data().net) : 0;
-                pendingAmount += netAmount;
-            });
-            const pendingCount = pendingSnap.size;
-
-
-            // 💡 تحديث عناصر DOM
-            totalPaidAmountEl.textContent = formatCurrency(totalPaid);
-            totalPendingCountEl.textContent = formatNumber(pendingCount);
-            totalPendingAmountEl.textContent = formatCurrency(pendingAmount);
-            totalCompletedCountEl.textContent = formatNumber(completedCount);
+            const withdrawalsColRef = collection(db, 'withdrawals');
+            const withdrawalsSnapshot = await getDocs(query(withdrawalsColRef));
             
+            const rawWithdrawals = withdrawalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            const userIds = [...new Set(rawWithdrawals.map(w => w.userId).filter(id => id))];
+            
+            // جلب بيانات المستخدمين
+            usersMap = {};
+            if (userIds.length > 0) {
+                 const usersColRef = collection(db, 'users');
+                 const userPromises = userIds.map(async (uid) => {
+                    const userDoc = await getDoc(doc(usersColRef, uid));
+                    if (userDoc.exists()) {
+                        usersMap[uid] = userDoc.data();
+                    }
+                 });
+                 await Promise.all(userPromises); 
+            }
+            
+            allWithdrawalsData = rawWithdrawals.map(data => {
+                const amount = Number(data.amount) || 0; 
+                const net = Number(data.net) || amount; 
+                const pts = Number(data.pts || data.points) || 0;
+                const user = usersMap[data.userId] || { name: 'N/A' };
+                
+                return { 
+                    id: data.id,
+                    ...data,
+                    points: pts,
+                    amount: amount,
+                    netAmount: net, 
+                    status: data.status || 'Pending',
+                    userName: user.name || 'مستخدم #' + data.userId.substring(0, 5)
+                };
+            });
+            
+            updateDashboardStats(allWithdrawalsData);
+            applyFiltersAndSort(); 
 
         } catch (error) {
-            console.error("Firebase Fetch Error (Withdrawals Status):", error);
+            console.error("Firebase Fetch Error (withdrawals/users):", error);
             alert("❌ فشل جلب البيانات. قد تكون مشكلة في قواعد أمان Firestore.");
+        } finally {
+            hideLoading();
+        }
+    }
+
+
+    // ====== 2. تحديث الإحصائيات في الملخص العلوي ======
+    function updateDashboardStats(data) {
+        const completed = data.filter(x => x.status === 'Completed');
+        const pending = data.filter(x => x.status === 'Pending');
+
+        const totalPaid = completed.reduce((s, it) => s + it.netAmount, 0);
+        const pendingAmount = pending.reduce((s, it) => s + it.netAmount, 0);
+
+        totalPaidAmountEl.textContent = formatCurrency(totalPaid);
+        totalPendingCountEl.textContent = formatNumber(pending.length);
+        totalPendingAmountEl.textContent = formatCurrency(pendingAmount);
+        totalCompletedCountEl.textContent = formatNumber(completed.length);
+    }
+
+
+    // ====== 3. فلترة وفرز وعرض الجدول ======
+    function applyFiltersAndSort() {
+        const searchTerm = searchBar.value.toLowerCase();
+        const status = statusFilter.value;
+        
+        filteredData = allWithdrawalsData.filter(item => {
+            const matchesSearch = item.userName.toLowerCase().includes(searchTerm) || item.id.toLowerCase().includes(searchTerm);
+            const matchesStatus = status === 'All' || item.status === status;
+            return matchesSearch && matchesStatus;
+        });
+
+        // الفرز
+        filteredData.sort((a, b) => {
+            let aValue = a[currentSortColumn];
+            let bValue = b[currentSortColumn];
+            
+            // التعامل مع التواريخ والأرقام
+            if (currentSortColumn === 'timestamp') {
+                aValue = a.timestamp.seconds;
+                bValue = b.timestamp.seconds;
+            } else if (currentSortColumn === 'netAmount' || currentSortColumn === 'points') {
+                aValue = Number(aValue);
+                bValue = Number(bValue);
+            }
+
+            if (aValue < bValue) return currentSortDirection === 'asc' ? -1 : 1;
+            if (aValue > bValue) return currentSortDirection === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        currentPage = 1;
+        renderTable();
+    }
+
+    function renderTable() {
+        const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+        currentPage = Math.min(currentPage, totalPages || 1); 
+
+        const start = (currentPage - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+        const pageData = filteredData.slice(start, end);
+
+        withdrawalsTableBody.innerHTML = '';
+        
+        if (pageData.length === 0) {
+            withdrawalsTableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--muted);">لا توجد بيانات سحب مطابقة للمعايير المحددة.</td></tr>`;
+        }
+
+        pageData.forEach(item => {
+            const row = withdrawalsTableBody.insertRow();
+            
+            row.innerHTML = `
+                <td>${formatDate(item.timestamp)}</td>
+                <td>${item.userName}</td>
+                <td>${formatCurrency(item.netAmount)}</td>
+                <td>${formatNumber(item.points)}</td>
+                <td><span class="status-badge ${item.status}">${item.status === 'Completed' ? 'مكتمل' : (item.status === 'Pending' ? 'معلق' : 'مرفوض')}</span></td>
+                <td>${item.paymentMethod || 'N/A'}</td>
+                <td>
+                    ${item.status === 'Pending' ? 
+                        `<button class="action-button process" data-id="${item.id}" data-action="open-modal">إجراء</button>` : 
+                        `<span style="color:var(--muted);">تم الانتهاء</span>`
+                    }
+                </td>
+            `;
+        });
+        
+        // تحديث الترقيم
+        currentPageInfo.textContent = `الصفحة ${currentPage} من ${totalPages || 1}`;
+        prevPageBtn.disabled = currentPage === 1;
+        nextPageBtn.disabled = currentPage === totalPages || totalPages === 0;
+    }
+
+    // ====== 4. وظائف الترقيم والفرز ======
+    function goToPage(page) {
+        if (page > 0 && page <= Math.ceil(filteredData.length / rowsPerPage)) {
+            currentPage = page;
+            renderTable();
+        }
+    }
+
+    function handleSort(column) {
+        if (currentSortColumn === column) {
+            currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            currentSortColumn = column;
+            currentSortDirection = 'desc'; // الإعداد الافتراضي للفرز هو الأحدث أولاً
+        }
+        // تحديث رمز الفرز في العنوان (اختياري)
+        tableHeaders.forEach(th => th.textContent = th.textContent.replace('⬇️', '').replace('⬆️', '').trim());
+        const headerEl = Array.from(tableHeaders).find(th => th.getAttribute('data-sort') === column);
+        if (headerEl) {
+            headerEl.textContent += currentSortDirection === 'desc' ? ' ⬇️' : ' ⬆️';
+        }
+        
+        applyFiltersAndSort(); // إعادة الفلترة والفرز
+    }
+
+
+    // ====== 5. وظائف نافذة Modal والإجراءات ======
+    function openModal(id) {
+        currentWithdrawalId = id;
+        const item = allWithdrawalsData.find(d => d.id === id);
+        if (!item) return;
+
+        modalTitle.textContent = `إجراء على طلب السحب: ${id.substring(0, 8)}...`;
+        modalDetails.innerHTML = `
+            <p><strong>المستخدم:</strong> ${item.userName}</p>
+            <p><strong>المبلغ الصافي:</strong> ${formatCurrency(item.netAmount)}</p>
+            <p><strong>النقاط:</strong> ${formatNumber(item.points)}</p>
+        `;
+        paymentDetailsInput.value = item.account || item.paymentDetails || 'لا توجد تفاصيل دفع مُدخلة';
+        actionNotesInput.value = ''; // مسح الملاحظات القديمة
+        actionModal.style.display = 'flex';
+
+        // إخفاء الأزرار إذا لم تكن الحالة معلقة (للتأكد)
+        completeBtn.style.display = item.status === 'Pending' ? 'inline-block' : 'none';
+        rejectBtn.style.display = item.status === 'Pending' ? 'inline-block' : 'none';
+    }
+
+    function closeModal() {
+        actionModal.style.display = 'none';
+        currentWithdrawalId = null;
+    }
+    
+    async function updateWithdrawalStatus(status) {
+        if (!currentWithdrawalId || (status !== 'Completed' && status !== 'Rejected')) return;
+
+        showLoading(`جاري تحديث حالة السحب إلى ${status === 'Completed' ? 'مكتمل' : 'مرفوض'}...`);
+        
+        const withdrawalRef = doc(db, 'withdrawals', currentWithdrawalId);
+        const withdrawalItem = allWithdrawalsData.find(d => d.id === currentWithdrawalId);
+        const notes = actionNotesInput.value;
+        const userId = withdrawalItem.userId;
+        const points = withdrawalItem.points;
+
+        try {
+            await updateDoc(withdrawalRef, {
+                status: status,
+                adminNotes: notes,
+                completionDate: new Date(), // يفضل حفظه كتاريخ سيرفر
+            });
+
+            // 💡 استرداد النقاط في حالة الرفض
+            if (status === 'Rejected' && userId && points > 0) {
+                 const userRef = doc(db, 'users', userId);
+                 const batch = writeBatch(db);
+
+                 // يتم جلب الوثيقة أولاً للتأكد من وجودها وتجنب الكتابة فوق حقول أخرى
+                 const userDoc = await getDoc(userRef);
+                 if (userDoc.exists()) {
+                     const currentPoints = Number(userDoc.data().points || 0);
+                     batch.update(userRef, {
+                         points: currentPoints + points, // استعادة النقاط
+                         lastUpdated: new Date()
+                     });
+                     await batch.commit();
+                 }
+            }
+
+            alert(`✅ تم تحديث حالة السحب ${currentWithdrawalId.substring(0, 8)} إلى ${status}.`);
+            closeModal();
+            await fetchAllData(); // إعادة جلب البيانات لتحديث الجدول والإحصائيات
+
+        } catch (error) {
+            console.error("Error updating withdrawal status:", error);
+            alert("❌ فشل تحديث الحالة في Firebase. تحقق من أذونات الكتابة.");
         } finally {
             hideLoading();
         }
@@ -221,10 +572,37 @@
 
     // ====== تفعيل المستمعات (Event Listeners) ======
     
-    refreshBtn.addEventListener('click', fetchWithdrawalsData);
+    refreshBtn.addEventListener('click', fetchAllData);
+    searchBar.addEventListener('input', applyFiltersAndSort);
+    statusFilter.addEventListener('change', applyFiltersAndSort);
+    prevPageBtn.addEventListener('click', () => goToPage(currentPage - 1));
+    nextPageBtn.addEventListener('click', () => goToPage(currentPage + 1));
+    
+    withdrawalsTableBody.addEventListener('click', (e) => {
+        if (e.target.dataset.action === 'open-modal') {
+            openModal(e.target.dataset.id);
+        }
+    });
+
+    tableHeaders.forEach(header => {
+        header.addEventListener('click', () => {
+            const column = header.getAttribute('data-sort');
+            if (column) handleSort(column);
+        });
+    });
+
+    // Modal Events
+    closeModalBtns.forEach(btn => btn.addEventListener('click', closeModal));
+    window.addEventListener('click', (event) => {
+        if (event.target === actionModal) closeModal();
+    });
+    
+    completeBtn.addEventListener('click', () => updateWithdrawalStatus('Completed'));
+    rejectBtn.addEventListener('click', () => updateWithdrawalStatus('Rejected'));
+
 
     // بدء جلب البيانات عند تحميل الصفحة
-    document.addEventListener('DOMContentLoaded', fetchWithdrawalsData);
+    document.addEventListener('DOMContentLoaded', fetchAllData);
   </script>
 </body>
 </html>
