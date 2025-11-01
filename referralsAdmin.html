@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>إدارة الإحالات — Am Rewards</title>
+  <title>إدارة الإحالات — Am Rewards Master</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root{
       --bg:#070707; --card:#0f0f10; --gold:#f5c542; --muted:#9aa4b2; --text:#eef2f7;
-      --accent:#00fa9a; --blue: #3b82f6; --light-gold: #f5c54233; /* إضافة لون إضافي */
+      --accent:#00fa9a; --blue: #3b82f6; --light-gold: #f5c54233; --red: #ef4444;
     }
     *{box-sizing:border-box}
     body{font-family:"Cairo",sans-serif;background:linear-gradient(180deg,var(--bg),#0b0b0b);color:var(--text);margin:0;padding:16px}
@@ -43,10 +44,14 @@
     #topReferrersTable td:last-child { font-weight: 700; color: var(--gold); }
     #topReferrersTable td:nth-child(3) { font-weight: 700; color: var(--accent); }
     #topReferrersTable td:first-child { font-weight: 900; color: var(--text); }
+    /* تعديل كود المحيل لجعله قابلاً للضغط */
+    .referrer-code { cursor: pointer; color: var(--gold); font-weight: 700; }
+    .referrer-code:hover { text-decoration: underline; }
     
     /* Controls & Loader */
     .controls{display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap; justify-content: flex-start;}
     .controls input, .controls button{padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#0b1113;color:var(--text);cursor:pointer;}
+    .controls input[type="date"] { color-scheme: dark; } /* تحسين مظهر التاريخ */
     .controls button.btn-primary{background:var(--blue);border-color:var(--blue);color:var(--text);font-weight:700;}
     .loading-status { display: flex; align-items: center; justify-content: center; padding: 10px; color: var(--muted); }
     .loader {
@@ -80,6 +85,35 @@
         font-weight: 700;
         border-color: var(--gold);
     }
+    
+    /* Modal Styles */
+    .modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background-color: rgba(0, 0, 0, 0.85); display: flex; 
+      justify-content: center; align-items: center; z-index: 1000;
+      backdrop-filter: blur(5px);
+    }
+    .modal-content {
+      background: var(--card); padding: 30px; border-radius: 15px; 
+      width: 90%; max-width: 500px; max-height: 90%; overflow-y: auto;
+      border: 1px solid var(--light-gold);
+      position: relative;
+    }
+    .modal-close {
+      position: absolute; top: 10px; left: 15px; font-size: 28px; 
+      color: var(--muted); cursor: pointer; transition: color 0.2s;
+    }
+    .modal-close:hover { color: var(--red); }
+    .referral-list { list-style: none; padding: 0; }
+    .referral-list li { 
+        background: #1a1a1a; 
+        padding: 10px; 
+        margin-bottom: 5px; 
+        border-radius: 6px; 
+        font-size: 14px;
+        color: var(--accent);
+    }
+
   </style>
 </head>
 <body>
@@ -93,6 +127,9 @@
 
     <div class="card">
       <h2 style="text-align:center; margin-top:0;">ملخص الإحالات</h2>
+      
+      <h3 style="color:var(--gold); text-align: center;">أفضل 5 أكواد نشاطاً</h3>
+      <div style="max-height: 200px;"><canvas id="referralChart" height="120"></canvas></div>
       
       <div class="stats">
         <div class="stat-box"><strong id="totalReferrals">0</strong><span>إجمالي الإحالات الناجحة</span></div>
@@ -130,6 +167,9 @@
         <h2 style="margin-top:0;">سجل الإحالات التفصيلي</h2>
 
         <div class="controls">
+            <label style="color:var(--muted); font-size:14px; margin-left: 10px;" for="dateFilter">تصفية بالتاريخ:</label>
+            <input type="date" id="dateFilter" />
+            
             <input type="text" id="searchReferral" placeholder="ابحث بكود المحيل أو إيميل المُحال..." />
             <button id="refreshBtn" class="btn-primary">🔄 تحديث البيانات</button>
         </div>
@@ -161,16 +201,34 @@
       آخر تحديث: <span id="lastUpdated">--:--</span>
     </p>
   </div>
+  
+  <div id="detailsModal" class="modal hidden">
+    <div class="modal-content">
+      <span class="modal-close" id="closeModal">&times;</span>
+      <h3 style="color: var(--gold); margin-top: 0;">تفاصيل إحالات الكود: <span id="modalReferrerCode"></span></h3>
+      
+      <div id="modalContentBody">
+        <p style="color: var(--muted); text-align: center;">قائمة بالمدعوين بواسطة هذا الكود:</p>
+        <ul id="referredList" class="referral-list">
+          </ul>
+      </div>
+
+    </div>
+  </div>
+
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     
     const DEFAULT_REWARD_VALUE = 50; 
-    let currentSort = 'points'; // لتتبع حالة الفرز الحالية
-    let allReferrerData = []; // لتخزين البيانات الأساسية للمحيلين
+    let currentSort = 'points'; 
+    let allReferrerData = []; 
+    let allReferralEvents = []; // لتخزين جميع الأحداث الأصلية
 
+    let myChart = null; // متغير لتخزين الرسم البياني
+    
     // ====== إعدادات Firebase ======
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -199,10 +257,15 @@
     const refreshBtn = document.getElementById('refreshBtn');
     const searchInput = document.getElementById('searchReferral'); 
     const lastUpdatedEl = document.getElementById('lastUpdated'); 
-    
-    // عناصر الأزرار الجديدة
     const sortByPointsBtn = document.getElementById('sortByPointsBtn');
     const sortByCountBtn = document.getElementById('sortByCountBtn');
+    const dateFilterInput = document.getElementById('dateFilter'); // عنصر الفلترة بالتاريخ
+    
+    const detailsModal = document.getElementById('detailsModal');
+    const closeModalBtn = document.getElementById('closeModal');
+    const modalReferrerCodeEl = document.getElementById('modalReferrerCode');
+    const referredListEl = document.getElementById('referredList');
+    const chartCtx = document.getElementById('referralChart');
 
     // ====== Helpers ======
     function formatNumber(n) { return Number(n || 0).toLocaleString('en-US'); }
@@ -211,6 +274,15 @@
         if (ts && ts.toDate) return ts.toDate();
         if (ts && ts.seconds) return new Date(ts.seconds * 1000); 
         return null;
+    }
+
+    function formatDateForFilter(date) {
+        // يحول تاريخ JS إلى صيغة YYYY-MM-DD
+        if (!date) return '';
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     }
 
     // ====== دالة جلب قيمة المكافأة ======
@@ -230,6 +302,40 @@
         }
     }
 
+    // ====== 1. دالة تحديث الرسم البياني ======
+    function updateChart(data) {
+        if (myChart) {
+            myChart.destroy();
+        }
+        
+        const top5 = data.slice(0, 5);
+
+        myChart = new Chart(chartCtx, {
+            type: 'bar',
+            data: {
+                labels: top5.map(r => r.code),
+                datasets: [{
+                    label: 'عدد الإحالات',
+                    data: top5.map(r => r.count),
+                    backgroundColor: 'rgba(245,197,66,0.7)',
+                    borderColor: 'var(--gold)',
+                    borderWidth: 1
+                }]
+            },
+            options: { 
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                }, 
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: 'var(--muted)' } },
+                    x: { grid: { display: false }, ticks: { color: 'var(--muted)' } }
+                } 
+            }
+        });
+    }
+
     // ====== وظيفة عرض جدول Top 20 (مع إضافة خيار الفرز) ======
     function renderTopReferrers(referrerData, rewardValue, sortBy) {
         if (referrerData.length === 0) {
@@ -245,10 +351,9 @@
             totalPoints: item.count * rewardValue
         }));
 
-        // 🥇 الترتيب حسب الخيار المحدد
         if (sortBy === 'points') {
             rankedData.sort((a, b) => b.totalPoints - a.totalPoints);
-        } else { // الفرز حسب عدد الإحالات
+        } else { 
             rankedData.sort((a, b) => b.count - a.count);
         }
         
@@ -258,7 +363,7 @@
             const row = topReferrersTableBody.insertRow();
             row.innerHTML = `
                 <td>${index + 1}</td>
-                <td>${item.code}</td>
+                <td><span class="referrer-code" onclick="showReferrerDetails('${item.code}')">${item.code}</span></td>
                 <td>${formatNumber(item.count)}</td>
                 <td>${formatNumber(item.totalPoints)}</td>
             `;
@@ -273,7 +378,32 @@
             sortByCountBtn.classList.add('active');
         }
         currentSort = sortBy;
+        
+        // تحديث الرسم البياني
+        updateChart(rankedData);
     }
+    
+    // ====== 2. وظيفة عرض التفاصيل (Modal) ======
+    function showReferrerDetails(referrerCode) {
+        modalReferrerCodeEl.textContent = referrerCode;
+        referredListEl.innerHTML = ''; 
+        
+        const relevantEvents = allReferralEvents.filter(event => event.referrerCode === referrerCode);
+        
+        if (relevantEvents.length === 0) {
+            referredListEl.innerHTML = `<li><span style="color: var(--red);">لا توجد إحالات مسجلة بالتفصيل لهذا الكود في هذا السجل.</span></li>`;
+        } else {
+            relevantEvents.forEach(event => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `إيميل المُحال: ${event.referredEmail} (تاريخ: ${event.date})`;
+                referredListEl.appendChild(listItem);
+            });
+        }
+
+        detailsModal.classList.remove('hidden');
+    }
+    window.showReferrerDetails = showReferrerDetails;
+
 
     // ====== وظيفة جلب وعرض البيانات الرئيسية ======
     async function fetchReferralsData() {
@@ -294,7 +424,7 @@
 
             let totalReferrals = 0;
             let referrerCounts = {};
-            let referralEvents = []; 
+            allReferralEvents = []; // تفريغ وتخزين جميع الأحداث الأصلية
 
             snapshot.forEach(doc => {
                 const data = doc.data();
@@ -304,20 +434,24 @@
                 
                 const dateObj = toDateSafe(data.date); 
                 const dateString = dateObj ? dateObj.toLocaleDateString('ar-EG') : 'غير متوفر';
-
-                referralEvents.push({
+                const dateFilterString = dateObj ? formatDateForFilter(dateObj) : ''; // تاريخ بصيغة الفلترة
+                
+                const event = {
                     referrerCode: referrerCode,
                     referredEmail: referredEmail,
                     date: dateString,
+                    dateFilterString: dateFilterString, // إضافة التاريخ لغرض الفلترة
                     referrerPoints: rewardValue, 
                     status: 'مُكافأة مُنحت' 
-                });
+                };
+                
+                allReferralEvents.push(event);
 
                 totalReferrals++;
                 referrerCounts[referrerCode] = (referrerCounts[referrerCode] || 0) + 1;
             });
 
-            // تحديث الإحصائيات الرئيسية باستخدام القيمة الدقيقة
+            // تحديث الإحصائيات الرئيسية
             totalReferralsEl.textContent = formatNumber(totalReferrals);
             totalRewardPointsEl.textContent = formatNumber(totalReferrals * rewardValue); 
             
@@ -327,11 +461,8 @@
                 count
             }));
 
-            // عرض جدول Top 20 (باستخدام حالة الفرز الحالية)
-            renderTopReferrers(allReferrerData, rewardValue, currentSort);
-
-            // عرض جدول السجل التفصيلي
-            renderTable(referralEvents);
+            // عرض الجداول والرسوم البيانية
+            applyFiltersAndRender();
 
         } catch (error) {
             console.error("Firebase Fetch Error:", error);
@@ -344,6 +475,44 @@
             lastUpdatedEl.textContent = new Date().toLocaleString('ar-EG'); 
         }
     }
+    
+    // ====== دالة لتطبيق الفلاتر وعرض الجداول ======
+    function applyFiltersAndRender() {
+        const filterDate = dateFilterInput.value;
+        
+        // 1. تصفية أحداث الإحالة
+        let filteredEvents = allReferralEvents;
+        if (filterDate) {
+            filteredEvents = allReferralEvents.filter(event => event.dateFilterString === filterDate);
+        }
+        
+        // 2. إعادة حساب الإحصائيات وأفضل المحيلين بناءً على الأحداث المُصفاة
+        let filteredReferrerCounts = {};
+        let filteredTotalReferrals = 0;
+        
+        filteredEvents.forEach(event => {
+            filteredTotalReferrals++;
+            filteredReferrerCounts[event.referrerCode] = (filteredReferrerCounts[event.referrerCode] || 0) + 1;
+        });
+
+        // تحديث الإحصائيات الرئيسية بناءً على الفلترة
+        totalReferralsEl.textContent = formatNumber(filteredTotalReferrals);
+        
+        // *ملاحظة*: إجمالي النقاط المدفوعة (الأساسية) تبقى كما هي ما لم نقم بتغييرها هنا
+        // إذا كنت تريد أن يعكس هذا الرقم نقاط الإحالات في هذا التاريخ فقط، قم بتفعيل هذا السطر:
+        // totalRewardPointsEl.textContent = formatNumber(filteredTotalReferrals * (allReferralEvents[0]?.referrerPoints || DEFAULT_REWARD_VALUE));
+        
+        const filteredReferrerData = Object.entries(filteredReferrerCounts).map(([code, count]) => ({
+            code,
+            count
+        }));
+        
+        // 3. عرض الجداول
+        const rewardValueForRendering = allReferralEvents[0]?.referrerPoints || DEFAULT_REWARD_VALUE;
+        renderTopReferrers(filteredReferrerData, rewardValueForRendering, currentSort);
+        renderTable(filteredEvents);
+    }
+
 
     function renderTable(events) {
         if (events.length === 0) {
@@ -366,27 +535,47 @@
         });
     }
 
+    // ====== تفاعلات DOM ======
+
     // تفعيل خاصية البحث اللحظي
-    searchInput.addEventListener("input", e => {
-      const q = e.target.value.toLowerCase();
-      const rows = referralsTableBody.querySelectorAll("tr"); 
-      rows.forEach(r => {
-        r.style.display = r.textContent.toLowerCase().includes(q) ? "" : "none";
-      });
+    searchInput.addEventListener("input", () => {
+        // نطبق البحث على الجدول الحالي المعروض (المصفى)
+        const q = searchInput.value.toLowerCase();
+        const rows = referralsTableBody.querySelectorAll("tr"); 
+        rows.forEach(r => {
+            r.style.display = r.textContent.toLowerCase().includes(q) ? "" : "none";
+        });
     });
 
-    // ====== تفاعلات أزرار الفرز ======
+    // 4. تفعيل فلترة التاريخ
+    dateFilterInput.addEventListener('change', applyFiltersAndRender);
+
+    // تفعيل أزرار التبديل
     sortByPointsBtn.addEventListener('click', () => {
-        // نحتاج قيمة المكافأة لإعادة الحساب والفرز
-        const rewardValue = totalRewardPointsEl.textContent.replace(/,/g, '') / totalReferralsEl.textContent.replace(/,/g, '') || DEFAULT_REWARD_VALUE;
-        renderTopReferrers(allReferrerData, rewardValue, 'points');
+        // استخدام البيانات المُصفاة في حال وجود فلترة
+        const dataToRender = dateFilterInput.value ? allReferrerData.filter(r => r.count > 0) : allReferrerData;
+        const rewardValue = allReferralEvents[0]?.referrerPoints || DEFAULT_REWARD_VALUE;
+        renderTopReferrers(dataToRender, rewardValue, 'points');
     });
 
     sortByCountBtn.addEventListener('click', () => {
-        // نحتاج قيمة المكافأة لإعادة الحساب والفرز
-        const rewardValue = totalRewardPointsEl.textContent.replace(/,/g, '') / totalReferralsEl.textContent.replace(/,/g, '') || DEFAULT_REWARD_VALUE;
-        renderTopReferrers(allReferrerData, rewardValue, 'count');
+        const dataToRender = dateFilterInput.value ? allReferrerData.filter(r => r.count > 0) : allReferrerData;
+        const rewardValue = allReferralEvents[0]?.referrerPoints || DEFAULT_REWARD_VALUE;
+        renderTopReferrers(dataToRender, rewardValue, 'count');
     });
+    
+    // إغلاق النافذة المنبثقة
+    closeModalBtn.addEventListener('click', () => {
+        detailsModal.classList.add('hidden');
+    });
+    detailsModal.addEventListener('click', (e) => {
+        if (e.target === detailsModal) {
+            detailsModal.classList.add('hidden');
+        }
+    });
+
+    // 3. التحديث التلقائي كل 5 دقائق
+    setInterval(fetchReferralsData, 300000); 
 
     // ====== التفعيل ======
     document.addEventListener('DOMContentLoaded', fetchReferralsData);
