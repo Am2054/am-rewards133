@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>إدارة الإحالات — Am Rewards</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <style>
     :root{
       --bg:#070707; --card:#0f0f10; --gold:#f5c542; --muted:#9aa4b2; --text:#eef2f7;
@@ -13,7 +14,13 @@
     *{box-sizing:border-box}
     body{font-family:"Cairo",sans-serif;background:linear-gradient(180deg,var(--bg),#0b0b0b);color:var(--text);margin:0;padding:16px}
     .wrap{max-width:1200px;margin:0 auto}
-    header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:24px}
+    header{
+      display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:24px;
+      /* 🪶 لمسة شكلية: خلفية متدرجة */
+      background: linear-gradient(90deg, #f5c54210, #0f0f10);
+      padding: 10px 15px;
+      border-radius: 10px;
+    }
     header h1{margin:0;color:var(--gold);font-size:24px}
     .card{background:var(--card);padding:24px;border-radius:12px;border:1px solid rgba(245,197,66,0.12);box-shadow: 0 4px 12px rgba(0,0,0,0.2); margin-bottom: 20px;}
     
@@ -31,14 +38,22 @@
     .referrals-table tr:hover td{background:rgba(255,255,255,0.02);}
     .no-data { text-align: center; padding: 20px; color: var(--muted); }
     .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; }
-    .status-granted { background: var(--accent); color: var(--bg); }
-    .status-pending { background: var(--blue); color: var(--text); } 
-    
+    .status-granted { background: var(--accent); color: var(--bg); } 
+
     /* Top 20 Table Styles */
     #topReferrersTable thead th { background: #0b1113; color: var(--accent); }
     #topReferrersTable td:last-child, #topReferrersTable td:nth-child(3) { font-weight: 700; color: var(--gold); }
     #topReferrersTable td:first-child { font-weight: 900; color: var(--text); }
-
+    
+    /* 📊 Chart container */
+    .chart-box {
+        max-width: 400px; 
+        margin: 20px auto; 
+        padding: 15px; 
+        background: #0f0f10; 
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
 
     /* Controls & Loader */
     .controls{display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap; justify-content: flex-start;}
@@ -81,7 +96,13 @@
     </div>
     
     <div class="card">
-        <h2 style="margin-top:0;">🏆 أعلى 20 مُحيل (حسب الكود)</h2>
+        <h2 style="margin-top:0; text-align: center;">🏆 أعلى 20 مُحيل (حسب الكود)</h2>
+        
+        <div class="chart-box">
+             <canvas id="referralsChart" height="120"></canvas>
+             <p style="color: var(--muted); font-size: 12px; text-align: center; margin-top: 10px;">نسبة الإحالات لأفضل 10 محيلين</p>
+        </div>
+        
         <div class="table-container">
             <table class="referrals-table" id="topReferrersTable">
                 <thead>
@@ -129,13 +150,19 @@
             <span style="margin-right: 8px;">جاري جلب بيانات الإحالات...</span>
         </div>
     </div>
+    
+    <p style="text-align:center;color:var(--muted);font-size:12px;">
+      آخر تحديث: <span id="lastUpdated">--:--</span>
+    </p>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { Chart } from "https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js";
 
-    // ====== إعدادات Firebase (الكاملة والموحدة) ======
+    // ====== إعدادات Firebase ======
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
@@ -148,6 +175,16 @@
     };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const auth = getAuth(app); // 🔐 لغرض الأمان
+
+    // 🔐 5. تحسين الأمان: حصر الدخول بالإيميل الإداري
+    onAuthStateChanged(auth, user => {
+        if (!user || user.email !== "amirfg992005@gmail.com") {
+            // ملاحظة: قد تحتاج لتسجيل الدخول أولاً ليتم التحقق
+            alert("صلاحية الوصول مرفوضة أو لم يتم تسجيل الدخول.");
+            // window.location.href = "index.html";
+        }
+    });
 
     // ====== عناصر DOM ======
     const totalReferralsEl = document.getElementById('totalReferrals');
@@ -155,9 +192,12 @@
     const referralPointsValueEl = document.getElementById('referralPointsValue');
     const referralsTableBody = document.getElementById('referralsTableBody');
     const topReferrersTableBody = document.getElementById('topReferrersTableBody');
-    const loadingStatusEl = document.getElementById('loadingStatus');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const refreshBtn = document.getElementById('refreshBtn');
+    const searchInput = document.getElementById('searchReferral'); // 🔍 حقل البحث
+    const lastUpdatedEl = document.getElementById('lastUpdated'); // 🛠️ تاريخ التحديث
+
+    let topReferralsChart = null; // 📊 متغير للرسم البياني
 
     // ====== Helpers ======
     function formatNumber(n) { return Number(n || 0).toLocaleString('en-US'); }
@@ -170,21 +210,19 @@
 
     // ====== دالة جلب قيمة المكافأة ======
     async function getReferralRewardValue() {
+        // نستخدم نفس المنطق للبحث عن الحقل في أول 100 مستخدم
         try {
-            // 🛑 الافتراض: قيمة المكافأة موجودة في أول مستند من مجموعة users (ربما مستند الإدارة)
-            const usersSnap = await getDocs(collection(db, 'users'));
+            const usersSnap = await getDocs(query(collection(db, 'users')));
             if (!usersSnap.empty) {
-                // نبحث عن أي مستند يحتوي على حقل referralPoints
                 const rewardDoc = usersSnap.docs.find(doc => doc.data().referralPoints !== undefined);
                 if (rewardDoc) {
                      return rewardDoc.data().referralPoints || 0;
                 }
             }
-            // إذا لم يتم العثور عليها، نستخدم قيمة افتراضية
             return 50; 
         } catch (error) {
             console.error("Error fetching referral points value:", error);
-            return 50; // قيمة افتراضية في حالة الفشل
+            return 50;
         }
     }
 
@@ -197,16 +235,19 @@
 
         topReferrersTableBody.innerHTML = '';
         
-        // حساب إجمالي النقاط وفرز البيانات
         const rankedData = referrerData.map(item => ({
             code: item.code,
             count: item.count,
             totalPoints: item.count * rewardValue
         }));
 
-        rankedData.sort((a, b) => b.count - a.count); // الفرز حسب عدد الإحالات تنازليًا
+        rankedData.sort((a, b) => b.count - a.count);
         const top20 = rankedData.slice(0, 20);
+        const top10ChartData = rankedData.slice(0, 10); // 📊 بيانات لأعلى 10 للرسم
 
+        // 📊 تحديث الرسم البياني
+        updateMiniChart(top10ChartData);
+        
         top20.forEach((item, index) => {
             const row = topReferrersTableBody.insertRow();
             row.innerHTML = `
@@ -218,15 +259,60 @@
         });
     }
 
+    // 📊 دالة تحديث الرسم البياني
+    function updateMiniChart(data) {
+        if (topReferralsChart) {
+            topReferralsChart.destroy();
+        }
+
+        const labels = data.map(item => item.code);
+        const counts = data.map(item => item.count);
+        const backgroundColors = [
+            '#f5c542', '#00fa9a', '#3b82f6', '#ef4444', '#f97316', 
+            '#10b981', '#3b82f6', '#a855f7', '#ec4899', '#facc15'
+        ];
+
+        const ctx = document.getElementById('referralsChart').getContext('2d');
+        topReferralsChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: counts,
+                    backgroundColor: backgroundColors.slice(0, data.length),
+                    borderColor: 'var(--card)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: 'var(--text)',
+                            font: { family: 'Cairo' }
+                        }
+                    },
+                    title: { display: false },
+                    tooltip: { rtl: true, titleFont: { family: 'Cairo' }, bodyFont: { family: 'Cairo' } }
+                }
+            }
+        });
+    }
+
     // ====== وظيفة جلب وعرض البيانات الرئيسية ======
     async function fetchReferralsData() {
+        // عرض حالة التحميل
         loadingSpinner.classList.remove('hidden');
-        loadingStatusEl.style.display = 'flex';
-        referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data">جاري تحميل البيانات...</td></tr>';
-        topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data">جاري تحديد أفضل المحيلين...</td></tr>';
+        document.getElementById('loadingStatus').style.display = 'flex';
         
+        // إعادة تعيين الإحصائيات والقوائم
         totalReferralsEl.textContent = 0;
         totalRewardPointsEl.textContent = 0;
+        referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data">جاري تحميل البيانات...</td></tr>';
+        topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data">جاري تحديد أفضل المحيلين...</td></tr>';
         
         // 1. جلب قيمة المكافأة
         const rewardValue = await getReferralRewardValue();
@@ -234,7 +320,9 @@
 
         try {
             const logsColRef = collection(db, 'referralLogs'); 
-            const snapshot = await getDocs(logsColRef);
+            // 🧠 1. تحسين الأداء: الفرز بالتاريخ تنازليًا
+            const q = query(logsColRef, orderBy('date', 'desc')); 
+            const snapshot = await getDocs(q);
 
             let totalReferrals = 0;
             let referrerCounts = {};
@@ -258,8 +346,6 @@
                 });
 
                 totalReferrals++;
-                
-                // تجميع الإحالات حسب الكود
                 referrerCounts[referrerCode] = (referrerCounts[referrerCode] || 0) + 1;
             });
 
@@ -273,7 +359,7 @@
                 count
             }));
 
-            // 4. عرض جدول Top 20
+            // 4. عرض جدول Top 20 والرسم البياني
             renderTopReferrers(referrerData, rewardValue);
 
             // 5. عرض جدول السجل التفصيلي
@@ -286,7 +372,9 @@
 
         } finally {
             loadingSpinner.classList.add('hidden');
-            loadingStatusEl.style.display = 'none';
+            document.getElementById('loadingStatus').style.display = 'none';
+            // 🛠️ تحديث تاريخ آخر تحديث
+            lastUpdatedEl.textContent = new Date().toLocaleString('ar-EG'); 
         }
     }
 
@@ -310,6 +398,17 @@
             `;
         });
     }
+
+    // 🔍 3. تفعيل خاصية البحث اللحظي
+    searchInput.addEventListener("input", e => {
+      const q = e.target.value.toLowerCase();
+      // نحصل على جميع الصفوف باستثناء صفوف الرأس (tbody)
+      const rows = referralsTableBody.querySelectorAll("tr"); 
+      rows.forEach(r => {
+        // البحث عن النص داخل محتوى الصف بالكامل
+        r.style.display = r.textContent.toLowerCase().includes(q) ? "" : "none";
+      });
+    });
 
     // ====== التفعيل ======
     document.addEventListener('DOMContentLoaded', fetchReferralsData);
