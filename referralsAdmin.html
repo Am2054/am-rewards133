@@ -23,7 +23,6 @@
     .card{background:var(--card);padding:24px;border-radius:12px;border:1px solid rgba(245,197,66,0.12);box-shadow: 0 4px 12px rgba(0,0,0,0.2); margin-bottom: 20px;}
     
     /* Stats Box Styles */
-    /* تم تعديل عرض الصناديق لأننا حذفنا واحدًا */
     .stats{display:flex;justify-content:center;gap:20px;margin-bottom:20px;flex-wrap:wrap;}
     .stat-box{background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.15);padding:12px 20px;border-radius:10px;text-align:center;min-width:280px;}
     .stat-box strong{display:block;font-size:24px;color:var(--gold);font-weight:900;}
@@ -39,9 +38,10 @@
     .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; }
     .status-granted { background: var(--accent); color: var(--bg); } 
 
-    /* Top 20 Table Styles */
+    /* Top Referrers Table Styles */
     #topReferrersTable thead th { background: #0b1113; color: var(--accent); }
-    #topReferrersTable td:last-child, #topReferrersTable td:nth-child(3) { font-weight: 700; color: var(--gold); }
+    #topReferrersTable td:last-child { font-weight: 700; color: var(--gold); }
+    #topReferrersTable td:nth-child(3) { font-weight: 700; color: var(--accent); }
     #topReferrersTable td:first-child { font-weight: 900; color: var(--text); }
     
     /* Controls & Loader */
@@ -84,7 +84,7 @@
     </div>
     
     <div class="card">
-        <h2 style="margin-top:0; text-align: center;">🏆 أعلى 20 مُحيل (حسب الكود)</h2>
+        <h2 style="margin-top:0; text-align: center;">💰 أفضل 20 مُحيل (حسب النقاط المكتسبة)</h2>
         
         <div class="table-container">
             <table class="referrals-table" id="topReferrersTable">
@@ -144,7 +144,6 @@
     import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     
-    // قيمة افتراضية لسهولة الحساب في حالة عدم جلب القيمة من DB
     const DEFAULT_REWARD_VALUE = 50; 
 
     // ====== إعدادات Firebase ======
@@ -158,7 +157,7 @@
     const db = getFirestore(app);
     const auth = getAuth(app); 
 
-    // 🔐 تحسين الأمان: حصر الدخول بالإيميل الإداري
+    // 🔐 تحسين الأمان
     onAuthStateChanged(auth, user => {
         if (!user || user.email !== "amirfg992005@gmail.com") {
             alert("صلاحية الوصول مرفوضة أو لم يتم تسجيل الدخول.");
@@ -169,7 +168,6 @@
     // ====== عناصر DOM ======
     const totalReferralsEl = document.getElementById('totalReferrals');
     const totalRewardPointsEl = document.getElementById('totalRewardPoints');
-    // تم حذف referralPointsValueEl
     const referralsTableBody = document.getElementById('referralsTableBody');
     const topReferrersTableBody = document.getElementById('topReferrersTableBody');
     const loadingSpinner = document.getElementById('loadingSpinner');
@@ -186,10 +184,27 @@
         return null;
     }
 
-    // ====== وظيفة عرض جدول Top 20 ======
-    function renderTopReferrers(referrerData) {
+    // ====== دالة جلب قيمة المكافأة (تمت استعادتها) ======
+    async function getReferralRewardValue() {
+        try {
+            const usersSnap = await getDocs(query(collection(db, 'users')));
+            if (!usersSnap.empty) {
+                const rewardDoc = usersSnap.docs.find(doc => doc.data().referralPoints !== undefined);
+                if (rewardDoc) {
+                     return rewardDoc.data().referralPoints || DEFAULT_REWARD_VALUE;
+                }
+            }
+            return DEFAULT_REWARD_VALUE; 
+        } catch (error) {
+            console.error("Error fetching referral points value:", error);
+            return DEFAULT_REWARD_VALUE;
+        }
+    }
+
+    // ====== وظيفة عرض جدول Top 20 (تم الترتيب حسب النقاط) ======
+    function renderTopReferrers(referrerData, rewardValue) {
         if (referrerData.length === 0) {
-            topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data">لا توجد بيانات كافية لتحديد أعلى المحيلين.</td></tr>';
+            topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data">لا توجد بيانات كافية لتحديد أفضل المحيلين.</td></tr>';
             return;
         }
 
@@ -198,11 +213,12 @@
         const rankedData = referrerData.map(item => ({
             code: item.code,
             count: item.count,
-            // نستخدم قيمة افتراضية لحساب إجمالي النقاط المكتسبة
-            totalPoints: item.count * DEFAULT_REWARD_VALUE 
+            // الحساب الدقيق لإجمالي النقاط
+            totalPoints: item.count * rewardValue 
         }));
 
-        rankedData.sort((a, b) => b.count - a.count);
+        // 🥇 الترتيب حسب النقاط المكتسبة (TotalPoints) تنازلياً
+        rankedData.sort((a, b) => b.totalPoints - a.totalPoints);
         const top20 = rankedData.slice(0, 20);
 
         top20.forEach((item, index) => {
@@ -226,8 +242,8 @@
         referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data">جاري تحميل البيانات...</td></tr>';
         topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data">جاري تحديد أفضل المحيلين...</td></tr>';
         
-        // تم حذف جلب قيمة المكافأة الواحدة
-        const rewardValue = DEFAULT_REWARD_VALUE; // استخدام القيمة الافتراضية
+        // 1. جلب قيمة المكافأة الدقيقة
+        const rewardValue = await getReferralRewardValue();
         
         try {
             const logsColRef = collection(db, 'referralLogs'); 
@@ -259,20 +275,20 @@
                 referrerCounts[referrerCode] = (referrerCounts[referrerCode] || 0) + 1;
             });
 
-            // تحديث الإحصائيات الرئيسية
+            // 2. تحديث الإحصائيات الرئيسية باستخدام القيمة الدقيقة
             totalReferralsEl.textContent = formatNumber(totalReferrals);
             totalRewardPointsEl.textContent = formatNumber(totalReferrals * rewardValue); 
             
-            // تجهيز بيانات Top 20
+            // 3. تجهيز بيانات Top 20
             const referrerData = Object.entries(referrerCounts).map(([code, count]) => ({
                 code,
                 count
             }));
 
-            // عرض جدول Top 20 
-            renderTopReferrers(referrerData);
+            // 4. عرض جدول Top 20 (المرتب حسب النقاط)
+            renderTopReferrers(referrerData, rewardValue);
 
-            // عرض جدول السجل التفصيلي
+            // 5. عرض جدول السجل التفصيلي
             renderTable(referralEvents);
 
         } catch (error) {
