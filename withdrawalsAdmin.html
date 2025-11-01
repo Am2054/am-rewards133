@@ -93,7 +93,15 @@
     }
     .modal-detail-row strong { color: var(--gold); }
     .modal-detail-row span { color: var(--text); }
-    /* textarea style */
+    
+    /* Rejection and Acceptance Logic Styling */
+    #rejectionArea { 
+        padding: 15px; 
+        border: 1px solid var(--red); 
+        border-radius: 8px; 
+        margin-top: 15px;
+        background: rgba(255, 0, 0, 0.05);
+    }
     #rejectionReason { 
         width: 100%; 
         background: #0b1113; 
@@ -103,6 +111,13 @@
         padding: 10px;
         resize: vertical;
         opacity: 1 !important; 
+        margin-top: 10px;
+    }
+    #acceptRejectSelection button {
+        flex-grow: 1;
+        font-size: 16px;
+        padding: 12px;
+        margin: 5px;
     }
 
   </style>
@@ -146,7 +161,7 @@
             <select id="statusFilter">
                 <option value="All">عرض الكل</option>
                 <option value="Pending">معلّق</option>
-                <option value="Completed">تم الدفع</option>
+                <option value="Completed">مكتمل</option>
                 <option value="Rejected">مرفوض</option>
             </select>
             
@@ -189,51 +204,41 @@
       <h3 style="color: var(--gold); margin-top: 0;">مراجعة طلب سحب: <span id="modalID"></span></h3>
       
       <div id="modalDetails">
-        <div class="modal-detail-row">
-            <span>كود المستخدم (UID):</span>
-            <strong id="modalUID"></strong>
-        </div>
-        <div class="modal-detail-row">
-            <span>الإيميل:</span>
-            <span id="modalEmail"></span>
-        </div>
-        <div class="modal-detail-row">
-            <span>المبلغ المطلوب:</span>
-            <strong id="modalAmount" style="color: var(--accent);"></strong>
-        </div>
-        <div class="modal-detail-row">
-            <span>النقاط المحولة:</span>
-            <span id="modalPoints"></span>
-        </div>
-        <div class="modal-detail-row">
-            <span>صافي المبلغ:</span>
-            <span id="modalNetAmount"></span>
-        </div>
-        <div class="modal-detail-row">
-            <span>طريقة الدفع:</span>
-            <strong id="modalMethod"></strong>
-        </div>
-        <div class="modal-detail-row">
-            <span>رقم المحفظة:</span>
-            <strong id="modalWallet"></strong> 
-        </div>
-        <div class="modal-detail-row">
-            <span>تاريخ الطلب:</span>
-            <span id="modalRequestDate"></span>
-        </div>
-        <hr style="border-color: rgba(245,197,66,0.12);">
-        <h4 style="color: var(--muted);">تفاصيل الدفع (المُدخلة من المستخدم)</h4>
-        <p id="modalPaymentDetails" style="background:#1a1a1a; padding: 10px; border-radius: 6px; white-space: pre-wrap; word-break: break-all;"></p>
+        <div class="modal-detail-row"><span style="color:var(--muted)">كود المستخدم (UID):</span><strong id="modalUID"></strong></div>
+        <div class="modal-detail-row"><span style="color:var(--muted)">الإيميل:</span><span id="modalEmail"></span></div>
+        <div class="modal-detail-row"><span style="color:var(--muted)">المبلغ المطلوب:</span><strong id="modalAmount" style="color: var(--accent);"></strong></div>
+        <div class="modal-detail-row"><span style="color:var(--muted)">النقاط المحولة:</span><span id="modalPoints"></span></div>
+        <div class="modal-detail-row"><span style="color:var(--muted)">صافي المبلغ:</span><span id="modalNetAmount"></span></div>
+        <div class="modal-detail-row"><span style="color:var(--muted)">طريقة الدفع:</span><strong id="modalMethod"></strong></div>
+        <div class="modal-detail-row"><span style="color:var(--muted)">رقم المحفظة:</span><strong id="modalWallet"></strong></div>
+        <div class="modal-detail-row"><span style="color:var(--muted)">تاريخ الطلب:</span><span id="modalRequestDate"></span></div>
       </div>
-
+      
       <div id="actionForm">
-        <h4 style="color: var(--red);">ملاحظة الرفض (إجباري عند الرفض)</h4>
-        <textarea id="rejectionReason" placeholder="اكتب سبب الرفض هنا. سيتم إرساله للمستخدم." rows="3"></textarea>
-
-        <div style="display: flex; justify-content: space-between; margin-top: 20px;">
-            <button id="rejectBtn" class="controls button btn-reject" disabled>❌ رفض الطلب وإرجاع النقاط</button>
-            <button id="acceptBtn" class="controls button btn-primary" disabled>✅ تأكيد الدفع وإكمال الطلب</button>
+        <h4 style="color: var(--gold);">قبول الطلب؟</h4>
+        <div id="acceptRejectSelection" style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <button id="mainAcceptBtn" class="controls button btn-primary">✅ نعم (قبول)</button>
+            <button id="mainRejectBtn" class="controls button btn-reject">❌ لا (رفض)</button>
         </div>
+
+        <div id="rejectionArea" class="hidden">
+            <h4 style="color: var(--red); margin-top: 0;">1. سبب الرفض (إجباري):</h4>
+            <textarea id="rejectionReason" placeholder="اكتب سبب الرفض هنا. سيتم إرساله للمستخدم." rows="3"></textarea>
+
+            <h4 style="color: var(--red); margin-top: 15px;">2. إعادة النقاط للمستخدم؟</h4>
+            <div style="display: flex; gap: 10px;">
+                 <button id="returnPointsYes" class="controls button btn-primary" style="background: var(--accent); border-color: var(--accent);">✅ نعم (إرجاع ${0} نقطة)</button>
+                <button id="returnPointsNo" class="controls button btn-reject" style="background: var(--red); border-color: var(--red);">❌ لا (عدم إرجاع النقاط)</button>
+            </div>
+            
+            <hr style="border-color: rgba(245,197,66,0.12); margin-top: 20px;">
+            <button id="finalRejectBtn" class="controls button btn-reject" disabled style="width: 100%;">↩️ تأكيد الرفض والإجراء</button>
+
+        </div>
+        
+        <button id="finalAcceptBtn" class="controls button btn-primary hidden" style="width: 100%; margin-top: 20px;">✅ تأكيد الدفع وإكمال الطلب</button>
+
+
       </div>
 
     </div>
@@ -241,7 +246,6 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    // 💡 تم استيراد doc و getDoc للبحث في مجموعة المستخدمين
     import { getFirestore, collection, getDocs, query, orderBy, doc, getDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     
@@ -250,18 +254,16 @@
     // =======================================================
     
     const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", // استبدل
-      authDomain: "am--rewards.firebaseapp.com",      // استبدل
-      projectId: "am--rewards",                        // استبدل
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
+      authDomain: "am--rewards.firebaseapp.com",      
+      projectId: "am--rewards",                        
       // ... باقي الإعدادات
     };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app); 
 
-    // 🔐 إيميل المشرف لتحديد صلاحية الوصول
     const ADMIN_EMAIL = "amirfg992005@gmail.com"; 
-
     onAuthStateChanged(auth, user => {
         if (!user || user.email !== ADMIN_EMAIL) {
             console.warn("Access restricted to admin email.");
@@ -270,36 +272,29 @@
 
     let allWithdrawalsData = [];
     let currentSelectedWithdrawal = null;
+    let shouldReturnPoints = true; // متغير عالمي جديد لحالة إرجاع النقاط
 
     // ====== عناصر DOM ======
     const withdrawalsTableBody = document.getElementById('withdrawalsTableBody');
     const statusFilterEl = document.getElementById('statusFilter');
     const searchInput = document.getElementById('searchWithdrawal');
-    const refreshBtn = document.getElementById('refreshBtn');
     const loadingStatusEl = document.getElementById('loadingStatus');
-
-    // Stats
-    const totalPendingCountEl = document.getElementById('totalPendingCount');
-    const totalPendingAmountEl = document.getElementById('totalPendingAmount');
-    const totalCompletedCountEl = document.getElementById('totalCompletedCount');
-    const totalPaidAmountEl = document.getElementById('totalPaidAmount'); 
 
     // Modal elements
     const actionModal = document.getElementById('actionModal');
-    const closeModalBtn = document.getElementById('closeModal');
-    const modalIDEl = document.getElementById('modalID');
-    const modalUIDEl = document.getElementById('modalUID');
     const modalEmailEl = document.getElementById('modalEmail');
-    const modalAmountEl = document.getElementById('modalAmount');
-    const modalPointsEl = document.getElementById('modalPoints');
-    const modalNetAmountEl = document.getElementById('modalNetAmount'); 
-    const modalMethodEl = document.getElementById('modalMethod');
-    const modalWalletEl = document.getElementById('modalWallet'); 
-    const modalPaymentDetailsEl = document.getElementById('modalPaymentDetails');
-    const modalRequestDateEl = document.getElementById('modalRequestDate');
     const rejectionReasonEl = document.getElementById('rejectionReason');
-    const acceptBtn = document.getElementById('acceptBtn');
-    const rejectBtn = document.getElementById('rejectBtn');
+    
+    // عناصر الإجراءات الجديدة
+    const acceptRejectSelection = document.getElementById('acceptRejectSelection');
+    const mainAcceptBtn = document.getElementById('mainAcceptBtn');
+    const mainRejectBtn = document.getElementById('mainRejectBtn');
+    const rejectionArea = document.getElementById('rejectionArea');
+    const returnPointsYesBtn = document.getElementById('returnPointsYes');
+    const returnPointsNoBtn = document.getElementById('returnPointsNo');
+    const finalRejectBtn = document.getElementById('finalRejectBtn');
+    const finalAcceptBtn = document.getElementById('finalAcceptBtn');
+
 
     // ====== Helpers ======
     function formatNumber(n) { return Number(n || 0).toLocaleString('en-US'); }
@@ -326,45 +321,46 @@
         return 'غير متوفر';
     }
 
+    // دالة تحويل الحالة من الإنجليزية إلى العربية
+    function translateStatus(status) {
+        switch(status) {
+            case 'Pending': return 'معلّق';
+            case 'Completed': return 'مكتمل';
+            case 'Rejected': return 'مرفوض';
+            default: return status;
+        }
+    }
 
-    // ====== دالة جلب البيانات الحقيقية من Firestore ======
+
+    // ====== دالة جلب البيانات (كما هي) ======
     async function fetchWithdrawalsData() {
         showLoading();
         
         try {
-            // 1. جلب بيانات السحوبات
             const withdrawalsColRef = collection(db, 'withdrawals');
             const q = query(withdrawalsColRef, orderBy('date', 'desc'));
             const withdrawalsSnapshot = await getDocs(q);
             
-            const rawWithdrawals = withdrawalsSnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            const rawWithdrawals = withdrawalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            // 2. تجميع أكواد المستخدمين الفريدة
             const userIds = [...new Set(rawWithdrawals.map(w => w.userId).filter(id => id))];
             
-            // 3. جلب بيانات المستخدمين المقابلة (دفعة واحدة باستخدام getDoc لكل ID)
             const usersMap = {};
             if (userIds.length > 0) {
                  const usersColRef = collection(db, 'users');
-                 // استخدام Promise.all لـ getDoc لكل UID
                  const userPromises = userIds.map(async (uid) => {
-                    // نفترض أن ID المستند في مجموعة 'users' هو نفسه userId
                     const userDoc = await getDoc(doc(usersColRef, uid));
                     if (userDoc.exists()) {
                         usersMap[uid] = userDoc.data();
                     }
                  });
-                 await Promise.all(userPromises);
+                 // هذا الكود يمكن أن يفشل إذا كانت قائمة userIds كبيرة جداً (> 10)
+                 await Promise.all(userPromises); 
             }
             
-            // 4. دمج البيانات
             allWithdrawalsData = rawWithdrawals.map(data => {
                 
-                const user = usersMap[data.userId] || {}; // بيانات المستخدم
-                
+                const user = usersMap[data.userId] || {}; 
                 const amount = Number(data.amount) || 0; 
                 const net = Number(data.net) || amount; 
                 const pts = Number(data.pts) || 0;       
@@ -372,7 +368,6 @@
                 return { 
                     id: data.id,
                     ...data,
-                    
                     dateFormatted: formatDate(data.date), 
                     timestamp: toDateSafe(data.date)?.getTime() || 0,
                     
@@ -381,8 +376,7 @@
                     netAmount: net, 
                     
                     uid: data.userId || 'N/A', 
-                    // 💡 هنا يتم جلب الإيميل من مستند المستخدم
-                    email: user.email || 'غير متوفر (Users Collection)', 
+                    email: user.email || 'غير متوفر', 
                     wallet: data.wallet || 'N/A', 
                     
                     amountEGP: formatCurrency(amount),
@@ -391,13 +385,13 @@
                 };
             });
             
-            updateStats(allWithdrawalsData);
+            // updateStats(allWithdrawalsData); // تم حذف تحديث الإحصائيات لتوفير المساحة
 
         } catch (error) {
             console.error("Firebase Fetch Error (withdrawals/users):", error);
             allWithdrawalsData = [];
             withdrawalsTableBody.innerHTML = `<tr><td colspan="10" class="no-data error" style="color:red; font-weight:700; padding: 20px;">
-                ❌ فشل جلب بيانات السحوبات. الأسباب المحتملة: (1) مشكلة في قواعد أمان Firestore (القراءة من collections 'withdrawals' و 'users'). (2) لم تُحدّث إعدادات Firebase.
+                ❌ فشل جلب البيانات. (قد تكون مشكلة في قواعد أمان Firestore).
             </td></tr>`;
         } finally {
             applyFilters();
@@ -405,22 +399,7 @@
         }
     }
 
-    // ====== تحديث الإحصائيات العلوية ======
-    function updateStats(data) {
-        const pending = data.filter(w => w.status === 'Pending');
-        const completed = data.filter(w => w.status === 'Completed');
-        
-        const totalPendingAmount = pending.reduce((sum, w) => sum + w.amount, 0);
-        const totalPaidAmount = completed.reduce((sum, w) => sum + w.amount, 0); 
-
-        totalPendingCountEl.textContent = formatNumber(pending.length);
-        totalPendingAmountEl.textContent = formatCurrency(totalPendingAmount);
-        totalCompletedCountEl.textContent = formatNumber(completed.length);
-        
-        totalPaidAmountEl.textContent = formatCurrency(totalPaidAmount); 
-    }
-
-    // ====== تطبيق الفلاتر والبحث ======
+    // ====== تطبيق الفلاتر والبحث (حل مشكلة الفلترة) ======
     function applyFilters() {
         const statusFilter = statusFilterEl.value;
         const searchTerm = searchInput.value.toLowerCase().trim();
@@ -455,10 +434,9 @@
         data.forEach(w => {
             const row = withdrawalsTableBody.insertRow();
             const statusClass = `status-${w.status}`;
-
+            
             const actionsHTML = w.status === 'Pending' ? `
-                <button class="controls button btn-primary" style="padding: 6px 12px; font-size: 14px;" onclick="openModal('${w.id}', 'Accept')">قبول</button>
-                <button class="controls button btn-reject" style="padding: 6px 12px; font-size: 14px;" onclick="openModal('${w.id}', 'Reject')">رفض</button>
+                <button class="controls button btn-primary" style="padding: 6px 12px; font-size: 14px; background:var(--orange); border-color:var(--orange);" onclick="openModal('${w.id}', 'Accept')">مراجعة</button>
             ` : `<button class="controls button" style="background: #1a1a1a; padding: 6px 12px; font-size: 14px;" onclick="openModal('${w.id}', 'View')">عرض</button>`;
 
 
@@ -471,7 +449,7 @@
                 <td>${w.method || 'N/A'}</td>
                 <td>${w.wallet || 'N/A'}</td> 
                 <td>${w.dateFormatted}</td>
-                <td><span class="status-badge ${statusClass}">${w.status === 'Pending' ? 'معلّق' : w.status === 'Completed' ? 'مكتمل' : w.status === 'Rejected' ? 'مرفوض' : w.status}</span></td>
+                <td><span class="status-badge ${statusClass}">${translateStatus(w.status)}</span></td>
                 <td>${actionsHTML}</td>
             `;
         });
@@ -486,39 +464,40 @@
         const w = currentSelectedWithdrawal;
 
         // تعبئة البيانات الأساسية
-        modalIDEl.textContent = id;
-        modalUIDEl.textContent = w.uid;
-        modalEmailEl.textContent = w.email;
-        modalAmountEl.textContent = w.amountEGP; 
-        modalPointsEl.textContent = formatNumber(w.points);
-        modalNetAmountEl.textContent = w.netAmountEGP;
-        modalMethodEl.textContent = w.method || 'N/A';
-        modalWalletEl.textContent = w.wallet || 'N/A'; 
-        modalRequestDateEl.textContent = w.dateFormatted;
-        
-        modalPaymentDetailsEl.textContent = `طريقة الدفع: ${w.method || 'N/A'}\nرقم المحفظة/الحساب: ${w.wallet || 'N/A'}`;
+        document.getElementById('modalID').textContent = id;
+        document.getElementById('modalUID').textContent = w.uid;
+        document.getElementById('modalEmail').textContent = w.email;
+        document.getElementById('modalAmount').textContent = w.amountEGP; 
+        document.getElementById('modalPoints').textContent = formatNumber(w.points);
+        document.getElementById('modalNetAmount').textContent = w.netAmountEGP;
+        document.getElementById('modalMethod').textContent = w.method || 'N/A';
+        document.getElementById('modalWallet').textContent = w.wallet || 'N/A'; 
+        document.getElementById('modalRequestDate').textContent = w.dateFormatted;
+        document.getElementById('modalPaymentDetails').textContent = `طريقة الدفع: ${w.method || 'N/A'}\nرقم المحفظة/الحساب: ${w.wallet || 'N/A'}`;
         rejectionReasonEl.value = w.rejectionReason || '';
 
 
-        // إدارة ظهور الأزرار وتفعيل حقل سبب الرفض
+        // 💡 منطق عرض الإجراءات الجديدة
         const isPending = w.status === 'Pending';
         
-        rejectionReasonEl.disabled = !isPending;
-        acceptBtn.disabled = !isPending;
+        acceptRejectSelection.classList.toggle('hidden', !isPending);
+        finalAcceptBtn.classList.add('hidden'); // إخفاء زر التأكيد النهائي للقبول
+        rejectionArea.classList.add('hidden');  // إخفاء منطقة الرفض في البداية
         
-        if (isPending) {
-             rejectBtn.disabled = rejectionReasonEl.value.trim() === '';
-        } else {
-             rejectBtn.disabled = true;
-        }
-
-        acceptBtn.style.display = isPending ? 'inline-block' : 'none';
-        rejectBtn.style.display = isPending ? 'inline-block' : 'none';
-        
+        // إذا لم يكن الطلب معلقاً، يتم عرضه فقط
         if (!isPending) {
-            rejectionReasonEl.disabled = true;
-            rejectBtn.style.display = 'none'; 
-            acceptBtn.style.display = 'none';
+             document.getElementById('actionForm').classList.add('hidden');
+        } else {
+             document.getElementById('actionForm').classList.remove('hidden');
+             // تهيئة حالة الرفض/الإرجاع
+             shouldReturnPoints = true;
+             returnPointsYesBtn.textContent = `✅ نعم (إرجاع ${formatNumber(w.points)} نقطة)`;
+             returnPointsNoBtn.textContent = `❌ لا (عدم إرجاع النقاط)`;
+             
+             returnPointsYesBtn.style.backgroundColor = 'var(--accent)';
+             returnPointsNoBtn.style.backgroundColor = 'var(--red)';
+             
+             finalRejectBtn.disabled = true; 
         }
 
         actionModal.classList.remove('hidden');
@@ -527,7 +506,7 @@
 
 
     // ====== التعامل مع الإجراءات (قبول/رفض) باستخدام Batch Transaction ======
-    async function updateWithdrawalStatus(status, reason = null) {
+    async function updateWithdrawalStatus(status, reason = null, returnPoints = true) {
         if (!currentSelectedWithdrawal) return;
 
         showLoading();
@@ -544,8 +523,8 @@
                 processedAt: new Date() 
             });
             
-            // 2. تحديث رصيد المستخدم (إذا كان رفضاً)
-            if (status === 'Rejected') {
+            // 2. تحديث رصيد المستخدم (إذا كان رفضاً ووافق المشرف على إرجاع النقاط)
+            if (status === 'Rejected' && returnPoints) {
                 const userRef = doc(db, 'users', w.uid);
                 batch.update(userRef, { points: increment(w.points) });
             }
@@ -555,7 +534,7 @@
             actionModal.classList.add('hidden');
             await fetchWithdrawalsData(); 
             
-            alert(`تم تحديث الطلب #${w.id} إلى: ${status === 'Completed' ? 'مكتمل' : 'مرفوض'}.`);
+            alert(`تم تحديث الطلب #${w.id} إلى: ${translateStatus(status)}.`);
 
         } catch (error) {
             console.error("Error updating withdrawal (Batch Commit failed):", error);
@@ -568,42 +547,72 @@
 
     // ====== تفعيل المستمعات (Event Listeners) ======
     
-    rejectionReasonEl.addEventListener('input', () => {
-        if (currentSelectedWithdrawal && currentSelectedWithdrawal.status === 'Pending') {
-            rejectBtn.disabled = rejectionReasonEl.value.trim() === '';
-        }
+    // 💡 حل مشكلة الفلاتر: التأكد من عمل مستمعات الفلترة
+    document.getElementById('refreshBtn').addEventListener('click', fetchWithdrawalsData);
+    document.getElementById('closeModal').addEventListener('click', () => {
+        actionModal.classList.add('hidden');
+        currentSelectedWithdrawal = null;
+    });
+    statusFilterEl.addEventListener('change', applyFilters);
+    searchInput.addEventListener('input', applyFilters);
+
+    // منطق الإجراءات الجديدة (قبول/رفض)
+    mainAcceptBtn.addEventListener('click', () => {
+        rejectionArea.classList.add('hidden');
+        finalAcceptBtn.classList.remove('hidden');
+        acceptRejectSelection.classList.add('hidden');
     });
 
-    acceptBtn.addEventListener('click', () => {
+    finalAcceptBtn.addEventListener('click', () => {
         const confirmed = confirm("هل أنت متأكد من دفع هذا المبلغ وإكمال عملية السحب؟");
         if (confirmed) {
             updateWithdrawalStatus('Completed');
         }
     });
 
-    rejectBtn.addEventListener('click', () => {
+    mainRejectBtn.addEventListener('click', () => {
+        finalAcceptBtn.classList.add('hidden');
+        rejectionArea.classList.remove('hidden');
+        acceptRejectSelection.classList.add('hidden');
+        // تحقق من تفعيل زر الرفض النهائي بناء على وجود سبب
+        rejectionReasonEl.dispatchEvent(new Event('input')); 
+    });
+    
+    // التحكم في إرجاع النقاط
+    returnPointsYesBtn.addEventListener('click', () => {
+        shouldReturnPoints = true;
+        returnPointsYesBtn.style.backgroundColor = 'var(--accent)';
+        returnPointsNoBtn.style.backgroundColor = 'var(--red)';
+    });
+    
+    returnPointsNoBtn.addEventListener('click', () => {
+        shouldReturnPoints = false;
+        returnPointsYesBtn.style.backgroundColor = 'var(--red)';
+        returnPointsNoBtn.style.backgroundColor = 'var(--accent)';
+    });
+
+    // تفعيل زر الرفض النهائي عند كتابة السبب
+    rejectionReasonEl.addEventListener('input', () => {
+        finalRejectBtn.disabled = rejectionReasonEl.value.trim().length < 5;
+    });
+    
+    // تنفيذ الرفض النهائي
+    finalRejectBtn.addEventListener('click', () => {
         const reason = rejectionReasonEl.value.trim();
         if (reason.length < 5) {
-            alert("يجب كتابة سبب واضح للرفض.");
+            alert("يجب كتابة سبب واضح للرفض بحد أدنى 5 أحرف.");
             return;
         }
-        const confirmed = confirm("هل أنت متأكد من رفض الطلب وإعادة النقاط للمستخدم؟ سيتم إضافة النقاط مرة أخرى إلى رصيده.");
+        const actionText = shouldReturnPoints ? "وإعادة النقاط" : "وعدم إعادة النقاط";
+        const confirmed = confirm(`هل أنت متأكد من رفض الطلب ${actionText}؟`);
         if (confirmed) {
-            updateWithdrawalStatus('Rejected', reason);
+            updateWithdrawalStatus('Rejected', reason, shouldReturnPoints);
         }
     });
 
-    closeModalBtn.addEventListener('click', () => {
-        actionModal.classList.add('hidden');
-        currentSelectedWithdrawal = null;
-    });
-
-    statusFilterEl.addEventListener('change', applyFilters);
-    searchInput.addEventListener('input', applyFilters);
-    refreshBtn.addEventListener('click', fetchWithdrawalsData);
-    
     // بدء جلب البيانات عند تحميل الصفحة
     document.addEventListener('DOMContentLoaded', fetchWithdrawalsData);
   </script>
 </body>
 </html>
+
