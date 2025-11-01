@@ -79,13 +79,6 @@
       color: var(--muted); cursor: pointer; transition: color 0.2s;
     }
     .modal-close:hover { color: var(--red); }
-
-    /* Modal List Styles */
-    .referred-list { list-style: none; padding: 0; margin-top: 15px; }
-    .referred-item { background: #1a1a1a; padding: 15px; margin-bottom: 10px; border-radius: 8px; }
-    .referred-item strong { color: var(--accent); }
-    .task-details { margin-top: 10px; padding: 10px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
-    .task-details p { margin: 5px 0; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -173,10 +166,16 @@
     <div class="modal-content">
       <span class="modal-close" id="closeModal">&times;</span>
       <h3 style="color: var(--gold); margin-top: 0;">تفاصيل المحيل: <span id="modalReferrerCode"></span></h3>
-      <p style="color: var(--muted);">جاري جلب بيانات المدعوين ومهامهم...</p>
       
       <div id="modalContentBody">
-        </div>
+        <p style="color: var(--muted); text-align: center; padding: 20px;">
+          هذا الجزء مخصص لعرض التفاصيل الخاصة بالمحيل. 
+          تم حذف منطق جلب بيانات المدعوين ومهامهم بناءً على طلبك.
+        </p>
+        <p style="color: var(--accent); text-align: center;">
+          يمكنك الآن إضافة المنطق الجديد الذي تريده لعرض التفاصيل هنا.
+        </p>
+      </div>
 
     </div>
   </div>
@@ -184,12 +183,12 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     
     const DEFAULT_REWARD_VALUE = 50; 
-    let currentSort = 'points'; // حالة الترتيب الحالية: 'points' أو 'count'
-    let allReferrerData = []; // لتخزين البيانات الأساسية للمحيلين
+    let currentSort = 'points';
+    let allReferrerData = []; 
 
     // ====== إعدادات Firebase ======
     const firebaseConfig = {
@@ -264,10 +263,9 @@
             totalPoints: item.count * rewardValue
         }));
 
-        // الترتيب حسب الزر المضغوط
         if (sortBy === 'points') {
             rankedData.sort((a, b) => b.totalPoints - a.totalPoints);
-        } else { // sortBy === 'count'
+        } else { 
             rankedData.sort((a, b) => b.count - a.count);
         }
         
@@ -289,7 +287,6 @@
             `;
         });
         
-        // تحديث حالة الأزرار
         sortByPointsBtn.classList.remove('active');
         sortByCountBtn.classList.remove('active');
         if (sortBy === 'points') {
@@ -342,20 +339,15 @@
                 referrerCounts[referrerCode] = (referrerCounts[referrerCode] || 0) + 1;
             });
 
-            // 2. تحديث الإحصائيات الرئيسية
             totalReferralsEl.textContent = formatNumber(totalReferrals);
             totalRewardPointsEl.textContent = formatNumber(totalReferrals * rewardValue); 
             
-            // 3. تجهيز بيانات Top 20 وتخزينها
             allReferrerData = Object.entries(referrerCounts).map(([code, count]) => ({
                 code,
                 count
             }));
 
-            // 4. عرض جدول Top 20
             renderTopReferrers(allReferrerData, rewardValue, currentSort);
-
-            // 5. عرض جدول السجل التفصيلي
             renderTable(referralEvents);
 
         } catch (error) {
@@ -391,77 +383,22 @@
         });
     }
     
-    // ====== 3. وظيفة عرض التفاصيل ======
-    async function showReferrerDetails(referrerCode) {
+    // ====== وظيفة عرض التفاصيل الجديدة (بسيطة) ======
+    function showReferrerDetails(referrerCode) {
         modalReferrerCodeEl.textContent = referrerCode;
-        modalContentBody.innerHTML = '<p style="text-align:center; color: var(--gold);">جاري جلب البيانات...</p>';
+        
+        // محتوى بسيط بعد حذف منطق جلب البيانات
+        modalContentBody.innerHTML = `
+            <p style="color: var(--muted); text-align: center; padding: 20px;">
+                تم فتح نافذة التفاصيل بنجاح لكود المحيل **${referrerCode}**.
+            </p>
+            <p style="color: var(--accent); text-align: center;">
+                يمكنك إضافة المنطق المطلوب (مثل البحث عن بيانات أخرى في Firestore) هنا الآن.
+            </p>
+        `;
+
         detailsModal.classList.remove('hidden');
-
-        try {
-            // 1. جلب بيانات المدعوين (users) الذين استخدموا هذا الكود
-            const usersColRef = collection(db, 'users');
-            const usersQuery = query(usersColRef, where('referrerCode', '==', referrerCode));
-            const usersSnap = await getDocs(usersQuery);
-
-            let htmlContent = '';
-            
-            if (usersSnap.empty) {
-                htmlContent = `<p style="color: var(--muted);">لم يتم العثور على أي مدعوين باستخدام الكود: ${referrerCode}</p>`;
-            } else {
-                let referredListHTML = '<ul class="referred-list">';
-                
-                // 2. تكرار على كل مدعو للحصول على تفاصيل مهامه
-                for (const userDoc of usersSnap.docs) {
-                    const userData = userDoc.data();
-                    const userEmail = userData.email || 'غير متوفر';
-                    const userUID = userDoc.id; // UID المستخدم هو اسم المستند
-
-                    referredListHTML += `<li class="referred-item">
-                        <strong>الإيميل:</strong> ${userEmail}
-                    `;
-                    
-                    // جلب تفاصيل مهام المدعو
-                    const tasksColRef = collection(db, 'users', userUID, 'tasks');
-                    const tasksSnap = await getDocs(tasksColRef);
-
-                    let taskDetailsHTML = '';
-                    let totalTasks = 0;
-
-                    if (!tasksSnap.empty) {
-                        taskDetailsHTML += '<div class="task-details">';
-                        tasksSnap.forEach(taskDoc => {
-                            const taskData = taskDoc.data();
-                            const taskName = taskData.taskName || 'مهمة غير مسماة';
-                            const taskStatus = taskData.status || 'غير محدد';
-                            const taskType = taskData.type || 'عام';
-                            
-                            taskDetailsHTML += `<p>
-                                <strong>${taskName}</strong> 
-                                (<span style="color: var(--gold);">${taskType}</span>): 
-                                الحالة: ${taskStatus}
-                            </p>`;
-                            totalTasks++;
-                        });
-                        taskDetailsHTML += `</div><p style="font-size: 14px; color: var(--blue);">إجمالي المهام المكتملة/الموجودة: ${totalTasks}</p>`;
-                    } else {
-                        taskDetailsHTML = `<p class="task-details" style="color: var(--muted);">لا توجد مهام مسجلة لهذا المستخدم.</p>`;
-                    }
-
-                    referredListHTML += taskDetailsHTML + '</li>';
-                }
-
-                referredListHTML += '</ul>';
-                htmlContent = referredListHTML;
-            }
-
-            modalContentBody.innerHTML = htmlContent;
-
-        } catch (error) {
-            console.error("Error fetching referrer details:", error);
-            modalContentBody.innerHTML = `<p style="color: var(--red);">❌ حدث خطأ أثناء جلب التفاصيل. يرجى التحقق من اتصال Firebase. (الخطأ: ${error.message})</p>`;
-        }
     }
-    // جعل الدالة متاحة عالميًا ليتم استدعاؤها من زر HTML
     window.showReferrerDetails = showReferrerDetails;
     
     // ====== تفاعلات DOM ======
@@ -475,7 +412,7 @@
       });
     });
 
-    // 1. تفعيل أزرار التبديل
+    // تفعيل أزرار التبديل
     sortByPointsBtn.addEventListener('click', () => {
         const rewardValue = totalRewardPointsEl.textContent.replace(/,/g, '') / totalReferralsEl.textContent.replace(/,/g, '') || DEFAULT_REWARD_VALUE;
         renderTopReferrers(allReferrerData, rewardValue, 'points');
