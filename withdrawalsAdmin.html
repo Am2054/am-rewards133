@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>إدارة السحوبات — Am Rewards Master</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#070707; --card:#0f0f10; --gold:#f5c542; --muted:#9aa4b2; --text:#eef2f7;
+      --accent:#00fa9a; --blue: #3b82f6; --red: #ef4444; --orange: #f97316;
+    }
+    *{box-sizing:border-box}
+    body{font-family:"Cairo",sans-serif;background:linear-gradient(180deg,var(--bg),#0b0b0b);color:var(--text);margin:0;padding:16px}
+    .wrap{max-width:1200px;margin:0 auto}
+    header{
+      display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:24px;
+      background: linear-gradient(90deg, #f5c54210, #0f0f10);
+      padding: 10px 15px;
+      border-radius: 10px;
+    }
+    header h1{margin:0;color:var(--gold);font-size:24px}
+    .card{background:var(--card);padding:24px;border-radius:12px;border:1px solid rgba(245,197,66,0.12);box-shadow: 0 4px 12px rgba(0,0,0,0.2); margin-bottom: 20px;}
+    
+    /* Stats Box Styles */
+    .stats{display:flex;justify-content:center;gap:20px;margin-bottom:20px;flex-wrap:wrap;}
+    .stat-box{border:1px solid rgba(245,197,66,0.15);padding:12px 20px;border-radius:10px;text-align:center;min-width:280px; flex-grow: 1;}
+    .stat-box.pending { background: rgba(249, 115, 22, 0.1); border-color: var(--orange); }
+    .stat-box.paid { background: rgba(0, 250, 154, 0.1); border-color: var(--accent); }
+    .stat-box strong{display:block;font-size:24px;color:var(--gold);font-weight:900;}
+    .stat-box.paid strong { color: var(--accent); }
+    .stat-box.pending strong { color: var(--orange); }
+    .stat-box span{display:block;font-size:12px;color:var(--muted);margin-top:4px;}
+
+    /* Table Styles */
+    .table-container{overflow-x:auto; margin-top: 15px;}
+    .withdrawals-table{width:100%; border-collapse: collapse; min-width: 1000px;}
+    .withdrawals-table th, .withdrawals-table td{padding:12px 15px; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.08);}
+    .withdrawals-table th{background:rgba(245,197,66,0.1); color: var(--gold); font-size: 14px; font-weight: 700; position: sticky; top: 0;}
+    .withdrawals-table tr:hover td{background:rgba(255,255,255,0.02);}
+    .no-data { text-align: center; padding: 20px; color: var(--muted); }
+    
+    /* Status Badges */
+    .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; }
+    .status-Pending { background: var(--orange); color: var(--bg); } 
+    .status-Completed { background: var(--accent); color: var(--bg); }
+    .status-Rejected { background: var(--red); color: var(--bg); }
+    .status-Reviewing { background: var(--blue); color: var(--bg); }
+
+    /* Controls & Loader */
+    .controls{display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap; justify-content: flex-start;}
+    .controls input, .controls select, .controls button{padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#0b1113;color:var(--text);cursor:pointer;}
+    .controls button.btn-primary{background:var(--blue);border-color:var(--blue);color:var(--text);font-weight:700;}
+    .controls button.btn-reject{background:var(--red);border-color:var(--red);color:var(--text);}
+    .loading-status { display: none; align-items: center; justify-content: center; padding: 10px; color: var(--muted); }
+    .loader {
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top: 4px solid var(--accent);
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      margin-left: 8px; 
+    }
+    .hidden { display: none !important; }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Modal Styles */
+    .modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background-color: rgba(0, 0, 0, 0.85); display: flex; 
+      justify-content: center; align-items: center; z-index: 1000;
+      backdrop-filter: blur(5px);
+    }
+    .modal-content {
+      background: var(--card); padding: 30px; border-radius: 15px; 
+      width: 90%; max-width: 600px; max-height: 90%; overflow-y: auto;
+      border: 1px solid var(--gold);
+      position: relative;
+    }
+    .modal-close {
+      position: absolute; top: 10px; left: 15px; font-size: 28px; 
+      color: var(--muted); cursor: pointer; transition: color 0.2s;
+    }
+    .modal-close:hover { color: var(--red); }
+    .modal-detail-row {
+        display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed rgba(255,255,255,0.1);
+    }
+    .modal-detail-row strong { color: var(--gold); }
+    .modal-detail-row span { color: var(--text); }
+
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>💰 إدارة السحوبات</h1>
+      <a href="index.html" style="text-decoration:none;">
+        <button class="btn" style="background:var(--accent); color: var(--bg); font-weight: 700;">العودة للرئيسية</button>
+      </a>
+    </header>
+
+    <div class="card">
+      <h2 style="text-align:center; margin-top:0;">ملخص السحوبات</h2>
+      
+      <div class="stats">
+        <div class="stat-box pending">
+            <strong id="totalPendingCount">0</strong>
+            <span>إجمالي الطلبات المعلقة</span>
+        </div>
+        <div class="stat-box pending">
+            <strong id="totalPendingAmount">$0.00</strong>
+            <span>إجمالي المبلغ المستحق دفعه</span>
+        </div>
+        <div class="stat-box paid">
+            <strong id="totalCompletedCount">0</strong>
+            <span>إجمالي عمليات السحب المكتملة</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+        <h2 style="margin-top:0;">قائمة طلبات السحب</h2>
+
+        <div class="controls">
+            <select id="statusFilter">
+                <option value="All">عرض الكل</option>
+                <option value="Pending">معلّق</option>
+                <option value="Completed">تم الدفع</option>
+                <option value="Rejected">مرفوض</option>
+            </select>
+            
+            <input type="text" id="searchWithdrawal" placeholder="ابحث بالإيميل أو كود المستخدم (UID)..." />
+            <button id="refreshBtn" class="btn-primary">🔄 تحديث البيانات</button>
+        </div>
+
+        <div class="table-container">
+            <table class="withdrawals-table">
+                <thead>
+                    <tr>
+                        <th>كود المستخدم (UID)</th>
+                        <th>الإيميل</th>
+                        <th>المبلغ المطلوب ($)</th>
+                        <th>النقاط المحولة</th>
+                        <th>طريقة الدفع</th>
+                        <th>تاريخ الطلب</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="withdrawalsTableBody">
+                    <tr><td colspan="8" class="no-data">جاري تحميل بيانات السحوبات...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="loading-status" id="loadingStatus">
+            <div id="loadingSpinner" class="loader"></div>
+            <span style="margin-right: 8px;">جاري جلب بيانات السحوبات...</span>
+        </div>
+    </div>
+  </div>
+  
+  <div id="actionModal" class="modal hidden">
+    <div class="modal-content">
+      <span class="modal-close" id="closeModal">&times;</span>
+      <h3 style="color: var(--gold); margin-top: 0;">مراجعة طلب سحب: <span id="modalID"></span></h3>
+      
+      <div id="modalDetails">
+        <div class="modal-detail-row">
+            <span>كود المستخدم (UID):</span>
+            <strong id="modalUID"></strong>
+        </div>
+        <div class="modal-detail-row">
+            <span>الإيميل:</span>
+            <span id="modalEmail"></span>
+        </div>
+        <div class="modal-detail-row">
+            <span>المبلغ المطلوب:</span>
+            <strong id="modalAmount" style="color: var(--accent);"></strong>
+        </div>
+        <div class="modal-detail-row">
+            <span>النقاط المحولة:</span>
+            <span id="modalPoints"></span>
+        </div>
+        <div class="modal-detail-row">
+            <span>طريقة الدفع:</span>
+            <strong id="modalMethod"></strong>
+        </div>
+        <hr style="border-color: rgba(245,197,66,0.12);">
+        <h4 style="color: var(--muted);">تفاصيل الدفع (المُدخلة من المستخدم)</h4>
+        <p id="modalPaymentDetails" style="background:#1a1a1a; padding: 10px; border-radius: 6px; white-space: pre-wrap; word-break: break-all;"></p>
+      </div>
+
+      <div id="actionForm">
+        <h4 style="color: var(--red);">ملاحظة الرفض (إجباري عند الرفض)</h4>
+        <textarea id="rejectionReason" placeholder="اكتب سبب الرفض هنا. سيتم إرساله للمستخدم." rows="3" style="width: 100%; background: #0b1113; color: var(--text); border: 1px solid var(--muted); border-radius: 4px; padding: 10px;"></textarea>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+            <button id="rejectBtn" class="controls button btn-reject" disabled>❌ رفض الطلب وإرجاع النقاط</button>
+            <button id="acceptBtn" class="controls button btn-primary" disabled>✅ تأكيد الدفع وإكمال الطلب</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module">
+    // Placeholder for Firebase SDK imports
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, orderBy, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    
+    // ====== إعدادات Firebase (يجب تغييرها ببياناتك الحقيقية) ======
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app); 
+
+    // 🔐 تحسين الأمان (للتأكد من أن المدير فقط هو من يصل للصفحة)
+    onAuthStateChanged(auth, user => {
+        if (!user || user.email !== "amirfg992005@gmail.com") {
+            // alert("صلاحية الوصول مرفوضة أو لم يتم تسجيل الدخول.");
+            // window.location.href = "index.html"; 
+            console.warn("Access restricted to admin email.");
+        }
+    });
+
+    // ====== Mock Data for Demonstration (سيتم استبدالها ببيانات Firebase الحقيقية) ======
+    let allWithdrawalsData = [
+        // في الواقع، البيانات ستُجلب من مجموعة 'withdrawals'
+        { id: 'w001', uid: 'user_A1', email: 'userA@mail.com', amount: 50, points: 50000, method: 'PayPal', details: 'عنوان PayPal: paypal-a@mail.com\nالاسم: أحمد محمد', date: '2025/11/05 14:00', status: 'Pending', timestamp: new Date('2025/11/05 14:00').getTime() },
+        { id: 'w002', uid: 'user_B2', email: 'userB@mail.com', amount: 10, points: 10000, method: 'Vodafone Cash', details: 'رقم الهاتف: 010xxxxxxx', date: '2025/11/04 09:15', status: 'Completed', timestamp: new Date('2025/11/04 09:15').getTime() },
+        { id: 'w003', uid: 'user_C3', email: 'userC@mail.com', amount: 25, points: 25000, method: 'PayPal', details: 'عنوان PayPal: paypal-c@mail.com', date: '2025/11/03 18:45', status: 'Pending', timestamp: new Date('2025/11/03 18:45').getTime() },
+        { id: 'w004', uid: 'user_D4', email: 'userD@mail.com', amount: 5, points: 5000, method: 'Fawry', details: 'رقم مرجعي: 12345678', date: '2025/11/02 11:00', status: 'Rejected', rejectionReason: 'المبلغ أقل من الحد الأدنى للسحب ($10)', timestamp: new Date('2025/11/02 11:00').getTime() },
+    ];
+    let currentSelectedWithdrawal = null;
+
+    // ====== عناصر DOM ======
+    const withdrawalsTableBody = document.getElementById('withdrawalsTableBody');
+    const statusFilterEl = document.getElementById('statusFilter');
+    const searchInput = document.getElementById('searchWithdrawal');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const loadingStatusEl = document.getElementById('loadingStatus');
+
+    // Stats
+    const totalPendingCountEl = document.getElementById('totalPendingCount');
+    const totalPendingAmountEl = document.getElementById('totalPendingAmount');
+    const totalCompletedCountEl = document.getElementById('totalCompletedCount');
+
+    // Modal elements
+    const actionModal = document.getElementById('actionModal');
+    const closeModalBtn = document.getElementById('closeModal');
+    const modalIDEl = document.getElementById('modalID');
+    const modalUIDEl = document.getElementById('modalUID');
+    const modalEmailEl = document.getElementById('modalEmail');
+    const modalAmountEl = document.getElementById('modalAmount');
+    const modalPointsEl = document.getElementById('modalPoints');
+    const modalMethodEl = document.getElementById('modalMethod');
+    const modalPaymentDetailsEl = document.getElementById('modalPaymentDetails');
+    const rejectionReasonEl = document.getElementById('rejectionReason');
+    const acceptBtn = document.getElementById('acceptBtn');
+    const rejectBtn = document.getElementById('rejectBtn');
+
+
+    // ====== Helpers ======
+    function formatNumber(n) { return Number(n || 0).toLocaleString('en-US'); }
+    function formatCurrency(n) { return `$${(n || 0).toFixed(2)}`; }
+    function showLoading() { loadingStatusEl.style.display = 'flex'; }
+    function hideLoading() { loadingStatusEl.style.display = 'none'; }
+
+
+    // ====== دالة جلب البيانات (محاكاة جلب Firestore) ======
+    async function fetchWithdrawalsData() {
+        showLoading();
+        // **هنا يتم استبدال الكود بـ Firebase Firestore Query:**
+        try {
+            // // مثال Query حقيقي (للتوضيح فقط، يجب تفعيله بعد إعداد Firebase)
+            // const q = query(collection(db, 'withdrawals'), orderBy('date', 'desc'));
+            // const snapshot = await getDocs(q);
+            // allWithdrawalsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            // محاكاة جلب البيانات
+            await new Promise(resolve => setTimeout(resolve, 500)); 
+            
+            // تحديث الإحصائيات بعد الجلب
+            updateStats(allWithdrawalsData);
+
+        } catch (error) {
+            console.error("Firebase Fetch Error:", error);
+            allWithdrawalsData = [];
+            withdrawalsTableBody.innerHTML = '<tr><td colspan="8" class="no-data error" style="color:red;">❌ فشل جلب بيانات السحوبات.</td></tr>';
+        } finally {
+            applyFilters();
+            hideLoading();
+        }
+    }
+
+    // ====== تحديث الإحصائيات العلوية ======
+    function updateStats(data) {
+        const pending = data.filter(w => w.status === 'Pending');
+        const completed = data.filter(w => w.status === 'Completed');
+        const totalPendingAmount = pending.reduce((sum, w) => sum + w.amount, 0);
+
+        totalPendingCountEl.textContent = formatNumber(pending.length);
+        totalPendingAmountEl.textContent = formatCurrency(totalPendingAmount);
+        totalCompletedCountEl.textContent = formatNumber(completed.length);
+    }
+
+    // ====== تطبيق الفلاتر والبحث ======
+    function applyFilters() {
+        const statusFilter = statusFilterEl.value;
+        const searchTerm = searchInput.value.toLowerCase();
+
+        let filteredData = allWithdrawalsData.filter(w => {
+            const statusMatch = statusFilter === 'All' || w.status === statusFilter;
+            const searchMatch = !searchTerm || 
+                              w.email.toLowerCase().includes(searchTerm) ||
+                              w.uid.toLowerCase().includes(searchTerm);
+            return statusMatch && searchMatch;
+        });
+        
+        // فرز البيانات المعلقة أولاً
+        filteredData.sort((a, b) => {
+            if (a.status === 'Pending' && b.status !== 'Pending') return -1;
+            if (a.status !== 'Pending' && b.status === 'Pending') return 1;
+            // فرز حسب التاريخ (الأحدث أولاً)
+            return b.timestamp - a.timestamp; 
+        });
+
+        renderTable(filteredData);
+    }
+
+    // ====== عرض الجدول الرئيسي ======
+    function renderTable(data) {
+        if (data.length === 0) {
+            withdrawalsTableBody.innerHTML = '<tr><td colspan="8" class="no-data">لا توجد طلبات سحب مطابقة للفلاتر الحالية.</td></tr>';
+            return;
+        }
+
+        withdrawalsTableBody.innerHTML = ''; 
+        data.forEach(w => {
+            const row = withdrawalsTableBody.insertRow();
+            const statusClass = `status-${w.status}`;
+
+            // الأزرار تُعرض فقط للطلبات المعلقة
+            const actionsHTML = w.status === 'Pending' ? `
+                <button class="controls button btn-primary" onclick="openModal('${w.id}', 'Accept')">قبول</button>
+                <button class="controls button btn-reject" onclick="openModal('${w.id}', 'Reject')">رفض</button>
+            ` : `<button class="controls button" onclick="openModal('${w.id}', 'View')" style="background: #1a1a1a;">عرض</button>`;
+
+
+            row.innerHTML = `
+                <td>${w.uid}</td>
+                <td>${w.email}</td>
+                <td>${formatCurrency(w.amount)}</td>
+                <td>${formatNumber(w.points)}</td>
+                <td>${w.method}</td>
+                <td>${w.date}</td>
+                <td><span class="status-badge ${statusClass}">${w.status === 'Pending' ? 'معلّق' : w.status === 'Completed' ? 'مكتمل' : 'مرفوض'}</span></td>
+                <td>${actionsHTML}</td>
+            `;
+        });
+    }
+
+    // ====== 4. فتح نافذة التفاصيل والإجراءات (Modal) ======
+    function openModal(id, actionType) {
+        currentSelectedWithdrawal = allWithdrawalsData.find(w => w.id === id);
+        
+        if (!currentSelectedWithdrawal) return;
+
+        // تعبئة البيانات
+        modalIDEl.textContent = id;
+        modalUIDEl.textContent = currentSelectedWithdrawal.uid;
+        modalEmailEl.textContent = currentSelectedWithdrawal.email;
+        modalAmountEl.textContent = formatCurrency(currentSelectedWithdrawal.amount);
+        modalPointsEl.textContent = formatNumber(currentSelectedWithdrawal.points);
+        modalMethodEl.textContent = currentSelectedWithdrawal.method;
+        modalPaymentDetailsEl.textContent = currentSelectedWithdrawal.details;
+
+        // إدارة ظهور الأزرار ونموذج الرفض
+        const isPending = currentSelectedWithdrawal.status === 'Pending';
+        
+        acceptBtn.disabled = !isPending;
+        rejectBtn.disabled = !isPending;
+        rejectionReasonEl.disabled = !isPending;
+        rejectionReasonEl.value = currentSelectedWithdrawal.rejectionReason || '';
+        rejectionReasonEl.style.borderColor = isPending ? 'var(--muted)' : 'transparent';
+        
+        // إظهار وإخفاء حسب نوع الطلب
+        acceptBtn.style.display = isPending ? 'inline-block' : 'none';
+        rejectBtn.style.display = isPending ? 'inline-block' : 'none';
+        
+        actionModal.classList.remove('hidden');
+    }
+    // جعل الدالة متاحة عالميًا للـ onclick في الجدول
+    window.openModal = openModal;
+
+
+    // ====== التعامل مع الإجراءات (قبول/رفض) ======
+
+    // تفعيل/إلغاء تفعيل زر الرفض حسب وجود سبب
+    rejectionReasonEl.addEventListener('input', () => {
+        rejectBtn.disabled = rejectionReasonEl.value.trim() === '';
+    });
+
+
+    // دالة محاكاة تحديث Firebase
+    async function updateWithdrawalStatus(status, reason = null) {
+        if (!currentSelectedWithdrawal) return;
+
+        showLoading();
+        
+        try {
+            // **هنا يتم تنفيذ الإجراءات الحقيقية على Firestore**
+            
+            // 1. تحديث حالة السحب (Withdrawal)
+            const withdrawalRef = doc(db, 'withdrawals', currentSelectedWithdrawal.id);
+            // await updateDoc(withdrawalRef, { status: status, rejectionReason: reason });
+            
+            // 2. تحديث رصيد المستخدم (إذا كان رفضاً)
+            // if (status === 'Rejected') {
+            //     const userRef = doc(db, 'users', currentSelectedWithdrawal.uid);
+            //     // يجب استخدام Firebase Transaction هنا لضمان عدم فقدان البيانات
+            //     // await updateDoc(userRef, { points: increment(currentSelectedWithdrawal.points) });
+            // }
+
+            // محاكاة التحديث محليًا
+            const index = allWithdrawalsData.findIndex(w => w.id === currentSelectedWithdrawal.id);
+            if (index !== -1) {
+                allWithdrawalsData[index].status = status;
+                allWithdrawalsData[index].rejectionReason = reason;
+                // إذا تم رفضه، يمكن افتراض أن النقاط أعيدت
+            }
+            
+            actionModal.classList.add('hidden');
+            await fetchWithdrawalsData(); // إعادة تحميل البيانات المحدثة
+            alert(`تم تحديث الطلب #${currentSelectedWithdrawal.id} إلى: ${status === 'Completed' ? 'مكتمل' : 'مرفوض'}.`);
+
+        } catch (error) {
+            console.error("Error updating withdrawal:", error);
+            alert("فشل في تحديث حالة الطلب. تحقق من اتصال Firebase.");
+        } finally {
+            hideLoading();
+            currentSelectedWithdrawal = null;
+        }
+    }
+
+
+    acceptBtn.addEventListener('click', () => {
+        const confirmed = confirm("هل أنت متأكد من دفع هذا المبلغ وإكمال عملية السحب؟");
+        if (confirmed) {
+            updateWithdrawalStatus('Completed');
+        }
+    });
+
+    rejectBtn.addEventListener('click', () => {
+        const reason = rejectionReasonEl.value.trim();
+        if (reason.length < 5) {
+            alert("يجب كتابة سبب واضح للرفض.");
+            return;
+        }
+        const confirmed = confirm("هل أنت متأكد من رفض الطلب وإعادة النقاط للمستخدم؟");
+        if (confirmed) {
+            updateWithdrawalStatus('Rejected', reason);
+        }
+    });
+
+
+    // ====== تفعيل المستمعات ======
+    closeModalBtn.addEventListener('click', () => {
+        actionModal.classList.add('hidden');
+        currentSelectedWithdrawal = null;
+    });
+
+    statusFilterEl.addEventListener('change', applyFilters);
+    searchInput.addEventListener('input', applyFilters);
+    refreshBtn.addEventListener('click', fetchWithdrawalsData);
+    
+    // بدء جلب البيانات عند تحميل الصفحة
+    document.addEventListener('DOMContentLoaded', fetchWithdrawalsData);
+  </script>
+</body>
+</html>
