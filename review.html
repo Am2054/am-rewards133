@@ -53,9 +53,10 @@
             outline:none;
         }
         .controls input:focus { border-color: var(--gold); box-shadow: 0 0 8px rgba(245, 197, 66, 0.5); }
-        .btn-primary{background:var(--blue);border-color:var(--blue);font-weight:700; color: #fff; padding: 12px 20px; border-radius: 10px; border: 1px solid;}
-        .btn-danger{background:var(--red);border-color:var(--red);font-weight:700; color: #fff; padding: 12px 20px; border-radius: 10px; border: 1px solid;}
-        .btn-primary:hover, .btn-danger:hover {opacity: 0.9; transform: translateY(-1px);}
+        .btn-primary{background:var(--blue);border-color:var(--blue);font-weight:700; color: #fff; padding: 12px 20px; border-radius: 10px; border: 1px solid; cursor: pointer;}
+        .btn-danger{background:var(--red);border-color:var(--red);font-weight:700; color: #fff; padding: 12px 20px; border-radius: 10px; border: 1px solid; cursor: pointer;}
+        .btn-primary:hover:not(:disabled), .btn-danger:hover:not(:disabled) {opacity: 0.9; transform: translateY(-1px);}
+        .btn-primary:disabled, .btn-danger:disabled {opacity: 0.6; cursor: not-allowed;} /* 🟢 تحسين بصري */
 
         h2 { color: var(--gold); border-bottom: 2px solid rgba(245, 197, 66, 0.3); padding-bottom: 8px; margin-top: 0; font-size: 20px; }
 
@@ -103,10 +104,25 @@
         .status-rejected{background:var(--red);color:#fff; padding:4px 8px; border-radius: 8px;}
         
         #loadingMsg { text-align: center; color: var(--muted); padding: 20px; }
+
+        /* 🟢 تنسيق Loader بسيط */
+        .loader {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid #fff;
+            border-radius: 50%;
+            width: 14px;
+            height: 14px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
-<body>
-    <div class="wrap">
+<body style="min-height: 100vh; display: none;" id="mainBody"> <div class="wrap">
         <header>
             <h1 style="color:var(--gold); font-weight:900;">👤 مراجعة شاملة للمستخدم</h1>
         </header>
@@ -154,7 +170,6 @@
                     </table>
                 </div>
             </div>
-
 
             <div class="card">
                 <h2>💸 سجل السحوبات (<span id="withdrawalsCount">0</span> عملية)</h2>
@@ -225,9 +240,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import {
-          getFirestore, collection, query, where, getDocs, orderBy, doc, updateDoc, Timestamp
+          getFirestore, collection, query, where, getDocs, orderBy, doc, updateDoc, Timestamp, limit
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         
         // ============== إعدادات Firebase (استخدم الإعدادات لديك) ==============
         const firebaseConfig = {
@@ -244,6 +259,35 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
         
+        // 🟢 6. أمان إضافي للوحة الإدارية (Admin Access Check)
+        const adminEmail = "amirfg992005@gmail.com";
+        const mainBody = document.getElementById('mainBody');
+
+        onAuthStateChanged(auth, user => {
+            if (!user || user.email !== adminEmail) {
+                document.body.innerHTML = "<h2 style='text-align:center;color:var(--red);padding:50px;'>🚫 صلاحيات غير كافية. هذه المنطقة مخصصة للمسؤولين فقط.</h2>";
+            } else {
+                mainBody.style.display = 'block'; // إظهار المحتوى للمسؤول
+            }
+        });
+
+        // 🟢 2. دالة إظهار تنبيه مرئي مؤقت (Toast)
+        function showToast(msg, color = "var(--accent)") {
+            const toast = document.createElement('div');
+            toast.textContent = msg;
+            toast.style.cssText = `
+                position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+                background:${color};color:#000;padding:10px 20px;border-radius:8px;
+                font-weight:700;box-shadow:0 0 15px rgba(0,0,0,0.4);z-index:9999;
+                transition: opacity 0.3s ease-in-out;
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = 0;
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
         // ============== ثوابت DOM ==============
         const searchQueryInput = document.getElementById('searchQuery');
         const searchBtn = document.getElementById('searchBtn');
@@ -266,8 +310,10 @@
         const withdrawalsCount = document.getElementById('withdrawalsCount');
         const withdrawalsTbody = document.getElementById('withdrawalsTbody');
         const pointsHistoryTbody = document.getElementById('pointsHistoryTbody');
-        // 🟢 عنصر ملخص المهام الجديد
         const pointsSummaryTbody = document.getElementById('pointsSummaryTbody');
+
+        // 🟢 4. ألوان المهام
+        const colorMap = { "shortlinks": "var(--accent)", "surveys": "var(--blue)", "apps": "var(--gold)", "offers": "var(--orange)" };
 
         // State
         let targetUID = null;
@@ -278,7 +324,6 @@
             if (v === null || v === undefined) {
                 return fallback;
             }
-            // لتحويل timestamp إلى تاريخ آمن
             if (v.toDate && typeof v.toDate === 'function') {
                 return v.toDate();
             }
@@ -316,6 +361,10 @@
             errorMsg.style.display = 'none';
             loadingMsg.style.display = 'block';
             banUnbanBtn.style.display = 'none';
+            
+            // 🟢 5. تحسين بصري للزر أثناء التحميل
+            searchBtn.innerHTML = '<span class="loader"></span> جاري البحث...';
+            searchBtn.disabled = true;
 
             let userQuery;
             if (queryValue.includes('@') && queryValue.includes('.')) {
@@ -337,13 +386,12 @@
                 targetUID = userDoc.id;
                 const userData = userDoc.data();
                 
-                // Show Basic Data
                 displayBasicData(userData);
                 
                 // Load detailed history concurrently
                 await Promise.all([
                     loadWithdrawalsHistory(targetUID),
-                    loadPointsHistory(targetUID), // تم تعديلها لعرض الملخص والتفاصيل
+                    loadPointsHistory(targetUID),
                     loadReferralHistory(targetUID)
                 ]);
                 
@@ -356,11 +404,15 @@
                 errorMsg.textContent = `❌ خطأ في الاتصال بقاعدة البيانات: ${err.message}`;
                 errorMsg.style.display = 'block';
                 targetUID = null;
+            } finally {
+                // 🟢 5. إنهاء التحسين البصري للزر
+                searchBtn.innerHTML = "🔍 بحث";
+                searchBtn.disabled = false;
             }
         }
 
         // =======================================================
-        // 2. عرض البيانات الأساسية
+        // 2. عرض البيانات الأساسية (بدون تغيير)
         // =======================================================
         function displayBasicData(userData) {
             const isBanned = safe(userData.isBanned, false);
@@ -371,7 +423,6 @@
             displayEmail.textContent = safe(userData.email, 'غير متوفر');
             displayPoints.textContent = fmtNumber(userData.points);
             
-            // جلب بيانات الإحالات من حقول المستخدم
             referralsCount.textContent = fmtNumber(userData.referralCount);
             referralsPoints.textContent = fmtNumber(userData.referralPoints);
 
@@ -383,9 +434,8 @@
                 banUnbanBtn.classList.remove('btn-danger');
                 banUnbanBtn.classList.add('btn-primary');
             } else {
-                displayBanStatus.textContent = 'نشط';
+                displayBanStatus.textContent = '🚫 حظر المستخدم';
                 displayBanStatus.className = 'active-status';
-                banUnbanBtn.textContent = '🚫 حظر المستخدم';
                 banUnbanBtn.classList.remove('btn-primary');
                 banUnbanBtn.classList.add('btn-danger');
             }
@@ -394,18 +444,18 @@
         }
 
         // =======================================================
-        // 3. جلب وعرض سجل الإحالات (referralLogs)
+        // 3. جلب وعرض سجل الإحالات (تم إضافة limit لتحسين الأداء)
         // =======================================================
         async function loadReferralHistory(uid) {
-            const referralTbody = document.getElementById('referralTbody');
             referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--gold);">جارِ التحميل...</td></tr>';
 
             try {
-                // الاستعلام الصحيح (referrerUid) مع الترتيب
+                // 🟢 3. تحسين الأداء (limit)
                 const referredSnap = await getDocs(query(
                     collection(db, "referralLogs"), 
                     where("referrerUid", "==", uid),
-                    orderBy('date', 'desc') 
+                    orderBy('date', 'desc'),
+                    limit(100) 
                 ));
 
                 if (referredSnap.empty) {
@@ -419,11 +469,17 @@
                         <tr>
                             <td>${fmtDate(data.date)}</td>
                             <td>${safe(data.email, 'N/A')}</td>
-                            <td>${safe(data.referralCode, 'N/A')}</td>
+                            <td style="color: var(--blue);">${safe(data.referralCode, 'N/A')}</td>
                             <td style="font-size: 10px;">${safe(data.referredUid, 'N/A')}</td>
                         </tr>
                     `;
                 }).join('');
+                
+                // 🟢 إضافة تنبيه إذا كان هناك المزيد من السجلات
+                if (referredSnap.docs.length >= 100) {
+                     referralTbody.innerHTML += `<tr><td colspan="4" style="text-align:center; color: var(--orange); font-style: italic;">*يتم عرض آخر 100 إحالة فقط. يرجى البحث عن ميزة "عرض المزيد" إذا كانت متاحة.*</td></tr>`;
+                }
+
 
             } catch (err) {
                 console.error("Error loading referral data:", err);
@@ -433,12 +489,13 @@
 
 
         // =======================================================
-        // 4. جلب وعرض سجل السحوبات (withdrawals)
+        // 4. جلب وعرض سجل السحوبات (تم إضافة limit لتحسين الأداء)
         // =======================================================
         async function loadWithdrawalsHistory(uid) {
             withdrawalsTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--gold);">جاري جلب السحوبات...</td></tr>';
             try {
-                const q = query(collection(db, 'withdrawals'), where('userId', '==', uid), orderBy('date', 'desc'));
+                // 🟢 3. تحسين الأداء (limit)
+                const q = query(collection(db, 'withdrawals'), where('userId', '==', uid), orderBy('date', 'desc'), limit(100));
                 const snap = await getDocs(q);
                 const withdrawals = snap.docs.map(d => d.data());
                 
@@ -468,15 +525,15 @@
         }
 
         // =======================================================
-        // 5. جلب وعرض سجل المهام المكتملة (tasksCompleted) - الآن مع الملخص
+        // 5. جلب وعرض سجل المهام المكتملة (مع الملخص والتحسينات)
         // =======================================================
         async function loadPointsHistory(uid) {
             pointsHistoryTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--gold);">جاري جلب سجل المهام...</td></tr>';
             pointsSummaryTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color: var(--gold);">جاري تجميع الملخص...</td></tr>';
 
             try {
-                // الاستعلام الصحيح (userId) مع الترتيب
-                const q = query(collection(db, 'tasksCompleted'), where('userId', '==', uid), orderBy('date', 'desc'));
+                // 🟢 3. تحسين الأداء (limit)
+                const q = query(collection(db, 'tasksCompleted'), where('userId', '==', uid), orderBy('date', 'desc'), limit(100));
                 const snap = await getDocs(q);
                 const history = snap.docs.map(d => d.data());
                 
@@ -487,7 +544,7 @@
                     return;
                 }
 
-                // 1. تجميع البيانات وحساب الإجماليات (Aggregation)
+                // 1. تجميع البيانات وحساب الإجماليات
                 const summary = history.reduce((acc, h) => {
                     const type = safe(h.taskType, 'غير محدد');
                     const points = safe(h.pointsEarned, 0);
@@ -501,24 +558,36 @@
                 }, {});
                 
                 // 2. عرض الملخص الإحصائي
-                pointsSummaryTbody.innerHTML = Object.entries(summary).map(([type, stats]) => `
-                    <tr>
-                        <td style="font-weight: 700;">${type}</td>
-                        <td>${fmtNumber(stats.count)}</td>
-                        <td style="color: var(--accent); font-weight: 700;">+${fmtNumber(stats.points)}</td>
-                    </tr>
-                `).join('');
+                pointsSummaryTbody.innerHTML = Object.entries(summary).map(([type, stats]) => {
+                    const taskColor = colorMap[type.toLowerCase()] || "var(--text)"; // 🟢 4. لون مختلف حسب النوع
+                    return `
+                        <tr>
+                            <td style="font-weight: 700; color: ${taskColor};">${type}</td>
+                            <td>${fmtNumber(stats.count)}</td>
+                            <td style="color: var(--accent); font-weight: 700;">+${fmtNumber(stats.points)}</td>
+                        </tr>
+                    `;
+                }).join('');
 
-                // 3. عرض السجل التفصيلي (القديم)
-                pointsHistoryTbody.innerHTML = history.map(h => `
-                    <tr>
-                        <td>${fmtDate(h.date)}</td>
-                        <td style="color: var(--accent); font-weight: 700;">+${fmtNumber(safe(h.pointsEarned, 0))}</td> 
-                        <td>${safe(h.taskId, 'N/A')}</td>
-                        <td>${safe(h.taskType, 'N/A')}</td> 
-                    </tr>
-                `).join('');
+                // 3. عرض السجل التفصيلي 
+                pointsHistoryTbody.innerHTML = history.map(h => {
+                    const type = safe(h.taskType, 'N/A');
+                    const taskColor = colorMap[type.toLowerCase()] || "var(--text)"; // 🟢 4. لون مختلف حسب النوع
+                    return `
+                        <tr>
+                            <td>${fmtDate(h.date)}</td>
+                            <td style="color: var(--accent); font-weight: 700;">+${fmtNumber(safe(h.pointsEarned, 0))}</td> 
+                            <td>${safe(h.taskId, 'N/A')}</td>
+                            <td style="color: ${taskColor}; font-weight: 700;">${type}</td> 
+                        </tr>
+                    `;
+                }).join('');
                 
+                // 🟢 إضافة تنبيه إذا كان هناك المزيد من السجلات
+                if (snap.docs.length >= 100) {
+                     pointsHistoryTbody.innerHTML += `<tr><td colspan="4" style="text-align:center; color: var(--orange); font-style: italic;">*يتم عرض آخر 100 سجل مهام فقط. يرجى البحث عن ميزة "عرض المزيد" إذا كانت متاحة.*</td></tr>`;
+                }
+
             } catch (err) {
                 console.error("Error loading tasks history:", err);
                 pointsHistoryTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--red);">فشل تحميل سجل المهام.</td></tr>';
@@ -527,10 +596,10 @@
         }
 
         // =======================================================
-        // 6. وظيفة الحظر/إلغاء الحظر
+        // 6. وظيفة الحظر/إلغاء الحظر (استبدال alert بـ showToast)
         // =======================================================
         async function toggleBan() {
-            if (!targetUID) return alert("لا يوجد مستخدم محدد.");
+            if (!targetUID) return showToast("لا يوجد مستخدم محدد.", "var(--red)");
             
             const action = isUserBanned ? "إلغاء الحظر" : "حظر المستخدم";
             const newBanStatus = !isUserBanned;
@@ -548,13 +617,13 @@
                     bannedBy: newBanStatus ? (auth.currentUser ? auth.currentUser.uid : 'admin-web') : null 
                 });
                 
-                alert(`تم ${action} بنجاح.`);
+                showToast(`✅ تم ${action} بنجاح.`, "var(--accent)"); // 🟢 2. استخدام Toast
                 
                 await findUser(targetUID); 
                 
             } catch (err) {
                 console.error(`Error toggling ban status:`, err);
-                alert(`❌ فشل ${action}. تحقق من صلاحياتك (Console للمزيد).`);
+                showToast(`❌ فشل ${action}. تحقق من صلاحياتك.`, "var(--red)"); // 🟢 2. استخدام Toast
                 banUnbanBtn.disabled = false;
                 banUnbanBtn.textContent = isUserBanned ? '✅ إلغاء الحظر' : '🚫 حظر المستخدم';
             }
@@ -568,8 +637,13 @@
             if (queryValue) {
                 findUser(queryValue);
             } else {
-                alert("الرجاء إدخال UID أو بريد إلكتروني.");
+                showToast("الرجاء إدخال UID أو بريد إلكتروني.", "var(--red)");
             }
+        });
+        
+        // 🟢 1. إضافة تحميل تلقائي بعد الضغط Enter
+        searchQueryInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') searchBtn.click();
         });
         
         banUnbanBtn.addEventListener('click', toggleBan);
