@@ -83,11 +83,11 @@
             width:100%;
             border-collapse:collapse;
             min-width:700px; 
-            direction: rtl; /* ⬅️ تم التأكيد */
+            direction: rtl; 
         }
         .history-table th, .history-table td{
             padding:10px 12px;
-            text-align:right; /* ⬅️ تم التأكيد */
+            text-align:right; 
             border-bottom:1px solid rgba(255,255,255,0.05);
             white-space: nowrap;
             font-size: 14px;
@@ -177,9 +177,27 @@
                     </table>
                 </div>
             </div>
+            
+            <div class="card">
+                <h2>📈 ملخص إحصائيات المهام المكتملة</h2>
+                <div class="history-table-container">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>نوع المهمة</th>
+                                <th>عدد المهام المكتملة</th>
+                                <th>إجمالي النقاط المكتسبة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pointsSummaryTbody">
+                            <tr><td colspan="3" style="text-align:center; color: var(--muted);">جاري تجميع الملخص...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
             <div class="card">
-                <h2>⭐ سجل النقاط والمهام المكتملة</h2>
+                <h2>⭐ سجل النقاط والمهام المكتملة (التفصيلي)</h2>
                 <div class="history-table-container">
                     <table class="history-table">
                         <thead>
@@ -248,6 +266,8 @@
         const withdrawalsCount = document.getElementById('withdrawalsCount');
         const withdrawalsTbody = document.getElementById('withdrawalsTbody');
         const pointsHistoryTbody = document.getElementById('pointsHistoryTbody');
+        // 🟢 عنصر ملخص المهام الجديد
+        const pointsSummaryTbody = document.getElementById('pointsSummaryTbody');
 
         // State
         let targetUID = null;
@@ -323,7 +343,7 @@
                 // Load detailed history concurrently
                 await Promise.all([
                     loadWithdrawalsHistory(targetUID),
-                    loadPointsHistory(targetUID),
+                    loadPointsHistory(targetUID), // تم تعديلها لعرض الملخص والتفاصيل
                     loadReferralHistory(targetUID)
                 ]);
                 
@@ -374,14 +394,14 @@
         }
 
         // =======================================================
-        // 3. جلب وعرض سجل الإحالات (referralLogs) - تم التأكيد
+        // 3. جلب وعرض سجل الإحالات (referralLogs)
         // =======================================================
         async function loadReferralHistory(uid) {
             const referralTbody = document.getElementById('referralTbody');
             referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--gold);">جارِ التحميل...</td></tr>';
 
             try {
-                // 🛠️ الاستعلام: استخدام حقل referrerUid
+                // الاستعلام الصحيح (referrerUid) مع الترتيب
                 const referredSnap = await getDocs(query(
                     collection(db, "referralLogs"), 
                     where("referrerUid", "==", uid),
@@ -448,25 +468,53 @@
         }
 
         // =======================================================
-        // 5. جلب وعرض سجل المهام المكتملة (tasksCompleted) - تم التعديل
+        // 5. جلب وعرض سجل المهام المكتملة (tasksCompleted) - الآن مع الملخص
         // =======================================================
         async function loadPointsHistory(uid) {
             pointsHistoryTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--gold);">جاري جلب سجل المهام...</td></tr>';
+            pointsSummaryTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color: var(--gold);">جاري تجميع الملخص...</td></tr>';
+
             try {
-                // 🛠️ الاستعلام: استخدام حقل userId
+                // الاستعلام الصحيح (userId) مع الترتيب
                 const q = query(collection(db, 'tasksCompleted'), where('userId', '==', uid), orderBy('date', 'desc'));
                 const snap = await getDocs(q);
                 const history = snap.docs.map(d => d.data());
                 
                 if (history.length === 0) {
-                    pointsHistoryTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--muted);">لا توجد مهام مكتملة مسجلة.</td></tr>';
+                    const noDataMsg = '<tr><td colspan="4" style="text-align:center; color: var(--muted);">لا توجد مهام مكتملة مسجلة.</td></tr>';
+                    pointsHistoryTbody.innerHTML = noDataMsg;
+                    pointsSummaryTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color: var(--muted);">لا توجد مهام مكتملة مسجلة.</td></tr>';
                     return;
                 }
+
+                // 1. تجميع البيانات وحساب الإجماليات (Aggregation)
+                const summary = history.reduce((acc, h) => {
+                    const type = safe(h.taskType, 'غير محدد');
+                    const points = safe(h.pointsEarned, 0);
+
+                    if (!acc[type]) {
+                        acc[type] = { count: 0, points: 0 };
+                    }
+                    acc[type].count += 1;
+                    acc[type].points += points;
+                    return acc;
+                }, {});
                 
+                // 2. عرض الملخص الإحصائي
+                pointsSummaryTbody.innerHTML = Object.entries(summary).map(([type, stats]) => `
+                    <tr>
+                        <td style="font-weight: 700;">${type}</td>
+                        <td>${fmtNumber(stats.count)}</td>
+                        <td style="color: var(--accent); font-weight: 700;">+${fmtNumber(stats.points)}</td>
+                    </tr>
+                `).join('');
+
+                // 3. عرض السجل التفصيلي (القديم)
                 pointsHistoryTbody.innerHTML = history.map(h => `
                     <tr>
                         <td>${fmtDate(h.date)}</td>
-                        <td style="color: var(--accent); font-weight: 700;">+${fmtNumber(safe(h.pointsEarned, 0))}</td> <td>${safe(h.taskId, 'N/A')}</td>
+                        <td style="color: var(--accent); font-weight: 700;">+${fmtNumber(safe(h.pointsEarned, 0))}</td> 
+                        <td>${safe(h.taskId, 'N/A')}</td>
                         <td>${safe(h.taskType, 'N/A')}</td> 
                     </tr>
                 `).join('');
@@ -474,6 +522,7 @@
             } catch (err) {
                 console.error("Error loading tasks history:", err);
                 pointsHistoryTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--red);">فشل تحميل سجل المهام.</td></tr>';
+                pointsSummaryTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color: var(--red);">فشل تحميل ملخص المهام.</td></tr>';
             }
         }
 
