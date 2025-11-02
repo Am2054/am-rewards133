@@ -122,10 +122,34 @@
                     <div class="data-row"><strong>UID:</strong><span id="displayUid">N/A</span></div>
                     <div class="data-row"><strong>الاسم:</strong><span id="displayName">N/A</span></div>
                     <div class="data-row"><strong>البريد الإلكتروني:</strong><span id="displayEmail">N/A</span></div>
-                    <div class="data-row"><strong>النقاط الحالية:</strong><span id="displayPoints" style="color: var(--accent);">0</span></div>
+                    <div class="data-row"><strong>النقاط الحالية (الإجمالي):</strong><span id="displayPoints" style="color: var(--accent);">0</span></div>
                     <div class="data-row"><strong>حالة الحظر:</strong><span id="displayBanStatus" class="active-status">نشط</span></div>
                 </div>
             </div>
+
+            <div class="card">
+                <h2>🔗 سجل الإحالات</h2>
+                <div id="referralData">
+                    <div class="data-row"><strong>عدد الإحالات الناجحة:</strong><span id="referralsCount" style="color: var(--blue);">0</span></div>
+                    <div class="data-row"><strong>النقاط المكتسبة من الإحالات:</strong><span id="referralsPoints" style="color: var(--gold);">0</span></div>
+                </div>
+                <div class="history-table-container">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>تاريخ التسجيل</th>
+                                <th>اسم المحال</th>
+                                <th>بريد المحال</th>
+                                <th>UID المحال</th>
+                            </tr>
+                        </thead>
+                        <tbody id="referralTbody">
+                            <tr><td colspan="4" style="text-align:center; color: var(--muted);">لا توجد إحالات مسجلة.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
 
             <div class="card">
                 <h2>💸 سجل السحوبات (<span id="withdrawalsCount">0</span> عملية)</h2>
@@ -156,9 +180,9 @@
                         <thead>
                             <tr>
                                 <th>التاريخ</th>
-                                <th>النقاط</th>
-                                <th>نوع العملية</th>
-                                <th>الوصف/المرجع</th>
+                                <th>النقاط المكتسبة</th>
+                                <th>اسم المهمة</th>
+                                <th>UID المهمة</th>
                             </tr>
                         </thead>
                         <tbody id="pointsHistoryTbody">
@@ -210,6 +234,12 @@
         const displayEmail = document.getElementById('displayEmail');
         const displayPoints = document.getElementById('displayPoints');
         const displayBanStatus = document.getElementById('displayBanStatus');
+        
+        // Referral DOM elements
+        const referralsCount = document.getElementById('referralsCount');
+        const referralsPoints = document.getElementById('referralsPoints');
+        const referralTbody = document.getElementById('referralTbody');
+
         const withdrawalsCount = document.getElementById('withdrawalsCount');
         const withdrawalsTbody = document.getElementById('withdrawalsTbody');
         const pointsHistoryTbody = document.getElementById('pointsHistoryTbody');
@@ -251,10 +281,9 @@
             banUnbanBtn.style.display = 'none';
 
             let userQuery;
-            // Check if it looks like an email
             if (queryValue.includes('@') && queryValue.includes('.')) {
                 userQuery = query(collection(db, 'users'), where('email', '==', queryValue));
-            } else { // Assume it's a UID
+            } else { 
                 userQuery = query(collection(db, 'users'), where('__name__', '==', queryValue));
             }
 
@@ -271,13 +300,14 @@
                 targetUID = userDoc.id;
                 const userData = userDoc.data();
                 
-                // Show Basic Data
+                // Show Basic Data (Includes referralPoints)
                 displayBasicData(userData);
                 
                 // Load detailed history concurrently
                 await Promise.all([
                     loadWithdrawalsHistory(targetUID),
-                    loadPointsHistory(targetUID)
+                    loadPointsHistory(targetUID),
+                    loadReferralData(targetUID)
                 ]);
                 
                 loadingMsg.style.display = 'none';
@@ -304,6 +334,9 @@
             displayEmail.textContent = userData.email || 'غير متوفر';
             displayPoints.textContent = fmtNumber(userData.points);
             
+            // نقاط الإحالات من حقل المستخدم
+            referralsPoints.textContent = fmtNumber(userData.referralPoints || 0);
+
             if (isBanned) {
                 displayBanStatus.textContent = 'محظور 🚫';
                 displayBanStatus.className = 'banned-status';
@@ -322,7 +355,47 @@
         }
 
         // =======================================================
-        // 3. جلب وعرض سجل السحوبات
+        // 3. جلب وعرض سجل الإحالات (referralLogs)
+        // =======================================================
+        async function loadReferralData(uid) {
+            referralsCount.textContent = 'جاري...';
+            referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--gold);">جاري جلب الإحالات...</td></tr>';
+            try {
+                // البحث في مجموعة referralLogs عن المستخدم المحيل (referrerId)
+                const referredQuery = query(collection(db, 'referralLogs'), where('referrerId', '==', uid), orderBy('date', 'desc'));
+                const referredSnap = await getDocs(referredQuery);
+                const count = referredSnap.size;
+                referralsCount.textContent = fmtNumber(count);
+                
+                if (referredSnap.empty) {
+                    referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--muted);">لا توجد إحالات مسجلة.</td></tr>';
+                    return;
+                }
+                
+                // عرض قائمة الإحالات
+                referralTbody.innerHTML = referredSnap.docs.map(d => {
+                    const data = d.data();
+                    // نفترض أن referralLogs يحتوي على: date, referredName, referredEmail, referredUID
+                    return `
+                        <tr>
+                            <td>${fmtDate(data.date)}</td>
+                            <td>${data.referredName || 'N/A'}</td>
+                            <td>${data.referredEmail || 'N/A'}</td>
+                            <td style="font-size: 10px;">${data.referredUID || 'N/A'}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error("Error loading referral data:", err);
+                referralsCount.textContent = 'خطأ';
+                referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--red);">فشل تحميل سجل الإحالات.</td></tr>';
+            }
+        }
+
+
+        // =======================================================
+        // 4. جلب وعرض سجل السحوبات (withdrawals)
         // =======================================================
         async function loadWithdrawalsHistory(uid) {
             withdrawalsTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--gold);">جاري جلب السحوبات...</td></tr>';
@@ -357,37 +430,42 @@
         }
 
         // =======================================================
-        // 4. جلب وعرض سجل النقاط (افترض اسم المجموعة: points_history)
+        // 5. جلب وعرض سجل المهام المكتملة (tasksCompleted)
         // =======================================================
         async function loadPointsHistory(uid) {
-            pointsHistoryTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--gold);">جاري جلب سجل النقاط...</td></tr>';
+            pointsHistoryTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--gold);">جاري جلب سجل المهام...</td></tr>';
             try {
-                const q = query(collection(db, 'points_history'), where('userId', '==', uid), orderBy('date', 'desc'));
+                // ⬅️ تم التعديل إلى tasksCompleted
+                const q = query(collection(db, 'tasksCompleted'), where('userId', '==', uid), orderBy('date', 'desc'));
                 const snap = await getDocs(q);
-                const history = snap.docs.map(d => d.data());
+                const history = snap.docs.map(d => {
+                    const data = d.data();
+                    data.id = d.id;
+                    return data;
+                });
                 
                 if (history.length === 0) {
-                    pointsHistoryTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--muted);">لا توجد عمليات نقاط مسجلة.</td></tr>';
+                    pointsHistoryTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--muted);">لا توجد مهام مكتملة مسجلة.</td></tr>';
                     return;
                 }
                 
                 pointsHistoryTbody.innerHTML = history.map(h => `
                     <tr>
                         <td>${fmtDate(h.date)}</td>
-                        <td style="color: ${h.points > 0 ? 'var(--accent)' : 'var(--red)'}; font-weight: 700;">${h.points > 0 ? '+' : ''}${fmtNumber(h.points)}</td>
-                        <td>${h.type || 'N/A'}</td>
-                        <td>${h.description || h.refId || 'N/A'}</td>
+                        <td style="color: var(--accent); font-weight: 700;">+${fmtNumber(h.points)}</td>
+                        <td>${h.taskName || h.description || 'N/A'}</td>
+                        <td>${h.id || 'N/A'}</td>
                     </tr>
                 `).join('');
                 
             } catch (err) {
-                console.error("Error loading points history:", err);
-                pointsHistoryTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--red);">فشل تحميل سجل النقاط.</td></tr>';
+                console.error("Error loading tasks history:", err);
+                pointsHistoryTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--red);">فشل تحميل سجل المهام.</td></tr>';
             }
         }
 
         // =======================================================
-        // 5. وظيفة الحظر/إلغاء الحظر
+        // 6. وظيفة الحظر/إلغاء الحظر
         // =======================================================
         async function toggleBan() {
             if (!targetUID) return alert("لا يوجد مستخدم محدد.");
@@ -410,7 +488,6 @@
                 
                 alert(`تم ${action} بنجاح.`);
                 
-                // إعادة جلب البيانات لتحديث العرض
                 await findUser(targetUID); 
                 
             } catch (err) {
