@@ -139,8 +139,7 @@
                             <tr>
                                 <th>تاريخ التسجيل</th>
                                 <th>اسم المحال</th>
-                                <th>بريد المحال</th>
-                                <th>UID المحال</th>
+                                <th>بريد المحال</th> <th>UID المحال</th>
                             </tr>
                         </thead>
                         <tbody id="referralTbody">
@@ -300,7 +299,7 @@
                 targetUID = userDoc.id;
                 const userData = userDoc.data();
                 
-                // Show Basic Data (Includes referralPoints)
+                // Show Basic Data (Includes referralPoints and referralCount)
                 displayBasicData(userData);
                 
                 // Load detailed history concurrently
@@ -334,8 +333,12 @@
             displayEmail.textContent = userData.email || 'غير متوفر';
             displayPoints.textContent = fmtNumber(userData.points);
             
-            // نقاط الإحالات من حقل المستخدم
+            // ⬅️ جلب عدد الإحالات من حقل المستخدم (referralCount)
+            referralsCount.textContent = fmtNumber(userData.referralCount || 0);
+            
+            // ⬅️ جلب نقاط الإحالات من حقل المستخدم (referralPoints)
             referralsPoints.textContent = fmtNumber(userData.referralPoints || 0);
+
 
             if (isBanned) {
                 displayBanStatus.textContent = 'محظور 🚫';
@@ -358,14 +361,12 @@
         // 3. جلب وعرض سجل الإحالات (referralLogs)
         // =======================================================
         async function loadReferralData(uid) {
-            referralsCount.textContent = 'جاري...';
+            // العدد أصبح يتم جلبه من displayBasicData
             referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--gold);">جاري جلب الإحالات...</td></tr>';
             try {
                 // البحث في مجموعة referralLogs عن المستخدم المحيل (referrerId)
                 const referredQuery = query(collection(db, 'referralLogs'), where('referrerId', '==', uid), orderBy('date', 'desc'));
                 const referredSnap = await getDocs(referredQuery);
-                const count = referredSnap.size;
-                referralsCount.textContent = fmtNumber(count);
                 
                 if (referredSnap.empty) {
                     referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--muted);">لا توجد إحالات مسجلة.</td></tr>';
@@ -375,12 +376,11 @@
                 // عرض قائمة الإحالات
                 referralTbody.innerHTML = referredSnap.docs.map(d => {
                     const data = d.data();
-                    // نفترض أن referralLogs يحتوي على: date, referredName, referredEmail, referredUID
                     return `
                         <tr>
                             <td>${fmtDate(data.date)}</td>
                             <td>${data.referredName || 'N/A'}</td>
-                            <td>${data.referredEmail || 'N/A'}</td>
+                            <td>${data.referredEmail || 'N/A'}</td> 
                             <td style="font-size: 10px;">${data.referredUID || 'N/A'}</td>
                         </tr>
                     `;
@@ -388,7 +388,6 @@
 
             } catch (err) {
                 console.error("Error loading referral data:", err);
-                referralsCount.textContent = 'خطأ';
                 referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--red);">فشل تحميل سجل الإحالات.</td></tr>';
             }
         }
@@ -435,12 +434,12 @@
         async function loadPointsHistory(uid) {
             pointsHistoryTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--gold);">جاري جلب سجل المهام...</td></tr>';
             try {
-                // ⬅️ تم التعديل إلى tasksCompleted
+                // ⬅️ الاستعلام عن مجموعة tasksCompleted
                 const q = query(collection(db, 'tasksCompleted'), where('userId', '==', uid), orderBy('date', 'desc'));
                 const snap = await getDocs(q);
                 const history = snap.docs.map(d => {
                     const data = d.data();
-                    data.id = d.id;
+                    data.id = d.id; // نحتفظ بالـ ID كمرجع
                     return data;
                 });
                 
@@ -454,7 +453,7 @@
                         <td>${fmtDate(h.date)}</td>
                         <td style="color: var(--accent); font-weight: 700;">+${fmtNumber(h.points)}</td>
                         <td>${h.taskName || h.description || 'N/A'}</td>
-                        <td>${h.id || 'N/A'}</td>
+                        <td>${h.taskId || h.id || 'N/A'}</td>
                     </tr>
                 `).join('');
                 
