@@ -138,8 +138,9 @@
                         <thead>
                             <tr>
                                 <th>تاريخ التسجيل</th>
-                                <th>اسم المحال</th>
-                                <th>بريد المحال</th> <th>UID المحال</th>
+                                <th>بريد المحال</th>
+                                <th>كود الإحالة</th> 
+                                <th>UID المحال</th>
                             </tr>
                         </thead>
                         <tbody id="referralTbody">
@@ -247,27 +248,39 @@
         let targetUID = null;
         let isUserBanned = false;
         
+        // ============== دالة الحماية المضافة (safe function) ==============
+        const safe = (v, fallback = "غير محدد") => {
+            if (v === null || v === undefined) {
+                return fallback;
+            }
+            // لتحويل timestamp إلى تاريخ آمن
+            if (v.toDate && typeof v.toDate === 'function') {
+                return v.toDate();
+            }
+            return v;
+        };
+
         // Helpers
         function toDateSafe(ts) {
-            if (!ts) return null;
-            if (ts.toDate) return ts.toDate();
-            if (ts.seconds) return new Date(ts.seconds * 1000);
-            return new Date(ts);
+            const date = safe(ts);
+            if (date instanceof Date) return date;
+            if (date.seconds) return new Date(date.seconds * 1000);
+            return null;
         }
         function fmtCurrency(n) {
-            return Number(n || 0).toLocaleString('ar-EG', {minimumFractionDigits:2});
+            return Number(safe(n, 0)).toLocaleString('ar-EG', {minimumFractionDigits:2});
         }
-        function fmtNumber(n) { return Number(n||0).toLocaleString('en-US'); }
+        function fmtNumber(n) { return Number(safe(n, 0)).toLocaleString('en-US'); }
         function fmtDate(ts) {
             const date = toDateSafe(ts);
             return date ? date.toLocaleString('ar-EG', {day:'2-digit',month:'2-digit',year:'numeric', hour:'2-digit', minute:'2-digit'}) : 'N/A';
         }
         function translateStatus(status) {
-            status = (status || '').toString().toLowerCase();
+            status = (safe(status, '')).toString().toLowerCase();
             if (status === 'pending') return `<span class="status-pending">معلّق</span>`;
             if (status === 'completed') return `<span class="status-completed">مكتمل</span>`;
             if (status === 'rejected') return `<span class="status-rejected">مرفوض</span>`;
-            return status;
+            return status || 'N/A';
         }
 
         // =======================================================
@@ -299,7 +312,7 @@
                 targetUID = userDoc.id;
                 const userData = userDoc.data();
                 
-                // Show Basic Data (Includes referralPoints and referralCount)
+                // Show Basic Data
                 displayBasicData(userData);
                 
                 // Load detailed history concurrently
@@ -325,19 +338,17 @@
         // 2. عرض البيانات الأساسية
         // =======================================================
         function displayBasicData(userData) {
-            const isBanned = userData.isBanned === true;
+            const isBanned = safe(userData.isBanned, false);
             isUserBanned = isBanned;
             
             displayUid.textContent = targetUID;
-            displayName.textContent = userData.name || 'غير متوفر';
-            displayEmail.textContent = userData.email || 'غير متوفر';
+            displayName.textContent = safe(userData.name, 'غير متوفر');
+            displayEmail.textContent = safe(userData.email, 'غير متوفر');
             displayPoints.textContent = fmtNumber(userData.points);
             
-            // ⬅️ جلب عدد الإحالات من حقل المستخدم (referralCount)
-            referralsCount.textContent = fmtNumber(userData.referralCount || 0);
-            
-            // ⬅️ جلب نقاط الإحالات من حقل المستخدم (referralPoints)
-            referralsPoints.textContent = fmtNumber(userData.referralPoints || 0);
+            // جلب بيانات الإحالات من حقول المستخدم
+            referralsCount.textContent = fmtNumber(userData.referralCount);
+            referralsPoints.textContent = fmtNumber(userData.referralPoints);
 
 
             if (isBanned) {
@@ -363,7 +374,7 @@
         async function loadReferralData(uid) {
             referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--gold);">جاري جلب الإحالات...</td></tr>';
             try {
-                // ⬅️ تم التعديل إلى referrerUid كما في الصورة
+                // ⬅️ تم التعديل إلى referrerUid كما هو مقترح
                 const referredQuery = query(collection(db, 'referralLogs'), where('referrerUid', '==', uid), orderBy('date', 'desc'));
                 const referredSnap = await getDocs(referredQuery);
                 
@@ -375,11 +386,12 @@
                 // عرض قائمة الإحالات
                 referralTbody.innerHTML = referredSnap.docs.map(d => {
                     const data = d.data();
-                    // نفترض أن الاسم هو email لكن يمكن أن يكون phone أو أي حقل آخر لتحديد المحال
                     return `
                         <tr>
                             <td>${fmtDate(data.date)}</td>
-                            <td>${data.referredUid || 'N/A'}</td> <td>${data.email || 'N/A'}</td>      <td style="font-size: 10px;">${data.referredUid || 'N/A'}</td>
+                            <td>${safe(data.email, 'N/A')}</td>
+                            <td>${safe(data.referralCode, 'N/A')}</td> 
+                            <td style="font-size: 10px;">${safe(data.referredUid, 'N/A')}</td>
                         </tr>
                     `;
                 }).join('');
@@ -413,10 +425,10 @@
                         <td>${fmtDate(w.date)}</td>
                         <td>${fmtCurrency(w.net)}</td>
                         <td>${fmtNumber(w.pts || w.points)}</td>
-                        <td>${w.method || 'N/A'}</td>
-                        <td>${w.wallet || 'N/A'}</td>
+                        <td>${safe(w.method, 'N/A')}</td>
+                        <td>${safe(w.wallet, 'N/A')}</td>
                         <td>${translateStatus(w.status)}</td>
-                        <td style="font-size: 11px; color: ${w.rejectionReason ? 'var(--red)' : 'var(--muted)'};">${w.rejectionReason || 'N/A'}</td>
+                        <td style="font-size: 11px; color: ${safe(w.rejectionReason) !== 'غير محدد' ? 'var(--red)' : 'var(--muted)'};">${safe(w.rejectionReason, 'N/A')}</td>
                     </tr>
                 `).join('');
                 
@@ -432,8 +444,8 @@
         async function loadPointsHistory(uid) {
             pointsHistoryTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--gold);">جاري جلب سجل المهام...</td></tr>';
             try {
-                // ⬅️ تم التعديل إلى userID كما في الصورة
-                const q = query(collection(db, 'tasksCompleted'), where('userID', '==', uid), orderBy('date', 'desc'));
+                // ⬅️ تم التعديل إلى userId كما هو مقترح
+                const q = query(collection(db, 'tasksCompleted'), where('userId', '==', uid), orderBy('date', 'desc'));
                 const snap = await getDocs(q);
                 const history = snap.docs.map(d => {
                     const data = d.data();
@@ -449,8 +461,8 @@
                 pointsHistoryTbody.innerHTML = history.map(h => `
                     <tr>
                         <td>${fmtDate(h.date)}</td>
-                        <td style="color: var(--accent); font-weight: 700;">+${fmtNumber(h.pointsEarned)}</td> <td>${h.taskId || 'N/A'}</td>
-                        <td>${h.taskType || 'N/A'}</td>
+                        <td style="color: var(--accent); font-weight: 700;">+${fmtNumber(safe(h.pointsEarned, 0))}</td> <td>${safe(h.taskId, 'N/A')}</td>
+                        <td>${safe(h.taskType, 'N/A')}</td> 
                     </tr>
                 `).join('');
                 
