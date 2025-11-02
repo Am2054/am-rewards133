@@ -22,13 +22,14 @@
     }  
     *{box-sizing:border-box}  
     html, body{  
-      height:100%;  
+      /* تم حذف height:100%; هنا للسماح بالتمرير */
       margin:0;  
       padding:0;  
     }  
     body{  
       font-family:"Cairo", "Montserrat", sans-serif;  
       color:#f1f6fb;  
+      /* تم تغيير height:100vh إلى min-height:100vh للسماح بزيادة الطول */
       min-height:100vh;  
       background:  
         linear-gradient(120deg, #0f2027 0%, #2c5364 100%),  
@@ -37,9 +38,10 @@
       background-attachment:fixed;  
       background-blend-mode:overlay;  
       display:flex;  
-      align-items:center;  
+      /* تم تغيير align-items: center إلى align-items: flex-start لتمكين التمرير */
+      align-items:flex-start;  
       justify-content:center;  
-      padding:0;  
+      padding:20px 0; /* تم تعديل Padding */
     }  
     /* Animated overlay */  
     .animated-bg {  
@@ -146,9 +148,8 @@
       z-index:1;  
       backdrop-filter: blur(16px) saturate(120%);  
     }  
-    /* تم حذف تنسيقات .signup-card .logo هنا */
     .signup-card h3{  
-      margin:16px 0 10px 0; /* تم زيادة الهامش العلوي لتعويض مكان اللوجو المحذوف */
+      margin:16px 0 10px 0;
       text-align:center;  
       color:#e6f7ff;  
       font-size:24px;  
@@ -203,7 +204,6 @@
     .toggle-password:hover {
         color: var(--accent-2);
     }
-    /* الأيقونات البصرية (استخدام رموز Unicode لتبسيط الكود) */
     .eye-icon::after {
         content: '👁️'; 
     }
@@ -354,6 +354,7 @@
     .modal-close:hover {
       background: #d64a4a;
     }
+    /* --- تم حذف تنسيقات زر العودة للأعلى --- */
   </style>
 </head>
 <body>
@@ -437,12 +438,10 @@
   </div>
   
   <script type="module">
-    // استيراد مكتبات Firebase الأساسية
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     
-    // إعدادات Firebase (يجب أن تكون إعداداتك الحقيقية)
     const firebaseConfig = {  
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",  
       authDomain: "am--rewards.firebaseapp.com",  
@@ -456,39 +455,32 @@
     const auth = getAuth(app);  
     const db = getFirestore(app);  
 
-    // قراءة كود الإحالة من الرابط وملء حقل الإحالة
     const urlParams = new URLSearchParams(window.location.search);  
     const initialReferralCode = urlParams.get("ref");  
     const refCodeInput = document.getElementById('refCode');
     if (initialReferralCode) {
         refCodeInput.value = initialReferralCode.toUpperCase().trim();
-        refCodeInput.readOnly = true; // لمنع التلاعب إذا جاء عبر رابط
+        refCodeInput.readOnly = true; 
     }
 
-    // عناصر الواجهة  
     const statusEl = document.getElementById('status');  
     const signupBtn = document.getElementById('signupBtn');  
     
-    // عناصر التحكم في السياسة (Modal)
     const policyModal = document.getElementById('policyModal');
     const viewPolicyLink = document.getElementById('viewPolicyLink');
 
-    // فتح النافذة عند الضغط على الرابط
     viewPolicyLink.addEventListener('click', (e) => {
         e.preventDefault();
         policyModal.classList.add('open');
     });
     
-    // دالة مساعدة للحصول على قيمة الحقل  
     const getVal = (id) => document.getElementById(id).value.trim();  
 
-    // دالة عرض حالة مختصرة  
     function setStatus(text, type='info'){  
       statusEl.textContent = text || '';  
       statusEl.className = 'status ' + (type==='error' ? 'error' : (type==='success'? 'success':''));  
     }  
 
-    // دالة إظهار/إخفاء كلمة المرور (تحسين UX)
     window.togglePasswordVisibility = function(id) {
         const input = document.getElementById(id);
         const icon = input.nextElementSibling;
@@ -502,7 +494,6 @@
         }
     }
 
-    // منطق التحقق من البيانات 
     function validateSignupData(data) {  
         if (!data.name || !data.phone || !data.email || !data.password || !data.confirmPassword) {  
             return '⚠️ الرجاء ملء جميع الحقول المطلوبة.';  
@@ -519,10 +510,9 @@
         if (!document.getElementById("agree").checked) {  
             return '⚠️ يجب الموافقة على سياسة الاستخدام.';  
         }  
-        return null; // لا يوجد خطأ  
+        return null; 
     }  
 
-    // دالة التسجيل  
     async function signup(){  
       setStatus('', 'info');  
 
@@ -534,7 +524,7 @@
           confirmPassword: document.getElementById("confirmPassword").value,  
       };  
       
-      const referralCode = getVal("refCode") || ""; // قراءة كود الإحالة المدخل
+      const referralCode = getVal("refCode") || ""; 
 
       const validationError = validateSignupData(data);  
       if (validationError) {  
@@ -542,20 +532,16 @@
           return;  
       }  
 
-      // قفل الواجهة  
       signupBtn.disabled = true;  
       signupBtn.textContent = '⏳ جاري إنشاء الحساب...';  
 
       try {  
-        // 1. إنشاء المستخدم في Auth  
         const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);  
         const user = userCredential.user;  
         const uid = user.uid;  
 
-        // 2. توليد كود إحالة خاص (استخدام UID مبسط)
         const myReferralCode = uid.slice(0,6).toUpperCase();  
 
-        // 3. إضافة بيانات المستخدم (يجب أن تكون هذه العملية محمية بقواعد Firestore)
         await setDoc(doc(db, "users", uid), {  
           uid,  
           name: data.name,  
@@ -565,7 +551,7 @@
           referralPoints: 0,  
           referralCount: 0,  
           referralCode: myReferralCode,  
-          referralBy: referralCode, // حفظ الكود الذي أحال المستخدم
+          referralBy: referralCode, 
           totalWithdrawn: 0,  
           dailyWithdrawAmount: 0,  
           isBanned: false,  
@@ -573,9 +559,6 @@
           joinedAt: serverTimestamp(),
         });  
 
-        // **** ملاحظة أمنية: تحديث عداد الإحالة يتم بواسطة Cloud Functions (الخادم) لاحقاً ****
-
-        // نجاح  
         setStatus('✅ تم إنشاء الحساب بنجاح! جاري التوجيه...', 'success');  
         setTimeout(()=> window.location.href = 'dashboard.html', 1400);  
 
@@ -592,6 +575,8 @@
         signupBtn.textContent = 'إنشاء الحساب — ابدأ الآن';  
       }
     }
+    
+    // تم حذف منطق زر العودة للأعلى لأنه لم يكن المطلوب.
   </script>
 </body>
 </html>
