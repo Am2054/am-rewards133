@@ -319,7 +319,7 @@
                 await Promise.all([
                     loadWithdrawalsHistory(targetUID),
                     loadPointsHistory(targetUID),
-                    loadReferralData(targetUID)
+                    loadReferralHistory(targetUID) // ⬅️ تم التغيير لاستخدام الدالة الجديدة
                 ]);
                 
                 loadingMsg.style.display = 'none';
@@ -371,51 +371,41 @@
         // =======================================================
         // 3. جلب وعرض سجل الإحالات (referralLogs)
         // =======================================================
-        async function loadReferralData(uid) {
-            referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--gold);">جاري جلب الإحالات...</td></tr>';
+        async function loadReferralHistory(uid) {
+            const referralTbody = document.getElementById('referralTbody');
+            referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--gold);">جارِ التحميل...</td></tr>';
+
             try {
-                // ⬅️ تم التعديل إلى referrerUid كما هو مقترح
-                const referredQuery = query(collection(db, 'referralLogs'), where('referrerUid', '==', uid), orderBy('date', 'desc'));
-                const referredSnap = await getDocs(referredQuery);
-                
+                // 🟢 الكود المضمون الذي تم توفيره
+                const referredSnap = await getDocs(query(
+                    collection(db, "referralLogs"), 
+                    where("referrerUid", "==", uid),
+                    orderBy('date', 'desc') // إضافة الترتيب
+                ));
+
                 if (referredSnap.empty) {
-                    referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--muted);">لا توجد إحالات مسجلة.</td></tr>';
+                    referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--muted);">لا توجد إحالات بعد.</td></tr>';
                     return;
                 }
-                // 🟢 تحميل سجل الإحالات من مجموعة referralLogs
-async function loadReferralHistory(uid) {
-  const referralTbody = document.getElementById('referralTbody');
-  referralTbody.innerHTML = '<tr><td colspan="4">جارِ التحميل...</td></tr>';
 
-  try {
-    const referredSnap = await getDocs(query(
-      collection(db, "referralLogs"), // ← تأكد أن ده هو اسم المجموعة عندك
-      where("referrerUid", "==", uid)
-    ));
+                referralTbody.innerHTML = referredSnap.docs.map(d => {
+                    const data = d.data();
+                    return `
+                        <tr>
+                            <td>${fmtDate(data.date)}</td>
+                            <td>${safe(data.email, 'N/A')}</td>
+                            <td>${safe(data.referralCode, 'N/A')}</td>
+                            <td style="font-size: 10px;">${safe(data.referredUid, 'N/A')}</td>
+                        </tr>
+                    `;
+                }).join('');
 
-    if (referredSnap.empty) {
-      referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">لا توجد إحالات بعد.</td></tr>';
-      return;
-    }
-
-    referralTbody.innerHTML = referredSnap.docs.map(d => {
-      const data = d.data();
-      return `
-        <tr>
-          <td>${fmtDate(data.date?.toDate?.() || data.timestamp?.toDate?.() || new Date())}</td>
-          <td>${safe(data.email, 'N/A')}</td>
-          <td>${safe(data.referralCode, 'N/A')}</td>
-          <td style="font-size: 10px;">${safe(data.referredUid, 'N/A')}</td>
-        </tr>
-      `;
-    }).join('');
-
-  } catch (err) {
-    console.error("Error loading referral data:", err);
-    referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:red;">فشل تحميل سجل الإحالات.</td></tr>';
-  }
+            } catch (err) {
+                console.error("Error loading referral data:", err);
+                referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--red);">فشل تحميل سجل الإحالات.</td></tr>';
+            }
         }
-                
+
 
         // =======================================================
         // 4. جلب وعرض سجل السحوبات (withdrawals)
@@ -458,14 +448,10 @@ async function loadReferralHistory(uid) {
         async function loadPointsHistory(uid) {
             pointsHistoryTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--gold);">جاري جلب سجل المهام...</td></tr>';
             try {
-                // ⬅️ تم التعديل إلى userId كما هو مقترح
+                // استخدام userId و pointsEarned كما تم التأكيد عليه
                 const q = query(collection(db, 'tasksCompleted'), where('userId', '==', uid), orderBy('date', 'desc'));
                 const snap = await getDocs(q);
-                const history = snap.docs.map(d => {
-                    const data = d.data();
-                    data.id = d.id;
-                    return data;
-                });
+                const history = snap.docs.map(d => d.data());
                 
                 if (history.length === 0) {
                     pointsHistoryTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--muted);">لا توجد مهام مكتملة مسجلة.</td></tr>';
@@ -475,7 +461,8 @@ async function loadReferralHistory(uid) {
                 pointsHistoryTbody.innerHTML = history.map(h => `
                     <tr>
                         <td>${fmtDate(h.date)}</td>
-                        <td style="color: var(--accent); font-weight: 700;">+${fmtNumber(safe(h.pointsEarned, 0))}</td> <td>${safe(h.taskId, 'N/A')}</td>
+                        <td style="color: var(--accent); font-weight: 700;">+${fmtNumber(safe(h.pointsEarned, 0))}</td> 
+                        <td>${safe(h.taskId, 'N/A')}</td>
                         <td>${safe(h.taskType, 'N/A')}</td> 
                     </tr>
                 `).join('');
