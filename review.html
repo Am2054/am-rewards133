@@ -319,7 +319,7 @@
                 await Promise.all([
                     loadWithdrawalsHistory(targetUID),
                     loadPointsHistory(targetUID),
-                    loadReferralHistory(targetUID) // ⬅️ تم التغيير لاستخدام الدالة الجديدة
+                    loadReferralHistory(targetUID)
                 ]);
                 
                 loadingMsg.style.display = 'none';
@@ -369,18 +369,18 @@
         }
 
         // =======================================================
-        // 3. جلب وعرض سجل الإحالات (referralLogs)
+        // 3. جلب وعرض سجل الإحالات (referralLogs) - تم التأكيد
         // =======================================================
         async function loadReferralHistory(uid) {
             const referralTbody = document.getElementById('referralTbody');
             referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--gold);">جارِ التحميل...</td></tr>';
 
             try {
-                // 🟢 الكود المضمون الذي تم توفيره
+                // 🛠️ التعديل: استخدام حقل referrerUid
                 const referredSnap = await getDocs(query(
                     collection(db, "referralLogs"), 
                     where("referrerUid", "==", uid),
-                    orderBy('date', 'desc') // إضافة الترتيب
+                    orderBy('date', 'desc') 
                 ));
 
                 if (referredSnap.empty) {
@@ -443,12 +443,12 @@
         }
 
         // =======================================================
-        // 5. جلب وعرض سجل المهام المكتملة (tasksCompleted)
+        // 5. جلب وعرض سجل المهام المكتملة (tasksCompleted) - تم التعديل
         // =======================================================
         async function loadPointsHistory(uid) {
             pointsHistoryTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--gold);">جاري جلب سجل المهام...</td></tr>';
             try {
-                // استخدام userId و pointsEarned كما تم التأكيد عليه
+                // 🛠️ التعديل: استخدام حقل userId
                 const q = query(collection(db, 'tasksCompleted'), where('userId', '==', uid), orderBy('date', 'desc'));
                 const snap = await getDocs(q);
                 const history = snap.docs.map(d => d.data());
@@ -461,8 +461,7 @@
                 pointsHistoryTbody.innerHTML = history.map(h => `
                     <tr>
                         <td>${fmtDate(h.date)}</td>
-                        <td style="color: var(--accent); font-weight: 700;">+${fmtNumber(safe(h.pointsEarned, 0))}</td> 
-                        <td>${safe(h.taskId, 'N/A')}</td>
+                        <td style="color: var(--accent); font-weight: 700;">+${fmtNumber(safe(h.pointsEarned, 0))}</td> <td>${safe(h.taskId, 'N/A')}</td>
                         <td>${safe(h.taskType, 'N/A')}</td> 
                     </tr>
                 `).join('');
