@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>مراجعة مستخدم — Am Rewards (Admin)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#070707; --card:#0f0f10; --gold:#f5c542; --muted:#9aa4b2; --text:#eef2f7;
+      --accent:#00fa9a; --blue:#3b82f6; --red:#ef4444;
+    }
+    *{box-sizing:border-box}
+    body{font-family:"Cairo",sans-serif;background:linear-gradient(180deg,var(--bg),#0b0b0b);color:var(--text);margin:0;padding:18px}
+    .wrap{max-width:1200px;margin:0 auto}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px}
+    header h1{margin:0;color:var(--gold);font-size:20px}
+    .card{background:var(--card);padding:18px;border-radius:10px;border:1px solid rgba(245,197,66,0.08);margin-bottom:16px}
+    .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    input[type="text"], textarea, select {
+      background:#0b1113;border:1px solid rgba(255,255,255,0.04);color:var(--text);padding:10px;border-radius:8px;
+      min-width:220px;
+    }
+    button{cursor:pointer;padding:10px 12px;border-radius:8px;border:none;background:var(--blue);color:#fff}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text)}
+    button.warn{background:var(--red)}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.03)}
+    .info-row strong{color:var(--gold)}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{padding:8px 10px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.03);font-size:14px}
+    thead th{background:rgba(255,255,255,0.02);color:var(--muted)}
+    .small{font-size:13px;color:var(--muted)}
+    .status{padding:6px 8px;border-radius:8px;font-weight:700}
+    .status.pending{background:#f97316;color:#000}
+    .status.completed{background:var(--accent);color:#000}
+    .status.rejected{background:var(--red);color:#fff}
+    .hidden{display:none!important}
+    .center{display:flex;align-items:center;gap:8px}
+    .flex{display:flex;gap:8px;align-items:center}
+    .right{justify-content:flex-end}
+    .export-btn{background:#222;border:1px solid rgba(255,255,255,0.04)}
+    .ban-area{display:flex;gap:8px;align-items:center}
+    .note{margin-top:8px;color:var(--muted);font-size:13px}
+    @media (max-width:900px){ .grid{grid-template-columns:1fr} input[type="text"]{min-width:140px} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>🔎 صفحة المراجعة الشاملة — Am Rewards (Admin)</h1>
+      <div class="flex">
+        <button id="reloadBtn" class="ghost">⟳ إعادة تحميل الصفحة</button>
+        <button id="signOutBtn" class="ghost">خروج</button>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="controls">
+        <input id="searchInput" type="text" placeholder="اكتب UID أو البريد الإلكتروني ثم اضغط بحث..." />
+        <button id="searchBtn">🔍 بحث</button>
+        <button id="clearBtn" class="ghost">🧹 مسح</button>
+        <div style="margin-inline-start:auto" class="small">تأكد من أنك مسجل كـ Admin (amirfg992005@gmail.com)</div>
+      </div>
+      <div id="statusMessage" class="note">ابحث الآن عن مستخدم لعرض جميع بياناته.</div>
+    </div>
+
+    <!-- User Summary -->
+    <div id="userCard" class="card hidden">
+      <div class="grid" id="userSummaryGrid">
+        <div>
+          <div class="small">الاسم</div>
+          <div><strong id="u_name">-</strong></div>
+        </div>
+        <div>
+          <div class="small">البريد الإلكتروني</div>
+          <div id="u_email">-</div>
+        </div>
+        <div>
+          <div class="small">UID</div>
+          <div id="u_uid">-</div>
+        </div>
+
+        <div>
+          <div class="small">النقاط</div>
+          <div><strong id="u_points">0</strong></div>
+        </div>
+        <div>
+          <div class="small">كود الإحالة</div>
+          <div id="u_refcode">-</div>
+        </div>
+        <div>
+          <div class="small">تاريخ التسجيل</div>
+          <div id="u_created">-</div>
+        </div>
+
+        <div style="grid-column: 1 / -1;">
+          <div class="info-row">
+            <div class="flex">
+              <div class="ban-area">
+                <div class="small">الحالة:</div>
+                <div id="u_status" style="margin-inline-start:8px"></div>
+              </div>
+              <div style="margin-inline-start:18px" class="ban-area">
+                <button id="banToggleBtn" class="warn">🚫 حظر</button>
+                <input id="banReason" placeholder="سبب الحظر (اختياري)" style="min-width:320px" />
+                <button id="applyBanBtn" class="ghost">تطبيق</button>
+              </div>
+            </div>
+            <div class="right">
+              <div class="small">حالة الحساب الحظرية وسجل الإجراءات يظهر هنا</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="userRaw" class="note" style="margin-top:8px;"></div>
+    </div>
+
+    <!-- Tasks table -->
+    <div id="tasksCard" class="card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><strong>🧾 المهام المنفذة بواسطة المستخدم</strong> <span id="tasksCount" class="small"></span></div>
+        <div class="flex">
+          <button id="exportTasksBtn" class="export-btn">تصدير CSV</button>
+        </div>
+      </div>
+      <div style="overflow:auto;max-height:360px;margin-top:8px">
+        <table id="tasksTable">
+          <thead><tr><th>التاريخ</th><th>المهمة (taskName)</th><th>taskId</th><th>نقاط</th></tr></thead>
+          <tbody><tr><td colspan="4" class="small" style="text-align:center">لا توجد بيانات</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Withdrawals -->
+    <div id="withdrawalsCard" class="card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><strong>💸 طلبات السحب</strong> <span id="withdrawalsCount" class="small"></span></div>
+        <div class="flex">
+          <button id="exportWithdrawalsBtn" class="export-btn">تصدير CSV</button>
+        </div>
+      </div>
+      <div style="overflow:auto;max-height:320px;margin-top:8px">
+        <table id="withdrawalsTable">
+          <thead><tr><th>تاريخ</th><th>المبلغ</th><th>نقاط</th><th>الحالة</th><th>طريقة</th><th>المحفظة</th></tr></thead>
+          <tbody><tr><td colspan="6" class="small" style="text-align:center">لا توجد بيانات</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Referrals -->
+    <div id="referralsCard" class="card hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><strong>🔗 سجلات الإحالة المرتبطة</strong> <span id="referralsCount" class="small"></span></div>
+        <div class="flex"><button id="exportReferralsBtn" class="export-btn">تصدير CSV</button></div>
+      </div>
+      <div style="overflow:auto;max-height:320px;margin-top:8px">
+        <table id="referralsTable">
+          <thead><tr><th>التاريخ</th><th>نوع</th><th>كود المُحيل</th><th>البريد/الإيميل</th></tr></thead>
+          <tbody><tr><td colspan="4" class="small" style="text-align:center">لا توجد بيانات</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getAuth, onAuthStateChanged, signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, collection, query, where, getDocs, updateDoc, Timestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // ---------- إعدادات Firebase (استخدم إعدادات مشروعك) ----------
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // ---------- عناصر DOM ----------
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const statusMessage = document.getElementById('statusMessage');
+    const userCard = document.getElementById('userCard');
+    const u_name = document.getElementById('u_name');
+    const u_email = document.getElementById('u_email');
+    const u_uid = document.getElementById('u_uid');
+    const u_points = document.getElementById('u_points');
+    const u_refcode = document.getElementById('u_refcode');
+    const u_created = document.getElementById('u_created');
+    const u_status = document.getElementById('u_status');
+    const userRaw = document.getElementById('userRaw');
+
+    const banToggleBtn = document.getElementById('banToggleBtn');
+    const banReasonInput = document.getElementById('banReason');
+    const applyBanBtn = document.getElementById('applyBanBtn');
+
+    const tasksCard = document.getElementById('tasksCard');
+    const tasksTable = document.getElementById('tasksTable').querySelector('tbody');
+    const tasksCount = document.getElementById('tasksCount');
+    const exportTasksBtn = document.getElementById('exportTasksBtn');
+
+    const withdrawalsCard = document.getElementById('withdrawalsCard');
+    const withdrawalsTable = document.getElementById('withdrawalsTable').querySelector('tbody');
+    const withdrawalsCount = document.getElementById('withdrawalsCount');
+    const exportWithdrawalsBtn = document.getElementById('exportWithdrawalsBtn');
+
+    const referralsCard = document.getElementById('referralsCard');
+    const referralsTable = document.getElementById('referralsTable').querySelector('tbody');
+    const referralsCount = document.getElementById('referralsCount');
+    const exportReferralsBtn = document.getElementById('exportReferralsBtn');
+
+    const reloadBtn = document.getElementById('reloadBtn');
+    const signOutBtn = document.getElementById('signOutBtn');
+
+    const ADMIN_EMAIL = "amirfg992005@gmail.com";
+
+    // state
+    let currentUserDoc = null;
+    let currentUid = null;
+    let currentEmail = null;
+
+    // helpers
+    function toDate(ts) {
+      if (!ts) return 'غير متوفر';
+      try {
+        if (ts.toDate) ts = ts.toDate();
+        if (!(ts instanceof Date)) ts = new Date(ts);
+        return ts.toLocaleString('ar-EG', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+      } catch (e) {
+        return 'غير متوفر';
+      }
+    }
+    function fmtNumber(n){ return Number(n||0).toLocaleString('en-US'); }
+    function setStatusText(el, banned, reason, date) {
+      if (banned) {
+        el.innerHTML = `<span style="color:#fff;background:var(--red);padding:6px 10px;border-radius:8px;font-weight:700">محظور</span>
+                        <span class="small" style="margin-inline-start:10px">${reason||'بدون سبب'}</span>
+                        <span class="small" style="margin-inline-start:10px">${date||''}</span>`;
+      } else {
+        el.innerHTML = `<span style="color:#000;background:var(--accent);padding:6px 10px;border-radius:8px;font-weight:700">مفعل</span>`;
+      }
+    }
+
+    async function fetchUserByUid(uid) {
+      try {
+        const userRef = doc(db, 'users', uid);
+        const snap = await getDoc(userRef);
+        if (!snap.exists()) return null;
+        return { id: snap.id, data: snap.data() };
+      } catch (e) {
+        console.error('fetchUserByUid', e);
+        return null;
+      }
+    }
+
+    async function fetchUserByEmail(email) {
+      try {
+        const q = query(collection(db, 'users'), where('email', '==', email));
+        const snap = await getDocs(q);
+        if (snap.empty) return null;
+        const doc0 = snap.docs[0];
+        return { id: doc0.id, data: doc0.data() };
+      } catch (e) {
+        console.error('fetchUserByEmail', e);
+        return null;
+      }
+    }
+
+    async function fetchAllRelated(uid, email) {
+      // tasksCompleted where userId == uid
+      const tasks = [];
+      try {
+        if (uid) {
+          const q = query(collection(db, 'tasksCompleted'), where('userId', '==', uid));
+          const snap = await getDocs(q);
+          snap.forEach(d => tasks.push({ id: d.id, ...d.data() }));
+        }
+      } catch (e) { console.error('tasks fetch', e); }
+
+      // withdrawals where userId == uid
+      const withdrawals = [];
+      try {
+        if (uid) {
+          const q = query(collection(db, 'withdrawals'), where('userId', '==', uid));
+          const snap = await getDocs(q);
+          snap.forEach(d => withdrawals.push({ id: d.id, ...d.data() }));
+        }
+      } catch (e) { console.error('withdrawals fetch', e); }
+
+      // referralLogs: either referralCode matches user's code OR email equals referred email
+      const referrals = [];
+      try {
+        // by referred email:
+        if (email) {
+          const q1 = query(collection(db, 'referralLogs'), where('email', '==', email));
+          const s1 = await getDocs(q1);
+          s1.forEach(d => referrals.push({ id: d.id, type: 'referred', ...d.data() }));
+        }
+
+        // by referrer code:
+        if (currentUserDoc && currentUserDoc.data && currentUserDoc.data.referralCode) {
+          const code = currentUserDoc.data.referralCode;
+          const q2 = query(collection(db, 'referralLogs'), where('referralCode', '==', code));
+          const s2 = await getDocs(q2);
+          s2.forEach(d => referrals.push({ id: d.id, type: 'referrer', ...d.data() }));
+        }
+      } catch (e) { console.error('referrals fetch', e); }
+
+      return { tasks, withdrawals, referrals };
+    }
+
+    // render functions
+    function renderUserCard(userDoc) {
+      userCard.classList.remove('hidden');
+      const d = userDoc.data || userDoc.data();
+      u_name.textContent = d.name || d.displayName || 'غير متوفر';
+      u_email.textContent = d.email || 'غير متوفر';
+      u_uid.textContent = userDoc.id || d.uid || 'غير متوفر';
+      u_points.textContent = fmtNumber(Number(d.points || 0));
+      u_refcode.textContent = d.referralCode || d.refCode || '-';
+      u_created.textContent = d.createdAt ? toDate(d.createdAt) : (d.createdAtString || '-');
+      setStatusText(u_status, d.banned || d.isBanned, d.banReason || d.bannedReason, d.bannedAt ? toDate(d.bannedAt) : '');
+      userRaw.textContent = JSON.stringify(d, null, 2);
+      banReasonInput.value = d.banReason || '';
+      banToggleBtn.textContent = (d.banned || d.isBanned) ? '🔓 رفع الحظر' : '🚫 حظر';
+    }
+
+    function renderTasks(tasks) {
+      tasksCard.classList.remove('hidden');
+      tasksCount.textContent = `(${tasks.length})`;
+      tasksTable.innerHTML = '';
+      if (!tasks.length) {
+        tasksTable.innerHTML = `<tr><td colspan="4" class="small" style="text-align:center">لا توجد مهام</td></tr>`;
+        return;
+      }
+      // sort by date desc when possible
+      tasks.sort((a,b) => {
+        const ta = a.date && a.date.toDate ? a.date.toDate().getTime() : (new Date(a.date || 0)).getTime();
+        const tb = b.date && b.date.toDate ? b.date.toDate().getTime() : (new Date(b.date || 0)).getTime();
+        return tb - ta;
+      });
+      tasks.forEach(t => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${toDate(t.date)}</td>
+                        <td>${t.taskName||t.title||t.name||'-'}</td>
+                        <td>${t.taskId || (t.taskType||'-')}</td>
+                        <td>${fmtNumber(t.points||t.pts||0)}</td>`;
+        tasksTable.appendChild(tr);
+      });
+    }
+
+    function renderWithdrawals(list) {
+      withdrawalsCard.classList.remove('hidden');
+      withdrawalsCount.textContent = `(${list.length})`;
+      withdrawalsTable.innerHTML = '';
+      if (!list.length) {
+        withdrawalsTable.innerHTML = `<tr><td colspan="6" class="small" style="text-align:center">لا توجد طلبات سحب</td></tr>`;
+        return;
+      }
+      // sort by date desc
+      list.sort((a,b) => {
+        const ta = a.date && a.date.toDate ? a.date.toDate().getTime() : (new Date(a.date || 0)).getTime();
+        const tb = b.date && b.date.toDate ? b.date.toDate().getTime() : (new Date(b.date || 0)).getTime();
+        return tb - ta;
+      });
+      list.forEach(w => {
+        const status = (w.status||'').toString().toLowerCase();
+        let cls = 'status pending';
+        if (status==='completed') cls='status completed';
+        if (status==='rejected') cls='status rejected';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${toDate(w.date)}</td>
+                        <td>${(w.amount||w.net||0)} EGP</td>
+                        <td>${fmtNumber(w.pts||w.points||0)}</td>
+                        <td><span class="${cls}">${status}</span></td>
+                        <td>${w.method||'-'}</td>
+                        <td>${w.wallet||'-'}</td>`;
+        withdrawalsTable.appendChild(tr);
+      });
+    }
+
+    function renderReferrals(list) {
+      referralsCard.classList.remove('hidden');
+      referralsCount.textContent = `(${list.length})`;
+      referralsTable.innerHTML = '';
+      if (!list.length) {
+        referralsTable.innerHTML = `<tr><td colspan="4" class="small" style="text-align:center">لا توجد سجلات إحالة</td></tr>`;
+        return;
+      }
+      // sort by date desc
+      list.sort((a,b) => {
+        const ta = a.date && a.date.toDate ? a.date.toDate().getTime() : (new Date(a.date || 0)).getTime();
+        const tb = b.date && b.date.toDate ? b.date.toDate().getTime() : (new Date(b.date || 0)).getTime();
+        return tb - ta;
+      });
+      list.forEach(r => {
+        const kind = r.type === 'referrer' ? 'كمحيل' : 'كمحال';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${toDate(r.date)}</td>
+                        <td>${kind}</td>
+                        <td>${r.referralCode||r.referrerCode||'-'}</td>
+                        <td>${r.email||r.referredEmail||r.referred||'-'}</td>`;
+        referralsTable.appendChild(tr);
+      });
+    }
+
+    // export CSV helpers
+    function toCSV(rows, headers) {
+      const escapeCell = v => {
+        if (v === null || v === undefined) return '';
+        let s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+        if (s.includes('"') || s.includes(',') || s.includes('\n')) s = `"${s.replace(/"/g,'""')}"`;
+        return s;
+      };
+      const lines = [headers.map(escapeCell).join(',')];
+      rows.forEach(row => {
+        lines.push(headers.map(h => escapeCell(row[h] ?? '')).join(','));
+      });
+      return lines.join('\n');
+    }
+    function downloadFile(filename, content, mime='text/csv') {
+      const blob = new Blob([content], { type: mime + ';charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+      a.remove(); URL.revokeObjectURL(url);
+    }
+
+    // main search flow
+    async function performSearch(input) {
+      const q = input.trim();
+      if (!q) { statusMessage.textContent = 'الرجاء إدخال UID أو إيميل للبحث.'; return; }
+      statusMessage.textContent = 'جاري جلب بيانات المستخدم والمحتوى المرتبط...';
+      // reset UI
+      userCard.classList.add('hidden');
+      tasksCard.classList.add('hidden');
+      withdrawalsCard.classList.add('hidden');
+      referralsCard.classList.add('hidden');
+      currentUserDoc = null; currentUid = null; currentEmail = null;
+
+      let userDoc = null;
+      // detect is uid (simple heuristic: uid length or contains @)
+      if (q.includes('@')) {
+        userDoc = await fetchUserByEmail(q.toLowerCase());
+      } else {
+        userDoc = await fetchUserByUid(q);
+        if (!userDoc) {
+          // try email fallback if looks like email in field despite missing @? skipping
+        }
+      }
+
+      if (!userDoc) {
+        statusMessage.textContent = 'لم يتم العثور على مستخدم مطابق. تأكد من الإدخال (UID أو البريد الإلكتروني).';
+        return;
+      }
+
+      // set current
+      currentUserDoc = userDoc;
+      currentUid = userDoc.id;
+      currentEmail = (userDoc.data && userDoc.data().email) || userDoc.data().email || null;
+
+      // render user info
+      renderUserCard(userDoc);
+
+      // fetch related collections
+      try {
+        const { tasks, withdrawals, referrals } = await fetchAllRelated(currentUid, currentEmail);
+        renderTasks(tasks);
+        renderWithdrawals(withdrawals);
+        renderReferrals(referrals);
+        statusMessage.textContent = 'تم تحميل جميع البيانات. يمكنك مراجعتها أو تصديرها.';
+      } catch (e) {
+        console.error('fetchAllRelated error', e);
+        statusMessage.textContent = 'حدث خطأ أثناء جلب البيانات المرتبطة (راجع Console).';
+      }
+    }
+
+    // ban/unban logic
+    async function applyBanAction() {
+      if (!currentUserDoc) { alert('لا يوجد مستخدم محدد.'); return; }
+      const uid = currentUserDoc.id;
+      const userRef = doc(db, 'users', uid);
+      const cur = (currentUserDoc.data && currentUserDoc.data()) || currentUserDoc.data();
+      const willBan = !(cur.banned || cur.isBanned);
+      const reason = banReasonInput.value.trim() || null;
+      try {
+        const payload = willBan ? { banned: true, banReason: reason || 'محظور بواسطة الادمن', bannedAt: Timestamp.fromDate(new Date()) } :
+                                  { banned: false, banReason: '', bannedAt: null };
+        await updateDoc(userRef, payload);
+        // refresh local view
+        const refreshed = await fetchUserByUid(uid);
+        if (refreshed) { currentUserDoc = refreshed; renderUserCard(refreshed); alert(willBan ? 'تم حظر المستخدم.' : 'تم رفع الحظر.'); }
+      } catch (e) {
+        console.error('applyBanAction', e);
+        alert('فشل تنفيذ الإجراء. تحقق من صلاحيات Firestore (Console للمزيد).');
+      }
+    }
+
+    // attach events
+    searchBtn.addEventListener('click', () => performSearch(searchInput.value));
+    searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') performSearch(searchInput.value); });
+    clearBtn.addEventListener('click', () => {
+      searchInput.value = ''; statusMessage.textContent = 'ابحث الآن عن مستخدم لعرض جميع بياناته.';
+      userCard.classList.add('hidden'); tasksCard.classList.add('hidden'); withdrawalsCard.classList.add('hidden'); referralsCard.classList.add('hidden');
+    });
+    banToggleBtn.addEventListener('click', () => {
+      if (!currentUserDoc) return alert('لم يتم تحديد مستخدم بعد.');
+      // toggle label only (actual update on apply)
+      const cur = currentUserDoc.data && currentUserDoc.data();
+      banToggleBtn.textContent = (cur && (cur.banned || cur.isBanned)) ? '🚫 حظر' : '🔓 رفع الحظر';
+      // user will press apply to confirm
+    });
+    applyBanBtn.addEventListener('click', applyBanAction);
+
+    exportTasksBtn.addEventListener('click', () => {
+      const rows = Array.from(tasksTable.querySelectorAll('tr')).map(tr => {
+        const cells = tr.querySelectorAll('td');
+        if (!cells.length) return null;
+        return { التاريخ: cells[0].textContent, المهمة: cells[1].textContent, taskId: cells[2].textContent, نقاط: cells[3].textContent };
+      }).filter(Boolean);
+      if (!rows.length) return alert('لا توجد مهام للتصدير.');
+      const csv = toCSV(rows, ['التاريخ','المهمة','taskId','نقاط']);
+      downloadFile(`tasks_${currentUid||'user'}.csv`, csv);
+    });
+
+    exportWithdrawalsBtn.addEventListener('click', () => {
+      const rows = Array.from(withdrawalsTable.querySelectorAll('tr')).map(tr => {
+        const cells = tr.querySelectorAll('td');
+        if (!cells.length) return null;
+        return { التاريخ: cells[0].textContent, المبلغ: cells[1].textContent, نقاط: cells[2].textContent, الحالة: cells[3].textContent, طريقة: cells[4].textContent, المحفظة: cells[5].textContent };
+      }).filter(Boolean);
+      if (!rows.length) return alert('لا توجد طلبات سحب للتصدير.');
+      const csv = toCSV(rows, ['التاريخ','المبلغ','نقاط','الحالة','طريقة','المحفظة']);
+      downloadFile(`withdrawals_${currentUid||'user'}.csv`, csv);
+    });
+
+    exportReferralsBtn.addEventListener('click', () => {
+      const rows = Array.from(referralsTable.querySelectorAll('tr')).map(tr => {
+        const cells = tr.querySelectorAll('td');
+        if (!cells.length) return null;
+        return { التاريخ: cells[0].textContent, النوع: cells[1].textContent, كود: cells[2].textContent, الايميل: cells[3].textContent };
+      }).filter(Boolean);
+      if (!rows.length) return alert('لا توجد سجلات إحالة للتصدير.');
+      const csv = toCSV(rows, ['التاريخ','النوع','كود','الايميل']);
+      downloadFile(`referrals_${currentUid||'user'}.csv`, csv);
+    });
+
+    reloadBtn.addEventListener('click', () => location.reload());
+    signOutBtn.addEventListener('click', async () => { try { await signOut(auth); alert('تم تسجيل الخروج'); location.href = 'index.html'; } catch(e){ console.error(e); alert('فشل تسجيل الخروج'); } });
+
+    // guard admin
+    onAuthStateChanged(auth, user => {
+      if (!user) { statusMessage.textContent = 'غير مسجل. ادخل أولاً بحساب الادمن.'; return; }
+      if (user.email !== ADMIN_EMAIL) {
+        statusMessage.textContent = 'الوصول مقتصر على مدير الموقع.'; alert('الوصول مرفوض: هذا الرابط للمدير فقط.'); return;
+      }
+      statusMessage.textContent = `مرحباً ${user.email} — يمكنك البحث الآن.`;
+    });
+
+    // optional: prefill from query param ?uid=...
+    const params = new URLSearchParams(location.search);
+    if (params.get('uid')) {
+      searchInput.value = params.get('uid');
+      performSearch(searchInput.value);
+    }
+  </script>
+</body>
+                                                </html>
