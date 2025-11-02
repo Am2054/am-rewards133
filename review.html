@@ -382,26 +382,40 @@
                     referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--muted);">لا توجد إحالات مسجلة.</td></tr>';
                     return;
                 }
-                
-                // عرض قائمة الإحالات
-                referralTbody.innerHTML = referredSnap.docs.map(d => {
-                    const data = d.data();
-                    return `
-                        <tr>
-                            <td>${fmtDate(data.date)}</td>
-                            <td>${safe(data.email, 'N/A')}</td>
-                            <td>${safe(data.referralCode, 'N/A')}</td> 
-                            <td style="font-size: 10px;">${safe(data.referredUid, 'N/A')}</td>
-                        </tr>
-                    `;
-                }).join('');
+                // 🟢 تحميل سجل الإحالات من مجموعة referralLogs
+async function loadReferralHistory(uid) {
+  const referralTbody = document.getElementById('referralTbody');
+  referralTbody.innerHTML = '<tr><td colspan="4">جارِ التحميل...</td></tr>';
 
-            } catch (err) {
-                console.error("Error loading referral data:", err);
-                referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--red);">فشل تحميل سجل الإحالات.</td></tr>';
-            }
+  try {
+    const referredSnap = await getDocs(query(
+      collection(db, "referralLogs"), // ← تأكد أن ده هو اسم المجموعة عندك
+      where("referrerUid", "==", uid)
+    ));
+
+    if (referredSnap.empty) {
+      referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">لا توجد إحالات بعد.</td></tr>';
+      return;
+    }
+
+    referralTbody.innerHTML = referredSnap.docs.map(d => {
+      const data = d.data();
+      return `
+        <tr>
+          <td>${fmtDate(data.date?.toDate?.() || data.timestamp?.toDate?.() || new Date())}</td>
+          <td>${safe(data.email, 'N/A')}</td>
+          <td>${safe(data.referralCode, 'N/A')}</td>
+          <td style="font-size: 10px;">${safe(data.referredUid, 'N/A')}</td>
+        </tr>
+      `;
+    }).join('');
+
+  } catch (err) {
+    console.error("Error loading referral data:", err);
+    referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:red;">فشل تحميل سجل الإحالات.</td></tr>';
+  }
         }
-
+                
 
         // =======================================================
         // 4. جلب وعرض سجل السحوبات (withdrawals)
