@@ -11,9 +11,9 @@
     /* ------------------------------------------- */
     :root{
       --bg:#070707; 
-      --card:#1a1a1b; /* أفتح قليلاً من السابق */
+      --card:#1a1a1b; /* أفتح قليلاً */
       --gold:#f5c542; 
-      --muted:#b0b7c0; /* أفتح قليلاً */
+      --muted:#b0b7c0; 
       --text:#eef2f7;
       --accent:#00fa9a; /* أخضر */
       --blue:#3b82f6; 
@@ -43,7 +43,7 @@
       background:var(--card);
       padding:25px;
       border-radius:15px;
-      border:1px solid rgba(245,197,66,0.15); /* أغمق قليلاً للوضوح */
+      border:1px solid rgba(245,197,66,0.15);
       box-shadow: var(--shadow);
       margin-bottom:25px
     }
@@ -60,7 +60,7 @@
       padding:10px 15px;
       border-radius:10px;
       border:1px solid rgba(255,255,255,0.1);
-      background:#262626; /* لون خلفية أفتح قليلاً للإدخالات */
+      background:#262626;
       color:var(--text);
       outline:none;
       transition: all 0.2s;
@@ -108,11 +108,16 @@
     /* ---------------- Table Styles ------------- */
     /* ------------------------------------------- */
     .table-container{overflow:auto;margin-top:15px}
-    table{width:100%;border-collapse:collapse;min-width:1100px; text-align: right;} /* RTL fix */
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:1100px;
+      direction: rtl; /* ⬅️ ضمان الاتجاه من اليمين لليسار */
+    } 
     th,td{
       padding:12px 15px;
-      text-align:right; /* RTL fix */
-      border-bottom:1px solid rgba(255,255,255,0.08); /* حدود أغمق للوضوح */
+      text-align:right; 
+      border-bottom:1px solid rgba(255,255,255,0.08); 
       white-space: nowrap;
     }
     th{
@@ -142,13 +147,13 @@
       overflow:auto;
       border:2px solid var(--gold);
       box-shadow: var(--shadow);
-      text-align: right; /* RTL fix */
+      text-align: right;
     }
     .modal-close{position:absolute;right:15px;top:15px;font-size:24px;cursor:pointer;color:var(--muted)}
     .modal-row{
       display:flex;justify-content:space-between;
       padding:10px 0;
-      border-bottom:1px solid rgba(255,255,255,0.1); /* أغمق للوضوح */
+      border-bottom:1px solid rgba(255,255,255,0.1);
       font-size: 15px;
     }
     .modal-row strong { color: var(--text); }
@@ -166,10 +171,10 @@
       padding: 8px 15px;
       border-radius: 8px;
       border: 1px solid transparent;
-      width: 48%; /* لتحسين التنسيق */
+      width: 48%; 
     }
     #returnYes { background-color: var(--accent); color: #000; }
-    #returnNo { background-color: var(--red); color: #fff; opacity: 0.6; } /* Default state */
+    #returnNo { background-color: var(--red); color: #fff; opacity: 0.6; }
   </style>
 </head>
 <body>
@@ -208,16 +213,16 @@
         <table>
           <thead>
             <tr>
-              <th>الإجراءات</th>
-              <th>الحالة</th>
-              <th>تاريخ الطلب 📅</th>
-              <th>رقم المحفظة</th>
-              <th>طريقة الدفع</th>
-              <th>صافي (EGP) 💸</th>
-              <th>المبلغ المطلوب</th>
+              <th>UID</th> 
+              <th>اسم المستخدم</th>
               <th>النقاط المحولة ⭐</th>
-              <th>اسم المستخدم</th> <th>UID</th>
-            </tr>
+              <th>المبلغ المطلوب</th>
+              <th>صافي (EGP) 💸</th>
+              <th>طريقة الدفع</th>
+              <th>رقم المحفظة</th>
+              <th>تاريخ الطلب 📅</th>
+              <th>الحالة</th>
+              <th>الإجراءات</th> </tr>
           </thead>
           <tbody id="withdrawalsTbody">
             <tr><td colspan="10" class="small" style="text-align:center;">جارِ تحميل البيانات...</td></tr>
@@ -297,7 +302,7 @@
     const totalPaidEl = document.getElementById('totalPaid');
     const pendingCountEl = document.getElementById('pendingCount');
     const pendingAmountEl = document.getElementById('pendingAmount');
-    const totalCompletedCountEl = document.getElementById('totalCompletedCount'); // العنصر الجديد
+    const totalCompletedCountEl = document.getElementById('totalCompletedCount');
 
     // modal
     const modal = document.getElementById('modal');
@@ -346,11 +351,10 @@
     onAuthStateChanged(auth, user => {
       if (!user || user.email !== ADMIN_EMAIL) {
         alert('يرجى تسجيل الدخول كمدير للوصول لهذه الصفحة.');
-        // لا نعيد التوجيه هنا تلقائياً لأنك قد تفضل تسجيل الدخول يدوياً
       }
     });
 
-    // جلب أسماء المستخدمين (الدالة المعدلة)
+    // جلب أسماء المستخدمين 
     async function fetchUsers(withdrawalDocs) {
         const userIds = [...new Set(withdrawalDocs.map(d => d.userId).filter(id => id))];
         usersMap = {};
@@ -363,7 +367,8 @@
         const chunkSize = 10;
         for (let i = 0; i < userIds.length; i += chunkSize) {
             const chunk = userIds.slice(i, i + chunkSize);
-            const q = query(usersCollection, where('__name__', 'in', chunk));
+            // استخدام '__name__' للاستعلام عن معرف المستند مباشرة
+            const q = query(usersCollection, where('__name__', 'in', chunk)); 
             userPromises.push(getDocs(q));
         }
 
@@ -375,7 +380,7 @@
         });
     }
 
-    // fetch withdrawals and compute stats (الدالة المعدلة)
+    // fetch withdrawals and compute stats 
     async function loadWithdrawals() {
       withdrawTbody.innerHTML = '<tr><td colspan="10" class="small" style="text-align:center;">جارِ جلب السحوبات...</td></tr>';
       try {
@@ -414,10 +419,7 @@
         const st = (w.status || '').toString().toLowerCase();
         const statusMatch = status === 'All' ? true : (st === status.toLowerCase());
         
-        // جلب اسم المستخدم للبحث فيه
         const userName = (usersMap[w.userId] || '').toString().toLowerCase();
-        
-        // search on name, uid, wallet, id
         const uid = (w.userId || w.uid || '').toString().toLowerCase();
         const wallet = (w.wallet || '').toString().toLowerCase();
         
@@ -444,7 +446,7 @@
         const tr = document.createElement('tr');
 
         const uid = w.userId || w.uid || 'N/A';
-        const userName = usersMap[w.userId] || 'غير متوفر'; // استخدام الاسم
+        const userName = usersMap[w.userId] || 'غير متوفر'; 
         const pts = Number(w.pts || w.points || 0);
         const amount = Number(w.amount || 0);
         const net = Number(w.net || amount);
@@ -460,7 +462,7 @@
         if (statusLower === 'completed') statusCls = 'status-completed';
         if (statusLower === 'rejected') statusCls = 'status-rejected';
 
-        // actions
+        // actions cell creation
         const actionsCell = document.createElement('td');
         const btn = document.createElement('button');
         btn.className = 'action-btn';
@@ -476,19 +478,21 @@
         }
         actionsCell.appendChild(btn);
         
-
+        // الترتيب الجديد يبدأ بـ UID وينتهي بـ الإجراءات
         tr.innerHTML = `
-          <td></td>
-          <td><span class="status-badge ${statusCls}">${translate(statusLower)}</span></td>
-          <td>${dateStr}</td>
-          <td>${wallet}</td>
-          <td>${method}</td>
-          <td>${fmtCurrency(net)}</td>
-          <td>${fmtCurrency(amount)}</td>
+          <td>${uid}</td>
+          <td>${userName}</td>
           <td>${fmtNumber(pts)}</td>
-          <td>${userName}</td> <td>${uid}</td>
+          <td>${fmtCurrency(amount)}</td>
+          <td>${fmtCurrency(net)}</td>
+          <td>${method}</td>
+          <td>${wallet}</td>
+          <td>${dateStr}</td>
+          <td><span class="status-badge ${statusCls}">${translate(statusLower)}</span></td>
+          <td></td>
         `;
-        tr.firstChild.replaceWith(actionsCell); // put actions in first cell
+        // وضع خلية الإجراءات في الخلية العاشرة (الأخيرة)
+        tr.lastChild.replaceWith(actionsCell); 
         withdrawTbody.appendChild(tr);
       });
     }
@@ -507,7 +511,7 @@
       
       const rows = [
         ['UID', selectedWithdrawal.userId || 'N/A'],
-        ['الاسم', userName], // إضافة الاسم هنا أيضاً
+        ['الاسم', userName],
         ['المبلغ المطلوب', fmtCurrency(Number(selectedWithdrawal.amount || 0))],
         ['النقاط المحولة', fmtNumber(Number(selectedWithdrawal.pts || selectedWithdrawal.points || 0))],
         ['الرسوم', fmtNumber(Number(selectedWithdrawal.fee || 0))],
