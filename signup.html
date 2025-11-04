@@ -22,14 +22,13 @@
     }  
     *{box-sizing:border-box}  
     html, body{  
-      /* تم حذف height:100%; هنا للسماح بالتمرير */
+      /* تم السماح بالتمرير */
       margin:0;  
       padding:0;  
     }  
     body{  
       font-family:"Cairo", "Montserrat", sans-serif;  
       color:#f1f6fb;  
-      /* تم تغيير height:100vh إلى min-height:100vh للسماح بزيادة الطول */
       min-height:100vh;  
       background:  
         linear-gradient(120deg, #0f2027 0%, #2c5364 100%),  
@@ -354,7 +353,6 @@
     .modal-close:hover {
       background: #d64a4a;
     }
-    /* --- تم حذف تنسيقات زر العودة للأعلى --- */
   </style>
 </head>
 <body>
@@ -498,6 +496,10 @@
         if (!data.name || !data.phone || !data.email || !data.password || !data.confirmPassword) {  
             return '⚠️ الرجاء ملء جميع الحقول المطلوبة.';  
         }  
+        // التحقق من الاسم (حروف عربية أو إنجليزية ومسافات فقط)
+        if (!/^[\u0600-\u06FFa-zA-Z\s]+$/.test(data.name)) {
+            return '⚠️ الاسم يجب أن يحتوي على حروف فقط (بدون رموز أو أرقام).';
+        }
         if (!/^01[0-9]{9}$/.test(data.phone)) {  
             return '⚠️ أدخل رقم هاتف مصري صحيح (11 رقم ويبدأ بـ01).';  
         }  
@@ -560,23 +562,28 @@
         });  
 
         setStatus('✅ تم إنشاء الحساب بنجاح! جاري التوجيه...', 'success');  
-        setTimeout(()=> window.location.href = 'dashboard.html', 1400);  
+        // استخدام window.location.replace لمنع الرجوع لصفحة التسجيل
+        setTimeout(()=> window.location.replace('dashboard.html'), 1400);  
 
       } catch (err) {  
         console.error('Signup error:', err);  
-        let errMsg = err.code && err.code === 'auth/email-already-in-use'   
-                     ? '❌ هذا البريد الإلكتروني مستخدم بالفعل.'   
-                     : (err && err.message ? '❌ ' + err.message : '❌ حدث خطأ أثناء إنشاء الحساب');  
+        let errMsg;
+        
+        // تحسين رسالة الخطأ لتشمل رابط تسجيل الدخول
+        if (err.code === 'auth/email-already-in-use') {
+            errMsg = `❌ هذا البريد الإلكتروني مستخدم بالفعل. <a href="login.html" style="color:var(--accent-2);text-decoration:underline;">جرب تسجيل الدخول</a> بدلاً من ذلك.`;
+            statusEl.innerHTML = errMsg;
+            statusEl.className = 'status error';
+        } else {
+             errMsg = (err && err.message ? '❌ ' + err.message : '❌ حدث خطأ أثناء إنشاء الحساب');
+             setStatus(errMsg, 'error');
+        }
                        
-        setStatus(errMsg, 'error');  
-
       } finally {
         signupBtn.disabled = false;  
         signupBtn.textContent = 'إنشاء الحساب — ابدأ الآن';  
       }
     }
-    
-    // تم حذف منطق زر العودة للأعلى لأنه لم يكن المطلوب.
   </script>
 </body>
 </html>
