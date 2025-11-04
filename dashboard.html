@@ -44,7 +44,13 @@
     }    
     .wrap{max-width:520px;margin:28px auto;padding:18px;}    
     
-    /* تم حذف تنسيقات .wrap-content.hidden-content و .loading-indicator */
+    /* 🛠️ حالة إخفاء المحتوى قبل التحقق من المصادقة */
+    .wrap-content.hidden-content {
+        opacity: 0;
+        filter: blur(5px);
+        transition: opacity 0.4s ease, filter 0.4s ease;
+        pointer-events: none;
+    }
 
     .card{    
       background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));    
@@ -260,7 +266,7 @@ footer{margin:22px 0 18px 0;text-align:center;color:rgba(255,255,255,0.14);font-
 <body>    
   <div class="bg-animated" aria-hidden="true"></div>  
   
-  <div class="wrap wrap-content" id="mainContent">
+  <div class="wrap wrap-content hidden-content" id="dashboardContent">
     <header>    
       <div class="brand">    
         <div class="logo">AM</div>    
@@ -398,7 +404,7 @@ footer{margin:22px 0 18px 0;text-align:center;color:rgba(255,255,255,0.14);font-
     // **2. الثوابت** const POINT_VALUE_EGP = 0.07;    
     const DAILY_TARGET = 1000;    
     
-    // إعداد تاريخ اليوم الحالي عند منتصف الليل للمقارنة الدقيقة
+    // 🟢 إعداد تاريخ اليوم الحالي عند منتصف الليل للمقارنة الدقيقة
     const today = new Date();
     today.setHours(0, 0, 0, 0); 
   
@@ -419,10 +425,7 @@ footer{margin:22px 0 18px 0;text-align:center;color:rgba(255,255,255,0.14);font-
     const toast = document.getElementById('toast');    
     const circleWrap = document.getElementById('circleWrap');   
     const progressCard = document.getElementById('progressCard');
-    
-    // تم حذف تعريف عناصر التحميل
-    // const loaderEl = document.getElementById('loader');
-    const mainContentEl = document.getElementById('mainContent');
+    const dashboardContentEl = document.getElementById('dashboardContent'); // عنصر المحتوى الرئيسي
   
     // **4. الدوال المساعدة** function showToast(text, success=true) {    
       toast.textContent = text;    
@@ -461,7 +464,7 @@ footer{margin:22px 0 18px 0;text-align:center;color:rgba(255,255,255,0.14);font-
       totalWithdrawnEl.textContent = (Number(d.totalWithdrawn ?? 0)).toLocaleString() + ' ج';    
       referralPointsEl.textContent = (Number(d.referralPoints ?? 0)).toLocaleString();    
   
-      // حساب التقدم الدائري وشريط التقدم (باستخدام pointsToday)
+      // 🟢 حساب التقدم اليومي باستخدام pointsToday
       const todayProgress = Math.min(DAILY_TARGET, pointsToday);    
       const pct = Math.round((todayProgress / DAILY_TARGET) * 100);    
         
@@ -480,7 +483,8 @@ footer{margin:22px 0 18px 0;text-align:center;color:rgba(255,255,255,0.14);font-
     // **6. منطق حالة المصادقة (Auth State Listener)** onAuthStateChanged(auth, async (user) => {    
       if (!user) return location.href = 'index.html';    
 
-      // تم حذف منطق إظهار المحتوى وإخفاء اللودر
+      // 🟢 إزالة كلاس الإخفاء لإظهار المحتوى فور التحقق من المصادقة
+      dashboardContentEl.classList.remove('hidden-content');
         
       const uid = user.uid;    
       const userRef = doc(db, 'users', uid);    
@@ -495,7 +499,7 @@ footer{margin:22px 0 18px 0;text-align:center;color:rgba(255,255,255,0.14);font-
           
         const data = snap.data();    
   
-        // 🛑 تهيئة حقل نقاط الأمس لمرة واحدة  
+        // 🛑 تهيئة حقل نقاط الأمس لمرة واحدة مع تسجيل التاريخ
         if (data.previousPoints === undefined) {    
           await updateDoc(userRef, { previousPoints: Number(data.points ?? 0), lastActiveDate: new Date() }).catch(()=>{});    
           data.previousPoints = Number(data.points ?? 0);    
@@ -522,9 +526,10 @@ footer{margin:22px 0 18px 0;text-align:center;color:rgba(255,255,255,0.14);font-
                 previousPoints: Number(data.points ?? 0),
                 lastActiveDate: new Date(), // تسجيل الوقت الحالي كتاريخ نشاط جديد
             };
+            // تحديث البيانات في قاعدة البيانات
             await updateDoc(userRef, updates).catch((e) => console.error("Update error:", e));
             
-            // تحديث البيانات في الـ RAM ليتم عرضها بشكل صحيح فورًا قبل انتظار الـ Snapshot التالية
+            // تحديث البيانات في الذاكرة ليتم عرضها بشكل صحيح فوريًا
             data.previousPoints = Number(data.points ?? 0);
         }
 
