@@ -330,7 +330,6 @@ label { font-size: .91rem; }
       setDoc,      
       serverTimestamp,      
       updateDoc,
-      // 🌟 إضافة الاستيرادات الجديدة
       getDoc 
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";    
     
@@ -353,7 +352,7 @@ label { font-size: .91rem; }
     const loginBtn = document.getElementById("login-btn");
     const passwordToggleBtn = document.getElementById("password-toggle-btn");
 
-    // 🌟 إعدادات التوجيه
+    // إعدادات التوجيه
     const ADMIN_PAGE = "admin.html";
     const USER_PAGE = "dashboard.html"; 
 
@@ -420,8 +419,7 @@ label { font-size: .91rem; }
         }, { merge: true });
         await updateLastLogin(uid);
 
-        // 🌟 2. التحقق من صلاحيات المشرف من مجموعة 'admins' 
-        // نستخدم الإيميل كـ Document ID كما طلبت
+        // 2. التحقق من صلاحيات المشرف من مجموعة 'admins' 
         const adminRef = doc(db, "admins", email);
         const adminSnap = await getDoc(adminRef);
 
@@ -429,19 +427,30 @@ label { font-size: .91rem; }
           // المستخدم مشرف
           sessionStorage.setItem("isAdmin", "true");
           showMessage("✅ تم تسجيل الدخول كمشرف بنجاح!", "success");
+          
+          // 🌟 إرجاع الزر لوضعه الطبيعي (النجاح)
+          loginBtn.textContent = "تسجيل الدخول";
+          loginBtn.disabled = false;
+          
           setTimeout(() => window.location.href = ADMIN_PAGE, 1200);
         } else {
           // المستخدم عادي
           sessionStorage.setItem("isAdmin", "false");
           showMessage("✅ تم تسجيل الدخول بنجاح!", "success");
+
+          // 🌟 إرجاع الزر لوضعه الطبيعي (النجاح)
+          loginBtn.textContent = "تسجيل الدخول";
+          loginBtn.disabled = false;
+          
           setTimeout(() => window.location.href = USER_PAGE, 1200);
         }
 
       } catch (error) {
+        // 🌟 إرجاع الزر لوضعه الطبيعي (الفشل)
         loginBtn.textContent = "تسجيل الدخول";
         loginBtn.disabled = false;
+        
         showMessage(translateError(error.code), "error");
-        // التأكد من مسح حالة المشرف عند فشل الدخول
         sessionStorage.removeItem("isAdmin"); 
       }
     }
