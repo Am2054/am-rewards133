@@ -8,7 +8,7 @@
   <style>  
     :root{    
       --main-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 60%, #38bdf8 100%);    
-      --dark-box-bg: rgba(2,6,23,0.95); /* 🌟 جديد: خلفية الصندوق الداكنة */
+      --dark-box-bg: rgba(2,6,23,0.95); /* الخلفية الداكنة الجديدة للصندوق */
       --glass-bg: rgba(255,255,255,0.13);    
       --glass-border: rgba(56,189,248,0.18);    
       --input-bg: rgba(30,41,59,0.9); /* مدخلات داكنة */
@@ -30,7 +30,7 @@
       font-family: "Cairo", "Montserrat", sans-serif;    
       color: #f1f6fb;    
       direction: rtl;    
-      /* 🌟 التعديل على الخلفية لتصبح داكنة وسلسة */
+      /* 🌟 الخلفية الداكنة والسلسة */
       background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.9)), 
                   var(--main-gradient), 
                   url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80');    
@@ -49,7 +49,7 @@
       inset: 0;    
       z-index: 0;    
       pointer-events: none;    
-      background: radial-gradient(circle at 65% 17%, rgba(56,189,248,0.05) 0%, transparent 90%), /* تقليل الوهج */
+      background: radial-gradient(circle at 65% 17%, rgba(56,189,248,0.05) 0%, transparent 90%), 
                   radial-gradient(circle at 25% 80%, rgba(34,197,94,0.06) 0%, transparent 80%);    
       filter: blur(28px) saturate(1.1);    
       animation: floatGlass 16s ease-in-out infinite alternate;    
@@ -64,12 +64,12 @@
       margin: 56px auto 56px auto;    
       padding: 38px 18px 30px 18px;    
       border-radius: var(--radius);    
-      background: var(--dark-box-bg); /* 🌟 استخدام الخلفية الداكنة الجديدة */
+      background: var(--dark-box-bg); /* الخلفية الداكنة */
       box-shadow: var(--shadow), 0 0 10px #0008;    
       border: 2px solid var(--glass-border);    
       z-index: 2;    
       position: relative;    
-      backdrop-filter: blur(0px) saturate(100%); /* تقليل الـ blur هنا لتبدو نظيفة */    
+      backdrop-filter: blur(0px) saturate(100%);     
       display: flex;    
       flex-direction: column;    
       align-items: center;    
@@ -315,7 +315,7 @@ button {
           <svg class="eye-closed" viewBox="0 0 24 24" fill="none" style="display:none;"><path d="M2.93 2.93L21.07 21.07M22.5 12C20.5 17 16 20.5 12 20.5C10.6364 20.5 9.3242 20.2443 8.08 19.75M1.5 12C3.5 7 8 3.5 12 3.5C13.3636 3.5 14.6758 3.7557 15.92 4.25M17.169 7.765C16.3263 7.0253 15.2289 6.5 14 6.5C11.5147 6.5 9.5 8.51472 9.5 11C9.5 12.1648 9.94054 13.238 10.669 14.075" stroke="currentColor" stroke-width="2"/></svg>  
         </button>  
       </div>  
-      <button class="login-btn" id="login-btn" type="button" onclick="login()">تسجيل الدخول</button>  
+      <button class="login-btn" id="login-btn" type="submit">تسجيل الدخول</button>  
     </form>  
   
     <a href="signup.html" class="switcher" type="button" style="text-decoration: none; display: block; text-align: center; width: 100%; margin-top: 0;">أو أنشئ حساب جديد</a>  
@@ -348,7 +348,8 @@ button {
     const auth = getAuth(app);  
     const db = getFirestore(app);  
   
-    // **2. جلب عناصر DOM** const msgEl = document.getElementById("msg");  
+    // **2. جلب عناصر DOM** const loginForm = document.getElementById("login-form"); // 🌟 جديد: جلب نموذج الدخول 
+    const msgEl = document.getElementById("msg");  
     const msgTextEl = document.getElementById("msg-text");  
     const loginEmail = document.getElementById("login-email");  
     const loginPassword = document.getElementById("login-password");  
@@ -394,7 +395,10 @@ button {
         }  
     }  
       
-    // **4. دالة تسجيل الدخول (الأصلية)** window.login = async function () {  
+    // **4. دالة تسجيل الدخول (تم حذف window. وإضافة event)** async function login(event) {  
+      // 🌟 منع السلوك الافتراضي لإرسال النموذج (الذي يسبب إعادة تحميل الصفحة)
+      event.preventDefault(); 
+        
       const email = loginEmail.value.trim();  
       const password = loginPassword.value.trim();  
         
@@ -433,7 +437,10 @@ button {
       }  
     };  
   
-    // **5. دالة إظهار/إخفاء كلمة المرور** window.togglePassword = function(id, btn) {  
+    // 🌟 5. ربط دالة تسجيل الدخول بحدث إرسال النموذج (الذي يقوم الزر type="submit" بتشغيله)
+    loginForm.addEventListener("submit", login);
+
+    // **6. دالة إظهار/إخفاء كلمة المرور (لا تزال على window لتعمل مع onclick)** window.togglePassword = function(id, btn) {  
       const input = document.getElementById(id);  
       const openIcon = btn.querySelector('.eye-open');  
       const closedIcon = btn.querySelector('.eye-closed');  
