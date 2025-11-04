@@ -307,7 +307,7 @@ label { font-size: .91rem; }
       <div class="form-row">      
         <label for="login-password">كلمة المرور</label>      
         <input type="password" id="login-password" placeholder="كلمة المرور" autocomplete="current-password" required />      
-        <button type="button" class="password-eye" onclick="togglePassword('login-password', this)" tabindex="-1" aria-label="عرض كلمة المرور">      
+        <button type="button" class="password-eye" id="password-toggle-btn" tabindex="-1" aria-label="عرض كلمة المرور">      
           <svg class="eye-open" viewBox="0 0 24 24" fill="none"><path d="M1.5 12C3.5 7 8 3.5 12 3.5C16 3.5 20.5 7 22.5 12C20.5 17 16 20.5 12 20.5C8 20.5 3.5 17 1.5 12Z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="2"/></svg>      
           <svg class="eye-closed" viewBox="0 0 24 24" fill="none" style="display:none;"><path d="M2.93 2.93L21.07 21.07M22.5 12C20.5 17 16 20.5 12 20.5C10.6364 20.5 9.3242 20.2443 8.08 19.75M1.5 12C3.5 7 8 3.5 12 3.5C13.3636 3.5 14.6758 3.7557 15.92 4.25M17.169 7.765C16.3263 7.0253 15.2289 6.5 14 6.5C11.5147 6.5 9.5 8.51472 9.5 11C9.5 12.1648 9.94054 13.238 10.669 14.075" stroke="currentColor" stroke-width="2"/></svg>      
         </button>      
@@ -333,7 +333,8 @@ label { font-size: .91rem; }
       updateDoc      
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";    
     
-    // **1. إعدادات Firebase** const firebaseConfig = {      
+    // **1. إعدادات Firebase**
+    const firebaseConfig = {      
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",      
       authDomain: "am--rewards.firebaseapp.com",      
       projectId: "am--rewards",      
@@ -343,12 +344,13 @@ label { font-size: .91rem; }
     const db = getFirestore(app);      
     
     // 2. جلب عناصر DOM
-    const loginForm = document.getElementById("login-form"); // 🌟 جديد: جلب نموذج الدخول
+    const loginForm = document.getElementById("login-form"); 
     const msgEl = document.getElementById("msg");
     const msgTextEl = document.getElementById("msg-text");
     const loginEmail = document.getElementById("login-email");
     const loginPassword = document.getElementById("login-password");
     const loginBtn = document.getElementById("login-btn");
+    const passwordToggleBtn = document.getElementById("password-toggle-btn"); // 🌟 جديد: جلب زر إظهار/إخفاء كلمة المرور
 
     // منطق المشرف الثابت (Admin)
     const ADMIN_EMAIL = "admin@am-rewards.com";
@@ -392,9 +394,8 @@ label { font-size: .91rem; }
     }
 
 
-    // 4. دالة تسجيل الدخول (تم حذف window.login=)
+    // 4. دالة تسجيل الدخول
     async function login(event) {
-      // 🌟 منع السلوك الافتراضي لإرسال النموذج (الذي يسبب إعادة تحميل الصفحة)
       event.preventDefault(); 
       
       const email = loginEmail.value.trim();
@@ -435,15 +436,12 @@ label { font-size: .91rem; }
         showMessage(translateError(error.code), "error");
       }
     }
-
-    // 🌟 5. ربط دالة تسجيل الدخول بحدث إرسال النموذج (الحل الموثوق)
-    loginForm.addEventListener("submit", login);
-
-    // 6. دالة إظهار/إخفاء كلمة المرور (لا تزال على window لتعمل مع onclick)
-    window.togglePassword = function(id, btn) {
-      const input = document.getElementById(id);
-      const openIcon = btn.querySelector('.eye-open');
-      const closedIcon = btn.querySelector('.eye-closed');
+    
+    // 5. دالة إظهار/إخفاء كلمة المرور (مُحسّنة للعمل داخليًا)
+    function togglePassword() {
+      const input = document.getElementById("login-password");
+      const openIcon = passwordToggleBtn.querySelector('.eye-open');
+      const closedIcon = passwordToggleBtn.querySelector('.eye-closed');
 
       if (input.type === "password") {
         input.type = "text";
@@ -455,6 +453,10 @@ label { font-size: .91rem; }
         closedIcon.style.display = "none";
       }
     }
+
+    // 🌟 6. ربط الدوال بمدخلات المستخدم باستخدام addEventListener (الحل الموثوق):
+    loginForm.addEventListener("submit", login);
+    passwordToggleBtn.addEventListener("click", togglePassword);
   </script>  
 </body>
 </html>
