@@ -8,7 +8,7 @@
   <style>  
     :root{    
       --main-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 60%, #38bdf8 100%);    
-      --dark-box-bg: rgba(2,6,23,0.95); /* جعل الخلفية شبه سوداء وصلبة */
+      --dark-box-bg: rgba(2,6,23,0.95); /* الوضع الداكن */
       --glass-border: rgba(56,189,248,0.18);    
       --input-bg: rgba(30,41,59,0.9); /* مدخلات داكنة */
       --input-focus: #38bdf8;    
@@ -37,7 +37,7 @@
       background-size: cover;    
       background-attachment: fixed;    
       background-blend-mode: overlay;    
-      overflow-y: auto; /* التأكد من سلاسة الـ Scroll */
+      overflow-y: auto; /* سلاسة الـ Scroll */
       scroll-behavior: smooth;    
     }    
     body {    
@@ -64,12 +64,12 @@
       margin: 56px auto; 
       padding: 38px 18px 30px 18px;    
       border-radius: var(--radius);    
-      background: var(--dark-box-bg); /* استخدام الخلفية السوداء */
+      background: var(--dark-box-bg); 
       box-shadow: var(--shadow), 0 6px 32px 0 #0008;    
       border: 2px solid var(--glass-border);    
       z-index: 2;    
       position: relative;    
-      backdrop-filter: blur(0px) saturate(100%); /* تقليل الـ Blur لتبدو الخلفية أغمق */
+      backdrop-filter: blur(0px) saturate(100%); 
       display: flex;    
       flex-direction: column;    
       align-items: center;    
@@ -331,7 +331,7 @@
       getDoc   
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";  
       
-    // **1. إعدادات Firebase** // 🚨 تم تصحيح خطأ الصياغة هنا بفصل التعليق عن تعريف المتغير
+    // **1. إعدادات Firebase** // 🚨 تم تصحيح خطأ الصياغة هنا
     const firebaseConfig = {  
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",  
       authDomain: "am--rewards.firebaseapp.com",  
@@ -341,16 +341,14 @@
     const auth = getAuth(app);  
     const db = getFirestore(app);  
   
-    // **2. جلب عناصر DOM** const loginForm = document.getElementById("login-form"); // 🚨 إضافة جلب النموذج
-    const loginForm = document.getElementById("login-form");
+    // **2. جلب عناصر DOM** const loginForm = document.getElementById("login-form");
     const msgEl = document.getElementById("msg");  
     const msgTextEl = document.getElementById("msg-text");  
     const loginEmail = document.getElementById("login-email");  
     const loginPassword = document.getElementById("login-password");  
     const loginBtn = document.getElementById("login-btn");  
       
-    // **3. الدوال المساعدة** // ... (showMessage, showAdminMessage, translateError, updateLastLogin) ... 
-    function showMessage(text, type="success") {  
+    // **3. الدوال المساعدة** function showMessage(text, type="success") {  
       msgTextEl.textContent = text;  
       msgEl.className = "message " + type;  
       msgEl.style.display = text ? "block" : "none";  
@@ -364,7 +362,7 @@
     
     function showAdminMessage(text) {
         msgTextEl.textContent = text;
-        msgEl.className = "message admin-msg"; 
+        msgEl.className = "message admin-msg";
         msgEl.style.display = "block";
         clearTimeout(window._msgTimeout);
         window._msgTimeout = setTimeout(() => {
@@ -394,7 +392,7 @@
         }  
     }  
       
-    // **4. دالة تسجيل الدخول (المنطق الأساسي)** // 🚨 تم إزالة window.login لجعلها دالة داخلية وتجنب المشاكل مع modules
+    // **4. دالة تسجيل الدخول (المنطق الأساسي)**
     async function login() {  
       const email = loginEmail.value.trim();  
       const password = loginPassword.value.trim();  
@@ -402,7 +400,7 @@
       if (!email || !password) return showMessage("يرجى إدخال البريد وكلمة المرور", "error");  
         
       loginBtn.textContent = "جاري الدخول...";  
-      loginBtn.disabled = true;  
+      // ❌ تم إلغاء: loginBtn.disabled = true;  
         
       try {  
         await setPersistence(auth, browserLocalPersistence);  
@@ -421,33 +419,34 @@
         const adminRef = doc(db, "admins", email);
         const adminSnap = await getDoc(adminRef);
 
-        // التحقق من وجود الوثيقة، النشاط، والدور (role === "superadmin")
+        // التحقق من وجود الوثيقة، النشاط، والدور (superadmin)
         if (adminSnap.exists() && 
             adminSnap.data().active === true && 
             adminSnap.data().role === "superadmin") {
             
             sessionStorage.setItem("isAdmin", "true");
             showAdminMessage("👑 تم تسجيل الدخول كمشرف بنجاح!"); 
-            loginBtn.disabled = true; 
+            // ❌ تم إلغاء: loginBtn.disabled = true; 
             setTimeout(()=> window.location.replace("admin.html"), 1200);
         } else {
             // مستخدم عادي
             sessionStorage.setItem("isAdmin", "false");
             showMessage("✅ تم تسجيل الدخول بنجاح!", "success");
-            loginBtn.disabled = true; 
+            // ❌ تم إلغاء: loginBtn.disabled = true; 
             setTimeout(()=> window.location.replace("dashboard.html"), 1200);
         }
           
       } catch (error) {  
         loginBtn.textContent = "تسجيل الدخول";  
+        // ✅ تم الإبقاء على: loginBtn.disabled = false; لإعادة تفعيل الزر في حال وجود خطأ
         loginBtn.disabled = false;  
         showMessage(translateError(error.code), "error");  
       }  
     };  
   
-    // **5. ربط دالة تسجيل الدخول بالزر (الحل النهائي لـ Module)**
+    // **5. ربط دالة تسجيل الدخول بحدث الإرسال (Submit)**
     loginForm.addEventListener('submit', async (e) => {
-        // 🚨 هذا السطر يمنع إعادة تحميل الصفحة وحذف البيانات المدخلة
+        // يمنع إعادة تحميل الصفحة
         e.preventDefault(); 
         await login(); 
     });
