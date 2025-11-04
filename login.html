@@ -8,7 +8,7 @@
   <style>  
     :root{    
       --main-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 60%, #38bdf8 100%);    
-      --dark-box-bg: rgba(2,6,23,0.95); 
+      --dark-box-bg: rgba(2,6,23,0.95); /* خلفية القالب داكنة وصلبة */
       --glass-border: rgba(56,189,248,0.18);    
       --input-bg: rgba(30,41,59,0.9); 
       --input-focus: #38bdf8;    
@@ -23,7 +23,6 @@
     }    
     *{box-sizing:border-box}  
     
-    /* التعديل هنا: السماح بالـ scroll */
     html, body {    
       height: 100%;    
       margin: 0;    
@@ -31,13 +30,14 @@
       font-family: "Cairo", "Montserrat", sans-serif;    
       color: #f1f6fb;    
       direction: rtl;    
+      /* تغميق الخلفية مع طبقة سوداء عالية الكثافة */
       background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.9)), 
                   var(--main-gradient), 
                   url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80');    
       background-size: cover;    
       background-attachment: fixed;    
       background-blend-mode: overlay;    
-      overflow-y: auto; /* التأكد من أن الـ body يسمح بالـ scroll */
+      overflow-y: auto; 
       scroll-behavior: smooth;    
     }    
     body {    
@@ -61,7 +61,7 @@
     .center-box {    
       width: 100%;    
       max-width: 420px;    
-      margin: 56px auto; /* اختصار الهامش الرأسي */
+      margin: 56px auto; 
       padding: 38px 18px 30px 18px;    
       border-radius: var(--radius);    
       background: var(--dark-box-bg); 
@@ -340,7 +340,7 @@
     const auth = getAuth(app);  
     const db = getFirestore(app);  
   
-    // **2. جلب عناصر DOM** const loginForm = document.getElementById("login-form"); // جلب النموذج
+    // **2. جلب عناصر DOM** const loginForm = document.getElementById("login-form"); 
     const msgEl = document.getElementById("msg");  
     const msgTextEl = document.getElementById("msg-text");  
     const loginEmail = document.getElementById("login-email");  
@@ -356,112 +356,4 @@
         window._msgTimeout = setTimeout(() => {  
           if(type !== "error") msgEl.style.display = "none";  
         }, type === "error" ? 10000 : 3000);  
-      }  
-    }  
-    
-    function showAdminMessage(text) {
-        msgTextEl.textContent = text;
-        msgEl.className = "message admin-msg"; 
-        msgEl.style.display = "block";
-        clearTimeout(window._msgTimeout);
-        window._msgTimeout = setTimeout(() => {
-            msgEl.style.display = "none";
-        }, 3000);
-    }
-  
-    function translateError(code) {  
-      switch(code) {  
-        case "auth/invalid-email": return "البريد الإلكتروني غير صالح";  
-        case "auth/user-not-found":  
-        case "auth/wrong-password":  
-          return "البريد الإلكتروني أو كلمة المرور غير صحيحة";  
-        case "auth/too-many-requests": return "تم حظر المحاولة مؤقتًا بسبب عدة محاولات خاطئة، انتظر قليلًا";  
-        default: return "حدث خطأ، حاول مرة أخرى أو تحقق من بياناتك.";  
-      }  
-    }  
-  
-    async function updateLastLogin(uid) {  
-        try {  
-            const userRef = doc(db, "users", uid);  
-            await updateDoc(userRef, {  
-                lastLogin: serverTimestamp()  
-            });  
-        } catch (error) {  
-            console.error("Failed to update lastLogin, check Firestore rules:", error);  
-        }  
-    }  
-      
-    // **4. دالة تسجيل الدخول (المنطق الأساسي)** async function login() {  
-      const email = loginEmail.value.trim();  
-      const password = loginPassword.value.trim();  
-        
-      if (!email || !password) return showMessage("يرجى إدخال البريد وكلمة المرور", "error");  
-        
-      loginBtn.textContent = "جاري الدخول...";  
-      loginBtn.disabled = true;  
-        
-      try {  
-        await setPersistence(auth, browserLocalPersistence);  
-        const result = await signInWithEmailAndPassword(auth, email, password);  
-        const uid = result.user.uid;  
-          
-        await updateLastLogin(uid);   
-          
-        const userRef = doc(db, "users", uid);  
-        await setDoc(userRef, {  
-            uid: uid,  
-            email: email,  
-        }, { merge: true });  
-
-        // فحص صلاحية المشرف من Firestore
-        const adminRef = doc(db, "admins", email);
-        const adminSnap = await getDoc(adminRef);
-
-        // التحقق من وجود الوثيقة، النشاط، والدور (superadmin)
-        if (adminSnap.exists() && 
-            adminSnap.data().active === true && 
-            adminSnap.data().role === "superadmin") {
-            
-            sessionStorage.setItem("isAdmin", "true");
-            showAdminMessage("👑 تم تسجيل الدخول كمشرف بنجاح!"); 
-            loginBtn.disabled = true; 
-            setTimeout(()=> window.location.replace("admin.html"), 1200);
-        } else {
-            // مستخدم عادي
-            sessionStorage.setItem("isAdmin", "false");
-            showMessage("✅ تم تسجيل الدخول بنجاح!", "success");
-            loginBtn.disabled = true; 
-            setTimeout(()=> window.location.replace("dashboard.html"), 1200);
-        }
-          
-      } catch (error) {  
-        loginBtn.textContent = "تسجيل الدخول";  
-        loginBtn.disabled = false;  
-        showMessage(translateError(error.code), "error");  
-      }  
-    };  
-  
-    // **5. ربط دالة تسجيل الدخول بالزر (الحل لمشكلة Module)**
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); // منع الإرسال الافتراضي للنموذج
-        await login(); 
-    });
-  
-    // **6. دالة إظهار/إخفاء كلمة المرور** window.togglePassword = function(id, btn) {  
-      const input = document.getElementById(id);  
-      const openIcon = btn.querySelector('.eye-open');  
-      const closedIcon = btn.querySelector('.eye-closed');  
-  
-      if (input.type === "password") {  
-        input.type = "text";  
-        openIcon.style.display = "none";  
-        closedIcon.style.display = "block";  
-      } else {  
-        input.type = "password";  
-        openIcon.style.display = "block";  
-        closedIcon.style.display = "none";  
-      }  
-    }  
-  </script>  
-</body>  
-</html>
+      }
