@@ -8,20 +8,22 @@
   <style>  
     :root{    
       --main-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 60%, #38bdf8 100%);    
-      --dark-box-bg: rgba(2,6,23,0.95); /* تم التغيير: خلفية القالب داكنة وصلبة */
+      --dark-box-bg: rgba(2,6,23,0.95); 
       --glass-border: rgba(56,189,248,0.18);    
-      --input-bg: rgba(30,41,59,0.9); /* تم التغميق */
+      --input-bg: rgba(30,41,59,0.9); 
       --input-focus: #38bdf8;    
       --input-border: #334155;    
       --error: #f87171;    
       --success: #22c55e;    
       --muted: #a5f3fc;    
       --radius: 28px;    
-      --shadow: 0 8px 32px 0 rgba(2,6,23,0.4); /* تم التغميق */
+      --shadow: 0 8px 32px 0 rgba(2,6,23,0.4); 
       --gold: #FFD369;    
       --gold-dark: #bfa243;    
     }    
     *{box-sizing:border-box}  
+    
+    /* التعديل هنا: السماح بالـ scroll */
     html, body {    
       height: 100%;    
       margin: 0;    
@@ -29,14 +31,13 @@
       font-family: "Cairo", "Montserrat", sans-serif;    
       color: #f1f6fb;    
       direction: rtl;    
-      /* تغميق الخلفية مع طبقة سوداء عالية الكثافة */
       background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.9)), 
                   var(--main-gradient), 
                   url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80');    
       background-size: cover;    
       background-attachment: fixed;    
       background-blend-mode: overlay;    
-      overflow-y: auto !important;    
+      overflow-y: auto; /* التأكد من أن الـ body يسمح بالـ scroll */
       scroll-behavior: smooth;    
     }    
     body {    
@@ -48,8 +49,8 @@
       inset: 0;    
       z-index: 0;    
       pointer-events: none;    
-      background: radial-gradient(circle at 65% 17%, rgba(56,189,248,0.05) 0%, transparent 90%), /* تخفيف الإضاءة */
-                  radial-gradient(circle at 25% 80%, rgba(34,197,94,0.06) 0%, transparent 80%); /* تخفيف الإضاءة */
+      background: radial-gradient(circle at 65% 17%, rgba(56,189,248,0.05) 0%, transparent 90%), 
+                  radial-gradient(circle at 25% 80%, rgba(34,197,94,0.06) 0%, transparent 80%); 
       filter: blur(28px) saturate(1.1);    
       animation: floatGlass 16s ease-in-out infinite alternate;    
     }    
@@ -60,16 +61,15 @@
     .center-box {    
       width: 100%;    
       max-width: 420px;    
-      margin: 56px auto 56px auto;    
+      margin: 56px auto; /* اختصار الهامش الرأسي */
       padding: 38px 18px 30px 18px;    
       border-radius: var(--radius);    
-      /* التغيير هنا إلى الخلفية الداكنة */
       background: var(--dark-box-bg); 
       box-shadow: var(--shadow), 0 6px 32px 0 #0008;    
       border: 2px solid var(--glass-border);    
       z-index: 2;    
       position: relative;    
-      backdrop-filter: blur(0px) saturate(100%); /* إزالة تأثير الـ blur الزجاجي */
+      backdrop-filter: blur(0px) saturate(100%); 
       display: flex;    
       flex-direction: column;    
       align-items: center;    
@@ -308,7 +308,7 @@
           <svg class="eye-closed" viewBox="0 0 24 24" fill="none" style="display:none;"><path d="M2.93 2.93L21.07 21.07M22.5 12C20.5 17 16 20.5 12 20.5C10.6364 20.5 9.3242 20.2443 8.08 19.75M1.5 12C3.5 7 8 3.5 12 3.5C13.3636 3.5 14.6758 3.7557 15.92 4.25M17.169 7.765C16.3263 7.0253 15.2289 6.5 14 6.5C11.5147 6.5 9.5 8.51472 9.5 11C9.5 12.1648 9.94054 13.238 10.669 14.075" stroke="currentColor" stroke-width="2"/></svg>  
         </button>  
       </div>  
-      <button class="login-btn" id="login-btn" type="button" onclick="login()">تسجيل الدخول</button>  
+      <button class="login-btn" id="login-btn" type="submit">تسجيل الدخول</button>  
     </form>  
   
     <a href="signup.html" class="switcher" type="button" style="text-decoration: none; display: block; text-align: center; width: 100%; margin-top: 0;">أو أنشئ حساب جديد</a>  
@@ -340,7 +340,8 @@
     const auth = getAuth(app);  
     const db = getFirestore(app);  
   
-    // **2. جلب عناصر DOM** const msgEl = document.getElementById("msg");  
+    // **2. جلب عناصر DOM** const loginForm = document.getElementById("login-form"); // جلب النموذج
+    const msgEl = document.getElementById("msg");  
     const msgTextEl = document.getElementById("msg-text");  
     const loginEmail = document.getElementById("login-email");  
     const loginPassword = document.getElementById("login-password");  
@@ -390,7 +391,7 @@
         }  
     }  
       
-    // **4. دالة تسجيل الدخول (مع التحقق من المشرف عبر Firestore)** window.login = async function () {  
+    // **4. دالة تسجيل الدخول (المنطق الأساسي)** async function login() {  
       const email = loginEmail.value.trim();  
       const password = loginPassword.value.trim();  
         
@@ -440,7 +441,13 @@
       }  
     };  
   
-    // **5. دالة إظهار/إخفاء كلمة المرور** window.togglePassword = function(id, btn) {  
+    // **5. ربط دالة تسجيل الدخول بالزر (الحل لمشكلة Module)**
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); // منع الإرسال الافتراضي للنموذج
+        await login(); 
+    });
+  
+    // **6. دالة إظهار/إخفاء كلمة المرور** window.togglePassword = function(id, btn) {  
       const input = document.getElementById(id);  
       const openIcon = btn.querySelector('.eye-open');  
       const closedIcon = btn.querySelector('.eye-closed');  
