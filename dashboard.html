@@ -390,7 +390,6 @@ footer{margin:22px 0 18px 0;text-align:center;color:rgba(255,255,255,0.14);font-
     // **2. الثوابت** const POINT_VALUE_EGP = 0.07;    
     const DAILY_TARGET = 1000;    
     
-    // 🟢 التعديل رقم 1: إضافة متغير اليوم لتشغيل منطق إعادة الضبط اليومي
     const today = new Date();
     today.setHours(0, 0, 0, 0);
   
@@ -448,7 +447,7 @@ footer{margin:22px 0 18px 0;text-align:center;color:rgba(255,255,255,0.14);font-
       totalWithdrawnEl.textContent = (Number(d.totalWithdrawn ?? 0)).toLocaleString() + ' ج';    
       referralPointsEl.textContent = (Number(d.referralPoints ?? 0)).toLocaleString();    
   
-      // 🟢 التعديل رقم 2: تصحيح حساب التقدم (لاستخدام pointsToday بدلاً من %)
+      // تصحيح حساب التقدم  
       const todayProgress = Math.min(DAILY_TARGET, pointsToday);    
       const pct = Math.round((todayProgress / DAILY_TARGET) * 100);    
         
@@ -456,7 +455,6 @@ footer{margin:22px 0 18px 0;text-align:center;color:rgba(255,255,255,0.14);font-
       progressLblEl.textContent = `${todayProgress.toLocaleString()} / ${DAILY_TARGET.toLocaleString()}`;    
         
       // تحديث الدائرة  
-      // 🟢 التعديل رقم 3: تعديل خلفية الدائرة للتعامل مع حالة الصفر بشكل سليم
       circleWrap.style.background = pct > 0 
         ? `conic-gradient(var(--primary) ${pct}%, rgba(255,255,255,0.02) ${pct}%)`
         : 'linear-gradient(180deg, rgba(0,0,0,0.18), rgba(255,255,255,0.02))';
@@ -481,15 +479,22 @@ footer{margin:22px 0 18px 0;text-align:center;color:rgba(255,255,255,0.14);font-
           
         const data = snap.data();    
   
-        // 🛑 تهيئة حقل نقاط الأمس لمرة واحدة  
-        if (data.previousPoints === undefined) {    
-          // 🟢 التعديل رقم 4: إضافة حقل lastActiveDate عند التهيئة لأول مرة
-          await updateDoc(userRef, { previousPoints: Number(data.points ?? 0), lastActiveDate: new Date() }).catch(()=>{});    
-          data.previousPoints = Number(data.points ?? 0);    
-          data.lastActiveDate = new Date();
-        }    
+        // 🛑 منطق التهيئة الصحيح (التحقق وتحديث لمرة واحدة)
+        if (data.previousPoints === undefined || data.lastActiveDate === undefined) {    
+          try {
+            const updates = { 
+              previousPoints: Number(data.points ?? 0),
+              lastActiveDate: new Date()
+            };
+            await updateDoc(userRef, updates);
+            // 🟢 العودة من هنا وانتظار قراءة Snapshot القادمة بعد التحديث
+            return; 
+          } catch (err) {
+            console.error("Error initializing fields:", err);
+          }
+        }
         
-        // 🟢 التعديل رقم 5: إضافة منطق إعادة الضبط اليومي (Reset Logic)
+        // 🟢 منطق إعادة الضبط اليومي (Reset Logic)
         const lastActiveDate = data.lastActiveDate ? data.lastActiveDate.toDate() : null;
         let needsReset = false;
 
@@ -507,8 +512,8 @@ footer{margin:22px 0 18px 0;text-align:center;color:rgba(255,255,255,0.14);font-
                 previousPoints: Number(data.points ?? 0),
                 lastActiveDate: new Date(), 
             };
-            await updateDoc(userRef, updates).catch((e) => console.error("Update error:", e));
-            data.previousPoints = Number(data.points ?? 0);
+            await updateDoc(userRef, updates).catch((e) => console.error("Update error (Daily Reset):", e));
+            // لا حاجة لـ return هنا، لكنه سيقوم بتشغيل onSnapshot مرة أخرى بالبيانات الجديدة
         }
   
         renderUser(data, user);    
