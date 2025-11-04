@@ -8,7 +8,7 @@
   <style>  
     :root{    
       --main-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 60%, #38bdf8 100%);    
-      --glass-bg: rgba(255,255,255,0.13); /* العودة للخلفية الفاتحة الأصلية */
+      --glass-bg: rgba(255,255,255,0.13);    
       --glass-border: rgba(56,189,248,0.18);    
       --input-bg: rgba(30,41,59,0.74);    
       --input-focus: #38bdf8;    
@@ -17,7 +17,7 @@
       --success: #22c55e;    
       --muted: #a5f3fc;    
       --radius: 28px;    
-      --shadow: 0 8px 32px 0 rgba(2,6,23,0.22); /* العودة للظل الأصلي */
+      --shadow: 0 8px 32px 0 rgba(2,6,23,0.22);    
       --gold: #FFD369;    
       --gold-dark: #bfa243;    
     }    
@@ -29,7 +29,6 @@
       font-family: "Cairo", "Montserrat", sans-serif;    
       color: #f1f6fb;    
       direction: rtl;    
-      /* العودة للخلفية الأصلية غير الداكنة */
       background: var(--main-gradient), url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80');    
       background-size: cover;    
       background-attachment: fixed;    
@@ -46,7 +45,6 @@
       inset: 0;    
       z-index: 0;    
       pointer-events: none;    
-      /* العودة لإعدادات الـ glass الأصلية */
       background: radial-gradient(circle at 65% 17%, rgba(56,189,248,0.14) 0%, transparent 90%),    
                   radial-gradient(circle at 25% 80%, rgba(34,197,94,0.16) 0%, transparent 80%);    
       filter: blur(28px) saturate(1.3);    
@@ -255,12 +253,6 @@
       color: #049c3f !important;    
       border-color: #22c55e !important;    
     }
-    /* 🌟 تنسيق رسالة المشرف المضاف */
-    .admin-msg {
-        border-color: var(--gold) !important;
-        background: #fff8e1 !important;
-        color: var(--gold-dark) !important;
-    }
 
     .footer {    
       margin-top: 16px;    
@@ -310,7 +302,7 @@
           <svg class="eye-closed" viewBox="0 0 24 24" fill="none" style="display:none;"><path d="M2.93 2.93L21.07 21.07M22.5 12C20.5 17 16 20.5 12 20.5C10.6364 20.5 9.3242 20.2443 8.08 19.75M1.5 12C3.5 7 8 3.5 12 3.5C13.3636 3.5 14.6758 3.7557 15.92 4.25M17.169 7.765C16.3263 7.0253 15.2289 6.5 14 6.5C11.5147 6.5 9.5 8.51472 9.5 11C9.5 12.1648 9.94054 13.238 10.669 14.075" stroke="currentColor" stroke-width="2"/></svg>  
         </button>  
       </div>  
-      <button class="login-btn" id="login-btn" type="submit">تسجيل الدخول</button>  
+      <button class="login-btn" id="login-btn" type="button" onclick="login()">تسجيل الدخول</button>  
     </form>  
   
     <a href="signup.html" class="switcher" type="button" style="text-decoration: none; display: block; text-align: center; width: 100%; margin-top: 0;">أو أنشئ حساب جديد</a>  
@@ -329,8 +321,7 @@
       doc,  
       setDoc,  
       serverTimestamp,   
-      updateDoc,
-      getDoc 
+      updateDoc
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";  
       
     // **1. إعدادات Firebase** const firebaseConfig = {  
@@ -342,13 +333,16 @@
     const auth = getAuth(app);  
     const db = getFirestore(app);  
   
-    // **2. جلب عناصر DOM** const loginForm = document.getElementById("login-form"); // جلب النموذج للربط
-    const msgEl = document.getElementById("msg");  
+    // **2. جلب عناصر DOM** const msgEl = document.getElementById("msg");  
     const msgTextEl = document.getElementById("msg-text");  
     const loginEmail = document.getElementById("login-email");  
     const loginPassword = document.getElementById("login-password");  
     const loginBtn = document.getElementById("login-btn");  
       
+    // **[كان هذا موجودًا في الأصل]: بيانات المشرف الثابتة المسببة للمشكلة**
+    const ADMIN_EMAIL = "admin@amrewards.com";
+    const ADMIN_PASSWORD = "superadminpassword123";
+
     // **3. الدوال المساعدة** function showMessage(text, type="success") {  
       msgTextEl.textContent = text;  
       msgEl.className = "message " + type;  
@@ -360,17 +354,6 @@
         }, type === "error" ? 10000 : 3000);  
       }  
     }  
-    
-    // دالة رسالة المشرف تستخدم الكلاس المخصص
-    function showAdminMessage(text) {
-        msgTextEl.textContent = text;
-        msgEl.className = "message admin-msg";
-        msgEl.style.display = "block";
-        clearTimeout(window._msgTimeout);
-        window._msgTimeout = setTimeout(() => {
-            msgEl.style.display = "none";
-        }, 3000);
-    }
   
     function translateError(code) {  
       switch(code) {  
@@ -394,7 +377,7 @@
         }  
     }  
       
-    // **4. دالة تسجيل الدخول (بدون window)** async function login() {  
+    // **4. دالة تسجيل الدخول (الأصلية)** window.login = async function () {  
       const email = loginEmail.value.trim();  
       const password = loginPassword.value.trim();  
         
@@ -403,6 +386,16 @@
       loginBtn.textContent = "جاري الدخول...";  
       loginBtn.disabled = true;  
         
+      // **التحقق المحلي الأصلي للمشرف (المُلغى)**
+      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+          sessionStorage.setItem("isAdmin", "true");
+          showMessage("👑 تم تسجيل الدخول كمشرف بنجاح!", "success");
+          setTimeout(()=> window.location.replace("admin.html"), 1200);
+          loginBtn.textContent = "تسجيل الدخول";
+          loginBtn.disabled = false;
+          return;
+      }
+  
       try {  
         await setPersistence(auth, browserLocalPersistence);  
         const result = await signInWithEmailAndPassword(auth, email, password);  
@@ -416,22 +409,9 @@
             email: email,  
         }, { merge: true });  
 
-        // 🌟 التحقق من صلاحية المشرف عبر Firestore
-        const adminRef = doc(db, "admins", email);
-        const adminSnap = await getDoc(adminRef);
-
-        if (adminSnap.exists() && 
-            adminSnap.data().active === true && 
-            adminSnap.data().role === "superadmin") {
-            
-            sessionStorage.setItem("isAdmin", "true");
-            showAdminMessage("👑 تم تسجيل الدخول كمشرف بنجاح!");
-            setTimeout(()=> window.location.replace("admin.html"), 1200);
-        } else {
-            sessionStorage.setItem("isAdmin", "false");
-            showMessage("✅ تم تسجيل الدخول بنجاح!", "success");
-            setTimeout(()=> window.location.replace("dashboard.html"), 1200);
-        }
+        sessionStorage.setItem("isAdmin", "false");
+        showMessage("✅ تم تسجيل الدخول بنجاح!", "success");
+        setTimeout(()=> window.location.replace("dashboard.html"), 1200);
           
       } catch (error) {  
         loginBtn.textContent = "تسجيل الدخول";  
@@ -440,12 +420,6 @@
       }  
     };  
   
-    // 🌟 ربط دالة تسجيل الدخول بحدث الإرسال (Submit) لحل مشكلة نطاق الـ module
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); 
-        await login(); 
-    });
-
     // **5. دالة إظهار/إخفاء كلمة المرور** window.togglePassword = function(id, btn) {  
       const input = document.getElementById(id);  
       const openIcon = btn.querySelector('.eye-open');  
