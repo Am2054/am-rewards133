@@ -159,7 +159,8 @@
       justify-content: center;
       gap: 5px;
     }
-    .status-pending { color: var(--warning); }
+    /* 1. حالة قيد المراجعة بلون خاص (لم يتغير لون الـ warning) */
+    .status-pending { color: var(--warning); } 
     .status-completed { color: var(--success); }
     .status-rejected { color: var(--error); }
 
@@ -230,7 +231,6 @@
 
     const POINT_VALUE_EGP = 0.07;
     const LIMITS = { min: 20, maxDaily: 200, maxOpsPerDay: 2 }; 
-    // 💡 3. اقتراح صغير للمستقبل: تاريخ سجل السحب
     const HISTORY_LIMIT = 20; 
 
     // ** عناصر DOM **
@@ -253,6 +253,9 @@
     let todayOpsCount = 0; 
     let todayAmountTotal = 0; 
 
+    // 2. حفظ آخر محفظة: تعبئة القيمة المحفوظة عند التحميل
+    walletVod.value = localStorage.getItem('lastWallet') || '';
+
     // ** الدوال المساعدة **
     
     function showMsg(text, type = 'success') {
@@ -267,9 +270,7 @@
       return Number(num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
     
-    // 1. تنسيق التاريخ عند بعض الحالات: إضافة شرط السنة
     function formatDate(ts) {
-        // التحقق من وجود الكائن والتاريخ وصحة السنة
         if (!ts?.toDate || ts.toDate().getFullYear() < 2024) return "-"; 
 
         const months = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
@@ -343,7 +344,6 @@
 
         db.collection("withdrawals").where("userId", "==", user.uid)
           .orderBy("date", "desc")
-          // 💡 استخدام المتغير HISTORY_LIMIT
           .limit(HISTORY_LIMIT) 
           .onSnapshot(snapshot => {
             checkDailyLimits().then(() => updateCalc()); 
@@ -357,8 +357,9 @@
             snapshot.forEach(doc => {
               const w = doc.data();
               let statusClass = "", icon = "", statusText = "";
+              // 1. إضافة حالة "قيد المراجعة" بلون خاص (لم يتغير اللون)
               switch (w.status) {
-                case "pending": statusClass = "status-pending"; icon = "⏳"; statusText = "معلق"; break;
+                case "pending": statusClass = "status-pending"; icon = "🕓"; statusText = "قيد المراجعة"; break;
                 case "completed": statusClass = "status-completed"; icon = "✅"; statusText = "مكتمل"; break;
                 case "rejected": statusClass = "status-rejected"; icon = "❌"; statusText = "مرفوض"; break;
                 default: statusText = w.status || "-";
@@ -445,7 +446,6 @@
 
     // ** 3. دالة تأكيد السحب (مع منع الضغط المزدوج) **
     confirmBtn.addEventListener('click', async () => {
-      // 2. منع الضغط المزدوج: تعطيل الزر فوراً
       confirmBtn.disabled = true;
 
       msgEl.textContent = ""; msgEl.className = "status-msg";
@@ -453,13 +453,18 @@
       const amt = parseFloat(amountInp.value);
       const wallet = walletVod.value.trim();
 
-      if (!validateWallet()) { showMsg("❌ أدخل رقم محفظة فودافون كاش صحيح (11 رقم)", "error"); setTimeout(() => confirmBtn.disabled = false, 3000); return; }
+      // دالة مساعدة لإعادة تفعيل الزر بعد 3 ثوانٍ
+      const reactivateBtn = () => {
+        confirmBtn.textContent = "تأكيد السحب"; 
+        setTimeout(() => updateCalc(), 3000); 
+      };
+
+      if (!validateWallet()) { showMsg("❌ أدخل رقم محفظة فودافون كاش صحيح (11 رقم)", "error"); reactivateBtn(); return; }
       if (isNaN(amt) || amt < LIMITS.min) {
-        showMsg(`❌ المبلغ يجب أن يكون ${LIMITS.min} جم على الأقل.`, "error"); setTimeout(() => confirmBtn.disabled = false, 3000); return; 
+        showMsg(`❌ المبلغ يجب أن يكون ${LIMITS.min} جم على الأقل.`, "error"); reactivateBtn(); return; 
       }
 
       if (!confirm(`هل أنت متأكد من سحب ${formatNum(amt)} جم إلى ${wallet}؟`)) { 
-        // 2. السماح بالضغط مجدداً عند إلغاء التأكيد
         confirmBtn.disabled = false; 
         return; 
       }
@@ -504,10 +509,14 @@
             isReferralPaid: false 
           });
         });
+        
+        // 2. حفظ آخر محفظة عند النجاح
+        localStorage.setItem('lastWallet', wallet);
 
         const newRemainingOps = LIMITS.maxOpsPerDay - (todayOps + 1); 
-        showMsg(`✅ تم إرسال طلب السحب بنجاح. متبقي لك ${newRemainingOps} عملية اليوم. ⏳ جارٍ المراجعة.`, "success");
-        amountInp.value = ""; walletVod.value = "";
+        showMsg(`✅ تم إرسال طلب السحب بنجاح. متبقي لك ${newRemainingOps} عملية اليوم. 🕓 قيد المراجعة.`, "success");
+        amountInp.value = ""; 
+        // walletVod.value يبقى كما هو بسبب التخزين التلقائي الآن
         
         checkDailyLimits(); 
         updateCalc();
@@ -528,12 +537,7 @@
         
         showMsg("❌ " + errorMsg, "error");
       } finally {
-        confirmBtn.textContent = "تأكيد السحب"; 
-        // 2. السماح بالضغط مجدداً بعد 3 ثوانٍ بغض النظر عن النتيجة (لمنع الضغط المزدوج)
-        setTimeout(() => {
-          // يتم تفعيل الزر فقط إذا لم يكن قد تم تفعيله بالفعل بواسطة updateCalc في حالة النجاح
-          updateCalc(); 
-        }, 3000); 
+        reactivateBtn();
       }
     });
   </script>
