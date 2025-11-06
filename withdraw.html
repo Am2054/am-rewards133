@@ -157,6 +157,14 @@
     .status-pending { color: var(--warning); }
     .status-completed { color: var(--success); }
     .status-rejected { color: var(--error); }
+
+    /* 1. تحسين التوافق مع الشاشات الصغيرة جدًا */
+    @media (max-width: 360px) {
+      .container { padding: 15px; }
+      table { font-size: 12px; }
+      th, td { padding: 8px 5px; }
+      .info { font-size: 13px; }
+    }
   </style>
 </head>
 <body>
@@ -190,6 +198,9 @@
           <tbody id="withdrawalsTable"><tr><td colspan="4">جارِ التحميل...</td></tr></tbody>
         </table>
       </div>
+       <p style="text-align:center; color:#94a3b8; font-size:13px; margin-top: 15px;">
+        ⏰ يتم مراجعة الطلب خلال 24 ساعة عمل
+      </p>
     </div>
   </div>
 
@@ -220,16 +231,16 @@
     const msgEl = document.getElementById('msg');
     const withdrawalsTable = document.getElementById('withdrawalsTable');
     const confirmBtn = document.getElementById('confirmBtn');
-    const remainingOpsEl = document.getElementById('remainingOpsVal'); // 💡 عنصر جديد
+    const remainingOpsEl = document.getElementById('remainingOpsVal'); 
     
     let userId = null;
     let currentPoints = 0;
     let referredByUID = null;
-    let todayOpsCount = 0; // 💡 متغير جديد لحفظ عدد عمليات اليوم
+    let todayOpsCount = 0; 
 
     // ** الدوال المساعدة **
     
-    // دالة عرض رسالة الحالة
+    // دالة عرض رسالة الحالة (تم الإبقاء عليها بدل Toast)
     function showMsg(text, type = 'success') {
         msgEl.textContent = text;
         msgEl.className = `status-msg show ${type}`;
@@ -243,12 +254,17 @@
       return Number(num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
     
-    // دالة تنسيق التاريخ
+    // 3. تحسين عرض التاريخ (formatDate): ترجمة الشهور
     function formatDate(ts) {
         if (!ts || !ts.toDate) return "-";
+        const months = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
         const dt = ts.toDate();
         if (isNaN(dt)) return "-";
-        return dt.toLocaleDateString("ar-EG", { year: 'numeric', month: 'short', day: 'numeric' }) + " " + dt.toLocaleTimeString("ar-EG", { hour: '2-digit', minute: '2-digit' });
+
+        const hour = dt.getHours().toString().padStart(2, '0');
+        const minute = dt.getMinutes().toString().padStart(2, '0');
+
+        return `${dt.getDate()} ${months[dt.getMonth()]} ${dt.getFullYear()} - ${hour}:${minute}`;
     }
     
     // التحقق من صحة المحفظة في الوقت الفعلي
@@ -260,7 +276,7 @@
     }
     walletVod.addEventListener('input', validateWallet);
 
-    // 💡 دالة جديدة: جلب وتحديث حالة الحدود اليومية
+    // دالة جلب وتحديث حالة الحدود اليومية
     async function checkDailyLimits() {
       if (!userId) return { todayOps: 0, todayAmt: 0 };
       
@@ -275,7 +291,6 @@
       let ops = 0, amt = 0;
       todaySnapshot.forEach(doc => {
           const d = doc.data();
-          // فقط العمليات المعلقة والمكتملة تحسب ضد الحد
           if (d.status === 'pending' || d.status === 'completed') {
               ops++;
               amt += (+d.amount) || 0;
@@ -284,7 +299,7 @@
       
       todayOpsCount = ops;
       const remainingOps = Math.max(0, LIMITS.maxOpsPerDay - todayOpsCount);
-      remainingOpsEl.textContent = remainingOps; // تحديث عرض الواجهة
+      remainingOpsEl.textContent = remainingOps; 
       
       return { todayOps: ops, todayAmt: amt };
     }
@@ -294,11 +309,8 @@
     auth.onAuthStateChanged(user => {
       if (user) {
         userId = user.uid;
-        
-        // تحديث حالة القيود اليومية عند التحميل
         checkDailyLimits();
 
-        // جلب رصيد النقاط وreferredByUID (Realtime)
         db.collection('users').doc(userId).onSnapshot(doc => {
           if (doc.exists) {
             const data = doc.data();
@@ -311,12 +323,10 @@
           }
         });
 
-        // جلب سجل السحب (Realtime) - (هذا يستدعى checkDailyLimits أيضاً بشكل دوري)
         db.collection("withdrawals").where("userId", "==", user.uid)
           .orderBy("date", "desc")
           .limit(20)
           .onSnapshot(snapshot => {
-            // جلب حالة القيود اليومية هنا أيضاً لضمان التحديث بعد كل سحب أو تغيير في سجل السحب
             checkDailyLimits();
             
             withdrawalsTable.innerHTML = "";
@@ -373,10 +383,8 @@
         netVal.textContent = formatNum(net);
         needPts.textContent = formatNum(ptsNeeded).replace('.00', '');
         
-        // 💡 التلوين التجميلي
         needPts.style.color = ptsNeeded > currentPoints ? 'var(--error)' : 'var(--success)';
         
-        // التحقق من الشروط لتفعيل الزر (مع استخدام عدد عمليات اليوم المجلوب)
         const remainingOps = LIMITS.maxOpsPerDay - todayOpsCount;
         
         if (amt > LIMITS.maxDaily || ptsNeeded > currentPoints || !isWalletValid || amt < LIMITS.min || remainingOps <= 0) {
@@ -405,7 +413,6 @@
       const amt = parseFloat(amountInp.value);
       const wallet = walletVod.value.trim();
 
-      // التحقق الأولي النهائي
       if (!validateWallet()) { showMsg("❌ أدخل رقم محفظة فودافون كاش صحيح (11 رقم)", "error"); return; }
       if (isNaN(amt) || amt < LIMITS.min || amt > LIMITS.maxDaily) {
         showMsg(`❌ المبلغ يجب أن يكون بين ${LIMITS.min} و ${LIMITS.maxDaily} جم.`, "error"); return; 
@@ -416,11 +423,11 @@
       }
 
       confirmBtn.disabled = true;
+      confirmBtn.textContent = "⏳ جارٍ الإرسال..."; // 2. مؤشر التحميل
       
       try {
         const ptsNeeded = Math.ceil(amt / POINT_VALUE_EGP);
         
-        // 💡 استخدام checkDailyLimits للحصول على أحدث حالة قبل المعاملة
         const limitsStatus = await checkDailyLimits();
         const todayOps = limitsStatus.todayOps;
         const todayAmt = limitsStatus.todayAmt;
@@ -432,7 +439,7 @@
             throw `لا يمكنك تجاوز ${LIMITS.maxDaily} جم يوميًا (لديك ${formatNum(todayAmt)} اليوم).`; 
         }
         
-        // ** تنفيذ المعاملة الآمنة لخصم النقاط وإنشاء طلب السحب **
+        // ** تنفيذ المعاملة الآمنة **
         await db.runTransaction(async tr => {
           const userRef = db.collection("users").doc(userId);
           const withdrawalRef = db.collection("withdrawals").doc(); 
@@ -442,13 +449,11 @@
           
           if (points < ptsNeeded) throw "رصيد نقاط غير كافٍ";
           
-          // 1. تحديث رصيد المستخدم (خصم آمن)
           tr.update(userRef, { 
             points: firebase.firestore.FieldValue.increment(-ptsNeeded),
             lastWithdrawDate: firebase.firestore.FieldValue.serverTimestamp()
           });
           
-          // 2. إنشاء وثيقة طلب السحب
           tr.set(withdrawalRef, {
             userId, method: "vodafone", wallet,
             amount: amt, fee: amt * 0.10, net: amt - amt * 0.10,
@@ -458,14 +463,11 @@
             isReferralPaid: false 
           });
         });
-        // نهاية المعاملة
 
-        // 💡 تحديث رسالة النجاح
-        const remainingOps = LIMITS.maxOpsPerDay - (todayOps + 1); // +1 للعملية التي تمت للتو
+        const remainingOps = LIMITS.maxOpsPerDay - (todayOps + 1); 
         showMsg(`✅ تم إرسال طلب السحب بنجاح. متبقي لك ${remainingOps} عملية اليوم. ⏳ جارٍ المراجعة.`, "success");
         amountInp.value = ""; walletVod.value = "";
         
-        // تحديث الواجهة بعد النجاح
         checkDailyLimits(); 
         updateCalc();
         
@@ -486,6 +488,7 @@
         showMsg("❌ " + errorMsg, "error");
       } finally {
         confirmBtn.disabled = false;
+        confirmBtn.textContent = "تأكيد السحب"; // 2. إزالة مؤشر التحميل
       }
     });
   </script>
