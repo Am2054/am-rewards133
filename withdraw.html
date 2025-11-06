@@ -229,8 +229,9 @@
     const db = firebase.firestore();
 
     const POINT_VALUE_EGP = 0.07;
-    // تم إزالة maxDaily من LIMITS لـ updateCalc (سيتم استخدام remainingLimit)
     const LIMITS = { min: 20, maxDaily: 200, maxOpsPerDay: 2 }; 
+    // 💡 3. اقتراح صغير للمستقبل: تاريخ سجل السحب
+    const HISTORY_LIMIT = 20; 
 
     // ** عناصر DOM **
     const pointsVal = document.getElementById('pointsVal');
@@ -244,13 +245,13 @@
     const withdrawalsTable = document.getElementById('withdrawalsTable');
     const confirmBtn = document.getElementById('confirmBtn');
     const remainingOpsEl = document.getElementById('remainingOpsVal'); 
-    const remainingLimitEl = document.getElementById('remainingLimitVal'); // 1. العنصر الجديد
+    const remainingLimitEl = document.getElementById('remainingLimitVal'); 
     
     let userId = null;
     let currentPoints = 0;
     let referredByUID = null;
     let todayOpsCount = 0; 
-    let todayAmountTotal = 0; // 💡 جديد: لتخزين مجموع ما تم سحبه اليوم
+    let todayAmountTotal = 0; 
 
     // ** الدوال المساعدة **
     
@@ -266,8 +267,11 @@
       return Number(num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
     
+    // 1. تنسيق التاريخ عند بعض الحالات: إضافة شرط السنة
     function formatDate(ts) {
-        if (!ts || !ts.toDate) return "-";
+        // التحقق من وجود الكائن والتاريخ وصحة السنة
+        if (!ts?.toDate || ts.toDate().getFullYear() < 2024) return "-"; 
+
         const months = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
         const dt = ts.toDate();
         if (isNaN(dt)) return "-";
@@ -286,7 +290,6 @@
     }
     walletVod.addEventListener('input', validateWallet);
 
-    // 2. تحديث دالة جلب وتحديث حالة الحدود اليومية
     async function checkDailyLimits() {
       if (!userId) return { todayOps: 0, todayAmt: 0 };
       
@@ -301,7 +304,6 @@
       let ops = 0, amt = 0;
       todaySnapshot.forEach(doc => {
           const d = doc.data();
-          // فقط العمليات المعلقة والمكتملة تحسب ضد الحد
           if (d.status === 'pending' || d.status === 'completed') {
               ops++;
               amt += (+d.amount) || 0;
@@ -309,13 +311,13 @@
       });
       
       todayOpsCount = ops;
-      todayAmountTotal = amt; // حفظ الإجمالي المسحوب اليوم
+      todayAmountTotal = amt; 
       
       const remainingOps = Math.max(0, LIMITS.maxOpsPerDay - todayOpsCount);
-      const remainingAmount = Math.max(0, LIMITS.maxDaily - todayAmountTotal); // حساب الحد المتبقي من المبلغ
+      const remainingAmount = Math.max(0, LIMITS.maxDaily - todayAmountTotal); 
       
       remainingOpsEl.textContent = remainingOps; 
-      remainingLimitEl.textContent = formatNum(remainingAmount).replace('.00', ''); // عرض الحد المتبقي
+      remainingLimitEl.textContent = formatNum(remainingAmount).replace('.00', ''); 
       
       return { todayOps: ops, todayAmt: amt, remainingAmount };
     }
@@ -341,9 +343,10 @@
 
         db.collection("withdrawals").where("userId", "==", user.uid)
           .orderBy("date", "desc")
-          .limit(20)
+          // 💡 استخدام المتغير HISTORY_LIMIT
+          .limit(HISTORY_LIMIT) 
           .onSnapshot(snapshot => {
-            checkDailyLimits().then(() => updateCalc()); // إعادة الحساب والتحديث بعد جلب سجل السحب
+            checkDailyLimits().then(() => updateCalc()); 
             
             withdrawalsTable.innerHTML = "";
             if (snapshot.empty) {
@@ -379,7 +382,7 @@
       }
     });
 
-    // ** 2. دالة حساب الرسوم والنقاط المطلوبة وتفعيل الزر (مُعدّلة) **
+    // ** 2. دالة حساب الرسوم والنقاط المطلوبة وتفعيل الزر **
     function updateCalc() {
       const rawAmt = amountInp.value; 
       const amt = parseFloat(rawAmt);
@@ -387,10 +390,9 @@
       
       let isDisabled = true;
       let ptsNeeded = 0;
-      const remainingAmount = LIMITS.maxDaily - todayAmountTotal; // الحد المتبقي اليوم
+      const remainingAmount = LIMITS.maxDaily - todayAmountTotal; 
       const remainingOps = LIMITS.maxOpsPerDay - todayOpsCount;
       
-      // تحديث الحد المتبقي في الواجهة في حالة تغيره خارجياً
       remainingLimitEl.textContent = formatNum(remainingAmount).replace('.00', '');
 
       if (isNaN(amt) || amt < LIMITS.min) {
@@ -406,13 +408,12 @@
         
         needPts.style.color = ptsNeeded > currentPoints ? 'var(--error)' : 'var(--success)';
         
-        // 3. تعديل شروط التعطيل
         if (
-             ptsNeeded > currentPoints ||  // النقاط غير كافية
-             !isWalletValid ||            // المحفظة غير صالحة
-             amt < LIMITS.min ||          // أقل من الحد الأدنى
-             amt > remainingAmount ||     // تجاوز الحد المتبقي اليومي
-             remainingOps <= 0            // تجاوز عدد العمليات
+             ptsNeeded > currentPoints || 
+             !isWalletValid ||            
+             amt < LIMITS.min ||          
+             amt > remainingAmount ||     
+             remainingOps <= 0            
             ) 
         {
             isDisabled = true;
@@ -422,14 +423,13 @@
       }
       confirmBtn.disabled = isDisabled;
       
-      // تحديث Placeholder إذا تجاوز المبلغ الحد المتبقي
       if(remainingAmount <= 0) {
         amountInp.placeholder = `لقد وصلت للحد الأقصى اليومي (${LIMITS.maxDaily} جم)`;
         amountInp.disabled = true;
       } else {
         amountInp.placeholder = `ادخل المبلغ (بحد أقصى ${formatNum(remainingAmount).replace('.00', '')} جم)`;
         amountInp.disabled = false;
-        amountInp.setAttribute('max', remainingAmount); // إضافة الحد الأقصى للمدخل نفسه
+        amountInp.setAttribute('max', remainingAmount); 
       }
     }
 
@@ -443,34 +443,35 @@
     amountInp.addEventListener('input', debounceCalc);
     walletVod.addEventListener('input', debounceCalc);
 
-    // ** 3. دالة تأكيد السحب (مُعدّلة) **
+    // ** 3. دالة تأكيد السحب (مع منع الضغط المزدوج) **
     confirmBtn.addEventListener('click', async () => {
+      // 2. منع الضغط المزدوج: تعطيل الزر فوراً
+      confirmBtn.disabled = true;
+
       msgEl.textContent = ""; msgEl.className = "status-msg";
       
       const amt = parseFloat(amountInp.value);
       const wallet = walletVod.value.trim();
 
-      // التحقق الأولي النهائي
-      if (!validateWallet()) { showMsg("❌ أدخل رقم محفظة فودافون كاش صحيح (11 رقم)", "error"); return; }
+      if (!validateWallet()) { showMsg("❌ أدخل رقم محفظة فودافون كاش صحيح (11 رقم)", "error"); setTimeout(() => confirmBtn.disabled = false, 3000); return; }
       if (isNaN(amt) || amt < LIMITS.min) {
-        showMsg(`❌ المبلغ يجب أن يكون ${LIMITS.min} جم على الأقل.`, "error"); return; 
+        showMsg(`❌ المبلغ يجب أن يكون ${LIMITS.min} جم على الأقل.`, "error"); setTimeout(() => confirmBtn.disabled = false, 3000); return; 
       }
 
       if (!confirm(`هل أنت متأكد من سحب ${formatNum(amt)} جم إلى ${wallet}؟`)) { 
+        // 2. السماح بالضغط مجدداً عند إلغاء التأكيد
+        confirmBtn.disabled = false; 
         return; 
       }
 
-      confirmBtn.disabled = true;
       confirmBtn.textContent = "⏳ جارٍ الإرسال..."; 
       
       try {
         const ptsNeeded = Math.ceil(amt / POINT_VALUE_EGP);
         
-        // 3. إعادة فحص الحدود في اللحظة الأخيرة (معاملة آمنة)
         const limitsStatus = await checkDailyLimits();
         const todayOps = limitsStatus.todayOps;
-        const todayAmt = limitsStatus.todayAmt;
-        const remainingAmount = limitsStatus.remainingAmount; // استخدام القيمة المُحدثة
+        const remainingAmount = limitsStatus.remainingAmount; 
         
         if (todayOps >= LIMITS.maxOpsPerDay) { 
             throw `لقد وصلت للحد الأقصى (${LIMITS.maxOpsPerDay} عملية سحب يوميًا)`; 
@@ -527,8 +528,12 @@
         
         showMsg("❌ " + errorMsg, "error");
       } finally {
-        confirmBtn.disabled = false;
         confirmBtn.textContent = "تأكيد السحب"; 
+        // 2. السماح بالضغط مجدداً بعد 3 ثوانٍ بغض النظر عن النتيجة (لمنع الضغط المزدوج)
+        setTimeout(() => {
+          // يتم تفعيل الزر فقط إذا لم يكن قد تم تفعيله بالفعل بواسطة updateCalc في حالة النجاح
+          updateCalc(); 
+        }, 3000); 
       }
     });
   </script>
