@@ -334,6 +334,7 @@
           if (doc.exists) {
             const data = doc.data();
             currentPoints = data.points || 0;
+            // يتم استخدام referredByUID في المعاملة
             referredByUID = data.referredByUID || null; 
 
             pointsVal.textContent = formatNum(currentPoints).replace('.00', '');
@@ -357,7 +358,7 @@
             snapshot.forEach(doc => {
               const w = doc.data();
               let statusClass = "", icon = "", statusText = "";
-              // 1. إضافة حالة "قيد المراجعة" بلون خاص (لم يتغير اللون)
+              // 1. إضافة حالة "قيد المراجعة" بلون خاص (لم يتغير لون الـ warning)
               switch (w.status) {
                 case "pending": statusClass = "status-pending"; icon = "🕓"; statusText = "قيد المراجعة"; break;
                 case "completed": statusClass = "status-completed"; icon = "✅"; statusText = "مكتمل"; break;
@@ -492,9 +493,13 @@
           
           const snap = await tr.get(userRef);
           const points = snap.data().points || 0;
+          const userReferralData = snap.data(); // جلب جميع بيانات المستخدم
           
           if (points < ptsNeeded) throw "رصيد نقاط غير كافٍ";
           
+          // تحديد ما إذا كان هذا السحب مؤهلاً لمنح مكافأة الداعي (على مستوى الواجهة)
+          const isReferralEligible = (userReferralData.referralBonusesCount || 0) < 10;
+
           tr.update(userRef, { 
             points: firebase.firestore.FieldValue.increment(-ptsNeeded),
             lastWithdrawDate: firebase.firestore.FieldValue.serverTimestamp()
@@ -505,7 +510,10 @@
             amount: amt, fee: amt * 0.10, net: amt - amt * 0.10,
             pts: ptsNeeded, status: "pending",
             date: firebase.firestore.FieldValue.serverTimestamp(),
-            referredByUID: referredByUID || null,
+            referredByUID: userReferralData.referredByUID || null,
+            // 💡 تسجيل حالة الإحالة الحالية لتسهيل عملية الـ Backend
+            isReferralEligibleAtTimeOfWithdrawal: isReferralEligible,
+            referrerBonusesCountAtWithdrawal: userReferralData.referralBonusesCount || 0,
             isReferralPaid: false 
           });
         });
@@ -516,7 +524,6 @@
         const newRemainingOps = LIMITS.maxOpsPerDay - (todayOps + 1); 
         showMsg(`✅ تم إرسال طلب السحب بنجاح. متبقي لك ${newRemainingOps} عملية اليوم. 🕓 قيد المراجعة.`, "success");
         amountInp.value = ""; 
-        // walletVod.value يبقى كما هو بسبب التخزين التلقائي الآن
         
         checkDailyLimits(); 
         updateCalc();
