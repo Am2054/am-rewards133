@@ -73,7 +73,6 @@
     input.invalid { border-color: var(--error); }
     input::placeholder { color:#94a3b8; }
 
-    /* 💡 تحسين: دمج info و msg */
     .info {
       background: var(--surface-color);
       padding: 10px;
@@ -83,6 +82,12 @@
       font-size: 15px;
       box-shadow: 0 0 8px var(--secondary);
     }
+    /* 💡 إضافة تنسيق لـ remainingLimit */
+    #remainingLimitVal {
+      font-weight: 700; 
+      color: var(--primary);
+    }
+
     .status-msg {
         text-align: center; 
         margin-top: 10px; 
@@ -170,12 +175,18 @@
 <body>
   <div class="container">
     <h1>💸 طلب سحب الأرباح</h1>
-    <div class="info">رصيدك الحالي: <span id="pointsVal">0</span> نقطة ≈ <span id="egpVal">0.00</span> جم | متبقي اليوم: <span id="remainingOpsVal">--</span> عملية</div>
+    
+    <div class="info">
+        رصيدك الحالي: <span id="pointsVal">0</span> نقطة ≈ <span id="egpVal">0.00</span> جم 
+        <br>
+        الحد المتبقي اليوم: <span id="remainingLimitVal">200.00</span> جم | متبقي العمليات: <span id="remainingOpsVal">--</span>
+    </div>
     
     <label for="walletVod">رقم محفظة فودافون كاش</label>
     <input type="text" id="walletVod" placeholder="ادخل رقم المحفظة (11 رقم)" maxlength="11" inputmode="numeric">
-    <label for="amountInp">المبلغ المراد سحبه (20 - 200 جنيه)</label>
-    <input type="number" id="amountInp" placeholder="ادخل المبلغ" min="20">
+    
+    <label for="amountInp">المبلغ المراد سحبه (الحد الأدنى 20 جم)</label>
+    <input type="number" id="amountInp" placeholder="ادخل المبلغ (بحد أقصى متبقي اليوم)" min="20">
 
     <div class="info">الخصم (10%): <span id="feeVal">0.00</span> جم | صافي الاستلام: <span id="netVal">0.00</span> جم</div>
     <div class="info">النقاط المطلوبة: <span id="needPts">0</span></div>
@@ -218,6 +229,7 @@
     const db = firebase.firestore();
 
     const POINT_VALUE_EGP = 0.07;
+    // تم إزالة maxDaily من LIMITS لـ updateCalc (سيتم استخدام remainingLimit)
     const LIMITS = { min: 20, maxDaily: 200, maxOpsPerDay: 2 }; 
 
     // ** عناصر DOM **
@@ -232,15 +244,16 @@
     const withdrawalsTable = document.getElementById('withdrawalsTable');
     const confirmBtn = document.getElementById('confirmBtn');
     const remainingOpsEl = document.getElementById('remainingOpsVal'); 
+    const remainingLimitEl = document.getElementById('remainingLimitVal'); // 1. العنصر الجديد
     
     let userId = null;
     let currentPoints = 0;
     let referredByUID = null;
     let todayOpsCount = 0; 
+    let todayAmountTotal = 0; // 💡 جديد: لتخزين مجموع ما تم سحبه اليوم
 
     // ** الدوال المساعدة **
     
-    // دالة عرض رسالة الحالة (تم الإبقاء عليها بدل Toast)
     function showMsg(text, type = 'success') {
         msgEl.textContent = text;
         msgEl.className = `status-msg show ${type}`;
@@ -249,12 +262,10 @@
         }, 5000);
     }
 
-    // دالة تنسيق الأرقام
     function formatNum(num) {
       return Number(num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
     
-    // 3. تحسين عرض التاريخ (formatDate): ترجمة الشهور
     function formatDate(ts) {
         if (!ts || !ts.toDate) return "-";
         const months = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
@@ -267,7 +278,6 @@
         return `${dt.getDate()} ${months[dt.getMonth()]} ${dt.getFullYear()} - ${hour}:${minute}`;
     }
     
-    // التحقق من صحة المحفظة في الوقت الفعلي
     function validateWallet() {
       const wallet = walletVod.value.trim();
       const isValid = wallet.length === 11 && /^\d{11}$/.test(wallet);
@@ -276,7 +286,7 @@
     }
     walletVod.addEventListener('input', validateWallet);
 
-    // دالة جلب وتحديث حالة الحدود اليومية
+    // 2. تحديث دالة جلب وتحديث حالة الحدود اليومية
     async function checkDailyLimits() {
       if (!userId) return { todayOps: 0, todayAmt: 0 };
       
@@ -291,6 +301,7 @@
       let ops = 0, amt = 0;
       todaySnapshot.forEach(doc => {
           const d = doc.data();
+          // فقط العمليات المعلقة والمكتملة تحسب ضد الحد
           if (d.status === 'pending' || d.status === 'completed') {
               ops++;
               amt += (+d.amount) || 0;
@@ -298,10 +309,15 @@
       });
       
       todayOpsCount = ops;
-      const remainingOps = Math.max(0, LIMITS.maxOpsPerDay - todayOpsCount);
-      remainingOpsEl.textContent = remainingOps; 
+      todayAmountTotal = amt; // حفظ الإجمالي المسحوب اليوم
       
-      return { todayOps: ops, todayAmt: amt };
+      const remainingOps = Math.max(0, LIMITS.maxOpsPerDay - todayOpsCount);
+      const remainingAmount = Math.max(0, LIMITS.maxDaily - todayAmountTotal); // حساب الحد المتبقي من المبلغ
+      
+      remainingOpsEl.textContent = remainingOps; 
+      remainingLimitEl.textContent = formatNum(remainingAmount).replace('.00', ''); // عرض الحد المتبقي
+      
+      return { todayOps: ops, todayAmt: amt, remainingAmount };
     }
 
 
@@ -327,7 +343,7 @@
           .orderBy("date", "desc")
           .limit(20)
           .onSnapshot(snapshot => {
-            checkDailyLimits();
+            checkDailyLimits().then(() => updateCalc()); // إعادة الحساب والتحديث بعد جلب سجل السحب
             
             withdrawalsTable.innerHTML = "";
             if (snapshot.empty) {
@@ -363,7 +379,7 @@
       }
     });
 
-    // ** 2. دالة حساب الرسوم والنقاط المطلوبة وتفعيل الزر **
+    // ** 2. دالة حساب الرسوم والنقاط المطلوبة وتفعيل الزر (مُعدّلة) **
     function updateCalc() {
       const rawAmt = amountInp.value; 
       const amt = parseFloat(rawAmt);
@@ -371,7 +387,12 @@
       
       let isDisabled = true;
       let ptsNeeded = 0;
+      const remainingAmount = LIMITS.maxDaily - todayAmountTotal; // الحد المتبقي اليوم
+      const remainingOps = LIMITS.maxOpsPerDay - todayOpsCount;
       
+      // تحديث الحد المتبقي في الواجهة في حالة تغيره خارجياً
+      remainingLimitEl.textContent = formatNum(remainingAmount).replace('.00', '');
+
       if (isNaN(amt) || amt < LIMITS.min) {
         feeVal.textContent = "0.00"; netVal.textContent = "0.00"; needPts.textContent = "0";
       } else {
@@ -385,15 +406,31 @@
         
         needPts.style.color = ptsNeeded > currentPoints ? 'var(--error)' : 'var(--success)';
         
-        const remainingOps = LIMITS.maxOpsPerDay - todayOpsCount;
-        
-        if (amt > LIMITS.maxDaily || ptsNeeded > currentPoints || !isWalletValid || amt < LIMITS.min || remainingOps <= 0) {
+        // 3. تعديل شروط التعطيل
+        if (
+             ptsNeeded > currentPoints ||  // النقاط غير كافية
+             !isWalletValid ||            // المحفظة غير صالحة
+             amt < LIMITS.min ||          // أقل من الحد الأدنى
+             amt > remainingAmount ||     // تجاوز الحد المتبقي اليومي
+             remainingOps <= 0            // تجاوز عدد العمليات
+            ) 
+        {
             isDisabled = true;
         } else {
             isDisabled = false;
         }
       }
       confirmBtn.disabled = isDisabled;
+      
+      // تحديث Placeholder إذا تجاوز المبلغ الحد المتبقي
+      if(remainingAmount <= 0) {
+        amountInp.placeholder = `لقد وصلت للحد الأقصى اليومي (${LIMITS.maxDaily} جم)`;
+        amountInp.disabled = true;
+      } else {
+        amountInp.placeholder = `ادخل المبلغ (بحد أقصى ${formatNum(remainingAmount).replace('.00', '')} جم)`;
+        amountInp.disabled = false;
+        amountInp.setAttribute('max', remainingAmount); // إضافة الحد الأقصى للمدخل نفسه
+      }
     }
 
     // 💡 تحسين الأداء: Debounce
@@ -406,37 +443,40 @@
     amountInp.addEventListener('input', debounceCalc);
     walletVod.addEventListener('input', debounceCalc);
 
-    // ** 3. دالة تأكيد السحب (مع المعاملة الآمنة) **
+    // ** 3. دالة تأكيد السحب (مُعدّلة) **
     confirmBtn.addEventListener('click', async () => {
       msgEl.textContent = ""; msgEl.className = "status-msg";
       
       const amt = parseFloat(amountInp.value);
       const wallet = walletVod.value.trim();
 
+      // التحقق الأولي النهائي
       if (!validateWallet()) { showMsg("❌ أدخل رقم محفظة فودافون كاش صحيح (11 رقم)", "error"); return; }
-      if (isNaN(amt) || amt < LIMITS.min || amt > LIMITS.maxDaily) {
-        showMsg(`❌ المبلغ يجب أن يكون بين ${LIMITS.min} و ${LIMITS.maxDaily} جم.`, "error"); return; 
+      if (isNaN(amt) || amt < LIMITS.min) {
+        showMsg(`❌ المبلغ يجب أن يكون ${LIMITS.min} جم على الأقل.`, "error"); return; 
       }
-      
+
       if (!confirm(`هل أنت متأكد من سحب ${formatNum(amt)} جم إلى ${wallet}؟`)) { 
         return; 
       }
 
       confirmBtn.disabled = true;
-      confirmBtn.textContent = "⏳ جارٍ الإرسال..."; // 2. مؤشر التحميل
+      confirmBtn.textContent = "⏳ جارٍ الإرسال..."; 
       
       try {
         const ptsNeeded = Math.ceil(amt / POINT_VALUE_EGP);
         
+        // 3. إعادة فحص الحدود في اللحظة الأخيرة (معاملة آمنة)
         const limitsStatus = await checkDailyLimits();
         const todayOps = limitsStatus.todayOps;
         const todayAmt = limitsStatus.todayAmt;
+        const remainingAmount = limitsStatus.remainingAmount; // استخدام القيمة المُحدثة
         
         if (todayOps >= LIMITS.maxOpsPerDay) { 
             throw `لقد وصلت للحد الأقصى (${LIMITS.maxOpsPerDay} عملية سحب يوميًا)`; 
         }
-        if ((todayAmt + amt) > LIMITS.maxDaily) { 
-            throw `لا يمكنك تجاوز ${LIMITS.maxDaily} جم يوميًا (لديك ${formatNum(todayAmt)} اليوم).`; 
+        if (amt > remainingAmount) { 
+            throw `لا يمكنك سحب هذا المبلغ. الحد الأقصى المتبقي اليوم هو ${formatNum(remainingAmount)} جم.`; 
         }
         
         // ** تنفيذ المعاملة الآمنة **
@@ -464,8 +504,8 @@
           });
         });
 
-        const remainingOps = LIMITS.maxOpsPerDay - (todayOps + 1); 
-        showMsg(`✅ تم إرسال طلب السحب بنجاح. متبقي لك ${remainingOps} عملية اليوم. ⏳ جارٍ المراجعة.`, "success");
+        const newRemainingOps = LIMITS.maxOpsPerDay - (todayOps + 1); 
+        showMsg(`✅ تم إرسال طلب السحب بنجاح. متبقي لك ${newRemainingOps} عملية اليوم. ⏳ جارٍ المراجعة.`, "success");
         amountInp.value = ""; walletVod.value = "";
         
         checkDailyLimits(); 
@@ -488,7 +528,7 @@
         showMsg("❌ " + errorMsg, "error");
       } finally {
         confirmBtn.disabled = false;
-        confirmBtn.textContent = "تأكيد السحب"; // 2. إزالة مؤشر التحميل
+        confirmBtn.textContent = "تأكيد السحب"; 
       }
     });
   </script>
