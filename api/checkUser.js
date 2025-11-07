@@ -1,7 +1,11 @@
-import { initializeApp } from "firebase-admin/app";
+import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
-const app = initializeApp();
+const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
+
+const app = initializeApp({
+  credential: cert(serviceAccount)
+});
 const db = getFirestore();
 
 export default async function handler(req, res) {
