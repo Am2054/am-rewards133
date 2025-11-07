@@ -1,14 +1,12 @@
-import { initializeApp, cert } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+const admin = require("firebase-admin");
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
-const app = initializeApp({
-  credential: cert(serviceAccount)
-});
-const db = getFirestore();
+const db = admin.firestore();
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Only POST requests allowed" });
   }
@@ -46,4 +44,4 @@ export default async function handler(req, res) {
     console.error("Signup error:", err);
     return res.status(500).json({ approved: false, reason: "خطأ في السيرفر" });
   }
-}
+};
