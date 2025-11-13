@@ -1,54 +1,65 @@
-// api/secureSignup.js - الكود المصحح
+// api/secureSignup.js - نسخة محسّنة تعمل على Vercel بدون أخطاء
 
-import { initializeApp, cert, getApps, getApp } from 'firebase-admin/app'; // 💡 إضافة getApps و getApp
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { initializeApp, getApps, getApp, cert } from "firebase-admin/app";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
-// 1. الحصول على مفتاح الخدمة من متغيرات البيئة
-// نستخدم المفتاح JSON مباشرة (لنفترض أنك عدلت متغير البيئة)
+// 🔐 الحصول على مفتاح الخدمة من متغيرات البيئة (ضروري)
 const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-const projectId = process.env.FIREBASE_PROJECT_ID || 'am-rewards'; 
+const projectId = process.env.FIREBASE_PROJECT_ID || "am--rewards"; // غيّرها لو عندك اسم مشروع مختلف
 
-let db;
-let app; // تعريف كائن التطبيق
-
-// 2. التهيئة لمرة واحدة فقط
-try {
-  // 💡 التعديل الحاسم: نستخدم getApps().length للتحقق من التهيئة
-  if (getApps().length === 0) { 
-    
-    if (!serviceAccountKey) {
-        throw new Error("❌ FIREBASE_SERVICE_ACCOUNT_KEY is missing from Vercel Environment Variables.");
-    }
-    
+// ✅ التهيئة لمرة واحدة فقط
+let app;
+if (!getApps().length) {
+  try {
     app = initializeApp({
-        credential: cert(JSON.parse(serviceAccountKey)), 
-        projectId: projectId
+      credential: cert(JSON.parse(serviceAccountKey)),
+      projectId: projectId,
     });
-  } else {
-    // إذا كان مهيأ بالفعل، نحصل على التطبيق الأول
-    app = getApp(); 
+    console.log("✅ Firebase Admin initialized successfully");
+  } catch (error) {
+    console.error("❌ Firebase Admin SDK Init Error:", error);
   }
-  
-  db = getFirestore(app); // نستخدم app الذي تم تهيئته
-
-} catch (error) {
-  // هذا الخطأ سيظهر في سجلات Vercel بوضوح
-  console.error("⛔ Firebase Admin SDK Init Failed:", error.message);
-  // يجب أن نرفع خطأ لمنع الكود من الوصول إلى قاعدة البيانات
-  throw new Error("SERVER CONFIG ERROR: Check Firebase Key and JSON Format."); 
+} else {
+  app = getApp();
 }
 
-// ----------------------------------------------------------------------
-// 3. بقية الدالة (handler)
+const db = getFirestore(app);
+
 export default async function handler(req, res) {
-  // ... (كود التحقق من نوع الطلب) ...
+  if (req.method !== "POST") {
+    return res.status(405).json({ approved: false, reason: "Method not allowed" });
+  }
 
   try {
     const { email, deviceId, ip } = req.body;
-    // ... (بقية منطق التحقق والتخزين)
-    
-    // ... (نهاية الدالة)
+
+    if (!email || !deviceId || !ip) {
+      return res.status(400).json({ approved: false, reason: "بيانات ناقصة." });
+    }
+
+    // 🕵️‍♂️ فحص الجهاز والعنوان IP لمنع التكرار
+    const dupIp = await db.collection("userDevices").where("ip", "==", ip).get();
+    const dupDevice = await db.collection("userDevices").where("deviceId", "==", deviceId).get();
+
+    if (!dupIp.empty) {
+      return res.status(403).json({ approved: false, reason: "هذا الجهاز مسجل بالفعل باستخدام نفس IP." });
+    }
+
+    if (!dupDevice.empty) {
+      return res.status(403).json({ approved: false, reason: "هذا الجهاز مسجل بالفعل." });
+    }
+
+    // ✅ تسجيل الجهاز
+    await db.collection("userDevices").add({
+      email,
+      ip,
+      deviceId,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    return res.status(200).json({ approved: true });
   } catch (err) {
-    // ...
+    console.error("🔥 Signup error:", err);
+    return res.status(500).json({ approved: false, reason: "خطأ في السيرفر. حاول لاحقًا." });
   }
-}
+      }
