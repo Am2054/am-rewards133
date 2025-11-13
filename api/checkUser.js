@@ -1,67 +1,54 @@
-// api/secureSignup.js - تم تحديثه ليستخدم Admin SDK بشكل صحيح
+// api/secureSignup.js - الكود المصحح
 
-import { initializeApp, cert } from 'firebase-admin/app';
+import { initializeApp, cert, getApps, getApp } from 'firebase-admin/app'; // 💡 إضافة getApps و getApp
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
-// الحصول على مفتاح الخدمة من متغيرات البيئة (ضروري)
+// 1. الحصول على مفتاح الخدمة من متغيرات البيئة
+// نستخدم المفتاح JSON مباشرة (لنفترض أنك عدلت متغير البيئة)
 const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-const projectId = process.env.FIREBASE_PROJECT_ID || 'your-project-id'; // يفضل استخدام متغير بيئي لاسم المشروع
+const projectId = process.env.FIREBASE_PROJECT_ID || 'am-rewards'; 
 
-// التهيئة لمرة واحدة فقط
-let app;
+let db;
+let app; // تعريف كائن التطبيق
+
+// 2. التهيئة لمرة واحدة فقط
 try {
-  if (!initializeApp.apps.length) {
+  // 💡 التعديل الحاسم: نستخدم getApps().length للتحقق من التهيئة
+  if (getApps().length === 0) { 
+    
+    if (!serviceAccountKey) {
+        throw new Error("❌ FIREBASE_SERVICE_ACCOUNT_KEY is missing from Vercel Environment Variables.");
+    }
+    
     app = initializeApp({
         credential: cert(JSON.parse(serviceAccountKey)), 
         projectId: projectId
     });
   } else {
-    app = initializeApp.apps[0];
+    // إذا كان مهيأ بالفعل، نحصل على التطبيق الأول
+    app = getApp(); 
   }
+  
+  db = getFirestore(app); // نستخدم app الذي تم تهيئته
+
 } catch (error) {
-  // يرجى التأكد من إعداد متغير البيئة FIREBASE_SERVICE_ACCOUNT_KEY
-  console.error("Firebase Admin SDK Init Error:", error);
+  // هذا الخطأ سيظهر في سجلات Vercel بوضوح
+  console.error("⛔ Firebase Admin SDK Init Failed:", error.message);
+  // يجب أن نرفع خطأ لمنع الكود من الوصول إلى قاعدة البيانات
+  throw new Error("SERVER CONFIG ERROR: Check Firebase Key and JSON Format."); 
 }
 
-const db = getFirestore(app);
-
+// ----------------------------------------------------------------------
+// 3. بقية الدالة (handler)
 export default async function handler(req, res) {
   // ... (كود التحقق من نوع الطلب) ...
 
   try {
     const { email, deviceId, ip } = req.body;
-
-    // ... (كود التحقق من البيانات الناقصة) ...
-
-    // 🕵️‍♂️ البحث عن أي مستخدم بنفس IP أو الجهاز
-    // يفضل استخدام معاملات (AND) لتقليل عدد القراءات، لكن هذا المنطق يعمل
-    const dupQuery = await db.collection("userDevices")
-      .where("ip", "==", ip)
-      .get();
-
-    const dupDeviceQuery = await db.collection("userDevices")
-      .where("deviceId", "==", deviceId)
-      .get();
-
-    if (!dupQuery.empty) {
-      return res.status(403).json({ approved: false, reason: "هذا الجهاز مسجل بالفعل باستخدام عنوان IP مشابه." });
-    }
+    // ... (بقية منطق التحقق والتخزين)
     
-    if (!dupDeviceQuery.empty) {
-        return res.status(403).json({ approved: false, reason: "هذا الجهاز مسجل بالفعل." });
-    }
-
-    // ✅ تخزين بيانات الجهاز والإيميل
-    await db.collection("userDevices").add({
-      email,
-      ip,
-      deviceId,
-      createdAt: FieldValue.serverTimestamp() // يفضل توقيت الخادم
-    });
-
-    return res.status(200).json({ approved: true });
+    // ... (نهاية الدالة)
   } catch (err) {
-    console.error("Signup error:", err);
-    return res.status(500).json({ approved: false, reason: "خطأ في السيرفر. برجاء المحاولة لاحقاً." });
+    // ...
   }
 }
