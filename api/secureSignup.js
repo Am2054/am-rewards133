@@ -3,7 +3,7 @@
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
-// ⛔ لازم يكون موجود في Vercel باسم FIREBASE_ADMIN_KEY 
+// ⛔ لازم يكون موجود في Vercel باسم FIREBASE_ADMIN_KEY
 const serviceAccountJson = process.env.FIREBASE_ADMIN_KEY;
 
 if (!serviceAccountJson) {
