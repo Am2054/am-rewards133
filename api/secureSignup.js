@@ -1,84 +1,84 @@
-// api/secureSignup.js - نسخة محسّنة تعمل على Vercel بدون أخطاء
+// api/secureSignup.js
 
-import { initializeApp, getApps, getApp, cert } from "firebase-admin/app";
+import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
-// 🔐 الحصول على مفتاح الخدمة من متغيرات البيئة (ضروري)
-const serviceAccountKey = process.env.FIREBASE_ADMIN_KEY; // 💡 تم التعديل ليناسب الاسم الذي تستخدمه في Vercel
-const projectId = process.env.FIREBASE_PROJECT_ID || "am--rewards"; // غيّرها لو عندك اسم مشروع مختلف
+// ⛔ لازم يكون موجود في Vercel باسم FIREBASE_ADMIN_KEY
+const serviceAccountJson = process.env.FIREBASE_ADMIN_KEY;
 
-// ✅ التهيئة لمرة واحدة فقط
-let app;
-let db;
-
-try {
-    if (!getApps().length) {
-        if (!serviceAccountKey) {
-            // نرفع خطأ إذا لم يتم العثور على المفتاح
-            throw new Error("❌ FIREBASE_ADMIN_KEY variable is missing.");
-        }
-        app = initializeApp({
-            credential: cert(JSON.parse(serviceAccountKey)),
-            projectId: projectId,
-        });
-        console.log("✅ Firebase Admin initialized successfully");
-    } else {
-        app = getApp();
-    }
-    // تهيئة قاعدة البيانات خارج الـ if/else
-    db = getFirestore(app);
-} catch (error) {
-    console.error("❌ FATAL CONFIGURATION ERROR:", error.message);
-    // إرجاع دالة تقوم بإظهار الخطأ 500 فوراً
-    // هذا يضمن عدم محاولة تشغيل الكود إذا فشلت التهيئة
-    const configErrorReason = "SERVER CONFIG ERROR: Check FIREBASE_ADMIN_KEY format/value.";
-    
-    export default async function handler(req, res) {
-        return res.status(500).json({ approved: false, reason: configErrorReason });
-    }
-    // يجب أن تتوقف هنا!
-    throw new Error(configErrorReason); 
+if (!serviceAccountJson) {
+  console.error("❌ ERROR: FIREBASE_ADMIN_KEY is missing in Vercel env!");
 }
 
-// -----------------------------------------------------------
-// ⬇️ الدالة الرئيسية (تعمل فقط إذا نجحت التهيئة) ⬇️
-// -----------------------------------------------------------
+let app;
+if (!getApps().length) {
+  try {
+    app = initializeApp({
+      credential: cert(JSON.parse(serviceAccountJson)),
+    });
+  } catch (err) {
+    console.error("🔥 Admin Init Error:", err);
+  }
+} else {
+  app = getApps()[0];
+}
+
+const db = getFirestore(app);
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ approved: false, reason: "Method not allowed" });
+    return res.status(405).json({ error: "Method Not Allowed" });
   }
 
   try {
     const { email, deviceId, ip } = req.body;
 
     if (!email || !deviceId || !ip) {
-      return res.status(400).json({ approved: false, reason: "بيانات ناقصة." });
+      return res.status(400).json({
+        approved: false,
+        reason: "Missing some required fields",
+      });
     }
 
-    // 🕵️‍♂️ فحص الجهاز والعنوان IP لمنع التكرار
-    const dupIp = await db.collection("userDevices").where("ip", "==", ip).get();
-    const dupDevice = await db.collection("userDevices").where("deviceId", "==", deviceId).get();
+    // ✅ Check by IP
+    const ipCheck = await db
+      .collection("userDevices")
+      .where("ip", "==", ip)
+      .get();
 
-    if (!dupIp.empty) {
-      return res.status(403).json({ approved: false, reason: "هذا الجهاز مسجل بالفعل باستخدام نفس IP." });
+    if (!ipCheck.empty) {
+      return res.status(403).json({
+        approved: false,
+        reason: "هذا الـ IP مستخدم بالفعل.",
+      });
     }
 
-    if (!dupDevice.empty) {
-      return res.status(403).json({ approved: false, reason: "هذا الجهاز مسجل بالفعل." });
+    // ✅ Check by device ID
+    const deviceCheck = await db
+      .collection("userDevices")
+      .where("deviceId", "==", deviceId)
+      .get();
+
+    if (!deviceCheck.empty) {
+      return res.status(403).json({
+        approved: false,
+        reason: "هذا الجهاز مسجل بالفعل.",
+      });
     }
 
-    // ✅ تسجيل الجهاز
+    // 🌟 Save new data
     await db.collection("userDevices").add({
       email,
-      ip,
       deviceId,
+      ip,
       createdAt: FieldValue.serverTimestamp(),
     });
 
     return res.status(200).json({ approved: true });
   } catch (err) {
-    console.error("🔥 Signup error:", err);
-    return res.status(500).json({ approved: false, reason: "خطأ في السيرفر. حاول لاحقًا." });
+    console.error("Signup Error:", err);
+    return res
+      .status(500)
+      .json({ approved: false, reason: "Server error occurred." });
   }
 }
