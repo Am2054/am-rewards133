@@ -1,72 +1,96 @@
 // api/secureSignup.js
 
-import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { initializeApp, cert, getApps, getApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
-// ⛔ لازم يكون موجود في Vercel باسم FIREBASE_ADMIN_KEY
 const serviceAccountJson = process.env.FIREBASE_ADMIN_KEY;
-
-if (!serviceAccountJson) {
-  console.error("❌ ERROR: FIREBASE_ADMIN_KEY is missing in Vercel env!");
-}
+const projectId = "am--rewards";
 
 let app;
-if (!getApps().length) {
-  try {
+let db;
+
+// ----------------------------------
+// 🔐 Firebase Admin Init
+// ----------------------------------
+try {
+  if (!serviceAccountJson) {
+    throw new Error("FIREBASE_ADMIN_KEY is missing");
+  }
+
+  if (!getApps().length) {
     app = initializeApp({
       credential: cert(JSON.parse(serviceAccountJson)),
+      projectId,
     });
-  } catch (err) {
-    console.error("🔥 Admin Init Error:", err);
+    console.log("✅ Firebase Admin initialized");
+  } else {
+    app = getApp();
   }
-} else {
-  app = getApps()[0];
+
+  db = getFirestore(app);
+} catch (err) {
+  console.error("🔥 Firebase Init Failed:", err.message);
+  db = null;
 }
 
-const db = getFirestore(app);
-
+// ----------------------------------
+// 🚀 API Handler
+// ----------------------------------
 export default async function handler(req, res) {
+  if (!db) {
+    return res.status(500).json({
+      approved: false,
+      reason: "Server configuration error",
+    });
+  }
+
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
+    return res.status(405).json({
+      approved: false,
+      reason: "Method Not Allowed",
+    });
   }
 
   try {
-    const { email, deviceId, ip } = req.body;
+    const { email, deviceId } = req.body;
 
-    if (!email || !deviceId || !ip) {
+    const ip =
+      req.headers["x-forwarded-for"]?.split(",")[0] ||
+      req.socket.remoteAddress;
+
+    if (!email || !deviceId) {
       return res.status(400).json({
         approved: false,
-        reason: "Missing some required fields",
+        reason: "Missing email or deviceId",
       });
     }
 
-    // ✅ Check by IP
     const ipCheck = await db
       .collection("userDevices")
       .where("ip", "==", ip)
+      .limit(1)
       .get();
 
     if (!ipCheck.empty) {
       return res.status(403).json({
         approved: false,
-        reason: "هذا الـ IP مستخدم بالفعل.",
+        reason: "هذا العنوان مستخدم بالفعل",
       });
     }
 
-    // ✅ Check by device ID
     const deviceCheck = await db
       .collection("userDevices")
       .where("deviceId", "==", deviceId)
+      .limit(1)
       .get();
 
     if (!deviceCheck.empty) {
       return res.status(403).json({
         approved: false,
-        reason: "هذا الجهاز مسجل بالفعل.",
+        reason: "هذا الجهاز مسجل بالفعل",
       });
     }
 
-    // 🌟 Save new data
     await db.collection("userDevices").add({
       email,
       deviceId,
@@ -76,9 +100,10 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ approved: true });
   } catch (err) {
-    console.error("Signup Error:", err);
-    return res
-      .status(500)
-      .json({ approved: false, reason: "Server error occurred." });
+    console.error("🔥 Signup Error:", err);
+    return res.status(500).json({
+      approved: false,
+      reason: "Server error occurred",
+    });
   }
-}
+                                      }
