@@ -9,13 +9,15 @@ const isValidEmail = (email) => {
   return emailRegex.test(email);
 };
 
-// ... (بقية كود التهيئة remain unchanged)
 const serviceAccountJson = process.env.FIREBASE_ADMIN_KEY;
 const projectId = "am--rewards";
 
 let app;
 let db;
 
+// ----------------------------------
+// 🔐 Firebase Admin Init
+// ----------------------------------
 try {
   if (!serviceAccountJson) {
     throw new Error("FIREBASE_ADMIN_KEY is missing");
@@ -33,7 +35,7 @@ try {
 
   db = getFirestore(app);
 } catch (err) {
-  console.error("🔥 Firebase Init Failed:", err.message);
+  console.error("🔥 فشل تهيئة Firebase:", err.message);
   db = null;
 }
 
@@ -41,19 +43,23 @@ try {
 // 🚀 API Handler
 // ----------------------------------
 export default async function handler(req, res) {
+  const logPrefix = `[IP: ${req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress}]`;
+
   if (!db) {
+    console.error(`${logPrefix} ❌ فشل التشغيل: قاعدة البيانات غير مهيأة.`);
     return res.status(500).json({
       approved: false,
-      errorCode: "SERVER_CONFIG_ERROR", // إضافة كود الخطأ
-      reason: "Server configuration error",
+      errorCode: "SERVER_CONFIG_ERROR",
+      reason: "خطأ في تهيئة الخادم",
     });
   }
 
   if (req.method !== "POST") {
+    console.warn(`${logPrefix} ❌ رفض: طريقة الطلب غير مسموح بها (${req.method}).`);
     return res.status(405).json({
       approved: false,
       errorCode: "METHOD_NOT_ALLOWED",
-      reason: "Method Not Allowed",
+      reason: "طريقة الطلب غير مدعومة",
     });
   }
 
@@ -63,20 +69,24 @@ export default async function handler(req, res) {
     const ip =
       req.headers["x-forwarded-for"]?.split(",")[0] ||
       req.socket.remoteAddress;
-
+    
+    // تحقق من البيانات الأساسية
     if (!email || !deviceId) {
+      console.warn(`${logPrefix} ❌ رفض (400): بيانات مفقودة (البريد أو معرف الجهاز).`);
       return res.status(400).json({
         approved: false,
         errorCode: "MISSING_FIELDS",
-        reason: "Missing email or deviceId",
+        reason: "بيانات التسجيل مفقودة",
       });
     }
 
+    // تحقق من تنسيق البريد الإلكتروني
     if (!isValidEmail(email)) {
+        console.warn(`${logPrefix} ❌ رفض (400): تنسيق بريد غير صالح: ${email}`);
         return res.status(400).json({
             approved: false,
             errorCode: "INVALID_EMAIL_FORMAT",
-            reason: "Invalid email format",
+            reason: "صيغة البريد الإلكتروني غير صحيحة",
         });
     }
     
@@ -88,6 +98,7 @@ export default async function handler(req, res) {
         .get();
         
     if (!emailCheck.empty) {
+        console.warn(`${logPrefix} ❌ رفض (403): البريد مستخدم بالفعل: ${email}`);
         return res.status(403).json({
             approved: false,
             errorCode: "EMAIL_ALREADY_USED",
@@ -103,6 +114,7 @@ export default async function handler(req, res) {
       .get();
 
     if (!ipCheck.empty) {
+      console.warn(`${logPrefix} ❌ رفض (403): عنوان IP مستخدم بالفعل: ${ip}`);
       return res.status(403).json({
         approved: false,
         errorCode: "IP_ALREADY_USED",
@@ -118,6 +130,7 @@ export default async function handler(req, res) {
       .get();
 
     if (!deviceCheck.empty) {
+      console.warn(`${logPrefix} ❌ رفض (403): معرف الجهاز مستخدم بالفعل: ${deviceId}`);
       return res.status(403).json({
         approved: false,
         errorCode: "DEVICE_ALREADY_USED",
@@ -133,13 +146,15 @@ export default async function handler(req, res) {
       createdAt: FieldValue.serverTimestamp(),
     });
 
+    console.log(`${logPrefix} ✅ نجاح التسجيل للبريد: ${email}`);
     return res.status(200).json({ approved: true });
   } catch (err) {
-    console.error("🔥 Signup Error:", err);
+    // خطأ غير متوقع في الكود أو Firestore
+    console.error(`${logPrefix} 🔥 خطأ داخلي غير متوقع:`, err.message);
     return res.status(500).json({
       approved: false,
       errorCode: "UNEXPECTED_SERVER_ERROR",
-      reason: "Server error occurred",
+      reason: "حدث خطأ داخلي في الخادم",
     });
   }
 }
