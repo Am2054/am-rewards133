@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
   <style>
-    /* CSS الأصلي ممتاز، تم إضافة بعض التعديلات لـ UX */
+    /* ... (جميع أكواد CSS تبقى كما هي) ... */
     :root{  
       --accent:#FFD369;  
       --accent-2:#34d399;  
@@ -22,7 +22,6 @@
     }  
     *{box-sizing:border-box}  
     html, body{  
-      /* تم السماح بالتمرير */
       margin:0;  
       padding:0;  
     }  
@@ -37,11 +36,12 @@
       background-attachment:fixed;  
       background-blend-mode:overlay;  
       display:flex;  
-      /* تم تغيير align-items: center إلى align-items: flex-start لتمكين التمرير */
       align-items:flex-start;  
       justify-content:center;  
-      padding:20px 0; /* تم تعديل Padding */
+      padding:20px 0; 
     }  
+    /* ... (بقية الـ CSSs) ... */
+
     /* Animated overlay */  
     .animated-bg {  
       position:fixed;  
@@ -440,6 +440,7 @@
     import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     
+    // تأكد من أن هذه البيانات صحيحة
     const firebaseConfig = {  
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",  
       authDomain: "am--rewards.firebaseapp.com",  
@@ -515,18 +516,34 @@
         return null; 
     }  
 
+    // 🌟 دالة للحصول على معرف الجهاز الفريد
+    function generateOrGetDeviceId() {
+        let deviceId = localStorage.getItem('appDeviceId');
+        if (!deviceId) {
+            deviceId = (window.crypto?.randomUUID) ? window.crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
+            localStorage.setItem('appDeviceId', deviceId);
+        }
+        return deviceId;
+    }
+    
+    // ----------------------------------------------------------------------
+    // 🎯 دالة التسجيل الرئيسية المُعدلة (التحقق ثم التأكيد)
+    // ----------------------------------------------------------------------
     async function signup(){  
       setStatus('', 'info');  
 
+      const password = document.getElementById("password").value;
+      
       const data = {  
           name: getVal("name"),  
           phone: getVal("phone"),  
           email: getVal("email"),  
-          password: document.getElementById("password").value,  
-          confirmPassword: document.getElementById("confirmPassword").value,  
+          password: password, 
+          confirmPassword: getVal("confirmPassword"),  
       };  
       
       const referralCode = getVal("refCode") || ""; 
+      const currentDeviceId = generateOrGetDeviceId(); 
 
       const validationError = validateSignupData(data);  
       if (validationError) {  
@@ -535,16 +552,50 @@
       }  
 
       signupBtn.disabled = true;  
-      signupBtn.textContent = '⏳ جاري إنشاء الحساب...';  
+      signupBtn.textContent = '⏳ جاري التحقق الأمني...';  
 
       try {  
-        const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);  
+        // 1. 🛡️ التحقق الأمني عبر الـ Backend (IP/DeviceID/Email)
+        const secureCheckResponse = await fetch('/api/secureSignup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email: data.email,
+                deviceId: currentDeviceId, 
+            }),
+        });
+
+        const secureCheckResult = await secureCheckResponse.json();
+
+        if (!secureCheckResponse.ok || !secureCheckResult.approved) {
+            // فشل التحقق الأمني (IP مستخدم، الجهاز مسجل، أو البريد مستخدم)
+            const reason = secureCheckResult.reason || 'خطأ في التحقق الأمني';
+            const errorCode = secureCheckResult.errorCode || 'BACKEND_CHECK_FAILED';
+            
+            console.error(`Backend Security Check Failed (${errorCode}):`, secureCheckResult);
+
+            let displayReason = reason;
+            if (errorCode === 'EMAIL_ALREADY_USED') {
+                displayReason += `. <a href="login.html" style="color:var(--accent-2);text-decoration:underline;">جرب تسجيل الدخول</a> بدلاً من ذلك.`;
+                statusEl.innerHTML = `❌ فشل التسجيل: ${displayReason}`;
+                statusEl.className = 'status error';
+            } else {
+                 setStatus(`❌ فشل التسجيل: ${displayReason}`, 'error');
+            }
+            return;
+        }
+
+        // 2. 🔑 إنشاء المستخدم في Firebase Auth (الخطوة التي قد تفشل في المنتصف)
+        signupBtn.textContent = '⏳ تم التحقق. جاري إنشاء بيانات الحساب...'; 
+        
+        const userCredential = await createUserWithEmailAndPassword(auth, data.email, password);  
         const user = userCredential.user;  
         const uid = user.uid;  
-
+        
+        // 3. 💾 تسجيل بيانات المستخدم في Firestore
         const myReferralCode = uid.slice(0,6).toUpperCase();  
-
-        await setDoc(doc(db, "users", uid), {  
+        
+        const setUserDocPromise = setDoc(doc(db, "users", uid), {  
           uid,  
           name: data.name,  
           email: data.email,  
@@ -554,6 +605,7 @@
           referralCount: 0,  
           referralCode: myReferralCode,  
           referralBy: referralCode, 
+          deviceId: currentDeviceId, 
           totalWithdrawn: 0,  
           dailyWithdrawAmount: 0,  
           isBanned: false,  
@@ -561,15 +613,29 @@
           joinedAt: serverTimestamp(),
         });  
 
+        // 4. 🔗 تأكيد حجز الموارد في الـ Backend (الآن آمنة من الفشل الجزئي)
+        const confirmDevicePromise = fetch('/api/confirmDevice', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email: data.email,
+                deviceId: currentDeviceId,
+            }),
+        });
+
+        // انتظر نجاح كلتا العمليتين (Firestore و تأكيد الجهاز)
+        await Promise.all([setUserDocPromise, confirmDevicePromise]);
+
+
+        // 5. ✅ النجاح والتوجيه
         setStatus('✅ تم إنشاء الحساب بنجاح! جاري التوجيه...', 'success');  
-        // استخدام window.location.replace لمنع الرجوع لصفحة التسجيل
         setTimeout(()=> window.location.replace('dashboard.html'), 1400);  
 
       } catch (err) {  
-        console.error('Signup error:', err);  
+        console.error('Signup Error:', err);  
         let errMsg;
         
-        // تحسين رسالة الخطأ لتشمل رابط تسجيل الدخول
+        // معالجة خطأ "البريد مستخدم بالفعل" إذا حدث بعد خطوة الـ Backend
         if (err.code === 'auth/email-already-in-use') {
             errMsg = `❌ هذا البريد الإلكتروني مستخدم بالفعل. <a href="login.html" style="color:var(--accent-2);text-decoration:underline;">جرب تسجيل الدخول</a> بدلاً من ذلك.`;
             statusEl.innerHTML = errMsg;
@@ -587,3 +653,4 @@
   </script>
 </body>
 </html>
+
