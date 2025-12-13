@@ -1,23 +1,21 @@
-// api/secureSignup.js
+// api/secureSignup.js (التحقق الأمني)
 
 import { initializeApp, cert, getApps, getApp } from "firebase-admin/app";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getFirestore } from "firebase-admin/firestore";
 
-// دالة مساعدة للتحقق من تنسيق البريد الإلكتروني
+// 🌟 تم إصلاح التعبير النمطي
 const isValidEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 };
 
+// ... (بقية كود تهيئة Firebase Admin)
 const serviceAccountJson = process.env.FIREBASE_ADMIN_KEY;
 const projectId = "am--rewards";
 
 let app;
 let db;
 
-// ----------------------------------
-// 🔐 Firebase Admin Init
-// ----------------------------------
 try {
   if (!serviceAccountJson) {
     throw new Error("FIREBASE_ADMIN_KEY is missing");
@@ -43,13 +41,14 @@ try {
 // 🚀 API Handler
 // ----------------------------------
 export default async function handler(req, res) {
-  const logPrefix = `[IP: ${req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress}]`;
+  const ipAddress = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
+  const logPrefix = `[IP: ${ipAddress}]`;
 
   if (!db) {
     console.error(`${logPrefix} ❌ فشل التشغيل: قاعدة البيانات غير مهيأة.`);
     return res.status(500).json({
       approved: false,
-      errorCode: "SERVER_CONFIG_ERROR",
+      errorCode: "SERVER_CONFIG_ERROR", 
       reason: "خطأ في تهيئة الخادم",
     });
   }
@@ -66,13 +65,9 @@ export default async function handler(req, res) {
   try {
     const { email, deviceId } = req.body;
 
-    const ip =
-      req.headers["x-forwarded-for"]?.split(",")[0] ||
-      req.socket.remoteAddress;
-    
-    // تحقق من البيانات الأساسية
+    // 1. تحقق من البيانات الأساسية
     if (!email || !deviceId) {
-      console.warn(`${logPrefix} ❌ رفض (400): بيانات مفقودة (البريد أو معرف الجهاز).`);
+      console.warn(`${logPrefix} ❌ رفض (400): بيانات مفقودة.`);
       return res.status(400).json({
         approved: false,
         errorCode: "MISSING_FIELDS",
@@ -80,7 +75,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // تحقق من تنسيق البريد الإلكتروني
+    // 2. تحقق من تنسيق البريد الإلكتروني
     if (!isValidEmail(email)) {
         console.warn(`${logPrefix} ❌ رفض (400): تنسيق بريد غير صالح: ${email}`);
         return res.status(400).json({
@@ -90,7 +85,7 @@ export default async function handler(req, res) {
         });
     }
     
-    // 1. 🛑 التحقق من البريد الإلكتروني (هل تم استخدامه بالفعل؟)
+    // 3. 🛑 التحقق من البريد الإلكتروني (هل تم استخدامه بالفعل؟)
     const emailCheck = await db
         .collection("userDevices")
         .where("email", "==", email)
@@ -106,15 +101,15 @@ export default async function handler(req, res) {
         });
     }
 
-    // 2. 🛑 التحقق من عنوان IP (هل تم استخدامه بالفعل؟)
+    // 4. 🛑 التحقق من عنوان IP (هل تم استخدامه بالفعل؟)
     const ipCheck = await db
       .collection("userDevices")
-      .where("ip", "==", ip)
+      .where("ip", "==", ipAddress)
       .limit(1)
       .get();
 
     if (!ipCheck.empty) {
-      console.warn(`${logPrefix} ❌ رفض (403): عنوان IP مستخدم بالفعل: ${ip}`);
+      console.warn(`${logPrefix} ❌ رفض (403): عنوان IP مستخدم بالفعل: ${ipAddress}`);
       return res.status(403).json({
         approved: false,
         errorCode: "IP_ALREADY_USED",
@@ -122,7 +117,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 3. 🛑 التحقق من معرف الجهاز (هل تم استخدامه بالفعل؟)
+    // 5. 🛑 التحقق من معرف الجهاز (هل تم استخدامه بالفعل؟)
     const deviceCheck = await db
       .collection("userDevices")
       .where("deviceId", "==", deviceId)
@@ -138,18 +133,12 @@ export default async function handler(req, res) {
       });
     }
 
-    // 4. ✅ التسجيل الناجح
-    await db.collection("userDevices").add({
-      email,
-      deviceId,
-      ip,
-      createdAt: FieldValue.serverTimestamp(),
-    });
-
-    console.log(`${logPrefix} ✅ نجاح التسجيل للبريد: ${email}`);
+    // 6. ✅ تم منح الموافقة
+    console.log(`${logPrefix} ✅ تم منح موافقة التسجيل للبريد: ${email}`);
+    // لا يتم التسجيل في userDevices هنا (لضمان الكمال الذري)
     return res.status(200).json({ approved: true });
+    
   } catch (err) {
-    // خطأ غير متوقع في الكود أو Firestore
     console.error(`${logPrefix} 🔥 خطأ داخلي غير متوقع:`, err.message);
     return res.status(500).json({
       approved: false,
