@@ -40,7 +40,6 @@
       justify-content:center;  
       padding:20px 0; 
     }  
-    /* ... (بقية الـ CSSs) ... */
 
     /* Animated overlay */  
     .animated-bg {  
@@ -370,7 +369,7 @@
         <button class="btn-ghost" type="button" onclick="document.querySelector('.signup-card').scrollIntoView({behavior: 'smooth'})">ابدأ الآن — سجّل حسابك</button>
       </div>
     </div>
-    <form class="signup-card" onsubmit="event.preventDefault(); signup();" aria-labelledby="signupTitle">
+    <form class="signup-card" onsubmit="event.preventDefault(); window.signup();" aria-labelledby="signupTitle">
       <h3 id="signupTitle">إنشاء حساب جديد</h3>
       <p class="lead">سجّل وانضم لمنصة المكافآت الأسرع نمواً في مصر</p>
       
@@ -475,11 +474,6 @@
     
     const getVal = (id) => document.getElementById(id).value.trim();  
 
-    function setStatus(text, type='info'){  
-      statusEl.textContent = text || '';  
-      statusEl.className = 'status ' + (type==='error' ? 'error' : (type==='success'? 'success':''));  
-    }  
-
     window.togglePasswordVisibility = function(id) {
         const input = document.getElementById(id);
         const icon = input.nextElementSibling;
@@ -492,6 +486,11 @@
             icon.classList.remove('visible');
         }
     }
+
+    function setStatus(text, type='info'){  
+      statusEl.textContent = text || '';  
+      statusEl.className = 'status ' + (type==='error' ? 'error' : (type==='success'? 'success':''));  
+    }  
 
     function validateSignupData(data) {  
         if (!data.name || !data.phone || !data.email || !data.password || !data.confirmPassword) {  
@@ -516,7 +515,6 @@
         return null; 
     }  
 
-    // 🌟 دالة للحصول على معرف الجهاز الفريد
     function generateOrGetDeviceId() {
         let deviceId = localStorage.getItem('appDeviceId');
         if (!deviceId) {
@@ -527,9 +525,9 @@
     }
     
     // ----------------------------------------------------------------------
-    // 🎯 دالة التسجيل الرئيسية المُعدلة (التحقق ثم التأكيد)
+    // 🎯 التعديل الحاسم: تعريف الدالة في النطاق العام (window)
     // ----------------------------------------------------------------------
-    async function signup(){  
+    window.signup = async function signup(){  
       setStatus('', 'info');  
 
       const password = document.getElementById("password").value;
@@ -568,7 +566,6 @@
         const secureCheckResult = await secureCheckResponse.json();
 
         if (!secureCheckResponse.ok || !secureCheckResult.approved) {
-            // فشل التحقق الأمني (IP مستخدم، الجهاز مسجل، أو البريد مستخدم)
             const reason = secureCheckResult.reason || 'خطأ في التحقق الأمني';
             const errorCode = secureCheckResult.errorCode || 'BACKEND_CHECK_FAILED';
             
@@ -585,7 +582,7 @@
             return;
         }
 
-        // 2. 🔑 إنشاء المستخدم في Firebase Auth (الخطوة التي قد تفشل في المنتصف)
+        // 2. 🔑 إنشاء المستخدم في Firebase Auth
         signupBtn.textContent = '⏳ تم التحقق. جاري إنشاء بيانات الحساب...'; 
         
         const userCredential = await createUserWithEmailAndPassword(auth, data.email, password);  
@@ -613,7 +610,7 @@
           joinedAt: serverTimestamp(),
         });  
 
-        // 4. 🔗 تأكيد حجز الموارد في الـ Backend (الآن آمنة من الفشل الجزئي)
+        // 4. 🔗 تأكيد حجز الموارد في الـ Backend
         const confirmDevicePromise = fetch('/api/confirmDevice', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -623,7 +620,7 @@
             }),
         });
 
-        // انتظر نجاح كلتا العمليتين (Firestore و تأكيد الجهاز)
+        // انتظر نجاح كلتا العمليتين
         await Promise.all([setUserDocPromise, confirmDevicePromise]);
 
 
@@ -635,7 +632,6 @@
         console.error('Signup Error:', err);  
         let errMsg;
         
-        // معالجة خطأ "البريد مستخدم بالفعل" إذا حدث بعد خطوة الـ Backend
         if (err.code === 'auth/email-already-in-use') {
             errMsg = `❌ هذا البريد الإلكتروني مستخدم بالفعل. <a href="login.html" style="color:var(--accent-2);text-decoration:underline;">جرب تسجيل الدخول</a> بدلاً من ذلك.`;
             statusEl.innerHTML = errMsg;
@@ -653,4 +649,3 @@
   </script>
 </body>
 </html>
-
