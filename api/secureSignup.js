@@ -3,15 +3,19 @@
 import { initializeApp, cert, getApps, getApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
+// دالة مساعدة للتحقق من تنسيق البريد الإلكتروني
+const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+// ... (بقية كود التهيئة remain unchanged)
 const serviceAccountJson = process.env.FIREBASE_ADMIN_KEY;
 const projectId = "am--rewards";
 
 let app;
 let db;
 
-// ----------------------------------
-// 🔐 Firebase Admin Init
-// ----------------------------------
 try {
   if (!serviceAccountJson) {
     throw new Error("FIREBASE_ADMIN_KEY is missing");
@@ -40,6 +44,7 @@ export default async function handler(req, res) {
   if (!db) {
     return res.status(500).json({
       approved: false,
+      errorCode: "SERVER_CONFIG_ERROR", // إضافة كود الخطأ
       reason: "Server configuration error",
     });
   }
@@ -47,6 +52,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
       approved: false,
+      errorCode: "METHOD_NOT_ALLOWED",
       reason: "Method Not Allowed",
     });
   }
@@ -61,10 +67,35 @@ export default async function handler(req, res) {
     if (!email || !deviceId) {
       return res.status(400).json({
         approved: false,
+        errorCode: "MISSING_FIELDS",
         reason: "Missing email or deviceId",
       });
     }
 
+    if (!isValidEmail(email)) {
+        return res.status(400).json({
+            approved: false,
+            errorCode: "INVALID_EMAIL_FORMAT",
+            reason: "Invalid email format",
+        });
+    }
+    
+    // 1. 🛑 التحقق من البريد الإلكتروني (هل تم استخدامه بالفعل؟)
+    const emailCheck = await db
+        .collection("userDevices")
+        .where("email", "==", email)
+        .limit(1)
+        .get();
+        
+    if (!emailCheck.empty) {
+        return res.status(403).json({
+            approved: false,
+            errorCode: "EMAIL_ALREADY_USED",
+            reason: "هذا البريد مستخدم بالفعل",
+        });
+    }
+
+    // 2. 🛑 التحقق من عنوان IP (هل تم استخدامه بالفعل؟)
     const ipCheck = await db
       .collection("userDevices")
       .where("ip", "==", ip)
@@ -74,10 +105,12 @@ export default async function handler(req, res) {
     if (!ipCheck.empty) {
       return res.status(403).json({
         approved: false,
+        errorCode: "IP_ALREADY_USED",
         reason: "هذا العنوان مستخدم بالفعل",
       });
     }
 
+    // 3. 🛑 التحقق من معرف الجهاز (هل تم استخدامه بالفعل؟)
     const deviceCheck = await db
       .collection("userDevices")
       .where("deviceId", "==", deviceId)
@@ -87,10 +120,12 @@ export default async function handler(req, res) {
     if (!deviceCheck.empty) {
       return res.status(403).json({
         approved: false,
+        errorCode: "DEVICE_ALREADY_USED",
         reason: "هذا الجهاز مسجل بالفعل",
       });
     }
 
+    // 4. ✅ التسجيل الناجح
     await db.collection("userDevices").add({
       email,
       deviceId,
@@ -103,7 +138,8 @@ export default async function handler(req, res) {
     console.error("🔥 Signup Error:", err);
     return res.status(500).json({
       approved: false,
+      errorCode: "UNEXPECTED_SERVER_ERROR",
       reason: "Server error occurred",
     });
   }
-                                      }
+}
