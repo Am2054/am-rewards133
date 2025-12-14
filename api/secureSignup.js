@@ -9,47 +9,48 @@ const isValidEmail = (email) => {
   return emailRegex.test(email);
 };
 
-// ... (بقية كود تهيئة Firebase Admin)
+// ----------------------------------
+// 🛠️ تهيئة Firebase Admin
+// ----------------------------------
 const serviceAccountJson = process.env.FIREBASE_ADMIN_KEY;
 const projectId = "am--rewards";
 
-let app;
 let db;
 
 try {
   if (!serviceAccountJson) {
     throw new Error("FIREBASE_ADMIN_KEY is missing");
   }
-
+  
+  // التهيئة مرة واحدة فقط
   if (!getApps().length) {
-    app = initializeApp({
+    initializeApp({
       credential: cert(JSON.parse(serviceAccountJson)),
       projectId,
     });
-    console.log("✅ Firebase Admin initialized");
-  } else {
-    app = getApp();
+    // console.log("✅ Firebase Admin initialized");
   }
 
-  db = getFirestore(app);
+  db = getFirestore();
 } catch (err) {
   console.error("🔥 فشل تهيئة Firebase:", err.message);
-  db = null;
+  db = null; // للتأكد من أن db غير صالحة إذا فشلت التهيئة
 }
 
 // ----------------------------------
 // 🚀 API Handler
 // ----------------------------------
 export default async function handler(req, res) {
-  const ipAddress = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
+  // 💡 قراءة IP: تحسين بسيط للقراءة
+  const ipAddress = (req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress || 'N/A').trim();
   const logPrefix = `[IP: ${ipAddress}]`;
 
   if (!db) {
     console.error(`${logPrefix} ❌ فشل التشغيل: قاعدة البيانات غير مهيأة.`);
-    return res.status(500).json({
+    return res.status(503).json({ // 503 Service Unavailable أفضل من 500 في هذه الحالة
       approved: false,
       errorCode: "SERVER_CONFIG_ERROR", 
-      reason: "خطأ في تهيئة الخادم",
+      reason: "خطأ في تهيئة الخادم (يرجى مراجعة FIREBASE_ADMIN_KEY)",
     });
   }
 
@@ -135,7 +136,6 @@ export default async function handler(req, res) {
 
     // 6. ✅ تم منح الموافقة
     console.log(`${logPrefix} ✅ تم منح موافقة التسجيل للبريد: ${email}`);
-    // لا يتم التسجيل في userDevices هنا (لضمان الكمال الذري)
     return res.status(200).json({ approved: true });
     
   } catch (err) {
