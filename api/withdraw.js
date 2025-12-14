@@ -1,4 +1,4 @@
-Import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 // تم إزالة getAuth لعدم الحاجة إليه في هذه الدالة
 
