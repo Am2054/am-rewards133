@@ -1,6 +1,6 @@
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-// تم إزالة getAuth لعدم الحاجة إليه في هذه الدالة
+import { getAuth } from "firebase-admin/auth"; // ⬅️ تم إضافة استيراد مصادقة المستخدم
 
 // ** تهيئة مفاتيح Firebase Admin Key **
 const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
@@ -13,98 +13,83 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
+const auth = getAuth(); // ⬅️ تهيئة خدمة المصادقة
 
-// ⚙️ إعدادات الإحالة
-const REFERRAL_BONUS_LIMIT = 10;
+// ⚙️ إعدادات الإحالة (قد لا تكون مطلوبة هنا إذا كانت الدالة فقط للسحب)
 const POINT_VALUE = 0.07; 
-
-// 🔑 مفتاح سري يجب تعيينه كمتغير بيئة على Vercel
-// ** تم تعديل هذا السطر لقراءة A12345 **
-const ADMIN_SECRET = process.env.A12345; 
 
 export default async function handler(req, res) {
     if (req.method !== "POST") {
         return res.status(405).json({ success: false, message: "Method not allowed" });
     }
 
-    // 🛑 1. التحقق من المفتاح السري للمسؤول
-    const providedSecret = req.headers['x-admin-secret']; 
-    
-    // ** التحقق سيعتمد الآن على قيمة A12345 المخزنة في Vercel **
-    if (!ADMIN_SECRET || providedSecret !== ADMIN_SECRET) {
-        console.warn("❌ تم رفض محاولة معالجة إحالة غير مصرح بها.");
-        return res.status(401).json({ 
-            success: false, 
-            message: "Unauthorized access: Invalid secret key." 
-        });
+    // 🛑 1. التحقق من مصادقة المستخدم (Firebase ID Token)
+    const token = req.headers.authorization?.split('Bearer ')[1];
+    let userId = null;
+
+    if (!token) {
+        return res.status(401).json({ success: false, message: "Authorization token missing." });
     }
 
     try {
-        const { withdrawalId, actualAmountPaid } = req.body; 
-        
-        if (!withdrawalId || !actualAmountPaid) {
-            return res.status(400).json({ success: false, message: "Missing withdrawal ID or payment amount." });
+        const decodedToken = await auth.verifyIdToken(token);
+        userId = decodedToken.uid;
+    } catch (error) {
+        console.error("Firebase Auth Error:", error.message);
+        return res.status(401).json({ success: false, message: "Invalid or expired authorization token." });
+    }
+    // ⬅️ انتهى التحقق من الأمان
+
+    try {
+        const { amount, wallet } = req.body; // البيانات المرسلة من الفرونت إند
+
+        if (!amount || !wallet) {
+            return res.status(400).json({ success: false, message: "Missing amount or wallet data." });
         }
         
-        // 🔒 عملية آمنة للمكافأة (تبقى كما هي)
+        // يجب أن يتم وضع منطق التحقق من الرصيد والحدود والسحب هنا
+        // هذا مجرد نموذج مبسط:
+
         await db.runTransaction(async (tr) => {
-            const withdrawalRef = db.collection("withdrawals").doc(withdrawalId);
-            const wSnap = await tr.get(withdrawalRef);
+            const userRef = db.collection("users").doc(userId);
+            const userSnap = await tr.get(userRef);
 
-            if (!wSnap.exists) throw new Error("Withdrawal document not found");
-            
-            const wData = wSnap.data();
-            const { referredByUID, isReferralEligible, isReferralPaid } = wData;
+            if (!userSnap.exists) throw new Error("User not found.");
 
-            if (wData.status === "completed") throw new Error("Withdrawal status already completed.");
+            const userData = userSnap.data();
+            const currentPoints = userData.points || 0;
+            const pointsNeeded = Math.ceil(amount / POINT_VALUE);
 
-            if (isReferralPaid) throw new Error("Referral bonus already processed.");
-            
-            if (!referredByUID || !isReferralEligible) {
-                // تحديث حالة السحب إلى مكتمل حتى لو لم يكن مؤهلاً للمكافأة
-                tr.update(withdrawalRef, { status: "completed", isReferralPaid: true, referralStatus: "Not Eligible" });
-                return; 
+            if (currentPoints < pointsNeeded) {
+                 // استخدام رسالة واضحة يمكن للفرونت إند التعرف عليها
+                throw new Error("resource-exhausted: Insufficient points for this withdrawal."); 
             }
-
-            const referrerRef = db.collection("users").doc(referredByUID);
-            const referrerSnap = await tr.get(referrerRef);
-
-            if (!referrerSnap.exists) throw new Error("Referrer user not found");
-
-            const referrerData = referrerSnap.data();
-            const currentBonusCount = referrerData.referralBonusesCount || 0;
             
-            if (currentBonusCount >= REFERRAL_BONUS_LIMIT) {
-                // تحديث حالة السحب إلى مكتمل مع تسجيل تجاوز الحد
-                tr.update(withdrawalRef, { status: "completed", isReferralPaid: true, referralStatus: "Limit Reached" });
-                return;
-            }
-
-            // 4. حساب المكافأة (10% من المبلغ المدفوع فعليًا)
-            const bonusEGP = actualAmountPaid * 0.10;
-            const bonusPoints = Math.ceil(bonusEGP / POINT_VALUE);
-
-            // 5. منح المكافأة وتحديث عداد الداعي
-            tr.update(referrerRef, {
-                points: FieldValue.increment(bonusPoints),
-                referralBonusesCount: FieldValue.increment(1) 
+            // 2. تحديث رصيد المستخدم
+            tr.update(userRef, {
+                points: FieldValue.increment(-pointsNeeded)
             });
 
-            // 6. تحديث وثيقة السحب لتسجيل نجاح الدفع والمكافأة
-            tr.update(withdrawalRef, {
-                status: "completed", 
-                isReferralPaid: true,
-                referralStatus: `Paid ${bonusPoints} pts`,
-                referralPointsAwarded: bonusPoints
+            // 3. إنشاء وثيقة سحب جديدة
+            const withdrawalRef = db.collection("withdrawals").doc();
+            tr.set(withdrawalRef, {
+                userId: userId,
+                amount: amount,
+                net: amount * 0.90, // صافي المبلغ بعد 10% رسوم
+                pointsUsed: pointsNeeded,
+                wallet: wallet,
+                status: "pending",
+                date: FieldValue.serverTimestamp(),
+                // ... بيانات إحالة اختيارية
             });
         });
 
-        return res.status(200).json({ success: true, message: `Referral bonus and withdrawal completion processed for ID: ${withdrawalId}` });
+
+        // 4. رسالة النجاح
+        return res.status(200).json({ success: true, message: "تم إرسال طلب السحب بنجاح. سنراجع طلبك خلال 24 ساعة." });
 
     } catch (err) {
-        console.error("Referral Error:", err);
+        console.error("Withdrawal Error:", err);
         return res.status(500).json({ success: false, message: err.message || "Internal Server Error" });
     }
 }
-
-        
