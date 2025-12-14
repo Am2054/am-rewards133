@@ -371,11 +371,12 @@
       getFirestore,     
       doc,     
       updateDoc,
-      setDoc, /* ✅ تم إضافة setDoc هنا بناءً على طلبك */
+      setDoc,
       onSnapshot,     
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";      
 
-    // **1. الإعدادات** const firebaseConfig = {      
+    // **1. الإعدادات**
+    const firebaseConfig = {      
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",      
       authDomain: "am--rewards.firebaseapp.com",      
       projectId: "am--rewards",      
@@ -384,10 +385,12 @@
     const auth = getAuth(app);      
     const db = getFirestore(app);      
         
-    // **2. الثوابت** const POINT_VALUE_EGP = 0.07;      
+    // **2. الثوابت**
+    const POINT_VALUE_EGP = 0.07;      
     const DAILY_TARGET = 1000;      
 
-    // **3. عناصر DOM** const userNameEl = document.getElementById('userName');      
+    // **3. عناصر DOM**
+    const userNameEl = document.getElementById('userName');      
     const userEmailEl = document.getElementById('userEmail');      
     const userRefCodeEl = document.getElementById('userRefCode');    
     const avatarEl = document.getElementById('avatar');      
@@ -405,7 +408,8 @@
     const circleWrap = document.getElementById('circleWrap');     
     const progressCard = document.getElementById('progressCard'); // عنصر بطاقة التقدم     
 
-    // **4. الدوال المساعدة** function showToast(text, success = true, duration = 3200) {
+    // **4. الدوال المساعدة**
+    function showToast(text, success = true, duration = 3200) {
         toast.textContent = text;
         // إعادة تعيين الفئات ثم إضافة الفئات الصحيحة
         toast.classList.remove('error'); 
@@ -427,7 +431,8 @@
         return 'A';    
     }    
 
-    // **5. دالة عرض بيانات المستخدم** function renderUser(d, user) {      
+    // **5. دالة عرض بيانات المستخدم**
+    function renderUser(d, user) {      
       // بيانات الملف الشخصي
       userNameEl.textContent = d.name || user.displayName || 'مستخدم';      
       userEmailEl.textContent = d.email || user.email || '—';      
@@ -465,7 +470,8 @@
       progressCard.style.setProperty('--progress-pct', `${pct}%`);    
     }      
 
-    // **6. منطق حالة المصادقة (Auth State Listener) المُعدّل** onAuthStateChanged(auth, async (user) => {      
+    // **6. منطق حالة المصادقة (Auth State Listener) المُعدّل**
+    onAuthStateChanged(auth, async (user) => {      
       if (!user) return location.href = 'index.html';      
           
       const uid = user.uid;      
@@ -482,10 +488,8 @@
             
         const data = snap.data();      
 
-        // إذا كان الحقل previousPoints مفقوداً (لأسباب أمنية)، نعتبره 0 لتجنب الأخطاء
+        // إذا كان الحقل previousPoints مفقوداً، نعتبره 0 لتجنب الأخطاء
         if (data.previousPoints === undefined) {
-          // يمكن هنا محاولة تحديث الحقل باستخدام updateDoc كما في النسخ القديمة
-          // ولكن لضمان عدم حدوث خطأ بسبب نقص الحقل، نعتبره 0 مؤقتاً للـ render
           data.previousPoints = 0; 
         }      
 
@@ -499,7 +503,8 @@
 
     });      
 
-    // **7. الأزرار** // دالة التحديث اليدوي (للتأكيد البصري فقط)
+    // **7. الأزرار**
+    // دالة التحديث اليدوي (للتأكيد البصري فقط)
     refreshBtn.addEventListener('click', () => {      
       showToast('البيانات محدثة في الوقت الفعلي.', true);     
     });      
