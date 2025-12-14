@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     // 🛑 1. التحقق من المفتاح السري للمسؤول
     const providedSecret = req.headers['x-admin-secret']; 
     
-    // ** التحقق سيعتمد الآن على قيمة AMIR_KEY المخزنة في Vercel **
+    // ** التحقق سيعتمد الآن على قيمة A12345 المخزنة في Vercel **
     if (!ADMIN_SECRET || providedSecret !== ADMIN_SECRET) {
         console.warn("❌ تم رفض محاولة معالجة إحالة غير مصرح بها.");
         return res.status(401).json({ 
