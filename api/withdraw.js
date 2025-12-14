@@ -19,8 +19,8 @@ const REFERRAL_BONUS_LIMIT = 10;
 const POINT_VALUE = 0.07; 
 
 // 🔑 مفتاح سري يجب تعيينه كمتغير بيئة على Vercel
-// ** تم تعديل هذا السطر لقراءة AMIR123 **
-const ADMIN_SECRET = process.env.AMIR123; 
+// ** تم تعديل هذا السطر لقراءة A12345 **
+const ADMIN_SECRET = process.env.A12345; 
 
 export default async function handler(req, res) {
     if (req.method !== "POST") {
