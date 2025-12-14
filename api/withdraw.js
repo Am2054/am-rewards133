@@ -1,4 +1,4 @@
-import { initializeApp, cert, getApps } from "firebase-admin/app";
+Import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 // تم إزالة getAuth لعدم الحاجة إليه في هذه الدالة
 
@@ -19,7 +19,8 @@ const REFERRAL_BONUS_LIMIT = 10;
 const POINT_VALUE = 0.07; 
 
 // 🔑 مفتاح سري يجب تعيينه كمتغير بيئة على Vercel
-const ADMIN_SECRET = process.env.ADMIN_SECRET_KEY; 
+// ** تم تعديل هذا السطر لقراءة AMIR_KEY **
+const ADMIN_SECRET = process.env.AMIR_KEY; 
 
 export default async function handler(req, res) {
     if (req.method !== "POST") {
@@ -29,6 +30,7 @@ export default async function handler(req, res) {
     // 🛑 1. التحقق من المفتاح السري للمسؤول
     const providedSecret = req.headers['x-admin-secret']; 
     
+    // ** التحقق سيعتمد الآن على قيمة AMIR_KEY المخزنة في Vercel **
     if (!ADMIN_SECRET || providedSecret !== ADMIN_SECRET) {
         console.warn("❌ تم رفض محاولة معالجة إحالة غير مصرح بها.");
         return res.status(401).json({ 
