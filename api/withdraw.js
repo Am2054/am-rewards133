@@ -16,13 +16,14 @@ const db = getFirestore();
 const auth = getAuth();
 
 // ======== إعدادات العمليات ========
-const POINT_VALUE = 0.07;       // قيمة النقطة بالجنيه المصري
-const MIN_WITHDRAWAL = 20;      // الحد الأدنى للسحب
-const MAX_DAILY_AMOUNT = 200;   // الحد الأقصى اليومي للسحب
-const MAX_OPS_PER_DAY = 2;      // الحد الأقصى لعدد العمليات اليومية
-const NET_FEE = 0.10;           // رسوم 10% على كل سحب
-const REFERRAL_BONUS_PERCENT = 0.10; // نسبة مكافأة الإحالة (10%)
-const REFERRAL_BONUS_LIMIT = 10;     // الحد الأقصى لمكافآت الإحالة
+const POINT_VALUE = 0.07;
+const MIN_WITHDRAWAL = 20;
+const MAX_DAILY_AMOUNT = 200;
+const MAX_OPS_PER_DAY = 2;
+const NET_FEE = 0.10;
+const REFERRAL_BONUS_PERCENT = 0.10;
+// 🚨 لم يعد هذا الحد يستخدم هنا، سيتم تطبيقه في دالة معالجة الدفع (الإدارية)
+// const REFERRAL_BONUS_LIMIT = 10; 
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -42,10 +43,16 @@ export default async function handler(req, res) {
     return res.status(401).json({ success: false, message: "Invalid or expired authorization token." });
   }
 
-  // ======== 2. التحقق من المدخلات ========
-  const { amount, wallet } = req.body;
-  if (!amount || !wallet) {
-    return res.status(400).json({ success: false, message: "Missing amount or wallet data." });
+  // ======== 2. البيانات الأمنية المضافة ========
+  const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const userAgent = req.headers['user-agent'] || 'Unknown Agent';
+
+  // ======== 3. التحقق من المدخلات وتحويل المبلغ (تعديل رقم 1) ========
+  const { amount: rawAmount, wallet } = req.body;
+  const amount = Number(rawAmount); // 🚨 التحويل الإلزامي
+  
+  if (isNaN(amount) || !wallet) { // التحقق من NaN هنا
+    return res.status(400).json({ success: false, message: "Missing or Invalid amount/wallet data." });
   }
   if (amount < MIN_WITHDRAWAL) {
     return res.status(400).json({ success: false, message: `Minimum withdrawal amount is ${MIN_WITHDRAWAL} EGP.` });
@@ -56,7 +63,7 @@ export default async function handler(req, res) {
 
   try {
     await db.runTransaction(async (tr) => {
-      // ======== 3. جلب بيانات المستخدم ========
+      // ======== 4. جلب بيانات المستخدم ========
       const userRef = db.collection("users").doc(userId);
       const userSnap = await tr.get(userRef);
       if (!userSnap.exists) throw new Error("User not found.");
@@ -69,9 +76,8 @@ export default async function handler(req, res) {
         throw new Error("resource-exhausted: Insufficient points for this withdrawal.");
       }
 
-      // ======== 4. التحقق من الحد اليومي وعدد العمليات ========
-      const now = new Date();
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      // ======== 5. التحقق من الحد اليومي وعدد العمليات (باستخدام UTC) ========
+      const startOfDay = new Date();
       startOfDay.setUTCHours(0, 0, 0, 0);
 
       const todaySnap = await db.collection("withdrawals")
@@ -82,10 +88,21 @@ export default async function handler(req, res) {
 
       let todayAmount = 0;
       let todayOps = 0;
+      let hasPendingRequest = false; 
+
       todaySnap.forEach(doc => {
+        const data = doc.data();
         todayOps++;
-        todayAmount += doc.data().amount || 0;
+        todayAmount += data.amount || 0;
+        
+        if (data.status === "pending") {
+            hasPendingRequest = true;
+        }
       });
+
+      if (hasPendingRequest) {
+          throw new Error(`limit-reached: You already have a pending withdrawal request. Please wait until it's processed.`);
+      }
 
       if (todayOps >= MAX_OPS_PER_DAY) {
         throw new Error(`limit-reached: Maximum daily withdrawal operations reached (${MAX_OPS_PER_DAY}).`);
@@ -94,7 +111,7 @@ export default async function handler(req, res) {
         throw new Error(`limit-reached: Daily withdrawal limit exceeded (${MAX_DAILY_AMOUNT} EGP).`);
       }
 
-      // ======== 5. خصم النقاط وإنشاء وثيقة السحب ========
+      // ======== 6. خصم النقاط وإنشاء وثيقة السحب ========
       tr.update(userRef, { points: FieldValue.increment(-pointsNeeded) });
 
       const withdrawalRef = db.collection("withdrawals").doc();
@@ -106,23 +123,22 @@ export default async function handler(req, res) {
         wallet,
         status: "pending",
         date: FieldValue.serverTimestamp(),
+        // بيانات الأمان
+        ip: userIp,
+        userAgent: userAgent,
       };
 
-      // ======== 6. مكافأة الإحالة ========
-      const { referredByUID, referralBonusesCount = 0 } = userData;
-      if (referredByUID && referralBonusesCount < REFERRAL_BONUS_LIMIT) {
-        const referrerRef = db.collection("users").doc(referredByUID);
-        const bonusPoints = Math.ceil((amount * REFERRAL_BONUS_PERCENT) / POINT_VALUE);
-
-        tr.update(referrerRef, {
-          points: FieldValue.increment(bonusPoints),
-          referralBonusesCount: FieldValue.increment(1),
-        });
-
-        withdrawalData.referralPointsAwarded = bonusPoints;
-        withdrawalData.referralStatus = `Paid ${bonusPoints} pts to referrer`;
+      // ======== 7. مكافأة الإحالة (تسجيل البيانات فقط - تعديل رقم 2) ========
+      const { referredByUID } = userData;
+      if (referredByUID) {
+        // يتم تسجيل الداعي فقط.
+        // **منطق منح النقاط وزيادة referralBonusesCount تم نقله إلى دالة الإدارة عند إكمال الدفع**
+        withdrawalData.referredByUID = referredByUID;
+        withdrawalData.referralBonusPercent = REFERRAL_BONUS_PERCENT;
+        withdrawalData.referralPointsCalculated = Math.ceil((amount * REFERRAL_BONUS_PERCENT) / POINT_VALUE);
       }
-
+      // 🚨 تم حذف: tr.update(referrerRef, { points: FieldValue.increment(bonusPoints), referralBonusesCount: FieldValue.increment(1), });
+      
       tr.set(withdrawalRef, withdrawalData);
     });
 
