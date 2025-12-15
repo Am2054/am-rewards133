@@ -191,7 +191,7 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.7);
-            display: none; /* مخفية افتراضياً */
+            display: none; 
             justify-content: center;
             align-items: center;
             z-index: 1000;
@@ -387,7 +387,6 @@
             if (isNaN(dt.getTime())) return "-";
 
             const hour = dt.getHours().toString().padStart(2, '0');
-            // إصلاح BUG: تم حذف استدعاء getMinutes() الزائد
             const minute = dt.getMinutes().toString().padStart(2, '0');
 
             return `${dt.getDate()} ${months[dt.getMonth()]} ${dt.getFullYear()} - ${hour}:${minute}`;
@@ -404,7 +403,6 @@
         async function checkDailyLimits() {
             if (!userId) return { todayOps: 0, todayAmt: 0, remainingAmount: LIMITS.maxDaily };
             
-            // إصلاح مشكلة التوقيت: الاعتماد على UTC بالكامل
             const start = new Date();
             start.setUTCHours(0, 0, 0, 0); 
             
@@ -454,7 +452,6 @@
                     .orderBy("date", "desc")
                     .limit(HISTORY_LIMIT) 
                     .onSnapshot(snapshot => {
-                        // يتم إعادة حساب الحدود عند أي تحديث في سجل السحوبات
                         checkDailyLimits().then(() => updateCalc()); 
                         
                         withdrawalsTable.innerHTML = "";
@@ -474,7 +471,6 @@
                             }
                             
                             const tr = document.createElement("tr");
-                            // تطبيق تلوين الصف
                             tr.className = rowClass;
                             tr.innerHTML = `
                                 <td>${formatNum(w.amount).replace('.00', '')} جم</td>
@@ -489,7 +485,7 @@
                     });
 
             } else {
-                window.location.href = "index.html"; // توجيه لصفحة تسجيل الدخول إذا لم يكن هناك مستخدم
+                window.location.href = "index.html"; 
             }
         });
 
@@ -524,6 +520,7 @@
                 
                 needPts.style.color = ptsNeeded > currentPoints ? 'var(--error)' : 'var(--success)';
                 
+                // تم تعريب رسائل التحقق المحلية
                 if (ptsNeeded > currentPoints) {
                     isDisabled = true;
                     limitWarningEl.textContent = '❌ رصيد نقاطك غير كافٍ لإجراء هذا السحب.';
@@ -615,7 +612,6 @@
             customModal.classList.remove('show');
             confirmBtn.disabled = true;
             
-            // جلب البيانات مرة أخرى من الحقول بعد التأكيد
             const amt = parseFloat(amountInp.value);  
             const wallet = walletVod.value.trim();  
 
@@ -640,6 +636,7 @@
                 const data = await response.json();  
 
                 if (!response.ok) {  
+                    // في حالة الـ 400، نستخدم رسالة الخطأ القادمة من السيرفر (وهي الآن معربة)
                     throw new Error(data.message || 'فشل في الاتصال بخدمة السحب.');  
                 }  
                 
@@ -656,11 +653,12 @@
                 
                 let errorMsg = err.message || "حدث خطأ غير متوقع. حاول مجدداً.";  
                 
-                if (errorMsg.includes('limit-reached') || errorMsg.includes('resource-exhausted')) {
+                // بما أن رسائل الـ Backend الآن معربة وتحتوي على tag (مثل limit-reached:), 
+                // سنقوم بإزالة الـ tag وعرض النص المعرَّب مباشرة.
+                if (errorMsg.includes('limit-reached:') || errorMsg.includes('resource-exhausted:') || errorMsg.includes('user-not-found:')) {
+                    // يحذف الـ Tag ويعرض الجزء المعرَّب (مثل "نقاط غير كافية لإتمام هذا السحب.")
                     errorMsg = errorMsg.split(':').pop().trim(); 
-                } else if (errorMsg.includes('points')) {
-                    errorMsg = "رصيد نقاط غير كافٍ"; 
-                } else if (errorMsg.includes('unauthenticated')) {
+                } else if (errorMsg.includes('رمز مصادقة غير صالح')) { 
                     errorMsg = 'فشل المصادقة. يرجى تسجيل الخروج والدخول مجدداً.';
                 }
 
