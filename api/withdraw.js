@@ -22,17 +22,16 @@ const MAX_DAILY_AMOUNT = 200;
 const MAX_OPS_PER_DAY = 2;
 const NET_FEE = 0.10;
 const REFERRAL_BONUS_PERCENT = 0.10;
-// 🚨 لم يعد هذا الحد يستخدم هنا، سيتم تطبيقه في دالة معالجة الدفع (الإدارية)
-// const REFERRAL_BONUS_LIMIT = 10; 
+// const REFERRAL_BONUS_LIMIT = 10; // لم يعد يستخدم هنا
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ success: false, message: "Method not allowed." });
+    return res.status(405).json({ success: false, message: "الطريقة غير مسموحة." });
   }
 
   // ======== 1. التحقق من المصادقة ========
   const token = req.headers.authorization?.split("Bearer ")[1];
-  if (!token) return res.status(401).json({ success: false, message: "Authorization token missing." });
+  if (!token) return res.status(401).json({ success: false, message: "رمز المصادقة مفقود." });
 
   let userId;
   try {
@@ -40,25 +39,26 @@ export default async function handler(req, res) {
     userId = decodedToken.uid;
   } catch (err) {
     console.error("Firebase Auth Error:", err.message);
-    return res.status(401).json({ success: false, message: "Invalid or expired authorization token." });
+    return res.status(401).json({ success: false, message: "رمز مصادقة غير صالح أو منتهي الصلاحية." });
   }
 
   // ======== 2. البيانات الأمنية المضافة ========
   const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   const userAgent = req.headers['user-agent'] || 'Unknown Agent';
 
-  // ======== 3. التحقق من المدخلات وتحويل المبلغ (تعديل رقم 1) ========
+  // ======== 3. التحقق من المدخلات وتحويل المبلغ ========
   const { amount: rawAmount, wallet } = req.body;
-  const amount = Number(rawAmount); // 🚨 التحويل الإلزامي
+  const amount = Number(rawAmount); 
   
-  if (isNaN(amount) || !wallet) { // التحقق من NaN هنا
-    return res.status(400).json({ success: false, message: "Missing or Invalid amount/wallet data." });
+  if (isNaN(amount) || !wallet) { 
+    return res.status(400).json({ success: false, message: "البيانات المدخلة (المبلغ أو المحفظة) غير صالحة أو مفقودة." });
   }
   if (amount < MIN_WITHDRAWAL) {
-    return res.status(400).json({ success: false, message: `Minimum withdrawal amount is ${MIN_WITHDRAWAL} EGP.` });
+    // تم تعريب رسالة الحد الأدنى
+    return res.status(400).json({ success: false, message: `الحد الأدنى للسحب هو ${MIN_WITHDRAWAL} جنيه مصري.` });
   }
   if (!/^\d{11}$/.test(wallet)) {
-    return res.status(400).json({ success: false, message: "Invalid wallet number. Must be 11 digits." });
+    return res.status(400).json({ success: false, message: "رقم المحفظة غير صالح. يجب أن يتكون من 11 رقماً." });
   }
 
   try {
@@ -66,17 +66,19 @@ export default async function handler(req, res) {
       // ======== 4. جلب بيانات المستخدم ========
       const userRef = db.collection("users").doc(userId);
       const userSnap = await tr.get(userRef);
-      if (!userSnap.exists) throw new Error("User not found.");
+      // تم تعريب رسالة عدم وجود المستخدم
+      if (!userSnap.exists) throw new Error("user-not-found: لم يتم العثور على المستخدم.");
 
       const userData = userSnap.data();
       const currentPoints = userData.points || 0;
       const pointsNeeded = Math.ceil(amount / POINT_VALUE);
 
       if (currentPoints < pointsNeeded) {
-        throw new Error("resource-exhausted: Insufficient points for this withdrawal.");
+        // تم تعريب رسالة النقاط غير الكافية
+        throw new Error("resource-exhausted: نقاط غير كافية لإتمام هذا السحب.");
       }
 
-      // ======== 5. التحقق من الحد اليومي وعدد العمليات (باستخدام UTC) ========
+      // ======== 5. التحقق من الحد اليومي وعدد العمليات ========
       const startOfDay = new Date();
       startOfDay.setUTCHours(0, 0, 0, 0);
 
@@ -99,16 +101,18 @@ export default async function handler(req, res) {
             hasPendingRequest = true;
         }
       });
-
+      
+      // تم تعريب رسالة الطلب المعلق
       if (hasPendingRequest) {
-          throw new Error(`limit-reached: You already have a pending withdrawal request. Please wait until it's processed.`);
+          throw new Error(`limit-reached: لديك بالفعل طلب سحب قيد المراجعة. يرجى الانتظار حتى يتم معالجته.`);
       }
-
+      // تم تعريب رسالة الحد الأقصى للعمليات
       if (todayOps >= MAX_OPS_PER_DAY) {
-        throw new Error(`limit-reached: Maximum daily withdrawal operations reached (${MAX_OPS_PER_DAY}).`);
+        throw new Error(`limit-reached: وصلت للحد الأقصى لعدد عمليات السحب اليومية (${MAX_OPS_PER_DAY} عملية).`);
       }
+      // تم تعريب رسالة تجاوز الحد اليومي
       if ((todayAmount + amount) > MAX_DAILY_AMOUNT) {
-        throw new Error(`limit-reached: Daily withdrawal limit exceeded (${MAX_DAILY_AMOUNT} EGP).`);
+        throw new Error(`limit-reached: تجاوزت الحد الأقصى للمبلغ اليومي للسحب (${MAX_DAILY_AMOUNT} جنيه مصري).`);
       }
 
       // ======== 6. خصم النقاط وإنشاء وثيقة السحب ========
@@ -123,21 +127,17 @@ export default async function handler(req, res) {
         wallet,
         status: "pending",
         date: FieldValue.serverTimestamp(),
-        // بيانات الأمان
         ip: userIp,
         userAgent: userAgent,
       };
 
-      // ======== 7. مكافأة الإحالة (تسجيل البيانات فقط - تعديل رقم 2) ========
+      // ======== 7. مكافأة الإحالة (تسجيل البيانات فقط) ========
       const { referredByUID } = userData;
       if (referredByUID) {
-        // يتم تسجيل الداعي فقط.
-        // **منطق منح النقاط وزيادة referralBonusesCount تم نقله إلى دالة الإدارة عند إكمال الدفع**
         withdrawalData.referredByUID = referredByUID;
         withdrawalData.referralBonusPercent = REFERRAL_BONUS_PERCENT;
         withdrawalData.referralPointsCalculated = Math.ceil((amount * REFERRAL_BONUS_PERCENT) / POINT_VALUE);
       }
-      // 🚨 تم حذف: tr.update(referrerRef, { points: FieldValue.increment(bonusPoints), referralBonusesCount: FieldValue.increment(1), });
       
       tr.set(withdrawalRef, withdrawalData);
     });
@@ -146,6 +146,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error("Withdrawal Error:", err);
-    return res.status(400).json({ success: false, message: err.message || "Internal Server Error" });
+    // رسالة الخطأ العامة
+    return res.status(400).json({ success: false, message: err.message || "خطأ داخلي في الخادم." });
   }
 }
