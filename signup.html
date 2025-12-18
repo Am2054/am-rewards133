@@ -4,196 +4,451 @@
   <meta charset="utf-8" />
   <title>إنشاء حساب | Am Rewards</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --accent:#FFD369; --accent-2:#34d399;
-      --glass-bg:rgba(255,255,255,0.10);
-      --glass-border:rgba(255,255,255,0.17);
-      --muted:#b8c2cf; --error:#ff6b6b; --success:#4ade80;
-      --radius:22px;
+      --accent: #FFD369;
+      --accent-glow: rgba(255, 211, 105, 0.4);
+      --accent-2: #34d399;
+      --bg-dark: #0f172a;
+      --card-bg: rgba(15, 23, 42, 0.8);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --input-bg: rgba(30, 41, 59, 0.5);
+      --text-muted: #94a3b8;
+      --error: #fb7185;
+      --success: #34d399;
+      --radius: 24px;
     }
-    *{box-sizing:border-box}
-    body{
-      font-family:Cairo,sans-serif;
-      background:linear-gradient(120deg,#0f2027,#2c5364);
-      min-height:100vh;margin:0;
-      display:flex;align-items:center;justify-content:center;
-      color:#fff;padding:20px
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Cairo", sans-serif;
+      color: #f8fafc;
+      min-height: 100vh;
+      background: var(--bg-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-x: hidden;
     }
-    .card{
-      width:100%;max-width:520px;
-      background:var(--glass-bg);
-      border:1px solid var(--glass-border);
-      border-radius:var(--radius);
-      padding:32px
+
+    /* خلفية متحركة فنية */
+    .bg-blobs {
+      position: fixed; inset: 0; z-index: -1;
+      background: radial-gradient(circle at 10% 20%, rgba(52, 211, 153, 0.05) 0%, transparent 40%),
+                  radial-gradient(circle at 90% 80%, rgba(255, 211, 105, 0.05) 0%, transparent 40%);
     }
-    h2{color:var(--accent);margin-bottom:10px}
-    label{font-size:14px;color:var(--muted);margin-top:12px;display:block}
-    input{
-      width:100%;padding:13px;margin-top:6px;
-      border-radius:12px;border:1px solid rgba(255,255,255,0.2);
-      background:rgba(0,0,0,0.25);color:#fff
+
+    .center-wrap {
+      width: 100%;
+      max-width: 1100px;
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 0;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      border-radius: var(--radius);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
     }
-    .btn{
-      width:100%;margin-top:20px;padding:15px;
-      border-radius:14px;border:0;
-      font-weight:900;cursor:pointer;
-      background:linear-gradient(90deg,var(--accent),var(--accent-2));
-      color:#0b1320
+
+    /* قسم الترحيب */
+    .hero {
+      padding: 60px;
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.4), rgba(15, 23, 42, 0.8));
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border-left: 1px solid var(--glass-border);
     }
-    .spinner{
-      width:20px;height:20px;border:3px solid rgba(0,0,0,.1);
-      border-top:3px solid #000;border-radius:50%;
-      animation:spin .8s linear infinite;display:none;margin:auto
+
+    .hero h2 {
+      font-family: "Montserrat", sans-serif;
+      font-size: 42px;
+      color: var(--accent);
+      font-weight: 800;
+      margin-bottom: 20px;
+      text-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .status{margin-top:14px;text-align:center;font-weight:bold;min-height:22px}
-    .status.error{color:var(--error)}
-    .status.success{color:var(--success)}
+
+    .hero p {
+      color: var(--text-muted);
+      font-size: 18px;
+      line-height: 1.8;
+      margin-bottom: 30px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 15px;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+
+    .feature-icon {
+      width: 10px; height: 10px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--accent);
+    }
+
+    /* بطاقة التسجيل */
+    .signup-card {
+      padding: 50px 40px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .signup-card h3 {
+      font-size: 28px;
+      font-weight: 900;
+      text-align: center;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      display: block;
+      padding-right: 5px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px 16px;
+      background: var(--input-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      color: #fff;
+      font-family: "Cairo";
+      font-size: 15px;
+      transition: all 0.3s ease;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      background: rgba(30, 41, 59, 0.8);
+      box-shadow: 0 0 0 4px var(--accent-glow);
+    }
+
+    .password-toggle {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    /* Strength Meter المحسن */
+    .strength-meter {
+      height: 4px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 10px;
+      margin-top: -12px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .strength-bar { height: 100%; width: 0; transition: width 0.4s ease; }
+
+    .btn-primary {
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(90deg, var(--accent), #f59e0b);
+      color: #000;
+      font-weight: 900;
+      font-size: 17px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px -5px var(--accent-glow);
+    }
+
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      filter: grayscale(0.5);
+    }
+
+    .spinner {
+      width: 22px; height: 22px;
+      border: 3px solid rgba(0,0,0,0.1);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status {
+      margin-top: 15px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+      min-height: 24px;
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    .status.error { color: var(--error); background: rgba(251, 113, 133, 0.1); }
+    .status.success { color: var(--success); background: rgba(52, 211, 153, 0.1); }
+
+    .footer-link {
+      text-align: center;
+      margin-top: 25px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .footer-link a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 700;
+      margin-right: 5px;
+    }
+
+    /* Modal Style */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: #1e293b;
+      padding: 40px;
+      border-radius: 24px;
+      max-width: 600px;
+      width: 100%;
+      border: 1px solid var(--glass-border);
+      position: relative;
+    }
+
+    .modal-content h2 { color: var(--accent); margin-bottom: 20px; }
+    .modal-content li { color: #cbd5e1; margin-bottom: 12px; line-height: 1.6; }
+
+    @media (max-width: 900px) {
+      .center-wrap { grid-template-columns: 1fr; }
+      .hero { display: none; }
+      .signup-card { padding: 40px 25px; }
+    }
   </style>
 </head>
-
 <body>
 
-<div class="card">
-  <h2>إنشاء حساب جديد</h2>
+  <div class="bg-blobs"></div>
 
-  <form id="signupForm">
-    <label>الاسم</label>
-    <input id="name" required>
+  <div class="center-wrap">
+    <div class="hero">
+      <h2>Am Rewards</h2>
+      <p>ابدأ رحلة ربح النقاط الآن مع أكثر منصة أماناً وشفافية في الوطن العربي.</p>
+      
+      <div class="feature-item"><div class="feature-icon"></div>سحب الأرباح خلال أقل من 24 ساعة</div>
+      <div class="feature-item"><div class="feature-icon"></div>دعم فني متواجد على مدار الساعة</div>
+      <div class="feature-item"><div class="feature-icon"></div>نظام حماية متطور ضد الاحتيال</div>
+    </div>
 
-    <label>رقم الهاتف</label>
-    <input id="phone" maxlength="11" required placeholder="01xxxxxxxxx">
+    <div class="signup-card">
+      <h3>إنشاء حساب جديد</h3>
+      <div class="subtitle">يرجى ملء البيانات بدقة لضمان سرعة السحب</div>
 
-    <label>البريد الإلكتروني</label>
-    <input id="email" type="email" required>
+      <form id="signupForm">
+        <label>الاسم الكامل</label>
+        <div class="input-wrapper">
+          <input id="name" type="text" placeholder="مثال: محمد أحمد علي" required />
+        </div>
 
-    <label>كلمة المرور</label>
-    <input id="password" type="password" required>
+        <label>رقم الهاتف (فودافون كاش أو غيره)</label>
+        <div class="input-wrapper">
+          <input id="phone" type="text" placeholder="01xxxxxxxxx" maxlength="11" required />
+        </div>
 
-    <label>كود الإحالة (اختياري)</label>
-    <input id="refCode">
+        <label>البريد الإلكتروني</label>
+        <div class="input-wrapper">
+          <input id="email" type="email" placeholder="name@company.com" required />
+        </div>
 
-    <button class="btn" id="signupBtn" type="submit">
-      <span id="btnText">إنشاء الحساب</span>
-      <div id="loader" class="spinner"></div>
-    </button>
+        <label>كلمة المرور</label>
+        <div class="input-wrapper">
+          <input id="password" type="password" placeholder="6 أحرف أو أكثر" required oninput="checkStrength(this.value)" />
+          <button type="button" class="password-toggle" id="togglePass">👁️</button>
+        </div>
+        <div class="strength-meter"><div id="strengthBar" class="strength-bar"></div></div>
 
-    <div id="status" class="status"></div>
-  </form>
-</div>
+        <label>كود الإحالة (اختياري)</label>
+        <div class="input-wrapper">
+          <input id="refCode" type="text" placeholder="إذا كان لديك كود داعي" />
+        </div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        <div style="display:flex; align-items:center; gap:10px; margin: 10px 0 20px 0;">
+          <input id="agree" type="checkbox" style="width:18px; height:18px;" required />
+          <label for="agree" style="margin:0; font-size:12px;">أوافق على <a href="#" onclick="document.getElementById('policyModal').classList.add('open')" style="color:var(--accent); text-decoration:none;">شروط الاستخدام</a></label>
+        </div>
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-    authDomain: "am--rewards.firebaseapp.com",
-    projectId: "am--rewards"
-  };
+        <button id="signupBtn" class="btn-primary" type="submit">
+          <span id="btnText">ابدأ الآن مجاناً</span>
+          <div id="loader" class="spinner"></div>
+        </button>
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
+        <div id="status" class="status"></div>
 
-  const statusEl = document.getElementById("status");
+        <div class="footer-link">
+          لديك حساب بالفعل؟ <a href="login.html">تسجيل الدخول</a>
+        </div>
+      </form>
+    </div>
+  </div>
 
-  const getDeviceId = () => {
-    let id = localStorage.getItem("deviceId");
-    if (!id) {
-      id = crypto.randomUUID();
-      localStorage.setItem("deviceId", id);
-    }
-    return id;
-  };
+  <div id="policyModal" class="modal-overlay">
+    <div class="modal-content">
+      <h2>سياسة الاستخدام</h2>
+      <ul style="padding-right: 20px;">
+        <li>يُمنع منعاً باتاً استخدام برامج الـ VPN أو أدوات التلاعب.</li>
+        <li>يُسمح بحساب واحد فقط لكل جهاز، المخالفة تعرضك للحظر.</li>
+        <li>سعر النقطة حالياً: 0.07 جنيه مصري (قابلة للتغيير).</li>
+        <li>يتم مراجعة عمليات السحب يدوياً لضمان النزاهة.</li>
+      </ul>
+      <button class="btn-primary" style="margin-top:30px" onclick="document.getElementById('policyModal').classList.remove('open')">فهمت ذلك</button>
+    </div>
+  </div>
 
-  function showErr(msg) {
-    statusEl.className = "status error";
-    statusEl.textContent = "❌ " + msg;
-  }
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-  function showSuccess(msg) {
-    statusEl.className = "status success";
-    statusEl.textContent = msg;
-  }
+    const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
 
-  document.getElementById("signupForm").onsubmit = async (e) => {
-    e.preventDefault();
+    const statusEl = document.getElementById('status');
+    const signupBtn = document.getElementById('signupBtn');
+    const loader = document.getElementById('loader');
+    const btnText = document.getElementById('btnText');
 
-    const btn = document.getElementById("signupBtn");
-    const btnText = document.getElementById("btnText");
-    const loader = document.getElementById("loader");
+    const getDeviceId = () => {
+      let id = localStorage.getItem('appDeviceId');
+      if (!id) { id = crypto.randomUUID(); localStorage.setItem('appDeviceId', id); }
+      return id;
+    };
 
-    const email = emailEl.value.trim();
-    const password = passwordEl.value;
-    const phone = phoneEl.value.trim();
-    const name = nameEl.value.trim();
-    const referralCode = refCodeEl.value.trim().toUpperCase();
-    const deviceId = getDeviceId();
+    document.getElementById('togglePass').onclick = () => {
+      const p = document.getElementById('password');
+      p.type = p.type === 'password' ? 'text' : 'password';
+    };
 
-    if (!/^01\d{9}$/.test(phone)) {
-      showErr("رقم الهاتف غير صحيح");
-      return;
-    }
+    window.checkStrength = (p) => {
+      const bar = document.getElementById('strengthBar');
+      let s = 0;
+      if(p.length > 5) s += 30; if(/[A-Z]/.test(p)) s += 30; if(/[0-9]/.test(p)) s += 40;
+      bar.style.width = s + '%';
+      bar.style.background = s < 40 ? '#fb7185' : s < 70 ? '#FFD369' : '#34d399';
+    };
 
-    btn.disabled = true;
-    loader.style.display = "block";
-    btnText.textContent = "جاري التحقق...";
+    document.getElementById('signupForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const phone = document.getElementById('phone').value.trim();
+      const name = document.getElementById('name').value.trim();
+      const refCode = document.getElementById('refCode').value.trim().toUpperCase();
+      const deviceId = getDeviceId();
 
-    try {
-      // 1️⃣ Secure Signup
-      const sec = await fetch("/api/secureSignup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, deviceId })
-      });
+      if (password.length < 6) { showErr("كلمة المرور يجب أن تكون 6 أحرف على الأقل"); return; }
+      if (!/^01[0-9]{9}$/.test(phone)) { showErr("رقم الهاتف غير صحيح"); return; }
 
-      if (!sec.ok) {
-        const r = await sec.json();
-        throw new Error(r.reason || "فشل التحقق");
+      signupBtn.disabled = true; loader.style.display = 'block'; btnText.textContent = "جاري التحقق...";
+      statusEl.textContent = ""; statusEl.className = "status";
+
+      try {
+        const secRes = await fetch('/api/secureSignup', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, deviceId })
+        });
+        if (!secRes.ok) {
+          const r = await secRes.json();
+          throw new Error(r.errorCode || 'SECURITY_CHECK_FAILED');
+        }
+
+        btnText.textContent = "إنشاء الحساب...";
+        const userCred = await createUserWithEmailAndPassword(auth, email, password);
+
+        btnText.textContent = "حفظ البيانات...";
+        const createRes = await fetch('/api/createUser', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            uid: userCred.user.uid, email, phone, name, deviceId, referralCode: refCode
+          })
+        });
+
+        if (!createRes.ok) {
+          await deleteUser(userCred.user);
+          throw new Error("CREATE_ERR");
+        }
+
+        statusEl.className = "status success";
+        statusEl.textContent = "✅ تم بنجاح! جاري تحويلك للمنصة...";
+        setTimeout(() => window.location.href = "dashboard.html", 1500);
+
+      } catch (err) {
+        signupBtn.disabled = false; loader.style.display = 'none'; btnText.textContent = "ابدأ الآن مجاناً";
+        showErr(translateError(err.code || err.message));
       }
+    };
 
-      // 2️⃣ Firebase Auth
-      btnText.textContent = "إنشاء الحساب...";
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
+    function showErr(m) { statusEl.className = "status error"; statusEl.textContent = "❌ " + m; }
 
-      // 3️⃣ Firestore User
-      btnText.textContent = "تجهيز الحساب...";
-      const create = await fetch("/api/createUser", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          uid: cred.user.uid,
-          email, phone, name, deviceId,
-          referralCode
-        })
-      });
-
-      if (!create.ok) {
-        await deleteUser(cred.user);
-        throw new Error("فشل إنشاء الحساب");
-      }
-
-      showSuccess("✅ تم إنشاء الحساب بنجاح");
-      setTimeout(() => location.href = "dashboard.html", 1500);
-
-    } catch (err) {
-      btn.disabled = false;
-      loader.style.display = "none";
-      btnText.textContent = "إنشاء الحساب";
-      showErr(err.message);
+    function translateError(code) {
+      const errors = {
+        'auth/email-already-in-use': 'البريد مستخدم بالفعل',
+        'auth/invalid-email': 'البريد غير صحيح',
+        'DEVICE_ALREADY_EXISTS': 'هذا الجهاز مسجل به حساب بالفعل',
+        'SECURITY_CHECK_FAILED': 'فشل فحص الأمان لمخالفة القوانين'
+      };
+      return errors[code] || "حدث خطأ غير متوقع، حاول لاحقاً";
     }
-  };
-
-  const emailEl = document.getElementById("email");
-  const passwordEl = document.getElementById("password");
-  const phoneEl = document.getElementById("phone");
-  const nameEl = document.getElementById("name");
-  const refCodeEl = document.getElementById("refCode");
-</script>
-
+  </script>
 </body>
 </html>
