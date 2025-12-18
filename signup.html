@@ -197,28 +197,34 @@
       const password = document.getElementById('password').value;
       const confirmPassword = document.getElementById('confirmPassword').value;
       const phone = document.getElementById('phone').value.trim();
-      const referralCode = document.getElementById('refCode').value.trim().toUpperCase(); // تطبيع الكود
+      const referralCode = document.getElementById('refCode').value.trim().toUpperCase();
       const deviceId = getDeviceId();
 
-      // التحقق من رقم الهاتف
+      // تفعيل حالة التحميل وتعطيل الزرار
+      signupBtn.disabled = true;
+      statusEl.textContent = "";
+
+      // 1. التحقق من رقم الهاتف (Validation)
       if (!/^01\d{9}$/.test(phone)) {
           statusEl.textContent = "❌ رقم الهاتف غير صحيح (01XXXXXXXXX)";
           statusEl.className = "status error";
+          signupBtn.disabled = false; // إعادة التفعيل عند الخطأ
           return;
       }
 
+      // 2. التحقق من تطابق كلمة المرور (Validation)
       if (password !== confirmPassword) {
           statusEl.textContent = "❌ كلمات المرور غير متطابقة";
           statusEl.className = "status error";
+          signupBtn.disabled = false; // إعادة التفعيل عند الخطأ
           return;
       }
 
-      signupBtn.disabled = true;
       statusEl.textContent = "⏳ جاري الفحص الأمني...";
       statusEl.className = "status";
 
       try {
-        // 1. الفحص الأمني
+        // 1. الفحص الأمني عبر الـ API
         const secRes = await fetch('/api/secureSignup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -227,12 +233,12 @@
         const secData = await secRes.json();
         if (!secRes.ok) throw new Error(secData.reason || 'SECURITY_ERR');
 
-        // 2. Auth
+        // 2. إنشاء الحساب في Firebase Auth
         statusEl.textContent = "⏳ جاري إنشاء الحساب...";
         const userCred = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCred.user;
 
-        // 3. Create User & Referral
+        // 3. تخزين البيانات الإضافية في Firestore عبر الـ API
         statusEl.textContent = "⏳ تهيئة المحفظة ونظام الإحالة...";
         const createRes = await fetch('/api/createUser', {
             method: 'POST',
@@ -247,8 +253,9 @@
             })
         });
         const createData = await createRes.json();
+        
         if (!createRes.ok) {
-            await deleteUser(user);
+            await deleteUser(user); // تراجع (Rollback) لو فشل الـ API
             throw new Error(createData.reason || 'DB_ERR');
         }
 
@@ -257,7 +264,7 @@
         setTimeout(() => window.location.href = "dashboard.html", 1500);
 
       } catch (err) {
-        // رسائل خطأ ذكية وآمنة
+        // رسائل خطأ ذكية للمستخدم
         const msg = err.message;
         const safeMsg = msg.includes('DEVICE') || msg.includes('SECURITY_ERR')
           ? "لا يمكن إنشاء أكثر من حساب من نفس الجهاز"
@@ -267,7 +274,7 @@
 
         statusEl.textContent = "❌ " + safeMsg;
         statusEl.className = "status error";
-        signupBtn.disabled = false;
+        signupBtn.disabled = false; // إعادة تفعيل الزرار للمحاولة مرة أخرى
       }
     }
   </script>
