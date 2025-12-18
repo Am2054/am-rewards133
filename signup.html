@@ -73,9 +73,9 @@
     /* Modal Styles */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); z-index: 1000; display: none; justify-content: center; align-items: center; }
     .modal-overlay.open { display: flex; }
-    .modal-content { background: var(--card-bg); border: 1.5px solid var(--glass-border); border-radius: var(--radius); padding: 30px; width: 90%; max-width: 650px; }
-    .modal-content h1 { color: var(--accent-2); font-size: 24px; }
-    .modal-close { float: left; background: var(--error); color: white; border: none; padding: 8px 18px; border-radius: 10px; cursor: pointer; }
+    .modal-content { background: var(--card-bg); border: 1.5px solid var(--glass-border); border-radius: var(--radius); padding: 30px; width: 90%; max-width: 650px; max-height: 85vh; overflow-y: auto; }
+    .modal-content h1 { color: var(--accent-2); font-size: 24px; margin-bottom: 15px; }
+    .modal-close { float: left; background: var(--error); color: white; border: none; padding: 8px 18px; border-radius: 10px; cursor: pointer; margin-top: 15px; }
 
     @media(max-width:1100px){ .center-wrap{grid-template-columns:1fr; max-width:720px;} }
   </style>
@@ -144,10 +144,14 @@
   <div id="policyModal" class="modal-overlay">
     <div class="modal-content">
       <h1>سياسة الاستخدام</h1>
-      <ul style="color:var(--muted); line-height:1.8;">
-        <li>يُمنع استخدام أي برامج تلاعب للحصول على نقاط.</li>
-        <li>يُسمح بحساب واحد فقط لكل جهاز وشخص.</li>
-        <li>الحد الأقصى للسحب اليومي 200 جنيه مصري.</li>
+      <ul style="color:var(--muted); line-height:1.8; padding-right: 20px;">
+        <li>يُحظر تمامًا استخدام أي وسائل أو أدوات برمجية غير قانونية مثل برامج التكرار أو التلقائية للحصول على النقاط.</li>
+        <li>يجب على المستخدمين إدخال بيانات السحب بدقة، وأي بيانات مزيفة تؤدي إلى إيقاف الحساب نهائيًا.</li>
+        <li>يسمح بإنشاء حساب واحد فقط لكل شخص. الحسابات المكررة يتم حظرها تلقائيًا دون إنذار.</li>
+        <li>الحد الأقصى لمجموع عمليتي السحب اليومية هو <strong>200 جنيه مصري</strong>، ويتم خصم <strong>10%</strong> رسوم إدارية عند السحب.</li>
+        <li>يُمنع استغلال الثغرات أو محاولة التلاعب بالنظام، ويتم التعامل مع تلك الحالات بصرامة.</li>
+        <li>يحق للإدارة تعديل الشروط أو السياسات في أي وقت دون الحاجة لإشعار مسبق.</li>
+        <li>باستخدامك لموقع Am Rewards، فإنك توافق على جميع الشروط والسياسات المذكورة أعلاه.</li>
       </ul>
       <button class="modal-close" onclick="document.getElementById('policyModal').classList.remove('open')">إغلاق</button>
     </div>
@@ -169,7 +173,6 @@
     const app = initializeApp(firebaseConfig);  
     const auth = getAuth(app);  
 
-    // وظائف الواجهة
     window.togglePasswordVisibility = function(id) {
         const input = document.getElementById(id);
         const icon = input.nextElementSibling;
@@ -186,7 +189,6 @@
         return id;
     }
 
-    // المنطق البرمجي (الربط مع الـ APIs)
     window.signup = async function(){  
       const statusEl = document.getElementById('status');
       const signupBtn = document.getElementById('signupBtn');
@@ -194,7 +196,16 @@
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       const confirmPassword = document.getElementById('confirmPassword').value;
+      const phone = document.getElementById('phone').value.trim();
+      const referralCode = document.getElementById('refCode').value.trim().toUpperCase(); // تطبيع الكود
       const deviceId = getDeviceId();
+
+      // التحقق من رقم الهاتف
+      if (!/^01\d{9}$/.test(phone)) {
+          statusEl.textContent = "❌ رقم الهاتف غير صحيح (01XXXXXXXXX)";
+          statusEl.className = "status error";
+          return;
+      }
 
       if (password !== confirmPassword) {
           statusEl.textContent = "❌ كلمات المرور غير متطابقة";
@@ -214,7 +225,7 @@
             body: JSON.stringify({ email, deviceId })
         });
         const secData = await secRes.json();
-        if (!secRes.ok) throw new Error(secData.reason);
+        if (!secRes.ok) throw new Error(secData.reason || 'SECURITY_ERR');
 
         // 2. Auth
         statusEl.textContent = "⏳ جاري إنشاء الحساب...";
@@ -230,15 +241,15 @@
                 uid: user.uid,
                 email,
                 name: document.getElementById('name').value.trim(),
-                phone: document.getElementById('phone').value.trim(),
+                phone: phone,
                 deviceId,
-                referralCode: document.getElementById('refCode').value.trim()
+                referralCode: referralCode
             })
         });
         const createData = await createRes.json();
         if (!createRes.ok) {
             await deleteUser(user);
-            throw new Error(createData.reason);
+            throw new Error(createData.reason || 'DB_ERR');
         }
 
         statusEl.textContent = "✅ تم التسجيل بنجاح!";
@@ -246,7 +257,15 @@
         setTimeout(() => window.location.href = "dashboard.html", 1500);
 
       } catch (err) {
-        statusEl.textContent = "❌ " + err.message;
+        // رسائل خطأ ذكية وآمنة
+        const msg = err.message;
+        const safeMsg = msg.includes('DEVICE') || msg.includes('SECURITY_ERR')
+          ? "لا يمكن إنشاء أكثر من حساب من نفس الجهاز"
+          : msg.includes('email-already-in-use')
+          ? "هذا البريد مستخدم بالفعل"
+          : "حدث خطأ، حاول مرة أخرى أو تواصل مع الدعم";
+
+        statusEl.textContent = "❌ " + safeMsg;
         statusEl.className = "status error";
         signupBtn.disabled = false;
       }
