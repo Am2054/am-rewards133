@@ -158,7 +158,7 @@
       }
     }
 
-    async function login(event) {
+        async function login(event) {
       if (event) event.preventDefault(); 
       
       const email = loginEmail.value.trim();
@@ -166,7 +166,6 @@
 
       if (!email || !password) return showMessage("يرجى إدخال البريد وكلمة المرور", "error");
 
-      // التحسين: حالة التحميل وتعطيل الزر
       loginBtn.textContent = "⏳ جاري التحقق...";
       loginBtn.disabled = true;
 
@@ -176,17 +175,19 @@
         const user = userCredential.user;
         const uid = user.uid;
 
-        // التحسين: فحص أمان (هل للمستخدم مستند في الداتابيز؟)
         const userDoc = await getDoc(doc(db, "users", uid));
         const adminRef = doc(db, "admins", email);
         const adminSnap = await getDoc(adminRef);
 
-        // لو مش أدمن ولا مستخدم مسجل في الداتابيز، نمنعه
         if (!userDoc.exists() && !adminSnap.exists()) {
             throw new Error("USER_NOT_INITIALIZED");
         }
         
         await updateLastLogin(uid, email); 
+
+        // التعديل هنا: إعادة الزر لحالته الأصلية فور النجاح وقبل التوجيه
+        loginBtn.textContent = "تسجيل الدخول";
+        loginBtn.disabled = false;
 
         if (adminSnap.exists() && adminSnap.data().active === true) {
           sessionStorage.setItem("isAdmin", "true");
@@ -199,13 +200,15 @@
         }
 
       } catch (error) {
-        // التحسين: إعادة تفعيل الزر في حالة الفشل
+        // العودة لحالة الزر الأصلية في حالة الخطأ أيضاً
         loginBtn.textContent = "تسجيل الدخول";
         loginBtn.disabled = false;
         
         showMessage(translateError(error.code || error.message), "error");
         sessionStorage.removeItem("isAdmin"); 
       }
+    }
+
     }
     
     function togglePassword() {
