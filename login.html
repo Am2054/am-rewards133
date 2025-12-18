@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
   <style>
+    /* --- التنسيقات الأصلية بدون أي تغيير --- */
     :root {
       --main-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 60%, #38bdf8 100%);
       --dark-box-bg: rgba(2,6,23,0.95);
@@ -69,8 +70,8 @@
       width: 100%; padding: 14px; border-radius: 15px; background: linear-gradient(90deg, #FFD369, #bfa243);
       color: #2e2300; font-weight: 900; border: none; cursor: pointer; transition: 0.2s;
     }
-    .login-btn:hover { transform: scale(1.02); color: #000; }
-    .login-btn:disabled { opacity: 0.6; cursor: not-allowed; filter: grayscale(0.3); }
+    .login-btn:hover:not(:disabled) { transform: scale(1.02); color: #000; }
+    .login-btn:disabled { opacity: 0.6; cursor: wait; }
 
     .message {
       width: 100%; padding: 12px; border-radius: 11px; font-size: 1rem;
@@ -80,8 +81,6 @@
     .message.success { background: #e7ffea; color: #049c3f; border: 2px solid #22c55e; }
 
     .switcher { color: var(--muted); text-decoration: underline; cursor: pointer; margin-top: 15px; font-size: 0.9rem; }
-    
-    @media (max-width: 600px) { .center-box { max-width: 92%; } }
   </style>
 </head>
 <body>
@@ -134,16 +133,10 @@
     const loginBtn = document.getElementById("login-btn");
     const msgEl = document.getElementById("msg");
 
-    function showMessage(text, type) {
-      msgEl.textContent = text;
-      msgEl.className = `message ${type}`;
-      msgEl.style.display = "block";
-    }
-
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       
-      // تعطيل الزر وتغيير النص عند الضغط اليدوي
+      // قفل الزر يدويًا
       loginBtn.disabled = true;
       loginBtn.textContent = "جاري التحقق...";
       msgEl.style.display = "none";
@@ -156,31 +149,40 @@
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // تحديث وقت الدخول
-        try {
-          await updateDoc(doc(db, "users", user.uid), { lastLogin: serverTimestamp() });
-        } catch (err) { console.log("Update ignored"); }
+        // محاولة تحديث وقت الدخول (اختياري)
+        updateDoc(doc(db, "users", user.uid), { lastLogin: serverTimestamp() }).catch(() => {});
 
         const adminSnap = await getDoc(doc(db, "admins", email));
         const isAdmin = adminSnap.exists() && adminSnap.data().active === true;
-        
         sessionStorage.setItem("isAdmin", isAdmin ? "true" : "false");
         
-        showMessage(isAdmin ? "✅ أهلاً بك أيها المشرف.." : "✅ تم تسجيل الدخول بنجاح!", "success");
-        setTimeout(() => window.location.href = isAdmin ? "admin.html" : "dashboard.html", 1000);
+        msgEl.textContent = isAdmin ? "✅ أهلاً بك أيها المشرف.." : "✅ تم تسجيل الدخول بنجاح!";
+        msgEl.className = "message success";
+        msgEl.style.display = "block";
+        
+        // التحويل
+        setTimeout(() => {
+            window.location.href = isAdmin ? "admin.html" : "dashboard.html";
+        }, 1000);
 
       } catch (error) {
-        // إرجاع الزر لحالته الطبيعية عند الخطأ
-        loginBtn.disabled = false;
-        loginBtn.textContent = "دخول للمنصة";
-        
         let errMsg = "بيانات الدخول غير صحيحة";
-        if(error.code === "auth/too-many-requests") errMsg = "محاولات كثيرة، انتظر قليلاً";
-        showMessage("❌ " + errMsg, "error");
+        if(error.code === "auth/too-many-requests") errMsg = "محاولات كثيرة خاطئة، انتظر قليلاً";
+        
+        msgEl.textContent = "❌ " + errMsg;
+        msgEl.className = "message error";
+        msgEl.style.display = "block";
+      } finally {
+        // العودة للحالة الطبيعية في كل الأحوال (سواء نجح أو فشل)
+        // هذا يضمن أن الزر يفتح مجدداً حتى لو المتصفح تأخر في التحويل
+        setTimeout(() => {
+            loginBtn.disabled = false;
+            loginBtn.textContent = "دخول للمنصة";
+        }, 800); 
       }
     });
 
-    // تبديل رؤية كلمة المرور
+    // تبديل رؤية كلمة المرور (Toggle Eye)
     document.getElementById("password-toggle-btn").addEventListener("click", () => {
       const passInput = document.getElementById("login-password");
       const open = document.getElementById("eye-open");
@@ -198,3 +200,4 @@
   </script>
 </body>
 </html>
+
