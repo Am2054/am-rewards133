@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
   <style>
+    /* --- المتغيرات والتنسيقات العامة --- */
     :root {
       --accent: #FFD369;
       --accent-2: #34d399;
@@ -15,6 +16,7 @@
       --muted: #b8c2cf;
       --error: #ff6b6b;
       --success: #4ade80;
+      --shadow: 0 8px 32px 0 rgba(2,6,23,0.35);
       --radius: 22px;
     }
     * { box-sizing: border-box; }
@@ -24,56 +26,101 @@
       background-size: cover; background-attachment: fixed; background-blend-mode: overlay;
       display: flex; align-items: center; justify-content: center; padding: 20px;
     }
-    .center-wrap { width: 100%; max-width: 1100px; display: grid; grid-template-columns: 1fr 1.2fr; gap: 30px; z-index: 2; background: rgba(0,0,0,0.2); border-radius: var(--radius); backdrop-filter: blur(10px); overflow: hidden; border: 1px solid var(--glass-border); }
-    .hero { padding: 40px; display: flex; flex-direction: column; justify-content: center; background: var(--card-bg); }
-    .hero h2 { font-size: 32px; color: var(--accent); margin-bottom: 15px; }
-    .signup-card { padding: 40px; background: var(--glass-bg); display: flex; flex-direction: column; }
-    label { font-size: 14px; color: var(--muted); margin-top: 10px; }
-    input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(30, 41, 59, 0.5); color: #fff; outline: none; transition: 0.3s; margin-top: 5px; }
-    input:focus { border-color: var(--accent-2); background: rgba(30, 41, 59, 0.8); }
-    .btn-primary { margin-top: 25px; width: 100%; padding: 15px; border-radius: 12px; border: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: #000; font-weight: 900; cursor: pointer; transition: 0.3s; }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
-    .status { margin-top: 15px; text-align: center; font-weight: bold; min-height: 24px; font-size: 15px; }
+
+    .center-wrap { width: 100%; max-width: 1150px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 42px; z-index: 2; background: rgba(255,255,255,0.02); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; border: 1px solid var(--glass-border); }
+
+    .hero { background: var(--card-bg); padding: 54px 38px; display: flex; flex-direction: column; justify-content: center; position: relative; }
+    .hero h2 { font-family: "Montserrat", sans-serif; font-size: 38px; color: var(--accent); margin: 0 0 16px 0; font-weight: 800; }
+    .hero p { color: var(--muted); font-size: 16.5px; line-height: 1.7; margin-bottom: 22px; }
+    
+    .bullets { display: flex; flex-direction: column; gap: 13px; margin-bottom: 24px; }
+    .bullet { display: flex; align-items: center; gap: 12px; font-size: 17px; color: #e5f7ff; }
+    .dot { width: 13px; height: 13px; border-radius: 50%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border: 2.5px solid #fff2; }
+
+    .signup-card { background: var(--glass-bg); padding: 38px 32px; display: flex; flex-direction: column; backdrop-filter: blur(16px); }
+    .signup-card h3 { margin: 0 0 10px 0; text-align: center; color: #e6f7ff; font-size: 24px; font-weight: 700; }
+    
+    label { font-size: 14px; color: var(--muted); margin-top: 12px; display: block; text-align: right; }
+    input { width: 100%; padding: 13px; border-radius: 12px; border: 1.5px solid rgba(255,255,255,0.15); background: rgba(32,40,74,0.32); color: #fff; outline: none; margin-top: 5px; transition: 0.2s; }
+    input:focus { border-color: var(--accent-2); background: rgba(32,40,74,0.48); }
+
+    .btn-primary { margin-top: 20px; width: 100%; padding: 15px; border-radius: 13px; border: 0; color: #0b1320; background: linear-gradient(90deg, var(--accent), var(--accent-2)); font-weight: 900; font-size: 17px; cursor: pointer; transition: 0.2s; }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .status { margin-top: 15px; text-align: center; font-size: 15px; font-weight: 600; min-height: 24px; }
     .status.error { color: var(--error); }
     .status.success { color: var(--success); }
-    @media (max-width: 900px) { .center-wrap { grid-template-columns: 1fr; } .hero { display: none; } }
+
+    /* --- نافذة سياسة الاستخدام --- */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); z-index: 1000; display: none; justify-content: center; align-items: center; }
+    .modal-overlay.open { display: flex; }
+    .modal-content { background: var(--card-bg); border: 1.5px solid var(--glass-border); border-radius: var(--radius); padding: 30px; width: 90%; max-width: 600px; text-align: right; }
+    .modal-content h1 { color: var(--accent); font-size: 22px; margin-bottom: 15px; }
+    .modal-content ul { color: var(--muted); line-height: 1.8; padding-right: 20px; }
+    .modal-close { background: var(--error); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; margin-top: 20px; font-weight: bold; width: 100%; }
+
+    @media (max-width: 1100px) { .center-wrap { grid-template-columns: 1fr; } .hero { display: none; } }
   </style>
 </head>
 <body>
 
   <div class="center-wrap">
     <div class="hero">
-      <h2>Am Rewards</h2>
-      <p>انضم إلينا الآن وابدأ بجمع النقاط وتحويلها لأرباح حقيقية. نظامنا يضمن لك الشفافية والأمان التام.</p>
+      <h2>Am Rewards<span style="color:#fff;font-size:13px;"> — اربح بثقة</span></h2>
+      <p>منصة مكافآت حديثة تجمع بين الشفافية، الأمان وسهولة الاستخدام. أكسب نقاطك بوضوح، اسحبها بسرعة، وشارك أصدقاءك بنظام إحالات متطور يمنع التلاعب.</p>
+      <div class="bullets">
+        <div class="bullet"><span class="dot"></span><div>سحب سريع وآمن بضغطة واحدة</div></div>
+        <div class="bullet"><span class="dot"></span><div>مهام يومية متنوعة — اربح وقتما تشاء</div></div>
+        <div class="bullet"><span class="dot"></span><div>نظام إحالات شفاف (للفرق فقط)</div></div>
+      </div>
     </div>
 
     <form class="signup-card" id="signupForm">
-      <h3 style="text-align: center; margin-bottom: 5px;">إنشاء حساب جديد</h3>
-      
+      <h3>إنشاء حساب جديد</h3>
+      <p style="color:var(--muted); text-align:center; font-size:14px; margin-top:0;">سجّل وانضم للمنصة الأسرع نمواً في مصر</p>
+
       <div class="form-row">
         <label>الاسم الكامل</label>
-        <input id="name" type="text" placeholder="اسمك الثلاثي" required />
+        <input id="name" type="text" placeholder="ادخل اسمك الكامل" required />
 
         <label>رقم الهاتف</label>
         <input id="phone" type="text" placeholder="01xxxxxxxxx" maxlength="11" required />
 
         <label>البريد الإلكتروني</label>
-        <input id="email" type="email" placeholder="mail@example.com" required />
+        <input id="email" type="email" placeholder="example@mail.com" required />
 
         <label>كلمة المرور</label>
-        <input id="password" type="password" placeholder="6 أحرف على الأقل" required />
+        <input id="password" type="password" placeholder="الحد الأدنى 6 أحرف" required />
 
         <label>كود الإحالة (اختياري)</label>
-        <input id="refCode" type="text" placeholder="أدخل كود الداعي" />
+        <input id="refCode" type="text" placeholder="أدخل كود الداعي هنا" />
       </div>
 
-      <button id="signupBtn" class="btn-primary" type="submit">إنشاء الحساب الآن</button>
+      <div style="display:flex; align-items:center; gap:10px; margin-top:15px;">
+        <input id="agree" type="checkbox" style="width:18px; height:18px; margin:0;" required />
+        <label for="agree" style="margin:0; font-size:13px;">أوافق على <a href="#" onclick="document.getElementById('policyModal').classList.add('open')" style="color:var(--accent); text-decoration:none;">سياسة الاستخدام</a></label>
+      </div>
+
+      <button id="signupBtn" class="btn-primary" type="submit">إنشاء الحساب — ابدأ الآن</button>
       <div id="status" class="status"></div>
 
-      <div style="margin-top: 20px; text-align: center; font-size: 14px;">
-        <a href="login.html" style="color: var(--accent); text-decoration: none;">لديك حساب بالفعل؟ سجل دخولك</a>
+      <div style="margin-top:15px; text-align:center;">
+        <a href="login.html" style="color:var(--accent-2); text-decoration:none; font-weight:700;">هل لديك حساب؟ تسجيل الدخول</a>
       </div>
     </form>
+  </div>
+
+  <div id="policyModal" class="modal-overlay">
+    <div class="modal-content">
+      <h1>سياسة الاستخدام</h1>
+      <ul>
+        <li>يُمنع استخدام أي برامج تلاعب أو VPN للحصول على نقاط.</li>
+        <li>يُسمح بحساب واحد فقط لكل جهاز وشخص واحد.</li>
+        <li>يتم مراجعة طلبات السحب يدوياً لضمان النزاهة.</li>
+        <li>الحد الأقصى للسحب اليومي يخضع لسياسة المنصة المعلنة.</li>
+      </ul>
+      <button class="modal-close" onclick="document.getElementById('policyModal').classList.remove('open')">فهمت، إغلاق</button>
+    </div>
   </div>
 
   <script type="module">
@@ -91,9 +138,8 @@
 
     const errorMap = {
       "DEVICE_USED": "عذراً، هذا الجهاز مسجل به حساب آخر بالفعل.",
-      "IP_USED": "تم تجاوز حد الحسابات المسموح بها لهذه الشبكة.",
       "EMAIL_EXISTS": "هذا البريد الإلكتروني مسجل بالفعل.",
-      "INVALID_PHONE": "يرجى إدخال رقم هاتف مصري صحيح (01xxxxxxxxx).",
+      "INVALID_PHONE": "يرجى إدخال رقم هاتف مصري صحيح.",
       "auth/email-already-in-use": "البريد الإلكتروني مستخدم بالفعل."
     };
 
@@ -108,26 +154,23 @@
       const status = document.getElementById('status');
       const btn = document.getElementById('signupBtn');
       
-      // منع النقرات المتعددة (Double Submit Protection)
       if (btn.disabled) return;
 
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       const phone = document.getElementById('phone').value.trim();
       const name = document.getElementById('name').value.trim();
-      // تحسين رقم 2: توحيد كود الإحالة (Uppercase)
       const refCode = document.getElementById('refCode').value.trim().toUpperCase();
       const deviceId = getDeviceId();
 
-      // تحسين رقم 1: فحص طول كلمة المرور (UX)
       if (password.length < 6) {
-        status.textContent = "❌ كلمة المرور يجب ألا تقل عن 6 أحرف";
+        status.textContent = "❌ كلمة المرور قصيرة جداً";
         status.className = "status error";
         return;
       }
 
       if (!/^01[0-9]{9}$/.test(phone)) {
-        status.textContent = "❌ " + errorMap.INVALID_PHONE;
+        status.textContent = "❌ رقم الهاتف غير صحيح";
         status.className = "status error";
         return;
       }
@@ -144,8 +187,6 @@
           body: JSON.stringify({ email, deviceId })
         });
         const secRes = await secCheck.json();
-        
-        // تحسين الملاحظة الأساسية: دعم errorCode أو reason
         if (!secCheck.ok) throw new Error(secRes.errorCode || secRes.reason || "SEC_ERR");
 
         // إنشاء الحساب
@@ -164,17 +205,16 @@
         if (!createRes.ok) {
           const errData = await createRes.json();
           await deleteUser(userCred.user);
-          throw new Error(errData.errorCode || errData.reason || "CREATE_ERR");
+          throw new Error(errData.errorCode || "CREATE_ERR");
         }
 
-        status.textContent = "✅ تم إنشاء حسابك بنجاح!";
+        status.textContent = "✅ تم بنجاح! جاري الدخول...";
         status.className = "status success";
         setTimeout(() => window.location.href = "dashboard.html", 1500);
 
       } catch (err) {
         btn.disabled = false;
-        const msg = errorMap[err.message] || errorMap[err.code] || err.message;
-        status.textContent = "❌ " + msg;
+        status.textContent = "❌ " + (errorMap[err.message] || errorMap[err.code] || err.message);
         status.className = "status error";
       }
     };
