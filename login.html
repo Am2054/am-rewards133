@@ -110,7 +110,7 @@ input {
 .message.error { background:#ffeaea; color:#c00; }
 .message.success { background:#e7ffea; color:#049c3f; }
 
-/* مودال تأكيد الجهاز الجديد */
+/* مودال الجهاز الجديد */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -266,8 +266,6 @@ document.getElementById("login-form").onsubmit = async (e) => {
 
     if(userData.isBanned) throw new Error("BANNED");
 
-    if(!cred.user.emailVerified) throw new Error("EMAIL_NOT_VERIFIED");
-
     // تحديث آخر دخول وسجل النشاط
     await updateDoc(userRef, {
       lastLogin: serverTimestamp(),
@@ -276,7 +274,6 @@ document.getElementById("login-form").onsubmit = async (e) => {
 
     // تحقق من الجهاز
     if(userData.devices && !userData.devices.includes(deviceId)){
-      // جهاز جديد → إظهار المودال
       pendingDevice = deviceId;
       pendingUserRef = userRef;
       deviceModal.classList.add("open");
@@ -292,7 +289,6 @@ document.getElementById("login-form").onsubmit = async (e) => {
     loginAttempts++;
     let text = `⚠️ بيانات الدخول غير صحيحة (${loginAttempts} محاولة)`;
     if(err.message === "BANNED") text = "🚫 هذا الحساب موقوف";
-    else if(err.message === "EMAIL_NOT_VERIFIED") text = "✉️ يرجى تأكيد بريدك الإلكتروني";
 
     msg.textContent = text;
     msg.className = "message error";
