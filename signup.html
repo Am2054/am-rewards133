@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
   <style>
-    /* --- جميع أكواد CSS الأصلية الخاصة بك بدون حذف --- */
     :root{  
       --accent:#FFD369;  
       --accent-2:#34d399;  
@@ -70,7 +69,6 @@
     .status.error{ color:var(--error) }  
     .status.success{ color:var(--success) }  
 
-    /* Modal Styles */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); z-index: 1000; display: none; justify-content: center; align-items: center; }
     .modal-overlay.open { display: flex; }
     .modal-content { background: var(--card-bg); border: 1.5px solid var(--glass-border); border-radius: var(--radius); padding: 30px; width: 90%; max-width: 650px; max-height: 85vh; overflow-y: auto; }
@@ -197,66 +195,56 @@
       const password = document.getElementById('password').value;
       const confirmPassword = document.getElementById('confirmPassword').value;
       const phone = document.getElementById('phone').value.trim();
+      const name = document.getElementById('name').value.trim();
       const referralCode = document.getElementById('refCode').value.trim().toUpperCase();
       const deviceId = getDeviceId();
 
-      // تفعيل حالة التحميل وتعطيل الزرار
       signupBtn.disabled = true;
       statusEl.textContent = "";
 
-      // 1. التحقق من رقم الهاتف (Validation)
       if (!/^01\d{9}$/.test(phone)) {
           statusEl.textContent = "❌ رقم الهاتف غير صحيح (01XXXXXXXXX)";
           statusEl.className = "status error";
-          signupBtn.disabled = false; // إعادة التفعيل عند الخطأ
+          signupBtn.disabled = false;
           return;
       }
 
-      // 2. التحقق من تطابق كلمة المرور (Validation)
       if (password !== confirmPassword) {
           statusEl.textContent = "❌ كلمات المرور غير متطابقة";
           statusEl.className = "status error";
-          signupBtn.disabled = false; // إعادة التفعيل عند الخطأ
+          signupBtn.disabled = false;
           return;
       }
 
-      statusEl.textContent = "⏳ جاري الفحص الأمني...";
-      statusEl.className = "status";
-
       try {
-        // 1. الفحص الأمني عبر الـ API
-        const secRes = await fetch('/api/secureSignup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, deviceId })
-        });
-        const secData = await secRes.json();
-        if (!secRes.ok) throw new Error(secData.reason || 'SECURITY_ERR');
-
-        // 2. إنشاء الحساب في Firebase Auth
+        // 1. إنشاء الحساب في Firebase Auth
         statusEl.textContent = "⏳ جاري إنشاء الحساب...";
+        statusEl.className = "status";
+        
         const userCred = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCred.user;
 
-        // 3. تخزين البيانات الإضافية في Firestore عبر الـ API
+        // 2. التحقق الأمني وتخزين البيانات في Firestore عبر الـ API الموحد
         statusEl.textContent = "⏳ تهيئة المحفظة ونظام الإحالة...";
-        const createRes = await fetch('/api/createUser', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                uid: user.uid,
-                email,
-                name: document.getElementById('name').value.trim(),
-                phone: phone,
-                deviceId,
-                referralCode: referralCode
-            })
-        });
-        const createData = await createRes.json();
         
-        if (!createRes.ok) {
-            await deleteUser(user); // تراجع (Rollback) لو فشل الـ API
-            throw new Error(createData.reason || 'DB_ERR');
+        const registerRes = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            uid: user.uid,
+            email,
+            name: name,
+            phone: phone,
+            deviceId,
+            referralCode
+          })
+        });
+
+        const registerData = await registerRes.json();
+        
+        if (!registerRes.ok) {
+            await deleteUser(user); // Rollback
+            throw new Error(registerData.error || 'REGISTER_FAILED');
         }
 
         statusEl.textContent = "✅ تم التسجيل بنجاح!";
@@ -264,17 +252,16 @@
         setTimeout(() => window.location.href = "dashboard.html", 1500);
 
       } catch (err) {
-        // رسائل خطأ ذكية للمستخدم
         const msg = err.message;
-        const safeMsg = msg.includes('DEVICE') || msg.includes('SECURITY_ERR')
-          ? "لا يمكن إنشاء أكثر من حساب من نفس الجهاز"
-          : msg.includes('email-already-in-use')
-          ? "هذا البريد مستخدم بالفعل"
-          : "حدث خطأ، حاول مرة أخرى أو تواصل مع الدعم";
+        let safeMsg = "حدث خطأ، حاول مرة أخرى أو تواصل مع الدعم";
+
+        if (msg.includes('already-in-use')) safeMsg = "هذا البريد مستخدم بالفعل";
+        else if (msg.includes('مسجل بالفعل')) safeMsg = msg; // رسالة الـ API عن الجهاز
+        else if (msg === 'REGISTER_FAILED') safeMsg = "فشل في تسجيل البيانات، حاول لاحقاً";
 
         statusEl.textContent = "❌ " + safeMsg;
         statusEl.className = "status error";
-        signupBtn.disabled = false; // إعادة تفعيل الزرار للمحاولة مرة أخرى
+        signupBtn.disabled = false;
       }
     }
   </script>
