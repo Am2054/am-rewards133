@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <title>تسجيل الدخول - Am Rewards</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
 
 <style>
@@ -12,7 +13,6 @@
   --dark-box-bg: rgba(2,6,23,0.95);
   --glass-border: rgba(56,189,248,0.18);
   --input-bg: rgba(30,41,59,0.9);
-  --input-focus: #38bdf8;
   --input-border: #334155;
   --muted: #a5f3fc;
   --radius: 28px;
@@ -22,6 +22,7 @@
 }
 
 * { box-sizing: border-box; }
+
 body {
   margin: 0;
   font-family: "Cairo", sans-serif;
@@ -40,7 +41,11 @@ body {
   text-align: center;
 }
 
-h2 { color: #38bdf8; font-family: "Montserrat"; margin-bottom: 6px; }
+h2 {
+  color: #38bdf8;
+  font-family: "Montserrat";
+}
+
 .gold-name {
   background: var(--gold);
   color: var(--gold-dark);
@@ -51,29 +56,27 @@ h2 { color: #38bdf8; font-family: "Montserrat"; margin-bottom: 6px; }
   display: inline-block;
 }
 
-.form-row { text-align: right; margin-bottom: 18px; }
-label { display: block; margin-bottom: 8px; color: var(--muted); font-weight: 700; }
+.form-row {
+  text-align: right;
+  margin-bottom: 18px;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
 input {
   width: 100%;
-  padding: 16px 15px 16px 45px;
+  padding: 16px 15px;
   border-radius: 15px;
   border: 2px solid var(--input-border);
   background: var(--input-bg);
   color: #fff;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   outline: none;
-}
-.input-group { position: relative; }
-.password-toggle {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: #38bdf8;
-  cursor: pointer;
-  font-size: 1.1rem;
 }
 
 .login-btn {
@@ -87,7 +90,11 @@ input {
   color: #2e2300;
   font-size: 1.1rem;
 }
-.login-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+.login-btn:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
 
 .spinner {
   width: 18px;
@@ -98,51 +105,46 @@ input {
   display: inline-block;
   animation: spin .8s linear infinite;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
 
-.message {
-  display: none;
-  padding: 12px;
-  margin-bottom: 14px;
-  border-radius: 10px;
-  font-weight: bold;
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
-.message.error { background:#ffeaea; color:#c00; }
-.message.success { background:#e7ffea; color:#049c3f; }
 </style>
 </head>
 
 <body>
+
 <div class="center-box">
   <h2>Am Rewards</h2>
   <span class="gold-name">تسجيل الدخول</span>
 
-  <div id="msg" class="message"></div>
-
-  <form id="login-form">
+  <!-- الفورم بدون submit -->
+  <form onsubmit="return false;">
     <div class="form-row">
       <label>البريد الإلكتروني</label>
-      <input type="email" id="login-email" required />
+      <input type="email" id="login-email" />
     </div>
 
     <div class="form-row">
       <label>كلمة المرور</label>
-      <div class="input-group">
-        <input type="password" id="login-password" required />
-        <button type="button" class="password-toggle" id="toggle">👁</button>
-      </div>
+      <input type="password" id="login-password" />
     </div>
 
-    <button type="submit" class="login-btn" id="btn-login">تسجيل الدخول</button>
+    <!-- زر Button فقط -->
+    <button type="button" class="login-btn" id="btn-login">
+      تسجيل الدخول
+    </button>
   </form>
 
-  <a href="signup.html" style="color:var(--muted); margin-top:20px; display:block;">إنشاء حساب</a>
+  <a href="signup.html" style="color:var(--muted); margin-top:20px; display:block;">
+    إنشاء حساب
+  </a>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -154,62 +156,43 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const msg = document.getElementById("msg");
 const btn = document.getElementById("btn-login");
-const pass = document.getElementById("login-password");
 
-document.getElementById("toggle").onclick = () => {
-  pass.type = pass.type === "password" ? "text" : "password";
-  document.getElementById("toggle").textContent = pass.type === "password" ? "👁" : "🙈";
-};
+btn.onclick = async () => {
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value;
 
-document.getElementById("login-form").onsubmit = async (e) => {
-  e.preventDefault();
+  if (!email || !password) {
+    alert("من فضلك أدخل البريد الإلكتروني وكلمة المرور");
+    return;
+  }
+
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> جاري الدخول...';
-  msg.style.display = "none";
-
-  const email = document.getElementById("login-email").value.trim();
-  const password = pass.value;
 
   try {
     await setPersistence(auth, browserLocalPersistence);
     const cred = await signInWithEmailAndPassword(auth, email, password);
 
     const userRef = doc(db, "users", cred.user.uid);
-    const userSnap = await getDoc(userRef);
+    const snap = await getDoc(userRef);
 
-    if(!userSnap.exists()){
-      throw new Error("USER_NOT_FOUND");
-    }
+    if (!snap.exists()) throw new Error("NO_USER");
+    if (snap.data().isBanned === true) throw new Error("BANNED");
 
-    const userData = userSnap.data();
-    if(userData.isBanned === true){
-      throw new Error("BANNED");
-    }
+    await updateDoc(userRef, {
+      lastLogin: serverTimestamp()
+    });
 
-    await updateDoc(userRef, { lastLogin: serverTimestamp() });
+    location.href = "dashboard.html";
 
-    msg.textContent = "✅ تم تسجيل الدخول";
-    msg.className = "message success";
-    msg.style.display = "block";
-
-    setTimeout(() => location.href = "dashboard.html", 1000);
-
-  } catch (err) {
-    console.error(err);
-    let text = "⚠️ بيانات الدخول غير صحيحة";
-    if(err.message === "BANNED") text = "🚫 هذا الحساب موقوف";
-    if(err.message === "USER_NOT_FOUND") text = "⚠️ المستخدم غير موجود";
-
-    msg.textContent = text;
-    msg.className = "message error";
-    msg.style.display = "block";
-
+  } catch (e) {
+    alert("بيانات الدخول غير صحيحة");
     btn.disabled = false;
     btn.innerHTML = "تسجيل الدخول";
   }
 };
 </script>
+
 </body>
-    </html>
+  </html>
