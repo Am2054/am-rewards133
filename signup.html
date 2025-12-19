@@ -187,83 +187,87 @@
         return id;
     }
 
-    window.signup = async function(){  
-      const statusEl = document.getElementById('status');
-      const signupBtn = document.getElementById('signupBtn');
-      
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value;
-      const confirmPassword = document.getElementById('confirmPassword').value;
-      const phone = document.getElementById('phone').value.trim();
-      const name = document.getElementById('name').value.trim();
-      const referralCode = document.getElementById('refCode').value.trim().toUpperCase();
-      const deviceId = getDeviceId();
+  window.signup = async function(){  
+  const statusEl = document.getElementById('status');
+  const signupBtn = document.getElementById('signupBtn');
+  
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const confirmPassword = document.getElementById('confirmPassword').value;
+  const phone = document.getElementById('phone').value.trim();
+  const name = document.getElementById('name').value.trim();
+  const referralCode = document.getElementById('refCode').value.trim().toUpperCase();
+  const deviceId = getDeviceId();
 
-      signupBtn.disabled = true;
-      statusEl.textContent = "";
+  signupBtn.disabled = true;
+  statusEl.textContent = "";
 
-      if (!/^01\d{9}$/.test(phone)) {
-          statusEl.textContent = "❌ رقم الهاتف غير صحيح (01XXXXXXXXX)";
-          statusEl.className = "status error";
-          signupBtn.disabled = false;
-          return;
-      }
+  if (!/^01\d{9}$/.test(phone)) {
+      statusEl.textContent = "❌ رقم الهاتف غير صحيح (01XXXXXXXXX)";
+      statusEl.className = "status error";
+      signupBtn.disabled = false;
+      return;
+  }
 
-      if (password !== confirmPassword) {
-          statusEl.textContent = "❌ كلمات المرور غير متطابقة";
-          statusEl.className = "status error";
-          signupBtn.disabled = false;
-          return;
-      }
+  if (password !== confirmPassword) {
+      statusEl.textContent = "❌ كلمات المرور غير متطابقة";
+      statusEl.className = "status error";
+      signupBtn.disabled = false;
+      return;
+  }
 
-      try {
-        // 1. إنشاء الحساب في Firebase Auth
-        statusEl.textContent = "⏳ جاري إنشاء الحساب...";
-        statusEl.className = "status";
-        
-        const userCred = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCred.user;
+  try {
+    // 1. إنشاء الحساب في Firebase Auth
+    statusEl.textContent = "⏳ جاري إنشاء الحساب...";
+    statusEl.className = "status";
+    
+    const userCred = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCred.user;
 
-        // 2. التحقق الأمني وتخزين البيانات في Firestore عبر الـ API الموحد
-        statusEl.textContent = "⏳ تهيئة المحفظة ونظام الإحالة...";
-        
-        const registerRes = await fetch('/api/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            uid: user.uid,
-            email,
-            name: name,
-            phone: phone,
-            deviceId,
-            referralCode
-          })
-        });
+    // 2. التحقق الأمني وتخزين البيانات في Firestore عبر الـ API الموحد
+    statusEl.textContent = "⏳ تهيئة المحفظة ونظام الإحالة...";
 
-        const registerData = await registerRes.json();
-        
-        if (!registerRes.ok) {
-            await deleteUser(user); // Rollback
-            throw new Error(registerData.error || 'REGISTER_FAILED');
-        }
+    // ⚠️ إضافة reCAPTCHA
+    const recaptchaToken = await grecaptcha.execute('YOUR_SITE_KEY', { action: 'signup' });
 
-        statusEl.textContent = "✅ تم التسجيل بنجاح!";
-        statusEl.className = "status success";
-        setTimeout(() => window.location.href = "dashboard.html", 1500);
+    const registerRes = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uid: user.uid,
+        email,
+        name: name,
+        phone: phone,
+        deviceId,
+        referralCode,
+        recaptchaToken // تم الإضافة هنا
+      })
+    });
 
-      } catch (err) {
-        const msg = err.message;
-        let safeMsg = "حدث خطأ، حاول مرة أخرى أو تواصل مع الدعم";
-
-        if (msg.includes('already-in-use')) safeMsg = "هذا البريد مستخدم بالفعل";
-        else if (msg.includes('مسجل بالفعل')) safeMsg = msg; // رسالة الـ API عن الجهاز
-        else if (msg === 'REGISTER_FAILED') safeMsg = "فشل في تسجيل البيانات، حاول لاحقاً";
-
-        statusEl.textContent = "❌ " + safeMsg;
-        statusEl.className = "status error";
-        signupBtn.disabled = false;
-      }
+    const registerData = await registerRes.json();
+    
+    if (!registerRes.ok) {
+        await deleteUser(user); // Rollback
+        throw new Error(registerData.error || 'REGISTER_FAILED');
     }
+
+    statusEl.textContent = "✅ تم التسجيل بنجاح!";
+    statusEl.className = "status success";
+    setTimeout(() => window.location.href = "dashboard.html", 1500);
+
+  } catch (err) {
+    const msg = err.message;
+    let safeMsg = "حدث خطأ، حاول مرة أخرى أو تواصل مع الدعم";
+
+    if (msg.includes('already-in-use')) safeMsg = "هذا البريد مستخدم بالفعل";
+    else if (msg.includes('مسجل بالفعل')) safeMsg = msg; // رسالة الـ API عن الجهاز
+    else if (msg === 'REGISTER_FAILED') safeMsg = "فشل في تسجيل البيانات، حاول لاحقاً";
+
+    statusEl.textContent = "❌ " + safeMsg;
+    statusEl.className = "status error";
+    signupBtn.disabled = false;
+  }
+}
   </script>
 </body>
 </html>
