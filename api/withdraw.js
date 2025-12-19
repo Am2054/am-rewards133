@@ -131,18 +131,18 @@ export default async function handler(req, res) {
         userAgent: userAgent,
       };
 
-      // ======== 7. مكافأة الإحالة (تسجيل البيانات فقط) ========
-      const { referredByUID } = userData;
-      if (referredByUID) {
-        withdrawalData.referredByUID = referredByUID;
-        withdrawalData.referralBonusPercent = REFERRAL_BONUS_PERCENT;
-        withdrawalData.referralPointsCalculated = Math.ceil((amount * REFERRAL_BONUS_PERCENT) / POINT_VALUE);
-      }
-      
-      tr.set(withdrawalRef, withdrawalData);
-    });
+  // ======== 7. مكافأة الإحالة (تعديل المسمى ليتوافق مع سجلات المستخدمين) ========  
+  const { referredBy } = userData; // تم التعديل من referredByUID إلى referredBy
+  if (referredBy) {  
+    withdrawalData.referredBy = referredBy;  // توحيد المسمى
+    withdrawalData.referralBonusPercent = REFERRAL_BONUS_PERCENT;  
+    withdrawalData.referralPointsCalculated = Math.ceil((amount * REFERRAL_BONUS_PERCENT) / POINT_VALUE);  
+  }  
+    
+  tr.set(withdrawalRef, withdrawalData);  
+});  
 
-    return res.status(200).json({ success: true, message: "✅ تم إرسال طلب السحب بنجاح. سيتم مراجعته خلال 24 ساعة." });
+return res.status(200).json({ success: true, message: "✅ تم إرسال طلب السحب بنجاح. سيتم مراجعته خلال 24 ساعة." });
 
   } catch (err) {
     console.error("Withdrawal Error:", err);
