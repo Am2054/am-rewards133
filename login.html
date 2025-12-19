@@ -8,7 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
 
 <style>
-/* === نفس الستايل بدون حذف === */
 :root {
   --main-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 60%, #38bdf8 100%);
   --dark-box-bg: rgba(2,6,23,0.95);
@@ -42,6 +41,7 @@ body {
 }
 
 h2 { color: #38bdf8; font-family: "Montserrat"; }
+
 .gold-name {
   background: var(--gold);
   color: var(--gold-dark);
@@ -115,6 +115,7 @@ input {
 
 .message.error { background:#ffeaea; color:#c00; }
 .message.success { background:#e7ffea; color:#049c3f; }
+.message.info { background:#e6f4ff; color:#075985; }
 </style>
 </head>
 
@@ -165,17 +166,33 @@ const btn = document.getElementById("btn-login");
 const msg = document.getElementById("msg");
 const toggle = document.getElementById("toggle");
 
-/* ===== 3️⃣ تذكّر البريد ===== */
+/* ===== تذكّر البريد ===== */
 const savedEmail = localStorage.getItem("rememberEmail");
 if (savedEmail) emailInput.value = savedEmail;
 
-/* ===== 1️⃣ محاولات الدخول ===== */
+/* ===== نظام المحاولات ===== */
 let attempts = Number(localStorage.getItem("loginAttempts")) || 0;
 let lockUntil = Number(localStorage.getItem("lockUntil")) || 0;
+const MAX_ATTEMPTS = 5;
+const LOCK_TIME = 10 * 60 * 1000; // 10 دقائق
 
+function resetButton() {
+  btn.disabled = false;
+  btn.innerHTML = "تسجيل الدخول";
+}
+
+function showMsg(text, type) {
+  msg.textContent = text;
+  msg.className = "message " + type;
+  msg.style.display = "block";
+}
+
+/* رسالة البداية */
 if (Date.now() < lockUntil) {
   btn.disabled = true;
-  showMsg("🚫 تم إيقاف المحاولات مؤقتًا، حاول لاحقًا", "error");
+  showMsg("🚫 تم تعطيل تسجيل الدخول مؤقتًا، حاول بعد 10 دقائق", "error");
+} else {
+  showMsg(`ℹ️ لديك ${MAX_ATTEMPTS - attempts} محاولات لتسجيل الدخول`, "info");
 }
 
 toggle.onclick = () => {
@@ -213,30 +230,27 @@ btn.onclick = async () => {
     localStorage.removeItem("lockUntil");
 
     showMsg("✅ تم تسجيل الدخول بنجاح", "success");
-    setTimeout(() => location.href = "dashboard.html", 1000);
+
+    setTimeout(() => {
+      resetButton();
+      location.href = "dashboard.html";
+    }, 1000);
 
   } catch {
     attempts++;
     localStorage.setItem("loginAttempts", attempts);
 
-    if (attempts >= 5) {
-      lockUntil = Date.now() + (15 * 60 * 1000);
+    if (attempts >= MAX_ATTEMPTS) {
+      lockUntil = Date.now() + LOCK_TIME;
       localStorage.setItem("lockUntil", lockUntil);
-      showMsg("🚫 تم إيقاف الدخول 15 دقيقة بسبب محاولات كثيرة", "error");
+      showMsg("🚫 تم تعطيل الزر 10 دقائق بسبب محاولات خاطئة", "error");
+      btn.disabled = true;
     } else {
-      showMsg(`❌ بيانات غير صحيحة (${attempts}/5)`, "error");
+      showMsg(`❌ بيانات غير صحيحة (محاولة ${attempts} من ${MAX_ATTEMPTS})`, "error");
+      resetButton();
     }
-
-    btn.disabled = false;
-    btn.innerHTML = "تسجيل الدخول";
   }
 };
-
-function showMsg(text, type) {
-  msg.textContent = text;
-  msg.className = "message " + type;
-  msg.style.display = "block";
-}
 </script>
 
 </body>
