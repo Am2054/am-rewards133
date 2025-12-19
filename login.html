@@ -12,6 +12,7 @@
   --dark-box-bg: rgba(2,6,23,0.95);
   --glass-border: rgba(56,189,248,0.18);
   --input-bg: rgba(30,41,59,0.9);
+  --input-focus: #38bdf8;
   --input-border: #334155;
   --muted: #a5f3fc;
   --radius: 28px;
@@ -141,7 +142,7 @@ input {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, serverTimestamp, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -162,8 +163,6 @@ document.getElementById("toggle").onclick = () => {
   document.getElementById("toggle").textContent = pass.type === "password" ? "👁" : "🙈";
 };
 
-let loginAttempts = 0;
-
 document.getElementById("login-form").onsubmit = async (e) => {
   e.preventDefault();
   btn.disabled = true;
@@ -180,16 +179,16 @@ document.getElementById("login-form").onsubmit = async (e) => {
     const userRef = doc(db, "users", cred.user.uid);
     const userSnap = await getDoc(userRef);
 
-    if(!userSnap.exists()) throw new Error("USER_NOT_FOUND");
+    if(!userSnap.exists()){
+      throw new Error("USER_NOT_FOUND");
+    }
+
     const userData = userSnap.data();
+    if(userData.isBanned === true){
+      throw new Error("BANNED");
+    }
 
-    if(userData.isBanned) throw new Error("BANNED");
-
-    // تحديث آخر دخول وسجل النشاط
-    await updateDoc(userRef, {
-      lastLogin: serverTimestamp(),
-      loginHistory: arrayUnion({timestamp: serverTimestamp(), status: "success"})
-    });
+    await updateDoc(userRef, { lastLogin: serverTimestamp() });
 
     msg.textContent = "✅ تم تسجيل الدخول";
     msg.className = "message success";
@@ -198,8 +197,8 @@ document.getElementById("login-form").onsubmit = async (e) => {
     setTimeout(() => location.href = "dashboard.html", 1000);
 
   } catch (err) {
-    loginAttempts++;
-    let text = `⚠️ بيانات الدخول غير صحيحة (${loginAttempts} محاولة)`;
+    console.error(err);
+    let text = "⚠️ بيانات الدخول غير صحيحة";
     if(err.message === "BANNED") text = "🚫 هذا الحساب موقوف";
     if(err.message === "USER_NOT_FOUND") text = "⚠️ المستخدم غير موجود";
 
@@ -207,10 +206,10 @@ document.getElementById("login-form").onsubmit = async (e) => {
     msg.className = "message error";
     msg.style.display = "block";
 
-    btn.disabled = loginAttempts >= 5;
+    btn.disabled = false;
     btn.innerHTML = "تسجيل الدخول";
   }
 };
 </script>
 </body>
-  </html>
+    </html>
