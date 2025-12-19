@@ -61,7 +61,6 @@
       background: none; border: none; color: #38bdf8; cursor: pointer;
       display: flex; align-items: center; z-index: 10; padding: 5px;
     }
-    .password-toggle svg { width: 22px; height: 22px; pointer-events: none; }
 
     .login-btn {
       width: 100%; padding: 14px 0; border-radius: 15px; border: none;
@@ -69,7 +68,7 @@
       background: linear-gradient(90deg, #FFD369 0%, #bfa243 100%);
       color: #2e2300; margin-top: 10px; font-size: 1.1rem;
     }
-    .login-btn:hover { transform: scale(1.02); filter: brightness(1.1); }
+    .login-btn:hover { transform: scale(1.01); filter: brightness(1.1); }
     .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
     .spinner {
@@ -91,21 +90,21 @@
 <body>
   <div class="center-box">
     <h2>Am Rewards</h2>
-    <span class="gold-name">تسجيل الدخول</span>
+    <span class="gold-name">Am Rewards</span>
 
-    <div id="msg" class="message"></div>
+    <div id="msg" class="message" role="alert"></div>
 
-    <div style="width: 100%;">
+    <form id="login-form" style="width: 100%;">
       <div class="form-row">
-        <label>البريد الإلكتروني</label>
-        <input type="email" id="login-email" placeholder="example@mail.com" />
+        <label for="login-email">البريد الإلكتروني</label>
+        <input type="email" id="login-email" placeholder="example@mail.com" aria-required="true" />
       </div>
       
       <div class="form-row">
-        <label>كلمة المرور</label>
+        <label for="login-password">كلمة المرور</label>
         <div class="input-group">
-          <input type="password" id="login-password" placeholder="كلمة المرور" />
-          <button type="button" class="password-toggle" id="btn-toggle">
+          <input type="password" id="login-password" placeholder="كلمة المرور" aria-required="true" />
+          <button type="button" class="password-toggle" id="btn-toggle" aria-label="تبديل رؤية كلمة المرور">
             <svg id="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
               <line x1="1" y1="1" x2="23" y2="23"></line>
@@ -114,10 +113,10 @@
         </div>
       </div>
       
-      <button type="button" class="login-btn" id="btn-login">تسجيل الدخول</button>
-    </div>
+      <button type="submit" class="login-btn" id="btn-login">تسجيل الدخول</button>
+    </form>
 
-    <a href="signup.html" style="color:var(--muted); margin-top:20px; display:block; text-decoration:none; font-weight:bold;">إنشاء حساب جديد</a>
+    <a href="signup.html" style="color:var(--muted); margin-top:20px; display:block; text-decoration:none; font-weight:bold;">ليس لديك حساب؟ إنشاء حساب جديد</a>
   </div>
 
   <script type="module">
@@ -135,41 +134,49 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // 1. منطق العين (مستقل تماماً)
     const btnToggle = document.getElementById('btn-toggle');
     const inputPass = document.getElementById('login-password');
     const eyeIcon = document.getElementById('eye-icon');
-
-    btnToggle.onclick = (e) => {
-      e.preventDefault(); // منع أي تأثير جانبي
-      const isHidden = inputPass.type === 'password';
-      inputPass.type = isHidden ? 'text' : 'password';
-      
-      if (isHidden) {
-        eyeIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
-      } else {
-        eyeIcon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
-      }
-    };
-
-    // 2. منطق تسجيل الدخول بالضغط اليدوي
+    const loginForm = document.getElementById('login-form');
     const btnLogin = document.getElementById("btn-login");
     const msgBox = document.getElementById("msg");
 
-    btnLogin.onclick = async () => {
+    // تحسين 1: تبديل العين مع مراعاة Accessibility
+    btnToggle.onclick = () => {
+      const isHidden = inputPass.type === 'password';
+      inputPass.type = isHidden ? 'text' : 'password';
+      eyeIcon.innerHTML = isHidden 
+        ? '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>' 
+        : '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+    };
+
+    // تحسين 2: Regex للتحقق من البريد
+    const validateEmail = (email) => {
+      return String(email).toLowerCase().match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+    };
+
+    const performLogin = async (e) => {
+      e.preventDefault(); // منع التحديث التلقائي للصفحة
+
       const email = document.getElementById("login-email").value.trim();
       const password = inputPass.value;
 
+      // تحسين التحقق قبل الإرسال
       if (!email || !password) {
-        msgBox.textContent = "⚠️ أدخل البريد وكلمة المرور";
-        msgBox.className = "message error";
-        msgBox.style.display = "block";
+        showMsg("⚠️ يرجى ملء كافة الحقول", "error");
+        return;
+      }
+      if (!validateEmail(email)) {
+        showMsg("⚠️ صيغة البريد الإلكتروني غير صحيحة", "error");
+        return;
+      }
+      if (password.length < 6) {
+        showMsg("⚠️ كلمة المرور يجب أن لا تقل عن 6 رموز", "error");
         return;
       }
 
-      // تفعيل حالة التحميل
       btnLogin.disabled = true;
-      btnLogin.innerHTML = '<span class="spinner"></span> جاري التحقق...';
+      btnLogin.innerHTML = '<span class="spinner" aria-hidden="true"></span> جاري التحقق...';
       msgBox.style.display = "none";
 
       try {
@@ -184,27 +191,34 @@
         const adminSnap = await getDoc(doc(db, "admins", email));
         const isAdmin = adminSnap.exists() && adminSnap.data().active === true;
 
-        msgBox.textContent = "✅ تم تسجيل الدخول!";
-        msgBox.className = "message success";
-        msgBox.style.display = "block";
+        showMsg("✅ نجح الدخول، يتم الآن التوجيه...", "success");
         
-        // إعادة الزر فوراً
-        btnLogin.disabled = false;
-        btnLogin.innerHTML = "تسجيل الدخول";
-
+        // إعادة الزر بعد النجاح
         setTimeout(() => {
+          btnLogin.disabled = false;
+          btnLogin.innerHTML = "تسجيل الدخول";
           window.location.href = isAdmin ? "admin.html" : "dashboard.html";
         }, 1000);
 
       } catch (error) {
-        // إعادة الزر في حالة الفشل
         btnLogin.disabled = false;
         btnLogin.innerHTML = "تسجيل الدخول";
-        msgBox.className = "message error";
-        msgBox.style.display = "block";
-        msgBox.textContent = "⚠️ بيانات الدخول غير صحيحة";
+        // تحسين 3: رسائل خطأ غير حساسة (أكثر أماناً)
+        showMsg("⚠️ البريد الإلكتروني أو كلمة المرور غير صحيحة", "error");
+        console.error("Auth Error:", error.code);
       }
     };
+
+    function showMsg(text, type) {
+      msgBox.textContent = text;
+      msgBox.className = `message ${type}`;
+      msgBox.style.display = "block";
+    }
+
+    // تحسين 4: ربط النموذج بحدث الـ Submit (يدعم الزر ويدعم مفتاح Enter)
+    loginForm.addEventListener('submit', performLogin);
+
   </script>
 </body>
 </html>
+
