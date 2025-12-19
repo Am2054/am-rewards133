@@ -165,7 +165,7 @@ input {
       </div>
     </div>
 
-    <button type="submit" class="login-btn" id="btn-login">تسجيل الدخول</button>
+    <button type="button" class="login-btn" id="btn-login">تسجيل الدخول</button>
   </form>
 
   <a href="signup.html" style="color:var(--muted); margin-top:20px; display:block;">إنشاء حساب</a>
@@ -244,60 +244,58 @@ cancelBtn.onclick = () => {
   btn.innerHTML = "تسجيل الدخول";
 };
 
-document.getElementById("login-form").onsubmit = async (e) => {
-  e.preventDefault();
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> جاري الدخول...';
-  msg.style.display = "none";
+// تسجيل الدخول عند الضغط على الزر فقط
+btn.onclick = async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> جاري الدخول...';
+    msg.style.display = "none";
 
-  const email = document.getElementById("login-email").value.trim();
-  const password = pass.value;
-  const deviceId = getDeviceId();
+    const email = document.getElementById("login-email").value.trim();
+    const password = pass.value;
+    const deviceId = getDeviceId();
 
-  try {
-    await setPersistence(auth, browserLocalPersistence);
-    const cred = await signInWithEmailAndPassword(auth, email, password);
+    try {
+        await setPersistence(auth, browserLocalPersistence);
+        const cred = await signInWithEmailAndPassword(auth, email, password);
 
-    const userRef = doc(db, "users", cred.user.uid);
-    const userSnap = await getDoc(userRef);
+        const userRef = doc(db, "users", cred.user.uid);
+        const userSnap = await getDoc(userRef);
 
-    if(!userSnap.exists()) throw new Error("USER_NOT_FOUND");
-    const userData = userSnap.data();
+        if(!userSnap.exists()) throw new Error("USER_NOT_FOUND");
+        const userData = userSnap.data();
+        if(userData.isBanned) throw new Error("BANNED");
 
-    if(userData.isBanned) throw new Error("BANNED");
+        await updateDoc(userRef, {
+            lastLogin: serverTimestamp(),
+            loginHistory: arrayUnion({timestamp: serverTimestamp(), deviceId, status: "success"})
+        });
 
-    // تحديث آخر دخول وسجل النشاط
-    await updateDoc(userRef, {
-      lastLogin: serverTimestamp(),
-      loginHistory: arrayUnion({timestamp: serverTimestamp(), deviceId, status: "success"})
-    });
+        if(userData.devices && !userData.devices.includes(deviceId)){
+            pendingDevice = deviceId;
+            pendingUserRef = userRef;
+            deviceModal.classList.add("open");
+            return;
+        }
 
-    // تحقق من الجهاز
-    if(userData.devices && !userData.devices.includes(deviceId)){
-      pendingDevice = deviceId;
-      pendingUserRef = userRef;
-      deviceModal.classList.add("open");
-      return;
+        msg.textContent = "✅ تم تسجيل الدخول";
+        msg.className = "message success";
+        msg.style.display = "block";
+        setTimeout(() => location.href = "dashboard.html", 1000);
+
+    } catch (err) {
+        loginAttempts++;
+        let text = `⚠️ بيانات الدخول غير صحيحة (${loginAttempts} محاولة)`;
+        if(err.message === "BANNED") text = "🚫 هذا الحساب موقوف";
+
+        msg.textContent = text;
+        msg.className = "message error";
+        msg.style.display = "block";
+
+        btn.disabled = loginAttempts >= 5;
+        btn.innerHTML = "تسجيل الدخول";
     }
-
-    msg.textContent = "✅ تم تسجيل الدخول";
-    msg.className = "message success";
-    msg.style.display = "block";
-    setTimeout(() => location.href = "dashboard.html", 1000);
-
-  } catch (err) {
-    loginAttempts++;
-    let text = `⚠️ بيانات الدخول غير صحيحة (${loginAttempts} محاولة)`;
-    if(err.message === "BANNED") text = "🚫 هذا الحساب موقوف";
-
-    msg.textContent = text;
-    msg.className = "message error";
-    msg.style.display = "block";
-
-    btn.disabled = loginAttempts >= 5;
-    btn.innerHTML = "تسجيل الدخول";
-  }
 };
 </script>
 </body>
-  </html>
+                                                  </html>
