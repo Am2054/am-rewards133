@@ -1,12 +1,13 @@
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import rateLimit from 'express-rate-limit';
+import bcrypt from "bcryptjs";
+import rateLimit from "express-rate-limit";
 
 // ------------------- Rate Limiter -------------------
 const signupLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 دقيقة
-    max: 5, // يسمح بـ 5 محاولات فقط من نفس الـ IP
-    message: { code: "LIMIT_REACHED", message: "لقد حاولت كثيراً، يرجى المحاولة بعد 15 دقيقة" }
+  windowMs: 15 * 60 * 1000, // 15 دقيقة
+  max: 5, // يسمح بـ 5 محاولات فقط من نفس الـ IP
+  message: { code: "LIMIT_REACHED", message: "لقد حاولت كثيراً، يرجى المحاولة بعد 15 دقيقة" }
 });
 
 // ------------------- Firebase Init -------------------
@@ -31,7 +32,7 @@ async function generateUniqueReferralCode(tr) {
   return code;
 }
 
-// ------------------- تسجيل كل محاولة -------------------
+// ------------------- تسجيل المحاولات -------------------
 async function logSignupAttempt(data) {
   await db.collection('signupLogs').add({
     ...data,
@@ -43,15 +44,14 @@ async function logSignupAttempt(data) {
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { uid, email, deviceId, referralCode, name, phone } = req.body;
+  const { email, password, referralCode, name, phone, deviceId } = req.body;
   const ip =
     req.headers["x-forwarded-for"]?.split(",")[0] ||
     req.socket.remoteAddress ||
     "";
 
-  // التحقق من البيانات الأساسية
-  if (!uid || !email || !deviceId || !phone || !name) {
-    await logSignupAttempt({ uid, email, deviceId, ip, status: "MISSING_DATA" });
+  if (!email || !password || !phone || !name || !deviceId) {
+    await logSignupAttempt({ email, deviceId, ip, status: "MISSING_DATA" });
     return res.status(400).json({ code: "MISSING_DATA", message: "بيانات ناقصة" });
   }
 
@@ -64,20 +64,20 @@ export default async function handler(req, res) {
       });
     });
 
-    // ---------------- تحقق سريع من الجهاز ----------------
+    // ---------------- تحقق من الجهاز ----------------
     const deviceSnap = await db.collection("userDevices")
       .where("deviceId", "==", deviceId)
       .limit(1)
       .get();
     if (!deviceSnap.empty) {
-      await logSignupAttempt({ uid, email, deviceId, ip, status: "DEVICE_EXISTS" });
+      await logSignupAttempt({ email, deviceId, ip, status: "DEVICE_EXISTS" });
       return res.status(403).json({ code: "DEVICE_EXISTS", message: "هذا الجهاز مسجل بالفعل، مسموح بحساب واحد لكل جهاز" });
     }
 
     // ---------------- Transaction لإنشاء الحساب ----------------
     const result = await db.runTransaction(async (tr) => {
-      const userRef = db.collection("users").doc(uid);
-      if ((await tr.get(userRef)).exists) throw "ACCOUNT_EXISTS";
+      const userRef = db.collection("users").doc(); // توليد UID تلقائي
+      const uid = userRef.id;
 
       let referredBy = null;
       let referrerRef = null;
@@ -102,11 +102,13 @@ export default async function handler(req, res) {
       }
 
       const myReferralCode = await generateUniqueReferralCode(tr);
+      const hashedPassword = await bcrypt.hash(password, 10);
 
       // ---------------- إنشاء الحساب ----------------
       tr.set(userRef, {
         uid,
         email,
+        password: hashedPassword,
         name,
         phone,
         deviceId,
@@ -133,21 +135,19 @@ export default async function handler(req, res) {
         createdAt: FieldValue.serverTimestamp(),
       });
 
-      return { referralCode: myReferralCode };
+      return { uid, referralCode: myReferralCode };
     });
 
-    await logSignupAttempt({ uid, email, deviceId, ip, status: "SUCCESS" });
+    await logSignupAttempt({ email, deviceId, ip, status: "SUCCESS" });
     return res.status(200).json({ success: true, ...result });
 
   } catch (err) {
     const map = {
       DEVICE_EXISTS: "هذا الجهاز مسجل بالفعل، مسموح بحساب واحد لكل جهاز",
-      ACCOUNT_EXISTS: "الحساب موجود بالفعل",
-      MISSING_DATA: "بيانات ناقصة",
       LIMIT_REACHED: "لقد حاولت كثيراً، يرجى المحاولة بعد 15 دقيقة"
     };
 
-    await logSignupAttempt({ uid, email, deviceId, ip, status: err.toString() });
+    await logSignupAttempt({ email, deviceId, ip, status: err.toString() });
     return res.status(403).json({ code: err.toString(), message: map[err] || "فشل تسجيل الحساب، حاول لاحقاً" });
   }
-        }
+                    }
