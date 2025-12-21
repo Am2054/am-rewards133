@@ -1,14 +1,22 @@
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import rateLimit from 'express-rate-limit';
 
+// ------------------- Rate Limiter -------------------
+const signupLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 دقيقة
+    max: 5, // يسمح بـ 5 محاولات فقط من نفس الـ IP
+    message: { error: "لقد حاولت كثيراً، يرجى المحاولة بعد 15 دقيقة" }
+});
+
+// ------------------- Firebase Init -------------------
 if (!getApps().length) {
   const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
   initializeApp({ credential: cert(serviceAccount) });
 }
-
 const db = getFirestore();
 
-// توليد كود إحالة فريد
+// ------------------- توليد كود إحالة فريد -------------------
 async function generateUniqueReferralCode(tr) {
   let code, exists = true;
 
@@ -23,6 +31,15 @@ async function generateUniqueReferralCode(tr) {
   return code;
 }
 
+// ------------------- تسجيل كل محاولة -------------------
+async function logSignupAttempt(data) {
+  await db.collection('signupLogs').add({
+    ...data,
+    timestamp: FieldValue.serverTimestamp()
+  });
+}
+
+// ------------------- Handler التسجيل -------------------
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
@@ -32,11 +49,21 @@ export default async function handler(req, res) {
     req.socket.remoteAddress ||
     "";
 
+  // تحقق من البيانات الأساسية
   if (!uid || !email || !deviceId || !phone) {
+    await logSignupAttempt({ uid, email, deviceId, ip, status: "MISSING_DATA" });
     return res.status(400).json({ error: "MISSING_DATA" });
   }
 
   try {
+    // استخدام Rate Limiter
+    await new Promise((resolve, reject) => {
+      signupLimiter(req, res, (result) => {
+        if (res.headersSent) reject('LIMIT_REACHED');
+        else resolve();
+      });
+    });
+
     const result = await db.runTransaction(async (tr) => {
       // 🔒 منع تكرار الجهاز
       const deviceSnap = await tr.get(
@@ -105,6 +132,7 @@ export default async function handler(req, res) {
       return { referralCode: myReferralCode };
     });
 
+    await logSignupAttempt({ uid, email, deviceId, ip, status: "SUCCESS" });
     return res.status(200).json({ success: true, ...result });
 
   } catch (err) {
@@ -112,7 +140,10 @@ export default async function handler(req, res) {
       DEVICE_EXISTS: "هذا الجهاز مسجل بالفعل",
       ACCOUNT_EXISTS: "الحساب موجود بالفعل",
       MISSING_DATA: "بيانات ناقصة",
+      LIMIT_REACHED: "لقد حاولت كثيراً، يرجى المحاولة بعد 15 دقيقة"
     };
+
+    await logSignupAttempt({ uid, email, deviceId, ip, status: err });
     return res.status(403).json({ error: map[err] || "REGISTER_FAILED" });
   }
-         }
+}
