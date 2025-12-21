@@ -154,7 +154,7 @@ input:focus{ border-color: var(--accent-2); transform: translateY(-1px); backgro
 
 <script type="module">  
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";  
-import { getAuth, createUserWithEmailAndPassword, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";  
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";  
   
 const firebaseConfig = {  
   apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",  
@@ -192,7 +192,8 @@ function populateReferralFromURL() {
     }  
 }  
 populateReferralFromURL();  
-  
+
+// دالة التسجيل المحدثة المربوطة بالـ Backend
 window.signup = async function(){  
   const statusEl = document.getElementById('status');  
   const signupBtn = document.getElementById('signupBtn');  
@@ -208,6 +209,7 @@ window.signup = async function(){
   signupBtn.disabled = true;  
   statusEl.textContent = "";  
   
+  // التحقق من المدخلات
   if (!/^01\d{9}$/.test(phone)) {  
       statusEl.textContent = "❌ رقم الهاتف غير صحيح (01XXXXXXXXX)";  
       statusEl.className = "status error";  
@@ -228,13 +230,12 @@ window.signup = async function(){
       signupBtn.disabled = false;  
       return;  
   }  
-  
-  window.signup = async function() {
-  // ... (تجميع البيانات والتحقق من كلمة المرور كالعادة) ...
 
   try {
-    statusEl.textContent = "⏳ جاري معالجة طلبك...";
+    statusEl.textContent = "⏳ جاري معالجة طلبك وتأمين الحساب...";
+    statusEl.className = "status";
     
+    // إرسال الطلب للـ Backend (Vercel API)
     const response = await fetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -244,17 +245,30 @@ window.signup = async function(){
     const data = await response.json();
 
     if (response.ok) {
-      statusEl.textContent = "✅ تم إنشاء الحساب بنجاح!";
-      // الآن سجل الدخول تلقائياً بالمتصفح لفتح الجلسة
+      statusEl.textContent = "✅ تم إنشاء الحساب بنجاح! جاري الدخول...";
+      statusEl.className = "status success";
+      
+      // تسجيل الدخول في المتصفح بعد أن قام السيرفر بإنشاء الحساب في Auth
       await signInWithEmailAndPassword(auth, email, password);
-      window.location.href = "dashboard.html";
+      
+      setTimeout(() => {
+        window.location.href = "dashboard.html";
+      }, 1500);
     } else {
-      statusEl.textContent = "❌ " + data.message;
+      // معالجة رسائل الخطأ القادمة من السيرفر
+      let errorMsg = data.message || "حدث خطأ غير متوقع";
+      if (data.code === "DEVICE_EXISTS") errorMsg = "❌ هذا الجهاز مسجل بالفعل بحساب آخر";
+      if (data.code === "LIMIT_REACHED") errorMsg = "⚠️ محاولات كثيرة، يرجى الانتظار 15 دقيقة";
+      
+      statusEl.textContent = "❌ " + errorMsg;
+      statusEl.className = "status error";
       signupBtn.disabled = false;
     }
   } catch (err) {
-    statusEl.textContent = "❌ خطأ في الاتصال بالسيرفر";
+    statusEl.textContent = "❌ خطأ في الاتصال بالسيرفر، تأكد من اتصالك";
+    statusEl.className = "status error";
     signupBtn.disabled = false;
+    console.error(err);
   }
 };
 </script>  
