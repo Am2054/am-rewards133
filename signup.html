@@ -20,7 +20,7 @@
       --radius: 22px;
     }
     *{box-sizing:border-box}
-    html, body{ margin:0; padding:0; }
+    html, body{ margin:0; padding:0; scroll-behavior:smooth; }
     body{
       font-family:"Cairo", "Montserrat", sans-serif;
       color:#f1f6fb; min-height:100vh;
@@ -33,7 +33,7 @@
 
     .center-wrap{ width:100%; max-width:1150px; display:grid; grid-template-columns: 1.2fr 1fr; gap:42px; align-items:stretch; z-index:2; margin:42px 0; background: rgba(255,255,255,0.02); border-radius: var(--radius); box-shadow: var(--shadow); overflow:hidden; }
 
-    .hero{ background:var(--card-bg); padding:54px 38px 44px 38px; display:flex; flex-direction:column; justify-content:center; position:relative; overflow:hidden; }
+    .hero{ background:var(--card-bg); padding:54px 38px 44px 38px; display:flex; flex-direction:column; justify-content:center; position:relative; overflow:hidden; transition: all 0.3s ease-in-out; }
     .hero h2{ font-family:"Montserrat", "Cairo", sans-serif; font-size:38px; color:var(--accent); margin:0 0 16px 0; letter-spacing:1.2px; font-weight:800; text-shadow: 0 2px 18px rgba(255,211,105,0.13); }
     .hero p{ color:var(--muted); font-size:16.5px; line-height:1.7; margin-bottom:22px; max-width:580px; }
     .bullets{ display:flex;flex-direction:column;gap:13px;margin-bottom:24px; }
@@ -42,7 +42,7 @@
     .cta .btn-ghost{ background:transparent; border:1.5px solid var(--accent); padding:13px 26px; border-radius:13px; color:var(--accent); font-weight:700; font-size:15px; cursor:pointer; transition:all .12s; margin-top:12px; }
     .cta .btn-ghost:hover { background:var(--accent); color:#222; }
 
-    .signup-card{ background:var(--glass-bg); border:1.5px solid var(--glass-border); border-radius: var(--radius); padding:38px 32px 24px 32px; box-shadow: 0 10px 60px 0 rgba(2,6,23,0.37); min-width:350px; display:flex; flex-direction:column; align-items:center; position:relative; z-index:1; backdrop-filter: blur(16px) saturate(120%); }
+    .signup-card{ background:var(--glass-bg); border:1.5px solid var(--glass-border); border-radius: var(--radius); padding:38px 32px 24px 32px; box-shadow: 0 10px 60px 0 rgba(2,6,23,0.37); min-width:350px; display:flex; flex-direction:column; align-items:center; position:relative; z-index:1; backdrop-filter: blur(16px) saturate(120%); transition: all 0.3s ease-in-out; }
     .signup-card h3{ margin:16px 0 10px 0; text-align:center; color:#e6f7ff; font-size:24px; font-family:"Montserrat", sans-serif; font-weight:700; }
     .signup-card p.lead{ margin:0 0 18px 0; color:var(--muted); text-align:center; font-size:15px; }
 
@@ -60,15 +60,15 @@
     .checkbox-row{ display:flex; gap:9px; align-items:center; margin-top:10px; width:100%; }
     .checkbox-row input{width:19px;height:19px;accent-color:var(--accent);}
 
-    .btn-primary{ margin-top:18px; width:100%; padding:14px 0; border-radius:13px; border:0; color:#0b1320; background:linear-gradient(90deg,var(--accent),var(--accent-2) 80%); font-weight:900; font-size:17px; cursor:pointer; font-family:"Montserrat", "Cairo",sans-serif; transition: 0.2s; }
+    .btn-primary{ margin-top:18px; width:100%; padding:14px 0; border-radius:13px; border:0; color:#0b1320; background:linear-gradient(90deg,var(--accent),var(--accent-2) 80%); font-weight:900; font-size:17px; cursor:pointer; font-family:"Montserrat", "Cairo",sans-serif; transition: all 0.3s ease-in-out; }
     .btn-primary:active{ transform: translateY(1px) }
     .btn-primary[disabled]{opacity:0.6; cursor:not-allowed;}
 
-    .status { min-height:20px; margin-top:12px; text-align:center; font-size:15px; font-weight:600;}
+    .status { min-height:20px; margin-top:12px; text-align:center; font-size:15px; font-weight:600; transition: all 0.2s ease-in-out;}
     .status.error{ color:var(--error) }
     .status.success{ color:var(--success) }
 
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); z-index: 1000; display: none; justify-content: center; align-items: center; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); z-index: 1000; display: none; justify-content: center; align-items: center; transition: opacity 0.3s; }
     .modal-overlay.open { display: flex; }
     .modal-content { background: var(--card-bg); border: 1.5px solid var(--glass-border); border-radius: var(--radius); padding: 30px; width: 90%; max-width: 650px; max-height: 85vh; overflow-y: auto; }
     .modal-content h1 { color: var(--accent-2); font-size: 24px; margin-bottom: 15px; }
@@ -212,6 +212,7 @@ window.signup = async function(){
   signupBtn.disabled = true;
   statusEl.textContent = "";
 
+  // التحقق من رقم الهاتف
   if (!/^01\d{9}$/.test(phone)) {
       statusEl.textContent = "❌ رقم الهاتف غير صحيح (01XXXXXXXXX)";
       statusEl.className = "status error";
@@ -219,6 +220,15 @@ window.signup = async function(){
       return;
   }
 
+  // التحقق من طول كلمة المرور
+  if (password.length < 6) {
+      statusEl.textContent = "❌ كلمة المرور قصيرة جدًا (6 أحرف على الأقل)";
+      statusEl.className = "status error";
+      signupBtn.disabled = false;
+      return;
+  }
+
+  // التحقق من التطابق
   if (password !== confirmPassword) {
       statusEl.textContent = "❌ كلمات المرور غير متطابقة";
       statusEl.className = "status error";
@@ -233,45 +243,49 @@ window.signup = async function(){
     const userCred = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCred.user;
 
-    statusEl.textContent = "⏳ تهيئة المحفظة ونظام الإحالة...";
+  statusEl.textContent = "⏳ تهيئة المحفظة ونظام الإحالة...";
 
-    const registerRes = await fetch('/api/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        uid: user.uid,
-        email,
-        name: name,
-        phone: phone,
-        deviceId,
-        referralCode
-      })
-    });
+const registerRes = await fetch('/api/register', {  
+  method: 'POST',  
+  headers: { 'Content-Type': 'application/json' },  
+  body: JSON.stringify({  
+    uid: user.uid,  
+    email,  
+    name: name,  
+    phone: phone,  
+    deviceId,  
+    referralCode  
+  })  
+});  
 
-    const registerData = await registerRes.json();
+const registerData = await registerRes.json();  
 
-    if (!registerRes.ok) {
-        await deleteUser(user);
-        throw new Error(registerData.error || 'REGISTER_FAILED');
-    }
+if (!registerRes.ok) {  
+    await deleteUser(user);  
+    throw new Error(registerData.error || 'REGISTER_FAILED');  
+}  
 
-    statusEl.textContent = "✅ تم التسجيل بنجاح!";
-    statusEl.className = "status success";
-    setTimeout(() => window.location.href = "dashboard.html", 1500);
+statusEl.textContent = "✅ تم التسجيل بنجاح!";  
+statusEl.className = "status success";  
+signupBtn.disabled = false;  
 
-  } catch (err) {
-    const msg = err.message;
-    let safeMsg = "حدث خطأ، حاول مرة أخرى أو تواصل مع الدعم";
+// تحويل سلس بعد 1.5 ثانية  
+setTimeout(() => window.location.href = "dashboard.html", 1500);
 
-    if (msg.includes('already-in-use')) safeMsg = "هذا البريد مستخدم بالفعل";
-    else if (msg.includes('مسجل بالفعل')) safeMsg = msg;
-    else if (msg === 'REGISTER_FAILED') safeMsg = "فشل في تسجيل البيانات، حاول لاحقاً";
+} catch (err) {
+const msg = err.message;
+let safeMsg = "حدث خطأ، حاول مرة أخرى أو تواصل مع الدعم";
 
-    statusEl.textContent = "❌ " + safeMsg;
-    statusEl.className = "status error";
-    signupBtn.disabled = false;
-  }
+if (msg.includes('already-in-use')) safeMsg = "هذا البريد مستخدم بالفعل";  
+else if (msg.includes('مسجل بالفعل')) safeMsg = msg;  
+else if (msg === 'REGISTER_FAILED') safeMsg = "فشل في تسجيل البيانات، حاول لاحقاً";  
+
+statusEl.textContent = "❌ " + safeMsg;  
+statusEl.className = "status error";  
+signupBtn.disabled = false;
+
 }
-  </script>
+}
+ </script>
 </body>
 </html>
