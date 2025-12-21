@@ -256,32 +256,35 @@ window.signup = async function(){
       })
     });
 
-    // حاول نقرأ JSON بأمان
+    // محاولة قراءة JSON من backend بأمان
     let registerData = {};
     try {
         registerData = await registerRes.json();
-    } catch(e) {
-        registerData = { error: 'حدث خطأ في الخادم' };
+    } catch (e) {
+        registerData = { message: 'حدث خطأ في الخادم' };
     }
 
     if (!registerRes.ok) {
+        // حذف الحساب من Firebase إذا التسجيل في backend فشل
         await deleteUser(user);
-        statusEl.textContent = "❌ " + (registerData.error || registerData.message || 'فشل في تسجيل البيانات، حاول لاحقاً');
+        statusEl.textContent = "❌ " + (registerData.message || registerData.error || 'فشل تسجيل البيانات، حاول لاحقاً');
         statusEl.className = "status error";
         signupBtn.disabled = false;
         return;
     }
 
-    statusEl.textContent = "✅ تم التسجيل بنجاح!";
+    // تسجيل ناجح
+    statusEl.textContent = "✅ " + (registerData.message || "تم التسجيل بنجاح!");
     statusEl.className = "status success";
     setTimeout(() => window.location.href = "dashboard.html", 1500);
 
-} catch (err) {
+  } catch (err) {
+    // عرض أي خطأ من Firebase أو fetch مباشرة
     statusEl.textContent = "❌ " + (err.message || err);
     statusEl.className = "status error";
     signupBtn.disabled = false;
-    }
-  } 
+  }
+};
  </script>
 </body>
 </html>
