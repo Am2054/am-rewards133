@@ -6,7 +6,7 @@ import rateLimit from 'express-rate-limit';
 const signupLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 دقيقة
     max: 5, // يسمح بـ 5 محاولات فقط من نفس الـ IP
-    message: { error: "لقد حاولت كثيراً، يرجى المحاولة بعد 15 دقيقة" }
+    message: { code: "LIMIT_REACHED", message: "لقد حاولت كثيراً، يرجى المحاولة بعد 15 دقيقة" }
 });
 
 // ------------------- Firebase Init -------------------
@@ -49,36 +49,40 @@ export default async function handler(req, res) {
     req.socket.remoteAddress ||
     "";
 
-  // تحقق من البيانات الأساسية
-  if (!uid || !email || !deviceId || !phone) {
+  // التحقق من البيانات الأساسية
+  if (!uid || !email || !deviceId || !phone || !name) {
     await logSignupAttempt({ uid, email, deviceId, ip, status: "MISSING_DATA" });
-    return res.status(400).json({ error: "MISSING_DATA" });
+    return res.status(400).json({ code: "MISSING_DATA", message: "بيانات ناقصة" });
   }
 
   try {
-    // استخدام Rate Limiter
+    // ---------------- Rate Limiter ----------------
     await new Promise((resolve, reject) => {
       signupLimiter(req, res, (result) => {
-        if (res.headersSent) reject('LIMIT_REACHED');
+        if (res.headersSent) reject("LIMIT_REACHED");
         else resolve();
       });
     });
 
-    const result = await db.runTransaction(async (tr) => {
-      // 🔒 منع تكرار الجهاز
-      const deviceSnap = await tr.get(
-        db.collection("userDevices").where("deviceId", "==", deviceId).limit(1)
-      );
-      if (!deviceSnap.empty) throw "DEVICE_EXISTS";
+    // ---------------- تحقق سريع من الجهاز ----------------
+    const deviceSnap = await db.collection("userDevices")
+      .where("deviceId", "==", deviceId)
+      .limit(1)
+      .get();
+    if (!deviceSnap.empty) {
+      await logSignupAttempt({ uid, email, deviceId, ip, status: "DEVICE_EXISTS" });
+      return res.status(403).json({ code: "DEVICE_EXISTS", message: "هذا الجهاز مسجل بالفعل، مسموح بحساب واحد لكل جهاز" });
+    }
 
-      // 🔒 منع تكرار الحساب
+    // ---------------- Transaction لإنشاء الحساب ----------------
+    const result = await db.runTransaction(async (tr) => {
       const userRef = db.collection("users").doc(uid);
       if ((await tr.get(userRef)).exists) throw "ACCOUNT_EXISTS";
 
       let referredBy = null;
       let referrerRef = null;
 
-      // 🔗 منطق الإحالة
+      // ---------------- منطق الإحالة ----------------
       if (referralCode) {
         const refSnap = await tr.get(
           db.collection("users")
@@ -99,7 +103,7 @@ export default async function handler(req, res) {
 
       const myReferralCode = await generateUniqueReferralCode(tr);
 
-      // 🧾 إنشاء الحساب
+      // ---------------- إنشاء الحساب ----------------
       tr.set(userRef, {
         uid,
         email,
@@ -137,13 +141,13 @@ export default async function handler(req, res) {
 
   } catch (err) {
     const map = {
-      DEVICE_EXISTS: "هذا الجهاز مسجل بالفعل",
+      DEVICE_EXISTS: "هذا الجهاز مسجل بالفعل، مسموح بحساب واحد لكل جهاز",
       ACCOUNT_EXISTS: "الحساب موجود بالفعل",
       MISSING_DATA: "بيانات ناقصة",
       LIMIT_REACHED: "لقد حاولت كثيراً، يرجى المحاولة بعد 15 دقيقة"
     };
 
-    await logSignupAttempt({ uid, email, deviceId, ip, status: err });
-    return res.status(403).json({ error: map[err] || "REGISTER_FAILED" });
+    await logSignupAttempt({ uid, email, deviceId, ip, status: err.toString() });
+    return res.status(403).json({ code: err.toString(), message: map[err] || "فشل تسجيل الحساب، حاول لاحقاً" });
   }
-}
+        }
