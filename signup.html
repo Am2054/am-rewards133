@@ -258,34 +258,34 @@ const registerRes = await fetch('/api/register', {
   })  
 });  
 
-const registerData = await registerRes.json();  
+const registerRes = await fetch('/api/register', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    uid: user.uid,
+    email,
+    name,
+    phone,
+    deviceId,
+    referralCode
+  })
+});
 
-if (!registerRes.ok) {  
-    await deleteUser(user);  
-    throw new Error(registerData.error || 'REGISTER_FAILED');  
-}  
+const registerData = await registerRes.json();
 
-statusEl.textContent = "✅ تم التسجيل بنجاح!";  
-statusEl.className = "status success";  
-signupBtn.disabled = false;  
-
-// تحويل سلس بعد 1.5 ثانية  
-setTimeout(() => window.location.href = "dashboard.html", 1500);
-
-} catch (err) {
-const msg = err.message;
-let safeMsg = "حدث خطأ، حاول مرة أخرى أو تواصل مع الدعم";
-
-if (msg.includes('already-in-use')) safeMsg = "هذا البريد مستخدم بالفعل";  
-else if (msg.includes('مسجل بالفعل')) safeMsg = msg;  
-else if (msg === 'REGISTER_FAILED') safeMsg = "فشل في تسجيل البيانات، حاول لاحقاً";  
-
-statusEl.textContent = "❌ " + safeMsg;  
-statusEl.className = "status error";  
-signupBtn.disabled = false;
-
-}
-}
- </script>
+if (!registerRes.ok) {
+    await deleteUser(user); // حذف الحساب من Firebase Auth إذا فشل التسجيل في Backend
+    // التحقق من وجود جهاز مستخدم بالفعل
+    if(registerData.error && registerData.error === 'DEVICE_ALREADY_USED'){
+        statusEl.textContent = "❌ هذا الجهاز مستخدم بالفعل، يسمح بحساب واحد فقط لكل جهاز";
+    } else {
+        statusEl.textContent = "❌ " + (registerData.error || 'فشل في تسجيل البيانات، حاول لاحقاً');
+    }
+    statusEl.className = "status error";
+    signupBtn.disabled = false;
+    return;
+    }
+} 
+  </script>
 </body>
 </html>
