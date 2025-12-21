@@ -9,7 +9,6 @@
 
 <style>
 *{box-sizing:border-box}
-
 body{
   margin:0;
   font-family:"Cairo",sans-serif;
@@ -20,7 +19,6 @@ body{
   justify-content:center;
   color:#f8fafc;
 }
-
 .center-box{
   width:100%;
   max-width:420px;
@@ -30,115 +28,46 @@ body{
   padding:35px 25px;
   text-align:center;
 }
-
-h2{
-  color:#38bdf8;
-  margin-bottom:5px;
-}
-
+h2{color:#38bdf8;margin-bottom:5px;}
 .gold-name{
-  background:#FFD369;
-  color:#3b2f00;
-  padding:10px 20px;
-  border-radius:12px;
-  font-weight:900;
-  margin-bottom:25px;
+  background:#FFD369;color:#3b2f00;padding:10px 20px;
+  border-radius:12px;font-weight:900;margin-bottom:25px;
   display:inline-block;
 }
-
-.form-row{
-  text-align:right;
-  margin-bottom:18px;
-}
-
-label{
-  display:block;
-  margin-bottom:6px;
-  font-weight:700;
-  color:#cbd5f5;
-}
-
-.input-group{
-  position:relative;
-}
-
+.form-row{text-align:right;margin-bottom:18px;}
+label{display:block;margin-bottom:6px;font-weight:700;color:#cbd5f5;}
+.input-group{position:relative;}
 input{
-  width:100%;
-  padding:14px 45px 14px 14px;
-  border-radius:14px;
-  border:2px solid #334155;
-  background:#020617;
-  color:#fff;
-  font-size:1rem;
-  outline:none;
+  width:100%;padding:14px 45px 14px 14px;border-radius:14px;
+  border:2px solid #334155;background:#020617;color:#fff;
+  font-size:1rem;outline:none;
 }
-
 .password-toggle{
-  position:absolute;
-  left:12px;
-  top:50%;
-  transform:translateY(-50%);
-  background:none;
-  border:none;
-  cursor:pointer;
-  font-size:1.1rem;
-  color:#38bdf8;
+  position:absolute;left:12px;top:50%;
+  transform:translateY(-50%);background:none;border:none;
+  cursor:pointer;font-size:1.1rem;color:#38bdf8;
 }
-
 .login-btn{
-  width:100%;
-  padding:14px;
-  border-radius:14px;
-  border:none;
-  font-size:1.1rem;
-  font-weight:900;
-  cursor:pointer;
+  width:100%;padding:14px;border-radius:14px;border:none;
+  font-size:1.1rem;font-weight:900;cursor:pointer;
   background:linear-gradient(90deg,#FFD369,#bfa243);
   color:#2e2300;
 }
-
-.login-btn:disabled{
-  opacity:.6;
-  cursor:not-allowed;
-}
-
+.login-btn:disabled{opacity:.6;cursor:not-allowed;}
 .spinner{
-  width:18px;
-  height:18px;
-  border:3px solid rgba(255,255,255,.3);
-  border-top-color:#fff;
-  border-radius:50%;
-  display:inline-block;
-  animation:spin .8s linear infinite;
+  width:18px;height:18px;border:3px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;
+  display:inline-block;animation:spin .8s linear infinite;
 }
-
 @keyframes spin{to{transform:rotate(360deg)}}
-
 .message{
-  display:none;
-  padding:12px;
-  border-radius:10px;
-  font-weight:700;
-  margin-bottom:15px;
+  display:none;padding:12px;border-radius:10px;
+  font-weight:700;margin-bottom:15px;
 }
-
 .message.error{background:#ffeaea;color:#b00000}
 .message.success{background:#e7ffea;color:#047857}
-
-.register-link{
-  margin-top:18px;
-  font-size:.95rem;
-  color:#cbd5f5;
-}
-
-.register-link a{
-  color:#38bdf8;
-  font-weight:800;
-  text-decoration:none;
-  margin-right:6px;
-}
-
-.register-link a:hover{text-decoration:underline}
+.register-link{margin-top:18px;font-size:.95rem;color:#cbd5f5;}
+.register-link a{color:#38bdf8;font-weight:800;text-decoration:none;margin-right:6px;}
 </style>
 </head>
 
@@ -164,9 +93,7 @@ input{
       </div>
     </div>
 
-    <button type="submit" class="login-btn" id="btn-login">
-      تسجيل الدخول
-    </button>
+    <button type="submit" class="login-btn" id="btn-login">تسجيل الدخول</button>
   </form>
 
   <div class="register-link">
@@ -195,56 +122,86 @@ const pass = document.getElementById("login-password");
 let attempts = 0;
 let lockUntil = null;
 
+// 👁️ إظهار / إخفاء كلمة المرور
 document.getElementById("toggle").onclick = () => {
   pass.type = pass.type === "password" ? "text" : "password";
 };
+
+// 🔑 Device ID ثابت
+function getDeviceId(){
+  let id = localStorage.getItem("appDeviceId");
+  if(!id){
+    id = crypto.randomUUID();
+    localStorage.setItem("appDeviceId", id);
+  }
+  return id;
+}
 
 document.getElementById("login-form").onsubmit = async (e)=>{
   e.preventDefault();
 
   if(lockUntil && Date.now() < lockUntil){
-    msg.textContent = "⏳ تم تعطيل تسجيل الدخول لمدة 10 دقائق";
-    msg.className = "message error";
-    msg.style.display="block";
+    showError("⏳ تم تعطيل تسجيل الدخول مؤقتًا");
     return;
   }
 
-  btn.disabled=true;
-  btn.innerHTML='<span class="spinner"></span>';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
 
   try{
     const email = document.getElementById("login-email").value.trim();
     const password = pass.value;
+    const deviceId = getDeviceId();
 
+    // 1️⃣ تحقق من السيرفر
+    const res = await fetch("/api/login",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ email, password, deviceId })
+    });
+
+    const data = await res.json();
+    if(!res.ok) throw data;
+
+    // 2️⃣ تسجيل دخول Firebase
     await signInWithEmailAndPassword(auth,email,password);
 
-    msg.textContent="✅ تم تسجيل الدخول بنجاح";
-    msg.className="message success";
-    msg.style.display="block";
+    msg.textContent = "✅ تم تسجيل الدخول بنجاح";
+    msg.className = "message success";
+    msg.style.display = "block";
 
-    setTimeout(()=>{
-      btn.disabled=false;
-      btn.innerHTML="تسجيل الدخول";
-      location.href="dashboard.html";
-    },1000);
+    setTimeout(()=> location.href="dashboard.html", 1000);
 
-  }catch{
+  }catch(err){
     attempts++;
 
-    if(attempts>=5){
+    let errorMsg = "بيانات الدخول غير صحيحة";
+
+    if(err?.code === "DEVICE_NOT_ALLOWED")
+      errorMsg = "🚫 هذا الجهاز غير مصرح له";
+
+    if(err?.code === "USER_BANNED")
+      errorMsg = "🚫 تم حظر الحساب";
+
+    if(attempts >= 5){
       lockUntil = Date.now() + 10*60*1000;
-      msg.textContent="🚫 تم تعطيل الزر 10 دقائق بسبب المحاولات المتكررة";
-      btn.disabled=true;
+      errorMsg = "🚫 محاولات كثيرة – تم الإيقاف 10 دقائق";
+      btn.disabled = true;
     }else{
-      msg.textContent=`⚠️ بيانات غير صحيحة (${attempts}/5)`;
-      btn.disabled=false;
+      btn.disabled = false;
     }
 
-    msg.className="message error";
-    msg.style.display="block";
-    btn.innerHTML="تسجيل الدخول";
+    showError(errorMsg);
+  }finally{
+    btn.innerHTML = "تسجيل الدخول";
   }
 };
+
+function showError(text){
+  msg.textContent = text;
+  msg.className = "message error";
+  msg.style.display = "block";
+}
 </script>
 
 </body>
