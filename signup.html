@@ -238,44 +238,34 @@ window.signup = async function(){
 
   try {
     statusEl.textContent = "⏳ جاري إنشاء الحساب...";
-    statusEl.className = "status";
-
     const userCred = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCred.user;
 
-  statusEl.textContent = "⏳ تهيئة المحفظة ونظام الإحالة...";
+    statusEl.textContent = "⏳ تهيئة المحفظة ونظام الإحالة...";
 
-const registerRes = await fetch('/api/register', {  
-  method: 'POST',  
-  headers: { 'Content-Type': 'application/json' },  
-  body: JSON.stringify({  
-    uid: user.uid,  
-    email,  
-    name: name,  
-    phone: phone,  
-    deviceId,  
-    referralCode  
-  })  
-});  
+    const registerRes = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uid: user.uid,
+        email,
+        name,
+        phone,
+        deviceId,
+        referralCode
+      })
+    });
 
-const registerRes = await fetch('/api/register', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    uid: user.uid,
-    email,
-    name,
-    phone,
-    deviceId,
-    referralCode
-  })
-});
-
-const registerData = await registerRes.json();
+    // حاول نقرأ JSON بأمان
+    let registerData = {};
+    try {
+        registerData = await registerRes.json();
+    } catch(e) {
+        registerData = { error: 'حدث خطأ في الخادم' };
+    }
 
     if (!registerRes.ok) {
         await deleteUser(user);
-        // عرض الرسالة القادمة من backend مباشرة
         statusEl.textContent = "❌ " + (registerData.error || registerData.message || 'فشل في تسجيل البيانات، حاول لاحقاً');
         statusEl.className = "status error";
         signupBtn.disabled = false;
@@ -284,15 +274,14 @@ const registerData = await registerRes.json();
 
     statusEl.textContent = "✅ تم التسجيل بنجاح!";
     statusEl.className = "status success";
-
     setTimeout(() => window.location.href = "dashboard.html", 1500);
 
-  } catch (err) {
-    statusEl.textContent = "❌ " + err.message;
+} catch (err) {
+    statusEl.textContent = "❌ " + (err.message || err);
     statusEl.className = "status error";
     signupBtn.disabled = false;
-  }
-};
+    }
+  } 
  </script>
 </body>
 </html>
