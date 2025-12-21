@@ -273,19 +273,26 @@ const registerRes = await fetch('/api/register', {
 
 const registerData = await registerRes.json();
 
-if (!registerRes.ok) {
-    await deleteUser(user); // حذف الحساب من Firebase Auth إذا فشل التسجيل في Backend
-    // التحقق من وجود جهاز مستخدم بالفعل
-    if(registerData.error && registerData.error === 'DEVICE_ALREADY_USED'){
-        statusEl.textContent = "❌ هذا الجهاز مستخدم بالفعل، يسمح بحساب واحد فقط لكل جهاز";
-    } else {
-        statusEl.textContent = "❌ " + (registerData.error || 'فشل في تسجيل البيانات، حاول لاحقاً');
+    if (!registerRes.ok) {
+        await deleteUser(user);
+        // عرض الرسالة القادمة من backend مباشرة
+        statusEl.textContent = "❌ " + (registerData.error || registerData.message || 'فشل في تسجيل البيانات، حاول لاحقاً');
+        statusEl.className = "status error";
+        signupBtn.disabled = false;
+        return;
     }
+
+    statusEl.textContent = "✅ تم التسجيل بنجاح!";
+    statusEl.className = "status success";
+
+    setTimeout(() => window.location.href = "dashboard.html", 1500);
+
+  } catch (err) {
+    statusEl.textContent = "❌ " + err.message;
     statusEl.className = "status error";
     signupBtn.disabled = false;
-    return;
-    }
-} 
-  </script>
+  }
+};
+ </script>
 </body>
 </html>
