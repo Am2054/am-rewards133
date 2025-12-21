@@ -229,63 +229,34 @@ window.signup = async function(){
       return;  
   }  
   
-  try {  
-    statusEl.textContent = "⏳ جاري إنشاء الحساب...";  
-    statusEl.className = "status";
+  window.signup = async function() {
+  // ... (تجميع البيانات والتحقق من كلمة المرور كالعادة) ...
 
-    const userCred = await createUserWithEmailAndPassword(auth, email, password);  
-    const user = userCred.user;  
-  
-    statusEl.textContent = "⏳ جاري تأمين المحفظة والحماية...";  
-  
-    const registerRes = await fetch('/api/register', {  
-      method: 'POST',  
-      headers: { 'Content-Type': 'application/json' },  
-      body: JSON.stringify({  
-        uid: user.uid,  
-        email,  
-        password, // إرسالها للباك إند ليتم تشفيرها بـ bcrypt
-        name,  
-        phone,  
-        deviceId,  
-        referralCode  
-      })  
-    });  
-  
-    let registerData = {};  
-    try {  
-        registerData = await registerRes.json();  
-    } catch (e) {  
-        registerData = { message: 'حدث خطأ في استجابة الخادم' };  
-    }  
-  
-    if (!registerRes.ok) {  
-        // حذف الحساب من Firebase إذا فشل السيرفر في التحقق (مثل تكرار الجهاز)
-        await deleteUser(user);  
-        
-        let errorMsg = registerData.message || registerData.error || 'فشل التسجيل';
-        if (registerData.code === "LIMIT_REACHED") errorMsg = "⚠️ محاولات كثيرة، انتظر 15 دقيقة";
-        if (registerData.code === "DEVICE_EXISTS") errorMsg = "❌ هذا الجهاز مسجل بحساب آخر بالفعل";
-
-        statusEl.textContent = "❌ " + errorMsg;  
-        statusEl.className = "status error";  
-        signupBtn.disabled = false;  
-        return;  
-    }  
-  
-    statusEl.textContent = "✅ تم بنجاح! جاري التوجيه...";  
-    statusEl.className = "status success";  
-    setTimeout(() => window.location.href = "dashboard.html", 1500);  
-  
-  } catch (err) {  
-    let safeMsg = err.message || err;
-    if (safeMsg.includes('email-already-in-use')) safeMsg = "هذا البريد مستخدم بالفعل";
+  try {
+    statusEl.textContent = "⏳ جاري معالجة طلبك...";
     
-    statusEl.textContent = "❌ " + safeMsg;  
-    statusEl.className = "status error";  
-    signupBtn.disabled = false;  
-  }  
-};  
+    const response = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, name, phone, deviceId, referralCode })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      statusEl.textContent = "✅ تم إنشاء الحساب بنجاح!";
+      // الآن سجل الدخول تلقائياً بالمتصفح لفتح الجلسة
+      await signInWithEmailAndPassword(auth, email, password);
+      window.location.href = "dashboard.html";
+    } else {
+      statusEl.textContent = "❌ " + data.message;
+      signupBtn.disabled = false;
+    }
+  } catch (err) {
+    statusEl.textContent = "❌ خطأ في الاتصال بالسيرفر";
+    signupBtn.disabled = false;
+  }
+};
 </script>  
 </body>  
 </html>
