@@ -1,6 +1,6 @@
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { getAuth } from "firebase-admin/auth"; // أضفنا هذا السطر
+import { getAuth } from "firebase-admin/auth";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
 
@@ -11,14 +11,34 @@ const signupLimiter = rateLimit({
   message: { code: "LIMIT_REACHED", message: "لقد حاولت كثيراً، يرجى المحاولة بعد 15 دقيقة" }
 });
 
-// ------------------- Firebase Init -------------------
+// ------------------- Firebase Init (الجزء المعدل) -------------------
 if (!getApps().length) {
-  const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
-  initializeApp({ credential: cert(serviceAccount) });
-}
-const db = getFirestore();
-const auth = getAuth(); // تعريف الـ Auth الخاص بالأدمن
+  try {
+    // جلب النص الخام للمفتاح وتأمين معالجته
+    let rawKey = process.env.FIREBASE_ADMIN_KEY;
+    
+    // إزالة أي مسافات زائدة أو أسطر قد تسبب خطأ في الـ JSON
+    if (rawKey) {
+      const serviceAccount = JSON.parse(rawKey.trim());
+      
+      // إصلاح مشكلة الـ Private Key في بيئات الاستضافة (تغيير \n إلى سطر حقيقي)
+      if (serviceAccount.private_key) {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      }
 
+      initializeApp({ credential: cert(serviceAccount) });
+    } else {
+      console.error("FIREBASE_ADMIN_KEY is missing in Environment Variables");
+    }
+  } catch (error) {
+    console.error("Firebase Init Error:", error.message);
+  }
+}
+
+const db = getFirestore();
+const auth = getAuth();
+
+// ------------------- توليد كود إحالة فريد -------------------
 async function generateUniqueReferralCode(tr) {
   let code, exists = true;
   while (exists) {
@@ -29,10 +49,16 @@ async function generateUniqueReferralCode(tr) {
   return code;
 }
 
+// ------------------- تسجيل المحاولات -------------------
 async function logSignupAttempt(data) {
-  await db.collection('signupLogs').add({ ...data, timestamp: FieldValue.serverTimestamp() });
+  try {
+    await db.collection('signupLogs').add({ ...data, timestamp: FieldValue.serverTimestamp() });
+  } catch (e) {
+    console.error("Log error:", e);
+  }
 }
 
+// ------------------- Handler التسجيل -------------------
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
@@ -52,15 +78,14 @@ export default async function handler(req, res) {
       });
     });
 
-    // 2. التحقق من الجهاز (أمان إضافي)
+    // 2. التحقق من الجهاز
     const deviceSnap = await db.collection("userDevices").where("deviceId", "==", deviceId).limit(1).get();
     if (!deviceSnap.empty) {
       await logSignupAttempt({ email, deviceId, ip, status: "DEVICE_EXISTS" });
       return res.status(403).json({ code: "DEVICE_EXISTS", message: "هذا الجهاز مسجل بالفعل" });
     }
 
-    // 3. إنشاء المستخدم في Firebase Auth (عن طريق السيرفر)
-    // هذا يمنع الخطأ الذي يظهر لك في الـ Frontend
+    // 3. إنشاء المستخدم في Firebase Auth
     let userRecord;
     try {
       userRecord = await auth.createUser({
@@ -77,7 +102,7 @@ export default async function handler(req, res) {
 
     const uid = userRecord.uid;
 
-    // 4. تنفيذ الـ Transaction لحفظ البيانات وإعداد الإحالة
+    // 4. تنفيذ الـ Transaction
     const result = await db.runTransaction(async (tr) => {
       let referredBy = null;
       let referrerRef = null;
@@ -125,7 +150,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, ...result });
 
   } catch (err) {
-    console.error("Signup Error:", err);
-    return res.status(500).json({ code: "SERVER_ERROR", message: "حدث خطأ في السيرفر، حاول لاحقاً" });
+    console.error("Signup Error Stack:", err);
+    return res.status(500).json({ code: "SERVER_ERROR", message: "حدث خطأ داخلي، راجع سجلات السيرفر" });
   }
 }
