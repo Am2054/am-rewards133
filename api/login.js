@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     const decoded = await auth.verifyIdToken(idToken);
     const uid = decoded.uid;
 
-    // ----------------- محاولات تسجيل الدخول -----------------
+    // ----------------- محاولات تسجيل الدخول (للزر) -----------------
     const attemptsRef = db.collection("loginAttempts").doc(deviceId);
     const attemptsSnap = await attemptsRef.get();
     let attemptsData = attemptsSnap.exists ? attemptsSnap.data() : {count:0,lastAttempt:0};
@@ -46,33 +46,44 @@ export default async function handler(req, res) {
     const user = userSnap.data();
     if(user.isBanned) return res.status(403).json({ message:"تم حظر الحساب" });
 
-    // ----------------- Device Check -----------------
-    const deviceQuery = await db.collection("userDevices")
+    // ----------------- Device Check (الربط المطلوب) -----------------
+    const deviceRef = db.collection("userDevices");
+    const deviceQuery = await deviceRef
       .where("uid","==",uid)
       .where("deviceId","==",deviceId)
       .limit(1).get();
 
     if(deviceQuery.empty){
-      const anyDevice = await db.collection("userDevices").where("uid","==",uid).limit(1).get();
+      const anyDevice = await deviceRef.where("uid","==",uid).limit(1).get();
+      
+      // إذا وجد جهاز آخر ولم يرسل المستخدم تأكيد الجهاز الجديد بعد
       if(!anyDevice.empty && !confirmNewDevice){
-        return res.status(403).json({
+        return res.status(200).json({
           requireConfirmation:true,
           message:"❌ أنت تقوم بتسجيل الدخول من جهاز جديد. هل تريد تأكيده؟"
         });
       }
-      await db.collection("userDevices").add({uid, deviceId, createdAt:FieldValue.serverTimestamp()});
+      // إضافة الجهاز في حالة عدم وجود أجهزة سابقة أو عند الضغط على تأكيد
+      await deviceRef.add({uid, deviceId, createdAt:FieldValue.serverTimestamp()});
     }
 
-    // ----------------- Reset attempts -----------------
+    // ----------------- نجاح الدخول وإعادة تصفير عداد الزر -----------------
     await attemptsRef.set({count:0,lastAttempt:0},{merge:true});
     await userRef.update({lastLogin:FieldValue.serverTimestamp()});
 
     return res.json({success:true});
 
   } catch(err) {
+    // في حالة الخطأ، نقوم بزيادة عداد محاولات الزر
+    const attemptsRef = db.collection("loginAttempts").doc(deviceId);
+    await attemptsRef.set({
+        count: FieldValue.increment(1),
+        lastAttempt: Date.now()
+    }, {merge:true});
+
     if(err.code === "auth/id-token-expired"){
       return res.status(401).json({message:"انتهت الجلسة، أعد تسجيل الدخول"});
     }
     return res.status(401).json({message:"جلسة غير صالحة"});
   }
-  }
+}
