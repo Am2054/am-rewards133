@@ -5,11 +5,14 @@ import rateLimit from "express-rate-limit";
 
 // ================= Rate Limit =================
 const loginLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
+  windowMs: 10 * 60 * 1000, // 10 دقائق
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { code: "LIMIT_REACHED", message: "محاولات كثيرة، انتظر 10 دقائق" }
+  message: {
+    code: "LIMIT_REACHED",
+    message: "محاولات كثيرة، انتظر 10 دقائق"
+  }
 });
 
 // ================= Firebase Init =================
@@ -24,7 +27,9 @@ const db = getFirestore();
 
 // ================= Handler =================
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ code: "METHOD_NOT_ALLOWED" });
+  if (req.method !== "POST") {
+    return res.status(405).json({ code: "METHOD_NOT_ALLOWED" });
+  }
 
   const { idToken, deviceId, confirmNewDevice } = req.body;
   const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress || "";
@@ -36,13 +41,17 @@ export default async function handler(req, res) {
   try {
     // ---------- Rate limit ----------
     await new Promise((resolve, reject) => {
-      loginLimiter(req, res, () => (res.headersSent ? reject({ code: "LIMIT_REACHED" }) : resolve()));
+      loginLimiter(req, res, () => {
+        if (res.headersSent) reject({ code: "LIMIT_REACHED" });
+        else resolve();
+      });
     });
 
     // ---------- Verify Firebase Token ----------
     let decoded;
-    try { decoded = await auth.verifyIdToken(idToken); } 
-    catch (err) {
+    try {
+      decoded = await auth.verifyIdToken(idToken);
+    } catch (err) {
       if (["auth/id-token-expired","auth/invalid-id-token","auth/argument-error"].includes(err.code)) {
         return res.status(401).json({ code: "SESSION_EXPIRED", message: "انتهت الجلسة، برجاء تسجيل الدخول مرة أخرى" });
       }
@@ -54,31 +63,39 @@ export default async function handler(req, res) {
     // ---------- User profile ----------
     const userRef = db.collection("users").doc(uid);
     const userSnap = await userRef.get();
+
     if (!userSnap.exists) return res.status(403).json({ code: "NO_PROFILE", message: "لا يوجد حساب مرتبط" });
 
     const user = userSnap.data();
     if (user.isBanned) return res.status(403).json({ code: "BANNED", message: "تم حظر الحساب" });
 
     // ---------- Device Check ----------
-    const deviceQuery = await db.collection("userDevices").where("uid","==",uid).where("deviceId","==",deviceId).limit(1).get();
-    const allDevicesQuery = await db.collection("userDevices").where("uid","==",uid).limit(1).get();
+    const deviceQuery = await db.collection("userDevices")
+      .where("uid","==",uid)
+      .where("deviceId","==",deviceId)
+      .limit(1)
+      .get();
 
     if (deviceQuery.empty) {
-      if (allDevicesQuery.empty) {
-        // أول جهاز → نسجله مباشرة
-        await db.collection("userDevices").add({ uid, deviceId, createdAt: FieldValue.serverTimestamp() });
+      // تحقق لو المستخدم عنده جهاز مسجل أصلاً
+      const existingDevices = await db.collection("userDevices")
+        .where("uid","==",uid)
+        .limit(1)
+        .get();
+
+      if (existingDevices.empty || confirmNewDevice) {
+        // سجل الجهاز الجديد مباشرة
+        await db.collection("userDevices").add({
+          uid,
+          deviceId,
+          createdAt: FieldValue.serverTimestamp()
+        });
       } else {
-        // جهاز جديد لحساب موجود
-        if (!confirmNewDevice) {
-          return res.status(200).json({
-            code: "CONFIRM_NEW_DEVICE",
-            message: "تم اكتشاف جهاز جديد. اضغط تأكيد لتسجيله.",
-            requireConfirmation: true
-          });
-        } else {
-          // تأكيد تسجيل الجهاز الجديد
-          await db.collection("userDevices").add({ uid, deviceId, createdAt: FieldValue.serverTimestamp() });
-        }
+        // جهاز مختلف مسجل مسبقًا → طلب تأكيد
+        return res.status(200).json({
+          requireConfirmation: true,
+          message: "انت تقوم بتسجيل الدخول من هاتف آخر، لن يستطيع هذا الهاتف إنشاء أي حساب جديد."
+        });
       }
     }
 
