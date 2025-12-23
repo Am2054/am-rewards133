@@ -146,7 +146,7 @@ function deviceId(){
   return id;
 }
 
-// ---------------- Login ----------------
+  // ---------------- Login ----------------
 async function login(confirm=false){
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>';
@@ -168,39 +168,46 @@ async function login(confirm=false){
 
     const data = await res.json();
 
+    // 1. إذا كان الزر محظور بسبب المحاولات (العداد)
     if(res.status===403 && data.remainingTime){
       startBlockTimer(data.remainingTime);
       return;
     }
 
+    // 2. إذا كانت البيانات صحيحة ولكن الجهاز جديد (الربط)
     if(data.requireConfirmation){
       confirmCard.style.display="block";
+      btn.disabled = false; // إعادة تفعيل الزر ليتمكن من الضغط بعد قراءة الرسالة
+      btn.innerHTML = "تسجيل الدخول";
       return;
     }
 
     if(!res.ok) throw data;
 
+    // 3. نجاح كامل
     show("✅ تم تسجيل الدخول بنجاح","success");
     setTimeout(()=>location.href="dashboard.html",1000);
 
   }catch(err){
     let message="❌ حدث خطأ غير متوقع";
+    // الحفاظ على Error Handling كما هو
     if(err.code){
       switch(err.code){
         case "auth/user-not-found": message="❌ لا يوجد حساب بهذا البريد الإلكتروني"; break;
         case "auth/wrong-password": message="❌ كلمة المرور غير صحيحة"; break;
         case "auth/invalid-credential": message="❌ البريد الإلكتروني أو كلمة المرور غير صحيحة"; break;
         case "auth/too-many-requests": message="⚠️ محاولات تسجيل دخول كثيرة، انتظر قليلًا"; break;
-        case "auth/network-request-failed": message="⚠️ تحقق من اتصال الإنترنت"; break;
         default: if(err.message) message="❌ "+err.message;
       }
+    } else if (err.message) {
+      message = "❌ " + err.message;
     }
     show(message,"error");
-  }finally{
     btn.disabled=false;
     btn.innerHTML="تسجيل الدخول";
   }
 }
+
 
 // ---------------- Block Timer ----------------
 let timerInterval;
