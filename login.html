@@ -96,6 +96,7 @@ input:focus{border-color:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,.5);}
   cursor:pointer;transition: transform .2s;
 }
 #confirm-btn:hover{transform: translateY(-2px);}
+#confirm-btn:disabled{opacity:.6;cursor:not-allowed;}
 </style>
 </head>
 
@@ -126,6 +127,7 @@ input:focus{border-color:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,.5);}
   <div id="confirm-card">
     <p>❗ أنت تقوم بتسجيل الدخول من جهاز جديد. هل تريد تأكيد الجهاز؟</p>
     <button id="confirm-btn">تأكيد الجهاز الجديد</button>
+    <p id="countdown" style="margin-top:8px;font-size:0.9rem;color:#cbd5f5;"></p>
   </div>
 </div>
 
@@ -133,6 +135,7 @@ input:focus{border-color:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,.5);}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+// ---------------- Firebase Config ----------------
 const firebaseConfig = {
   apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
   authDomain: "am--rewards.firebaseapp.com",
@@ -145,7 +148,7 @@ const firebaseConfig = {
 initializeApp(firebaseConfig);
 const auth = getAuth();
 
-// ---------------- UI ----------------
+// ---------------- UI Elements ----------------
 const form = document.getElementById("login-form");
 const btn = document.getElementById("btn");
 const msg = document.getElementById("msg");
@@ -153,30 +156,29 @@ const confirmCard = document.getElementById("confirm-card");
 const confirmBtn = document.getElementById("confirm-btn");
 const toggle = document.getElementById("toggle");
 const pass = document.getElementById("password");
+const countdown = document.getElementById("countdown");
 
 toggle.onclick = () => pass.type = pass.type === "password" ? "text" : "password";
 
-function deviceId(){ 
-  let id = localStorage.getItem("deviceId"); 
-  if(!id){ id = crypto.randomUUID(); localStorage.setItem("deviceId", id); } 
-  return id; 
+function deviceId(){
+  let id = localStorage.getItem("deviceId");
+  if(!id){ id = crypto.randomUUID(); localStorage.setItem("deviceId", id); }
+  return id;
 }
 
-// ---------------- Countdown Function ----------------
-function startCountdown(ms){
-  confirmBtn.disabled = true;
-  let remaining = ms;
-  const interval = setInterval(()=>{
-    const minutes = Math.floor(remaining / 60000);
-    const seconds = Math.floor((remaining % 60000)/1000);
-    confirmBtn.textContent = `⏳ انتظر ${minutes} : ${seconds}`;
-    remaining -= 1000;
-    if(remaining <= 0){
-      clearInterval(interval);
-      confirmBtn.disabled = false;
-      confirmBtn.textContent = "تأكيد الجهاز الجديد";
-    }
-  },1000);
+// ---------------- Countdown ----------------
+let timerInterval;
+function startCountdown(seconds){
+  clearInterval(timerInterval);
+  function update(){
+    let min = Math.floor(seconds/60);
+    let sec = seconds%60;
+    countdown.textContent = `⏱️ الرجاء الانتظار: ${min}:${sec.toString().padStart(2,'0')}`;
+    if(seconds<=0){ clearInterval(timerInterval); confirmBtn.disabled=false; countdown.textContent=""; return; }
+    seconds--;
+  }
+  update();
+  timerInterval = setInterval(update,1000);
 }
 
 // ---------------- Login Function ----------------
@@ -185,14 +187,17 @@ async function login(confirm=false){
   btn.innerHTML = '<span class="spinner"></span>';
   msg.style.display = "none";
   confirmCard.style.display = "none";
+  confirmBtn.disabled = false;
 
   try{
     const email = document.getElementById("email").value.trim();
     const password = pass.value;
 
-    const cred = await signInWithEmailAndPassword(auth,email,password);
+    // 🔐 Firebase Login
+    const cred = await signInWithEmailAndPassword(auth, email, password);
     const idToken = await cred.user.getIdToken(true);
 
+    // 🔗 Backend Login
     const res = await fetch("/api/login",{
       method:"POST",
       headers:{ "Content-Type":"application/json" },
@@ -201,14 +206,12 @@ async function login(confirm=false){
 
     const data = await res.json();
 
-    if(res.status===403 && data.remainingTime){
-      startCountdown(data.remainingTime);
-      show(data.message,"error");
-      return;
-    }
-
     if(data.requireConfirmation){
       confirmCard.style.display="block";
+      if(data.remainingTime){ 
+        confirmBtn.disabled = true; 
+        startCountdown(Math.floor(data.remainingTime/1000)); 
+      }
       return;
     }
 
@@ -218,17 +221,22 @@ async function login(confirm=false){
     setTimeout(()=>location.href="dashboard.html",1000);
 
   }catch(err){
-    let message="❌ حدث خطأ غير متوقع";
+    let message = "❌ حدث خطأ غير متوقع";
     if(err.code){
       switch(err.code){
-        case "auth/user-not-found": message="❌ لا يوجد حساب بهذا البريد الإلكتروني"; break;
-        case "auth/wrong-password": message="❌ كلمة المرور غير صحيحة"; break;
-        case "auth/invalid-credential": message="❌ البريد الإلكتروني أو كلمة المرور غير صحيحة"; break;
-        case "auth/too-many-requests": message="⚠️ محاولات تسجيل دخول كثيرة، انتظر قليلًا"; break;
-        case "auth/network-request-failed": message="⚠️ تحقق من اتصال الإنترنت"; break;
+        case "auth/user-not-found":
+          message = "❌ لا يوجد حساب بهذا البريد الإلكتروني"; break;
+        case "auth/wrong-password":
+          message = "❌ كلمة المرور غير صحيحة"; break;
+        case "auth/invalid-credential":
+          message = "❌ البريد الإلكتروني أو كلمة المرور غير صحيحة"; break;
+        case "auth/too-many-requests":
+          message = "⚠️ محاولات تسجيل دخول كثيرة، انتظر قليلًا"; break;
+        case "auth/network-request-failed":
+          message = "⚠️ تحقق من اتصال الإنترنت"; break;
         default: if(err.message) message="❌ "+err.message;
       }
-    }
+    } else if(err.message) message="❌ "+err.message;
     show(message,"error");
   }finally{
     btn.disabled=false;
@@ -246,4 +254,4 @@ function show(t,type){
 }
 </script>
 </body>
-</html>
+      </html>
