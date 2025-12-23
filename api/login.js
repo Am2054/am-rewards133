@@ -52,10 +52,28 @@ export default async function handler(req, res) {
     try {
       decoded = await auth.verifyIdToken(idToken);
     } catch (err) {
-      if (["auth/id-token-expired","auth/invalid-id-token","auth/argument-error"].includes(err.code)) {
-        return res.status(401).json({ code: "SESSION_EXPIRED", message: "انتهت الجلسة، برجاء تسجيل الدخول مرة أخرى" });
+      let message = "انتهت الجلسة، برجاء تسجيل الدخول مرة أخرى";
+      if (err.code) {
+        switch (err.code) {
+          case "auth/id-token-expired":
+            message = "انتهت الجلسة، يرجى تسجيل الدخول مجددًا";
+            break;
+          case "auth/invalid-id-token":
+          case "auth/argument-error":
+            message = "❌ بيانات الدخول غير صحيحة";
+            break;
+          case "auth/user-not-found":
+            message = "❌ لا يوجد حساب مرتبط بهذا البريد";
+            break;
+          case "auth/wrong-password":
+            message = "❌ كلمة المرور خاطئة";
+            break;
+          case "auth/too-many-requests":
+            message = "⚠️ عدد محاولات تسجيل الدخول كبير، انتظر قليلاً";
+            break;
+        }
       }
-      throw err;
+      return res.status(401).json({ code: "AUTH_ERROR", message });
     }
 
     const uid = decoded.uid;
@@ -64,38 +82,48 @@ export default async function handler(req, res) {
     const userRef = db.collection("users").doc(uid);
     const userSnap = await userRef.get();
 
-    if (!userSnap.exists) return res.status(403).json({ code: "NO_PROFILE", message: "لا يوجد حساب مرتبط" });
+    if (!userSnap.exists) {
+      return res.status(403).json({ code: "NO_PROFILE", message: "لا يوجد حساب مرتبط" });
+    }
 
     const user = userSnap.data();
-    if (user.isBanned) return res.status(403).json({ code: "BANNED", message: "تم حظر الحساب" });
+    if (user.isBanned) {
+      return res.status(403).json({ code: "BANNED", message: "تم حظر الحساب" });
+    }
 
     // ---------- Device Check ----------
-    const deviceQuery = await db.collection("userDevices")
-      .where("uid","==",uid)
-      .where("deviceId","==",deviceId)
+    const deviceQuery = await db
+      .collection("userDevices")
+      .where("uid", "==", uid)
+      .where("deviceId", "==", deviceId)
       .limit(1)
       .get();
 
     if (deviceQuery.empty) {
-      // تحقق لو المستخدم عنده جهاز مسجل أصلاً
-      const existingDevices = await db.collection("userDevices")
-        .where("uid","==",uid)
-        .limit(1)
-        .get();
+      const allDevicesQuery = await db.collection("userDevices").where("uid", "==", uid).limit(1).get();
 
-      if (existingDevices.empty || confirmNewDevice) {
-        // سجل الجهاز الجديد مباشرة
+      if (allDevicesQuery.empty) {
+        // تسجيل أول جهاز تلقائيًا
         await db.collection("userDevices").add({
           uid,
           deviceId,
           createdAt: FieldValue.serverTimestamp()
         });
       } else {
-        // جهاز مختلف مسجل مسبقًا → طلب تأكيد
-        return res.status(200).json({
-          requireConfirmation: true,
-          message: "انت تقوم بتسجيل الدخول من هاتف آخر، لن يستطيع هذا الهاتف إنشاء أي حساب جديد."
-        });
+        // عنده جهاز مختلف مسجل مسبقًا
+        if (confirmNewDevice) {
+          await db.collection("userDevices").add({
+            uid,
+            deviceId,
+            createdAt: FieldValue.serverTimestamp()
+          });
+        } else {
+          return res.status(403).json({
+            code: "NEW_DEVICE",
+            requireConfirmation: true,
+            message: "❌ أنت تقوم بتسجيل الدخول من هاتف آخر. هل تريد تأكيد الجهاز الجديد؟"
+          });
+        }
       }
     }
 
@@ -113,4 +141,4 @@ export default async function handler(req, res) {
     if (err?.code === "LIMIT_REACHED") return res.status(429).json(err);
     return res.status(500).json({ code: "SERVER_ERROR", message: "خطأ داخلي" });
   }
-    }
+      }
