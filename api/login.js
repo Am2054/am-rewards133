@@ -28,13 +28,13 @@ const db = getFirestore();
 // ================= Handler =================
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ code: "METHOD_NOT_ALLOWED" });
+    return res.status(405).json({ code: "METHOD_NOT_ALLOWED", message: "طريقة غير مسموح بها" });
   }
 
-  const { idToken, deviceId, confirmNewDevice } = req.body;
+  const { email, password, deviceId, confirmNewDevice } = req.body;
   const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress || "";
 
-  if (!idToken || !deviceId) {
+  if (!email || !password || !deviceId) {
     return res.status(400).json({ code: "MISSING_DATA", message: "بيانات غير مكتملة" });
   }
 
@@ -47,41 +47,38 @@ export default async function handler(req, res) {
       });
     });
 
-    // ---------- Verify Firebase Token ----------
-    let decoded;
+    // ---------- Firebase Sign In ----------
+    let userRecord;
     try {
-      decoded = await auth.verifyIdToken(idToken);
-    } catch (err) {
-      let message = "انتهت الجلسة، برجاء تسجيل الدخول مرة أخرى";
-      if (err.code) {
-        switch (err.code) {
-          case "auth/id-token-expired":
-            message = "انتهت الجلسة، يرجى تسجيل الدخول مجددًا";
-            break;
-          case "auth/invalid-id-token":
-          case "auth/argument-error":
-            message = "❌ بيانات الدخول غير صحيحة";
-            break;
-          case "auth/user-not-found":
-            message = "❌ لا يوجد حساب مرتبط بهذا البريد";
-            break;
-          case "auth/wrong-password":
-            message = "❌ كلمة المرور خاطئة";
-            break;
-          case "auth/too-many-requests":
-            message = "⚠️ عدد محاولات تسجيل الدخول كبير، انتظر قليلاً";
-            break;
+      // Firebase Admin SDK لا يدعم تسجيل الدخول بالكلمة مباشرة
+      // لذلك نستخدم طريقة بديلة: نبحث عن المستخدم بالـ email
+      userRecord = await auth.getUserByEmail(email);
+      // بعدين نتحقق من كلمة المرور باستخدام Firebase Auth REST API
+      const apiKey = process.env.FIREBASE_API_KEY; // مفتاح API الخاص بمشروع Firebase
+      const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, returnSecureToken: true })
+      });
+      const data = await r.json();
+      if (data.error) {
+        let msg = "فشل تسجيل الدخول";
+        switch (data.error.message) {
+          case "EMAIL_NOT_FOUND": msg = "❌ لا يوجد حساب مرتبط بهذا البريد"; break;
+          case "INVALID_PASSWORD": msg = "❌ كلمة المرور خاطئة"; break;
+          case "TOO_MANY_ATTEMPTS_TRY_LATER": msg = "⚠️ عدد محاولات تسجيل الدخول كبير، انتظر قليلاً"; break;
         }
+        return res.status(401).json({ code: "AUTH_ERROR", message: msg });
       }
-      return res.status(401).json({ code: "AUTH_ERROR", message });
+    } catch(err){
+      return res.status(401).json({ code:"AUTH_ERROR", message:"❌ بيانات الدخول غير صحيحة" });
     }
 
-    const uid = decoded.uid;
+    const uid = userRecord.uid;
 
     // ---------- User profile ----------
     const userRef = db.collection("users").doc(uid);
     const userSnap = await userRef.get();
-
     if (!userSnap.exists) {
       return res.status(403).json({ code: "NO_PROFILE", message: "لا يوجد حساب مرتبط" });
     }
@@ -101,7 +98,6 @@ export default async function handler(req, res) {
 
     if (deviceQuery.empty) {
       const allDevicesQuery = await db.collection("userDevices").where("uid", "==", uid).limit(1).get();
-
       if (allDevicesQuery.empty) {
         // تسجيل أول جهاز تلقائيًا
         await db.collection("userDevices").add({
@@ -110,7 +106,6 @@ export default async function handler(req, res) {
           createdAt: FieldValue.serverTimestamp()
         });
       } else {
-        // عنده جهاز مختلف مسجل مسبقًا
         if (confirmNewDevice) {
           await db.collection("userDevices").add({
             uid,
@@ -141,4 +136,4 @@ export default async function handler(req, res) {
     if (err?.code === "LIMIT_REACHED") return res.status(429).json(err);
     return res.status(500).json({ code: "SERVER_ERROR", message: "خطأ داخلي" });
   }
-      }
+    }
