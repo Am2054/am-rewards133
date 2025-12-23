@@ -95,26 +95,19 @@ input:focus{border-color:#38bdf8}
   <button id="confirm-btn">تأكيد الجهاز الجديد</button>
 </div>
 
-<!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+// ---------------- Firebase Config ----------------
 const firebaseConfig = {
-  apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+  apiKey: "API_KEY",
   authDomain: "am--rewards.firebaseapp.com",
-  projectId: "am--rewards",
-  storageBucket: "am--rewards.appspot.com",
-  messagingSenderId: "744783579735",
-  appId: "1:744783579735:web:45e00de9998893bbc9b112",
-  measurementId: "G-CV3GLT2TTJ"
 };
+initializeApp(firebaseConfig);
+const auth = getAuth();
 
-// 🔥 ده أهم سطر
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-
-// UI
+// ---------------- UI Elements ----------------
 const form = document.getElementById("login-form");
 const btn = document.getElementById("btn");
 const msg = document.getElementById("msg");
@@ -124,12 +117,14 @@ const pass = document.getElementById("password");
 
 toggle.onclick = () => pass.type = pass.type === "password" ? "text" : "password";
 
+// ---------------- Device ID ----------------
 function deviceId(){
   let id = localStorage.getItem("deviceId");
   if(!id){ id = crypto.randomUUID(); localStorage.setItem("deviceId", id); }
   return id;
 }
 
+// ---------------- Login Function ----------------
 async function login(confirm=false){
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>';
@@ -144,7 +139,7 @@ async function login(confirm=false){
     const cred = await signInWithEmailAndPassword(auth, email, password);
     const idToken = await cred.user.getIdToken(true);
 
-    // 🔗 Backend
+    // 🔗 Backend Login
     const res = await fetch("/api/login",{
       method:"POST",
       headers:{ "Content-Type":"application/json" },
@@ -159,33 +154,38 @@ async function login(confirm=false){
       return;
     }
 
-    if(!res.ok) throw new Error(data.message);
+    if(!res.ok) throw data;
 
     show("✅ تم تسجيل الدخول بنجاح","success");
     setTimeout(()=>location.href="dashboard.html",1000);
 
-}catch(err){
-  let message = "❌ حدث خطأ غير متوقع";
+  }catch(err){
+    // ---------------- Error Handling ----------------
+    let message = "❌ حدث خطأ غير متوقع";
 
-  if (err.code) {
-    switch (err.code) {
-      case "auth/user-not-found":
-        message = "❌ لا يوجد حساب بهذا البريد الإلكتروني";
-        break;
-      case "auth/wrong-password":
-        message = "❌ كلمة المرور غير صحيحة";
-        break;
-      case "auth/invalid-credential":
-        message = "❌ البريد الإلكتروني أو كلمة المرور غير صحيحة";
-        break;
-      case "auth/too-many-requests":
-        message = "⚠️ محاولات تسجيل دخول كثيرة، انتظر قليلًا";
-        break;
-      case "auth/network-request-failed":
-        message = "⚠️ تحقق من اتصال الإنترنت";
-        break;
+    if(err.code){
+      switch(err.code){
+        case "auth/user-not-found":
+          message = "❌ لا يوجد حساب بهذا البريد الإلكتروني";
+          break;
+        case "auth/wrong-password":
+          message = "❌ كلمة المرور غير صحيحة";
+          break;
+        case "auth/invalid-credential":
+          message = "❌ البريد الإلكتروني أو كلمة المرور غير صحيحة";
+          break;
+        case "auth/too-many-requests":
+          message = "⚠️ محاولات تسجيل دخول كثيرة، انتظر قليلًا";
+          break;
+        case "auth/network-request-failed":
+          message = "⚠️ تحقق من اتصال الإنترنت";
+          break;
+        default:
+          if(err.message) message = "❌ "+err.message;
+      }
     }
-  showMessage(message, "error");
+
+    show(message,"error");
   }finally{
     btn.disabled=false;
     btn.innerHTML="تسجيل الدخول";
@@ -196,7 +196,7 @@ form.onsubmit = e => { e.preventDefault(); login(); };
 confirmBtn.onclick = () => login(true);
 
 function show(t,type){
-  msg.textContent=t;
+  msg.textContent = t;
   msg.className="message "+type;
   msg.style.display="block";
 }
