@@ -11,79 +11,76 @@ if (!getApps().length) {
 const auth = getAuth();
 const db = getFirestore();
 
-const MAX_ATTEMPTS = 5;
-const BLOCK_DURATION = 10*60*1000; // 10 دقائق
+const MAX_ATTEMPTS = 5;       
+const BLOCK_DURATION = 10 * 60 * 1000; // 10 دقائق
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ message:"Method not allowed" });
+  if (req.method !== "POST") return res.status(405).json({ message: "Method not allowed" });
 
   const { idToken, deviceId, confirmNewDevice } = req.body;
-  if (!idToken || !deviceId) return res.status(400).json({ message:"بيانات غير مكتملة" });
+  if (!idToken || !deviceId) return res.status(400).json({ message: "بيانات غير مكتملة" });
 
   try {
-    // ----------------- تحقق من Token -----------------
     const decoded = await auth.verifyIdToken(idToken);
     const uid = decoded.uid;
 
-    // ----------------- محاولات تسجيل الدخول (للزر) -----------------
-    const attemptsRef = db.collection("loginAttempts").doc(deviceId);
-    const attemptsSnap = await attemptsRef.get();
-    let attemptsData = attemptsSnap.exists ? attemptsSnap.data() : {count:0,lastAttempt:0};
-    const now = Date.now();
-    const elapsed = now - (attemptsData.lastAttempt || 0);
+    const userRef = db.collection("users").doc(uid);
+    const userSnap = await userRef.get();
+    if (!userSnap.exists) return res.status(403).json({ message: "لا يوجد حساب مرتبط" });
+    const user = userSnap.data();
+    if (user.isBanned) return res.status(403).json({ message: "تم حظر الحساب" });
 
-    if(attemptsData.count >= MAX_ATTEMPTS && elapsed < BLOCK_DURATION){
-      return res.status(403).json({
-        message:"⚠️ تم تعطيل تسجيل الدخول مؤقتًا.",
-        remainingTime: BLOCK_DURATION - elapsed
+    // ---------- Attempts Tracking ----------
+    const attemptsRef = db.collection("loginAttempts").doc(uid);
+    const attemptsSnap = await attemptsRef.get();
+    let attemptsData = attemptsSnap.exists ? attemptsSnap.data() : { count: 0, blockedAt: null };
+
+    if (attemptsData.blockedAt) {
+      const elapsed = Date.now() - attemptsData.blockedAt.toMillis();
+      if (elapsed < BLOCK_DURATION) {
+        return res.status(403).json({
+          message: "⚠️ تم تعطيل تأكيد الجهاز مؤقتًا.",
+          remainingTime: BLOCK_DURATION - elapsed
+        });
+      } else {
+        attemptsData = { count: 0, blockedAt: null };
+      }
+    }
+
+    // ---------- Device Check ----------
+    const deviceQuery = await db
+      .collection("userDevices")
+      .where("uid", "==", uid)
+      .where("deviceId", "==", deviceId)
+      .limit(1)
+      .get();
+
+    if (deviceQuery.empty) {
+      const anyDevice = await db.collection("userDevices").where("uid", "==", uid).limit(1).get();
+      if (!anyDevice.empty && !confirmNewDevice) {
+        attemptsData.count = (attemptsData.count || 0) + 1;
+        if (attemptsData.count >= MAX_ATTEMPTS) attemptsData.blockedAt = FieldValue.serverTimestamp();
+        await attemptsRef.set(attemptsData, { merge: true });
+
+        return res.status(403).json({
+          requireConfirmation: true,
+          message: "❌ أنت تقوم بتسجيل الدخول من جهاز جديد. هل تريد تأكيده؟",
+          attempts: attemptsData.count,
+          remainingTime: attemptsData.blockedAt ? BLOCK_DURATION : 0
+        });
+      }
+
+      await db.collection("userDevices").add({
+        uid, deviceId, createdAt: FieldValue.serverTimestamp()
       });
     }
 
-    // ----------------- User profile -----------------
-    const userRef = db.collection("users").doc(uid);
-    const userSnap = await userRef.get();
-    if(!userSnap.exists) return res.status(403).json({ message:"لا يوجد حساب مرتبط" });
-    const user = userSnap.data();
-    if(user.isBanned) return res.status(403).json({ message:"تم حظر الحساب" });
+    await userRef.update({ lastLogin: FieldValue.serverTimestamp() });
+    await attemptsRef.set({ count: 0, blockedAt: null }, { merge: true });
 
-    // ----------------- Device Check (الربط المطلوب) -----------------
-    const deviceRef = db.collection("userDevices");
-    const deviceQuery = await deviceRef
-      .where("uid","==",uid)
-      .where("deviceId","==",deviceId)
-      .limit(1).get();
+    return res.json({ success: true });
 
-    if(deviceQuery.empty){
-      const anyDevice = await deviceRef.where("uid","==",uid).limit(1).get();
-      
-      // إذا وجد جهاز آخر ولم يرسل المستخدم تأكيد الجهاز الجديد بعد
-      if(!anyDevice.empty && !confirmNewDevice){
-        return res.status(200).json({
-          requireConfirmation:true,
-          message:"❌ أنت تقوم بتسجيل الدخول من جهاز جديد. هل تريد تأكيده؟"
-        });
-      }
-      // إضافة الجهاز في حالة عدم وجود أجهزة سابقة أو عند الضغط على تأكيد
-      await deviceRef.add({uid, deviceId, createdAt:FieldValue.serverTimestamp()});
-    }
-
-    // ----------------- نجاح الدخول وإعادة تصفير عداد الزر -----------------
-    await attemptsRef.set({count:0,lastAttempt:0},{merge:true});
-    await userRef.update({lastLogin:FieldValue.serverTimestamp()});
-
-    return res.json({success:true});
-
-  } catch(err) {
-    // في حالة الخطأ، نقوم بزيادة عداد محاولات الزر
-    const attemptsRef = db.collection("loginAttempts").doc(deviceId);
-    await attemptsRef.set({
-        count: FieldValue.increment(1),
-        lastAttempt: Date.now()
-    }, {merge:true});
-
-    if(err.code === "auth/id-token-expired"){
-      return res.status(401).json({message:"انتهت الجلسة، أعد تسجيل الدخول"});
-    }
-    return res.status(401).json({message:"جلسة غير صالحة"});
+  } catch (err) {
+    return res.status(401).json({ message: "جلسة غير صالحة" });
   }
-}
+  }
