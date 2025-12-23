@@ -191,7 +191,7 @@ function getDeviceId(){
 }
 
 // ---------------- Login ----------------
-form.addEventListener("submit", async (e)=>{
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   btn.disabled = true;
@@ -202,7 +202,7 @@ form.addEventListener("submit", async (e)=>{
   const password = pass.value;
   const deviceId = getDeviceId();
 
-  try{
+  try {
     // 1️⃣ Firebase Login
     const cred = await signInWithEmailAndPassword(auth, email, password);
 
@@ -210,20 +210,26 @@ form.addEventListener("submit", async (e)=>{
     const idToken = await cred.user.getIdToken(true);
 
     // 3️⃣ Backend Verify
-    const res = await fetch("/api/login",{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ idToken, deviceId })
     });
 
     const data = await res.json();
-    if(!res.ok) throw new Error(data.message || "فشل تسجيل الدخول");
+    if (!res.ok) throw new Error(data.message || "فشل تسجيل الدخول");
 
-    showMessage("✅ تم تسجيل الدخول بنجاح","success");
-    setTimeout(()=>location.href="dashboard.html",1000);
+    showMessage("✅ تم تسجيل الدخول بنجاح", "success");
+    // الزر يرجع لحالته الطبيعية بعد 1 ثانية
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.innerHTML = "تسجيل الدخول";
+      location.href = "dashboard.html";
+    }, 1000);
 
-  }catch(err){
-    showMessage("❌ " + err.message,"error");
+  } catch (err) {
+    showMessage("❌ " + err.message, "error");
+    // الزر يرجع لحالته الطبيعية مباشرة بعد الفشل
     btn.disabled = false;
     btn.innerHTML = "تسجيل الدخول";
   }
