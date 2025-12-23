@@ -72,25 +72,38 @@ input:focus{border-color:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,.5);}
 }
 .message.error{background:#ffeaea;color:#b00000}
 .message.success{background:#e7ffea;color:#047857}
+
+/* ---------------- Confirm Card ---------------- */
 #confirm-card{
-  display:none;margin-top:16px;padding:20px;
-  background:#1e293b;border-radius:18px;
+  display:none;
+  margin-top:16px;
+  padding:20px;
+  background:#1e293b;
+  border-radius:18px;
   box-shadow:0 6px 20px rgba(0,0,0,.3);
-  color:#f8fafc;font-weight:700;text-align:center;
+  color:#f8fafc;
+  font-weight:700;
+  text-align:center;
 }
-#confirm-card p{margin-bottom:12px;font-size:1rem;}
+#confirm-card p{
+  margin-bottom:12px;
+  font-size:1rem;
+}
 #confirm-btn{
-  padding:12px 24px;border:none;border-radius:16px;
-  background:#38bdf8;color:#fff;font-weight:700;cursor:pointer;
-  transition: transform .2s;
+  padding:12px 24px;
+  border:none;border-radius:16px;
+  background:#38bdf8;color:#fff;font-weight:700;
+  cursor:pointer;transition: transform .2s;
 }
 #confirm-btn:hover{transform: translateY(-2px);}
 </style>
 </head>
+
 <body>
 <div class="center-box">
   <h2>Am Rewards</h2>
   <div class="gold-name">تسجيل الدخول</div>
+
   <div id="msg" class="message"></div>
 
   <form id="login-form">
@@ -98,6 +111,7 @@ input:focus{border-color:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,.5);}
       <label>البريد الإلكتروني</label>
       <input type="email" id="email" required />
     </div>
+
     <div class="form-row">
       <label>كلمة المرور</label>
       <div class="input-group">
@@ -105,6 +119,7 @@ input:focus{border-color:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,.5);}
         <button type="button" class="password-toggle" id="toggle">👁</button>
       </div>
     </div>
+
     <button type="submit" class="login-btn" id="btn">تسجيل الدخول</button>
   </form>
 
@@ -118,6 +133,7 @@ input:focus{border-color:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,.5);}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+// ---------------- Firebase Config ----------------
 const firebaseConfig = {
   apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
   authDomain: "am--rewards.firebaseapp.com",
@@ -130,6 +146,7 @@ const firebaseConfig = {
 initializeApp(firebaseConfig);
 const auth = getAuth();
 
+// ---------------- UI Elements ----------------
 const form = document.getElementById("login-form");
 const btn = document.getElementById("btn");
 const msg = document.getElementById("msg");
@@ -146,7 +163,29 @@ function deviceId(){
   return id;
 }
 
-  // ---------------- Login ----------------
+// ---------------- Timer Function ----------------
+function startTimer(duration){
+  let timer = duration;
+  show(`⚠️ محاولات تسجيل دخول كثيرة، انتظر ${formatTime(timer)}`,"error");
+  btn.disabled = true;
+  const interval = setInterval(()=>{
+    timer--;
+    show(`⚠️ محاولات تسجيل دخول كثيرة، انتظر ${formatTime(timer)}`,"error");
+    if(timer<=0){
+      clearInterval(interval);
+      btn.disabled=false;
+      show("يمكنك الآن تسجيل الدخول مجددًا","success");
+    }
+  },1000);
+}
+
+function formatTime(seconds){
+  const m = Math.floor(seconds/60);
+  const s = seconds%60;
+  return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+}
+
+// ---------------- Login Function ----------------
 async function login(confirm=false){
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>';
@@ -157,87 +196,54 @@ async function login(confirm=false){
     const email = document.getElementById("email").value.trim();
     const password = pass.value;
 
-    const cred = await signInWithEmailAndPassword(auth,email,password);
+    // 🔐 Firebase Login
+    const cred = await signInWithEmailAndPassword(auth, email, password);
     const idToken = await cred.user.getIdToken(true);
 
+    // 🔗 Backend Login
     const res = await fetch("/api/login",{
       method:"POST",
       headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({idToken,deviceId:deviceId(),confirmNewDevice:confirm})
+      body:JSON.stringify({ idToken, deviceId:deviceId(), confirmNewDevice:confirm })
     });
 
     const data = await res.json();
 
-    // 1. إذا كان الزر محظور بسبب المحاولات (العداد)
-    if(res.status===403 && data.remainingTime){
-      startBlockTimer(data.remainingTime);
-      return;
-    }
-
-    // 2. إذا كانت البيانات صحيحة ولكن الجهاز جديد (الربط)
     if(data.requireConfirmation){
       confirmCard.style.display="block";
-      btn.disabled = false; // إعادة تفعيل الزر ليتمكن من الضغط بعد قراءة الرسالة
-      btn.innerHTML = "تسجيل الدخول";
       return;
     }
 
     if(!res.ok) throw data;
 
-    // 3. نجاح كامل
     show("✅ تم تسجيل الدخول بنجاح","success");
     setTimeout(()=>location.href="dashboard.html",1000);
 
   }catch(err){
-    let message="❌ حدث خطأ غير متوقع";
-    // الحفاظ على Error Handling كما هو
+    let message = "❌ حدث خطأ غير متوقع";
     if(err.code){
       switch(err.code){
         case "auth/user-not-found": message="❌ لا يوجد حساب بهذا البريد الإلكتروني"; break;
         case "auth/wrong-password": message="❌ كلمة المرور غير صحيحة"; break;
         case "auth/invalid-credential": message="❌ البريد الإلكتروني أو كلمة المرور غير صحيحة"; break;
-        case "auth/too-many-requests": message="⚠️ محاولات تسجيل دخول كثيرة، انتظر قليلًا"; break;
+        case "auth/too-many-requests": 
+            startTimer(600); // 10 دقائق
+            break;
+        case "auth/network-request-failed": message="⚠️ تحقق من اتصال الإنترنت"; break;
         default: if(err.message) message="❌ "+err.message;
       }
-    } else if (err.message) {
-      message = "❌ " + err.message;
     }
     show(message,"error");
-    btn.disabled=false;
+  }finally{
     btn.innerHTML="تسجيل الدخول";
   }
 }
 
-
-// ---------------- Block Timer ----------------
-let timerInterval;
-function startBlockTimer(ms){
-  let remaining = ms;
-  btn.disabled = true;
-  updateBtnText();
-
-  clearInterval(timerInterval);
-  timerInterval = setInterval(()=>{
-    remaining -= 1000;
-    if(remaining <= 0){
-      clearInterval(timerInterval);
-      btn.disabled = false;
-      btn.innerHTML="تسجيل الدخول";
-    } else updateBtnText();
-  },1000);
-
-  function updateBtnText(){
-    const min = Math.floor(remaining/60000);
-    const sec = Math.floor((remaining%60000)/1000);
-    btn.innerHTML=`⚠️ انتظر ${min}:${sec<10?'0':''}${sec}`;
-  }
-}
-
-form.onsubmit = e=>{ e.preventDefault(); login(); };
-confirmBtn.onclick = ()=>login(true);
+form.onsubmit = e => { e.preventDefault(); login(); };
+confirmBtn.onclick = () => login(true);
 
 function show(t,type){
-  msg.textContent=t;
+  msg.textContent = t;
   msg.className="message "+type;
   msg.style.display="block";
 }
