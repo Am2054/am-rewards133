@@ -197,19 +197,16 @@ form.addEventListener("submit", async (e) => {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>';
   msg.style.display = "none";
+  confirmBtn.style.display = "none";
 
   const email = document.getElementById("login-email").value.trim();
   const password = pass.value;
   const deviceId = getDeviceId();
 
   try {
-    // 1️⃣ Firebase Login
     const cred = await signInWithEmailAndPassword(auth, email, password);
-
-    // 2️⃣ Get ID Token
     const idToken = await cred.user.getIdToken(true);
 
-    // 3️⃣ Backend Verify
     const res = await fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -217,10 +214,48 @@ form.addEventListener("submit", async (e) => {
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "فشل تسجيل الدخول");
 
+    if (data.requireConfirmation) {
+      showMessage(data.message, "error");
+      confirmBtn.style.display = "block";
+
+      confirmBtn.onclick = async () => {
+        confirmBtn.disabled = true;
+        confirmBtn.innerText = "جاري التأكيد...";
+        try {
+          const confirmRes = await fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idToken, deviceId, confirmNewDevice: true })
+          });
+
+          const confirmData = await confirmRes.json();
+
+          if (confirmData.success) {
+            showMessage("✅ تم تسجيل الجهاز الجديد بنجاح", "success");
+            setTimeout(() => location.href = "dashboard.html", 1000);
+          } else {
+            throw new Error(confirmData.message || "فشل تأكيد الجهاز");
+          }
+
+        } catch (err) {
+          showMessage("❌ " + err.message, "error");
+          confirmBtn.disabled = false;
+          confirmBtn.innerText = "تأكيد الجهاز الجديد";
+          btn.disabled = false;
+          btn.innerHTML = "تسجيل الدخول";
+        }
+      };
+
+      // زر الدخول يرجع لحالته الطبيعية مع ظهور زر التأكيد
+      btn.disabled = false;
+      btn.innerHTML = "تسجيل الدخول";
+      return;
+    }
+
+    if (!res.ok) throw new Error(data.message || "فشل تسجيل الدخول");
     showMessage("✅ تم تسجيل الدخول بنجاح", "success");
-    // الزر يرجع لحالته الطبيعية بعد 1 ثانية
+
     setTimeout(() => {
       btn.disabled = false;
       btn.innerHTML = "تسجيل الدخول";
@@ -229,7 +264,6 @@ form.addEventListener("submit", async (e) => {
 
   } catch (err) {
     showMessage("❌ " + err.message, "error");
-    // الزر يرجع لحالته الطبيعية مباشرة بعد الفشل
     btn.disabled = false;
     btn.innerHTML = "تسجيل الدخول";
   }
