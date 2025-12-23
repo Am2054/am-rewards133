@@ -11,30 +11,41 @@
 *{box-sizing:border-box}
 body{
   margin:0;font-family:"Cairo",sans-serif;min-height:100vh;
-  background:radial-gradient(circle at top,#020617,#000);
-  display:flex;align-items:center;justify-content:center;color:#f8fafc
+  background: linear-gradient(135deg, #0b0f27, #020617);
+  background-size: 400% 400%;
+  animation: gradientMove 15s ease infinite;
+  display:flex;align-items:center;justify-content:center;color:#f8fafc;
+}
+@keyframes gradientMove{
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
 }
 .center-box{
-  width:100%;max-width:420px;background:#020617;
+  width:100%;max-width:420px;background:#0f172a;
   border:1px solid rgba(56,189,248,.35);
-  border-radius:26px;padding:38px 26px;
-  text-align:center;box-shadow:0 0 40px rgba(56,189,248,.08)
+  border-radius:28px;padding:40px 30px;
+  text-align:center;box-shadow:0 8px 40px rgba(56,189,248,.15);
+  transition: transform .2s;
 }
-h2{color:#38bdf8;margin-bottom:6px;font-weight:900}
+.center-box:hover{transform: translateY(-4px);}
+h2{color:#38bdf8;margin-bottom:8px;font-weight:900}
 .gold-name{
   background:linear-gradient(90deg,#FFD369,#c9a93b);
-  color:#3b2f00;padding:10px 22px;
-  border-radius:14px;font-weight:900;margin-bottom:28px;display:inline-block
+  color:#3b2f00;padding:12px 24px;
+  border-radius:16px;font-weight:900;margin-bottom:30px;display:inline-block;
+  box-shadow:0 4px 12px rgba(0,0,0,.2);
 }
 .form-row{text-align:right;margin-bottom:18px}
 label{display:block;margin-bottom:6px;font-weight:700;color:#cbd5f5}
 .input-group{position:relative}
 input{
   width:100%;padding:14px 46px 14px 14px;
-  border-radius:14px;border:2px solid #334155;
-  background:#020617;color:#fff;font-size:1rem
+  border-radius:16px;border:2px solid #334155;
+  background:#020617;color:#fff;font-size:1rem;
+  transition:border-color .2s, box-shadow .2s;
 }
-input:focus{border-color:#38bdf8}
+input:focus{border-color:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,.5);}
 .password-toggle{
   position:absolute;left:12px;top:50%;
   transform:translateY(-50%);
@@ -42,11 +53,12 @@ input:focus{border-color:#38bdf8}
   font-size:1.1rem;color:#38bdf8
 }
 .login-btn{
-  width:100%;padding:14px;border-radius:16px;border:none;
+  width:100%;padding:14px;border-radius:18px;border:none;
   font-size:1.1rem;font-weight:900;cursor:pointer;
   background:linear-gradient(90deg,#FFD369,#bfa243);
-  color:#2e2300
+  color:#2e2300;transition: transform .2s;
 }
+.login-btn:hover{transform: translateY(-2px);}
 .login-btn:disabled{opacity:.6;cursor:not-allowed}
 .spinner{
   width:18px;height:18px;border:3px solid rgba(255,255,255,.3);
@@ -56,15 +68,34 @@ input:focus{border-color:#38bdf8}
 @keyframes spin{to{transform:rotate(360deg)}}
 .message{
   display:none;padding:12px;border-radius:12px;
-  font-weight:800;margin-bottom:16px
+  font-weight:800;margin-bottom:16px;
 }
 .message.error{background:#ffeaea;color:#b00000}
 .message.success{background:#e7ffea;color:#047857}
-#confirm-btn{
-  display:none;margin-top:12px;padding:12px 20px;
-  border:none;border-radius:12px;
-  background:#38bdf8;color:#fff;font-weight:700;cursor:pointer
+
+/* ---------------- Confirm Card ---------------- */
+#confirm-card{
+  display:none;
+  margin-top:16px;
+  padding:20px;
+  background:#1e293b;
+  border-radius:18px;
+  box-shadow:0 6px 20px rgba(0,0,0,.3);
+  color:#f8fafc;
+  font-weight:700;
+  text-align:center;
 }
+#confirm-card p{
+  margin-bottom:12px;
+  font-size:1rem;
+}
+#confirm-btn{
+  padding:12px 24px;
+  border:none;border-radius:16px;
+  background:#38bdf8;color:#fff;font-weight:700;
+  cursor:pointer;transition: transform .2s;
+}
+#confirm-btn:hover{transform: translateY(-2px);}
 </style>
 </head>
 
@@ -92,7 +123,10 @@ input:focus{border-color:#38bdf8}
     <button type="submit" class="login-btn" id="btn">تسجيل الدخول</button>
   </form>
 
-  <button id="confirm-btn">تأكيد الجهاز الجديد</button>
+  <div id="confirm-card">
+    <p>❗ أنت تقوم بتسجيل الدخول من جهاز جديد. هل تريد تأكيد الجهاز؟</p>
+    <button id="confirm-btn">تأكيد الجهاز الجديد</button>
+  </div>
 </div>
 
 <script type="module">
@@ -116,13 +150,13 @@ const auth = getAuth();
 const form = document.getElementById("login-form");
 const btn = document.getElementById("btn");
 const msg = document.getElementById("msg");
+const confirmCard = document.getElementById("confirm-card");
 const confirmBtn = document.getElementById("confirm-btn");
 const toggle = document.getElementById("toggle");
 const pass = document.getElementById("password");
 
 toggle.onclick = () => pass.type = pass.type === "password" ? "text" : "password";
 
-// ---------------- Device ID ----------------
 function deviceId(){
   let id = localStorage.getItem("deviceId");
   if(!id){ id = crypto.randomUUID(); localStorage.setItem("deviceId", id); }
@@ -134,7 +168,7 @@ async function login(confirm=false){
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>';
   msg.style.display = "none";
-  confirmBtn.style.display = "none";
+  confirmCard.style.display = "none";
 
   try{
     const email = document.getElementById("email").value.trim();
@@ -154,8 +188,7 @@ async function login(confirm=false){
     const data = await res.json();
 
     if(data.requireConfirmation){
-      show(data.message,"error");
-      confirmBtn.style.display="block";
+      confirmCard.style.display="block";
       return;
     }
 
@@ -165,31 +198,22 @@ async function login(confirm=false){
     setTimeout(()=>location.href="dashboard.html",1000);
 
   }catch(err){
-    // ---------------- Error Handling ----------------
     let message = "❌ حدث خطأ غير متوقع";
-
     if(err.code){
       switch(err.code){
         case "auth/user-not-found":
-          message = "❌ لا يوجد حساب بهذا البريد الإلكتروني";
-          break;
+          message = "❌ لا يوجد حساب بهذا البريد الإلكتروني"; break;
         case "auth/wrong-password":
-          message = "❌ كلمة المرور غير صحيحة";
-          break;
+          message = "❌ كلمة المرور غير صحيحة"; break;
         case "auth/invalid-credential":
-          message = "❌ البريد الإلكتروني أو كلمة المرور غير صحيحة";
-          break;
+          message = "❌ البريد الإلكتروني أو كلمة المرور غير صحيحة"; break;
         case "auth/too-many-requests":
-          message = "⚠️ محاولات تسجيل دخول كثيرة، انتظر قليلًا";
-          break;
+          message = "⚠️ محاولات تسجيل دخول كثيرة، انتظر قليلًا"; break;
         case "auth/network-request-failed":
-          message = "⚠️ تحقق من اتصال الإنترنت";
-          break;
-        default:
-          if(err.message) message = "❌ "+err.message;
+          message = "⚠️ تحقق من اتصال الإنترنت"; break;
+        default: if(err.message) message="❌ "+err.message;
       }
     }
-
     show(message,"error");
   }finally{
     btn.disabled=false;
@@ -201,10 +225,10 @@ form.onsubmit = e => { e.preventDefault(); login(); };
 confirmBtn.onclick = () => login(true);
 
 function show(t,type){
-  msg.textContent = t;
+  msg.textContent=t;
   msg.className="message "+type;
   msg.style.display="block";
 }
 </script>
 </body>
-    </html>
+  </html>
