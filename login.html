@@ -155,6 +155,9 @@ input:focus{border-color:#38bdf8}
   </div>
 </div>
 
+<!-- أضف هذا الزر داخل .center-box تحت form مباشرة -->
+<button type="button" id="confirm-btn" style="display:none;margin-top:12px;padding:12px 20px;border:none;border-radius:12px;background:#38bdf8;color:#fff;font-weight:700;cursor:pointer;">تأكيد الجهاز الجديد</button>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -174,6 +177,7 @@ const btn = document.getElementById("btn-login");
 const pass = document.getElementById("login-password");
 const msg = document.getElementById("msg");
 const toggle = document.getElementById("toggle");
+const confirmBtn = document.getElementById("confirm-btn");
 
 // ---------------- Toggle Password ----------------
 toggle.onclick = () => {
@@ -193,7 +197,6 @@ function getDeviceId(){
 // ---------------- Login ----------------
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
-
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>';
   msg.style.display = "none";
@@ -215,6 +218,7 @@ form.addEventListener("submit", async (e) => {
 
     const data = await res.json();
 
+    // ---------- Require Confirmation ----------
     if (data.requireConfirmation) {
       showMessage(data.message, "error");
       confirmBtn.style.display = "block";
@@ -222,60 +226,48 @@ form.addEventListener("submit", async (e) => {
       confirmBtn.onclick = async () => {
         confirmBtn.disabled = true;
         confirmBtn.innerText = "جاري التأكيد...";
-        try {
-          const confirmRes = await fetch("/api/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ idToken, deviceId, confirmNewDevice: true })
-          });
+        const confirmRes = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken, deviceId, confirmNewDevice: true })
+        });
+        const confirmData = await confirmRes.json();
 
-          const confirmData = await confirmRes.json();
-
-          if (confirmData.success) {
-            showMessage("✅ تم تسجيل الجهاز الجديد بنجاح", "success");
-            setTimeout(() => location.href = "dashboard.html", 1000);
-          } else {
-            throw new Error(confirmData.message || "فشل تأكيد الجهاز");
-          }
-
-        } catch (err) {
-          showMessage("❌ " + err.message, "error");
+        if (confirmData.success) {
+          showMessage("✅ تم تسجيل الجهاز الجديد بنجاح", "success");
+          setTimeout(() => location.href = "dashboard.html", 1000);
+        } else {
+          showMessage("❌ " + confirmData.message, "error");
           confirmBtn.disabled = false;
           confirmBtn.innerText = "تأكيد الجهاز الجديد";
-          btn.disabled = false;
-          btn.innerHTML = "تسجيل الدخول";
         }
       };
 
-      // زر الدخول يرجع لحالته الطبيعية مع ظهور زر التأكيد
       btn.disabled = false;
       btn.innerHTML = "تسجيل الدخول";
       return;
     }
 
     if (!res.ok) throw new Error(data.message || "فشل تسجيل الدخول");
-    showMessage("✅ تم تسجيل الدخول بنجاح", "success");
 
-    setTimeout(() => {
-      btn.disabled = false;
-      btn.innerHTML = "تسجيل الدخول";
-      location.href = "dashboard.html";
-    }, 1000);
+    showMessage("✅ تم تسجيل الدخول بنجاح", "success");
+    setTimeout(() => location.href = "dashboard.html", 1000);
 
   } catch (err) {
     showMessage("❌ " + err.message, "error");
+  } finally {
     btn.disabled = false;
     btn.innerHTML = "تسجيل الدخول";
   }
 });
 
-// ---------------- Message ----------------
+// ---------------- Show Message ----------------
 function showMessage(text,type){
   msg.textContent = text;
   msg.className = "message " + type;
   msg.style.display = "block";
 }
-</script>
+  </script>
 
 </body>
       </html>
