@@ -164,8 +164,30 @@ async function login(confirm=false){
     show("✅ تم تسجيل الدخول بنجاح","success");
     setTimeout(()=>location.href="dashboard.html",1000);
 
-  }catch(e){
-    show("❌ "+e.message,"error");
+}catch(err){
+  let message = "❌ حدث خطأ غير متوقع";
+
+  if (err.code) {
+    switch (err.code) {
+      case "auth/user-not-found":
+        message = "❌ لا يوجد حساب بهذا البريد الإلكتروني";
+        break;
+      case "auth/wrong-password":
+        message = "❌ كلمة المرور غير صحيحة";
+        break;
+      case "auth/invalid-credential":
+        message = "❌ البريد الإلكتروني أو كلمة المرور غير صحيحة";
+        break;
+      case "auth/too-many-requests":
+        message = "⚠️ محاولات تسجيل دخول كثيرة، انتظر قليلًا";
+        break;
+      case "auth/network-request-failed":
+        message = "⚠️ تحقق من اتصال الإنترنت";
+        break;
+    }
+  }
+
+  showMessage(message, "error");
   }finally{
     btn.disabled=false;
     btn.innerHTML="تسجيل الدخول";
