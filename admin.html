@@ -1,154 +1,172 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Panel | Am Rewards</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
-  
-  <style>
-    :root {
-        --color-primary: #f5c542; 
-        --color-secondary: #00fa9a; 
-        --color-danger: #ff6b6b; 
-        --bg-main: #020617;
-        --card-bg: rgba(30, 41, 59, 0.7);
-        --glass-border: rgba(245, 197, 66, 0.2);
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AM REWARDS | COMMAND CENTER</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-gold: #f5c542;
+            --neon-green: #00fa9a;
+            --neon-red: #ff4757;
+            --bg-black: #05070a;
+            --glass: rgba(15, 23, 42, 0.8);
+            --border: rgba(245, 197, 66, 0.3);
+        }
 
-    body {
-      margin: 0; font-family: 'Cairo', sans-serif;
-      background: radial-gradient(circle at top right, #1e293b, #020617);
-      color: #f1f6fb; min-height: 100vh; direction: rtl;
-    }
+        body {
+            margin: 0; font-family: 'Cairo', sans-serif;
+            background: var(--bg-black); color: #fff;
+            overflow-x: hidden; min-height: 100vh;
+        }
 
-    .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        /* تأثير الخلفية الديناميكي */
+        .bg-glow {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% -20%, #1e293b, transparent);
+            z-index: -1;
+        }
 
-    header {
-      background: var(--card-bg); backdrop-filter: blur(10px);
-      padding: 25px; text-align: center; border-radius: 20px;
-      border: 1px solid var(--glass-border); margin-bottom: 30px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
+        .container { max-width: 1200px; margin: 0 auto; padding: 30px; }
 
-    header h1 { 
-        margin: 0; font-family: 'Montserrat'; font-weight: 900; 
-        color: var(--color-primary); text-shadow: 0 0 15px rgba(245, 197, 66, 0.3);
-    }
+        /* رأس الصفحة السينمائي */
+        header {
+            text-align: center; margin-bottom: 50px; position: relative;
+        }
+        header h1 {
+            font-family: 'Orbitron', sans-serif; font-size: 2.5rem;
+            letter-spacing: 5px; color: var(--neon-gold);
+            text-shadow: 0 0 20px rgba(245, 197, 66, 0.5); margin: 0;
+        }
+        header p { color: #64748b; font-weight: 700; margin-top: 10px; }
 
-    /* كروت الإحصائيات المحسنة */
-    .dashboard {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;
-    }
+        /* كروت البيانات (Stats Grid) */
+        .grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px;
+        }
 
-    .card {
-      background: var(--card-bg); border-radius: 20px; padding: 25px;
-      border: 1px solid var(--glass-border); transition: 0.3s;
-      position: relative; overflow: hidden;
-    }
+        .stat-card {
+            background: var(--glass); border: 1px solid var(--border);
+            border-radius: 20px; padding: 30px; position: relative;
+            backdrop-filter: blur(15px); transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
 
-    .card:hover { transform: translateY(-5px); border-color: var(--color-primary); }
+        .stat-card:hover {
+            transform: translateY(-10px); border-color: var(--neon-gold);
+            box-shadow: 0 0 30px rgba(245, 197, 66, 0.1);
+        }
 
-    .card h3 { font-size: 0.9rem; color: #94a3b8; margin-bottom: 15px; }
-    
-    .main-value {
-      font-size: 2.2rem; font-weight: 900; font-family: 'Montserrat';
-      display: block; margin-bottom: 5px; color: #fff;
-    }
+        .stat-card h3 { font-size: 0.85rem; color: #94a3b8; margin: 0 0 15px 0; text-transform: uppercase; }
+        .stat-card .value { 
+            font-family: 'Orbitron', sans-serif; font-size: 2.2rem; 
+            display: block; color: #fff; 
+        }
+        .stat-card .footer-val { 
+            color: var(--neon-gold); font-size: 0.9rem; font-weight: 900; 
+            margin-top: 10px; display: block;
+        }
 
-    .sub-value { color: var(--color-primary); font-weight: 700; font-size: 0.9rem; }
+        /* الألوان المميزة */
+        .card-green { border-bottom: 4px solid var(--neon-green); }
+        .card-red { border-bottom: 4px solid var(--neon-red); }
 
-    /* الألوان الخاصة بالكروت */
-    .card.green { border-right: 5px solid var(--color-secondary); }
-    .card.red { border-right: 5px solid var(--color-danger); }
-    .card.gold { border-right: 5px solid var(--color-primary); }
+        /* نظام الأزرار */
+        .nav-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px; margin-top: 50px;
+        }
+        .nav-btn {
+            background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+            padding: 15px; border-radius: 12px; color: #fff; cursor: pointer;
+            font-family: 'Cairo'; font-weight: 900; transition: 0.3s;
+            text-align: center; text-decoration: none;
+        }
+        .nav-btn:hover { background: var(--neon-gold); color: #000; box-shadow: 0 0 20px var(--neon-gold); }
 
-    /* أزرار التحكم */
-    .btn-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 15px; margin-top: 40px;
-    }
+        /* واجهة الدخول المؤمنة */
+        #auth-gate {
+            position: fixed; inset: 0; background: var(--bg-black);
+            display: flex; align-items: center; justify-content: center; z-index: 9999;
+        }
+        .auth-box {
+            width: 100%; max-width: 400px; padding: 40px;
+            background: var(--glass); border: 1px solid var(--neon-gold);
+            border-radius: 30px; text-align: center;
+        }
+        .auth-box input {
+            width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 12px;
+            border: 1px solid #1e293b; background: #000; color: #fff; text-align: center;
+        }
+        .auth-box button {
+            width: 100%; padding: 15px; border-radius: 12px; border: none;
+            background: var(--neon-gold); color: #000; font-weight: 900; cursor: pointer;
+        }
 
-    .nav-btn {
-      background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
-      color: white; padding: 15px; border-radius: 15px; cursor: pointer;
-      font-family: 'Cairo'; font-weight: 700; transition: 0.2s;
-    }
-
-    .nav-btn:hover { background: var(--color-primary); color: #000; }
-
-    /* واجهة تسجيل الدخول */
-    #login-container {
-        max-width: 400px; margin: 100px auto; padding: 40px;
-        background: var(--card-bg); border-radius: 25px;
-        border: 1px solid var(--color-primary); text-align: center;
-    }
-
-    .login-input {
-        width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 12px;
-        border: 1px solid #334155; background: #0f172a; color: white; outline: none;
-    }
-
-    .login-btn {
-        width: 100%; padding: 15px; border-radius: 12px; border: none;
-        background: var(--color-primary); color: #000; font-weight: 900; cursor: pointer;
-    }
-
-    .error-box {
-        color: var(--color-danger); background: rgba(255, 107, 107, 0.1);
-        padding: 10px; border-radius: 10px; margin-top: 15px; font-size: 0.8rem;
-    }
-
-    .hidden { display: none !important; }
-  </style>
+        .loading-ring {
+            width: 50px; height: 50px; border: 3px solid rgba(245, 197, 66, 0.2);
+            border-top-color: var(--neon-gold); border-radius: 50%;
+            animation: spin 1s linear infinite; margin: 20px auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .hidden { display: none !important; }
+    </style>
 </head>
 <body>
 
-<div class="wrap">
-    <div id="login-section">
-        <div id="login-container">
-            <h2 style="color: var(--color-primary)">الدخول للإدارة 👑</h2>
-            <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 20px;">تنبيه: سيتم قفل الإدارة على أول جهاز يدخل الآن.</p>
-            <input type="email" id="email" class="login-input" placeholder="البريد الإلكتروني" value="amirfg992005@gmail.com">
-            <input type="password" id="pass" class="login-input" placeholder="كلمة المرور">
-            <button id="do-login" class="login-btn">تحقق من الهوية</button>
-            <div id="login-err" class="error-box hidden"></div>
+<div class="bg-glow"></div>
+
+<div id="auth-gate">
+    <div class="auth-box">
+        <h1 style="font-family: 'Orbitron'; color: var(--neon-gold); margin-bottom: 10px;">SECURE ACCESS</h1>
+        <p style="color: #64748b; font-size: 0.8rem; margin-bottom: 25px;">يتم الآن فحص بصمة الجهاز والـ IP الخاص بك...</p>
+        
+        <input type="email" id="adm-email" placeholder="ADMIN EMAIL" value="amirfg992005@gmail.com">
+        <input type="password" id="adm-pass" placeholder="PASSWORD">
+        <input type="password" id="adm-token" placeholder="SECRET ACCESS TOKEN">
+        
+        <button id="btn-unlock">فتح لوحة التحكم</button>
+        <p id="auth-msg" style="color: var(--neon-red); margin-top: 15px; font-weight: 700; font-size: 0.85rem;"></p>
+        
+        <div id="auth-loader" class="loading-ring hidden"></div>
+    </div>
+</div>
+
+<div id="main-admin" class="container hidden">
+    <header>
+        <h1>COMMAND CENTER</h1>
+        <p>مرحباً أيها المدير، جميع الأنظمة تعمل بشكل طبيعي</p>
+    </header>
+
+    <div class="grid">
+        <div class="stat-card">
+            <h3>المستخدمين النشطين</h3>
+            <span class="value" id="count-users">0</span>
+            <span class="footer-val">نمو مستمر 📈</span>
+        </div>
+        <div class="stat-card card-green">
+            <h3>إجمالي السيولة (نقاط)</h3>
+            <span class="value" id="count-points">0</span>
+            <span class="footer-val" id="val-egp">0.00 EGP</span>
+        </div>
+        <div class="stat-card card-red">
+            <h3>سحوبات قيد الانتظار</h3>
+            <span class="value" id="count-withdraws">0</span>
+            <span class="footer-val">تحتاج لمراجعة فورية ⚠️</span>
+        </div>
+        <div class="stat-card">
+            <h3>قوة الإحالات</h3>
+            <span class="value" id="count-referrals">0</span>
+            <span class="footer-val" id="ref-egp">0.00 EGP</span>
         </div>
     </div>
 
-    <div id="admin-content" class="hidden">
-        <header>
-            <h1>AM REWARDS ADMIN</h1>
-        </header>
-
-        <div class="dashboard">
-            <div class="card gold">
-                <h3>👥 إجمالي المستخدمين</h3>
-                <span id="stat-users" class="main-value">0</span>
-            </div>
-            <div class="card green">
-                <h3>💰 إجمالي نقاط المنصة</h3>
-                <span id="stat-points" class="main-value">0</span>
-                <span id="stat-points-egp" class="sub-value">0 EGP</span>
-            </div>
-            <div class="card red">
-                <h3>⏳ سحوبات معلقة</h3>
-                <span id="stat-pending" class="main-value">0</span>
-            </div>
-            <div class="card gold">
-                <h3>🔗 أرباح الإحالات</h3>
-                <span id="stat-ref-points" class="main-value">0</span>
-                <span id="stat-ref-egp" class="sub-value">0 EGP</span>
-            </div>
-        </div>
-
-        <div class="btn-grid">
-            <button class="nav-btn" onclick="location.href='users.html'">إدارة المستخدمين</button>
-            <button class="nav-btn" onclick="location.href='withdrawalsAdmin.html'">طلبات السحب</button>
-            <button class="nav-btn" onclick="location.href='tasksAdmin.html'">المهام والعروض</button>
-            <button class="nav-btn" onclick="location.href='review.html'">سجل العمليات</button>
-            <button class="nav-btn" style="border-color: var(--color-danger);" id="logout-btn">خروج آمن</button>
-        </div>
+    <div class="nav-grid">
+        <a href="users.html" class="nav-btn">👥 إدارة الأعضاء</a>
+        <a href="withdrawalsAdmin.html" class="nav-btn">💳 تنفيذ السحوبات</a>
+        <a href="tasksAdmin.html" class="nav-btn">⚙️ التحكم بالمهام</a>
+        <a href="logs.html" class="nav-btn">📜 سجل العمليات</a>
+        <button class="nav-btn" style="border-color: var(--neon-red); color: var(--neon-red);" id="btn-logout">خروج من النظام</button>
     </div>
 </div>
 
@@ -158,101 +176,93 @@
     import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards",
+        apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+        authDomain: "am--rewards.firebaseapp.com",
+        projectId: "am--rewards",
     };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // دالة إنشاء معرف فريد للجهاز (Hardware Fingerprint)
-    async function getBrowserId() {
-        const msgUint8 = new TextEncoder().encode(navigator.userAgent + navigator.language + screen.colorDepth);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-        return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    // 🔐 مفتاح الوصول الإضافي (غير كلمة السر)
+    const SECRET_ACCESS_TOKEN = "AM-992005-SECURE"; 
+
+    // بصمة الجهاز المتقدمة
+    async function generateFingerprint() {
+        const data = navigator.userAgent + screen.width + navigator.language;
+        const encoder = new TextEncoder();
+        const buffer = await crypto.subtle.digest('SHA-256', encoder.encode(data));
+        return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    const adminEmail = "amirfg992005@gmail.com";
+    const unlockBtn = document.getElementById('btn-unlock');
+    const authMsg = document.getElementById('auth-msg');
 
-    // منطق تسجيل الدخول مع حماية الـ IP والجهاز
-    document.getElementById('do-login').addEventListener('click', async () => {
-        const email = document.getElementById('email').value.trim();
-        const pass = document.getElementById('pass').value;
-        const errBox = document.getElementById('login-err');
-        const browserId = await getBrowserId();
+    unlockBtn.onclick = async () => {
+        const email = document.getElementById('adm-email').value;
+        const pass = document.getElementById('adm-pass').value;
+        const token = document.getElementById('adm-token').value;
+        const fingerprint = await generateFingerprint();
 
-        if(email !== adminEmail) {
-            errBox.textContent = "غير مصرح لك بالدخول";
-            errBox.classList.remove('hidden');
+        if (token !== SECRET_ACCESS_TOKEN) {
+            authMsg.textContent = "❌ مفتاح الوصول (Token) غير صحيح!";
             return;
         }
 
-        try {
-            const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-            const user = userCredential.user;
-
-            // فحص قفل الجهاز في قاعدة البيانات
-            const adminLockRef = doc(db, "system", "adminLock");
-            const lockSnap = await getDoc(adminLockRef);
-
-            if (!lockSnap.exists()) {
-                // أول تسجيل دخول: قفل الإدارة على هذا الجهاز للأبد
-                await setDoc(adminLockRef, {
-                    allowedDeviceId: browserId,
-                    lockedAt: new Date(),
-                    adminUid: user.uid
-                });
-            } else {
-                // التحقق من أن هذا الجهاز هو الجهاز المسجل
-                if (lockSnap.data().allowedDeviceId !== browserId) {
-                    await signOut(auth);
-                    errBox.textContent = "❌ خطأ أمني: لا يمكن الدخول إلا من الجهاز الأساسي المسجل للمدير.";
-                    errBox.classList.remove('hidden');
-                    return;
-                }
-            }
-        } catch (error) {
-            errBox.textContent = "خطأ في بيانات الدخول";
-            errBox.classList.remove('hidden');
-        }
-    });
-
-    // تحميل البيانات
-    async function refreshStats() {
-        const usersSnap = await getDocs(collection(db, "users"));
-        let totalPoints = 0;
-        let refPoints = 0;
+        document.getElementById('auth-loader').classList.remove('hidden');
         
-        usersSnap.forEach(u => {
-            totalPoints += (u.data().points || 0);
-            refPoints += (u.data().referralPoints || 0);
+        try {
+            const cred = await signInWithEmailAndPassword(auth, email, pass);
+            const adminLockRef = doc(db, "system", "admin_config");
+            const snap = await getDoc(adminLockRef);
+
+            if (!snap.exists()) {
+                // تسجيل الجهاز الأول
+                await setDoc(adminLockRef, { master_device: fingerprint, admin: email });
+            } else if (snap.data().master_device !== fingerprint) {
+                await signOut(auth);
+                authMsg.textContent = "❌ جهاز غير مصرح به! تم حظر الدخول.";
+                document.getElementById('auth-loader').classList.add('hidden');
+                return;
+            }
+            // إذا وصل لهنا، الدخول ناجح
+        } catch (e) {
+            authMsg.textContent = "❌ فشل التحقق: " + e.message;
+            document.getElementById('auth-loader').classList.add('hidden');
+        }
+    };
+
+    async function loadLiveStats() {
+        const users = await getDocs(collection(db, "users"));
+        const withdraws = await getDocs(query(collection(db, "withdrawals"), where("status", "==", "pending")));
+        
+        let pts = 0, refs = 0;
+        users.forEach(u => {
+            pts += (u.data().points || 0);
+            refs += (u.data().referralPoints || 0);
         });
 
-        const pendingSnap = await getDocs(query(collection(db, "withdrawals"), where("status", "==", "pending")));
-
-        document.getElementById('stat-users').textContent = usersSnap.size;
-        document.getElementById('stat-points').textContent = totalPoints.toLocaleString();
-        document.getElementById('stat-points-egp').textContent = (totalPoints * 0.07).toFixed(2) + " EGP";
-        document.getElementById('stat-pending').textContent = pendingSnap.size;
-        document.getElementById('stat-ref-points').textContent = refPoints.toLocaleString();
-        document.getElementById('stat-ref-egp').textContent = (refPoints * 0.07).toFixed(2) + " EGP";
+        document.getElementById('count-users').textContent = users.size;
+        document.getElementById('count-points').textContent = pts.toLocaleString();
+        document.getElementById('val-egp').textContent = (pts * 0.07).toFixed(2) + " EGP";
+        document.getElementById('count-withdraws').textContent = withdraws.size;
+        document.getElementById('count-referrals').textContent = refs.toLocaleString();
+        document.getElementById('ref-egp').textContent = (refs * 0.07).toFixed(2) + " EGP";
     }
 
     onAuthStateChanged(auth, (user) => {
-        if (user && user.email === adminEmail) {
-            document.getElementById('login-section').classList.add('hidden');
-            document.getElementById('admin-content').classList.remove('hidden');
-            refreshStats();
+        if (user && user.email === "amirfg992005@gmail.com") {
+            document.getElementById('auth-gate').classList.add('hidden');
+            document.getElementById('main-admin').classList.remove('hidden');
+            loadLiveStats();
         } else {
-            document.getElementById('login-section').classList.remove('hidden');
-            document.getElementById('admin-content').classList.add('hidden');
+            document.getElementById('auth-gate').classList.remove('hidden');
+            document.getElementById('main-admin').classList.add('hidden');
         }
     });
 
-    document.getElementById('logout-btn').onclick = () => signOut(auth);
-
+    document.getElementById('btn-logout').onclick = () => signOut(auth);
 </script>
 </body>
 </html>
