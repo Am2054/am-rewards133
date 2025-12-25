@@ -2,116 +2,150 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <title>نظام الإحالات | Am Rewards</title>
+  <title>نظام الإحالات | AM Rewards</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-1: #020617; --bg-2: #0f172a;
-      --glass: rgba(255, 255, 255, 0.03);
-      --accent: #00f2ff; --accent-2: #7000ff;
+      --neon-cyan: #00f2ff; --neon-purple: #7000ff; --bg-deep: #020617;
+      --glass-bg: rgba(15, 23, 42, 0.7); --glass-border: rgba(255, 255, 255, 0.1);
+      --text-main: #f1f5f9; --muted: #94a3b8;
       --success: #22c55e; --danger: #f87171;
-      --text: #f1f5f9; --muted: #94a3b8;
     }
-    * { box-sizing: border-box; transition: 0.3s; }
+
+    * { box-sizing: border-box; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
     body {
-      margin: 0; padding: 0; font-family: "Cairo", sans-serif;
-      background: var(--bg-1); color: var(--text); min-height: 100vh;
-      background-image: radial-gradient(circle at 0% 0%, rgba(112, 0, 255, 0.1), transparent 40%);
+      margin: 0; padding: 0; font-family: 'Cairo', sans-serif;
+      background: var(--bg-deep); color: var(--text-main);
+      min-height: 100vh; overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(112, 0, 255, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(0, 242, 255, 0.15) 0%, transparent 40%);
     }
-    .wrap { max-width: 900px; margin: 0 auto; padding: 20px; }
-    
-    /* Header */
-    .brand { text-align: center; margin-bottom: 30px; }
-    .brand h1 { margin: 0; color: var(--accent); font-weight: 900; font-size: 28px; }
-    .brand p { color: var(--muted); margin-top: 5px; }
 
-    /* Stats */
-    .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+    body::after {
+      content: ""; position: fixed; inset: 0; z-index: -1;
+      background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
+      opacity: 0.2; pointer-events: none;
+    }
+
+    .container { max-width: 550px; margin: 20px auto; padding: 15px; }
+
+    .header { text-align: center; margin-bottom: 30px; }
+    .header h1 { 
+      font-weight: 900; font-size: 28px; color: var(--neon-cyan);
+      text-shadow: 0 0 20px rgba(0, 242, 255, 0.5); margin: 0;
+    }
+    .header p { color: var(--muted); font-size: 14px; margin-top: 5px; line-height: 1.6; }
+
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
     .stat-card {
-      background: var(--glass); border: 1px solid rgba(255,255,255,0.05);
-      border-radius: 20px; padding: 20px; text-align: center; backdrop-filter: blur(10px);
+      background: var(--glass-bg); border: 1px solid var(--glass-border);
+      border-radius: 20px; padding: 20px; text-align: center;
+      backdrop-filter: blur(15px); box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     }
-    .stat-card .label { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
-    .stat-card .value { font-size: 26px; font-weight: 900; color: #fff; }
+    .stat-card .label { font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+    .stat-card .value { font-family: 'Montserrat'; font-size: 24px; font-weight: 900; color: #fff; }
 
-    /* Ref Card */
-    .card {
-      background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 24px; padding: 25px; box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    .main-card {
+      background: linear-gradient(135deg, rgba(112, 0, 255, 0.05), rgba(0, 242, 255, 0.05));
+      border: 1px solid var(--glass-border); border-radius: 24px; padding: 25px;
+      backdrop-filter: blur(20px); position: relative; overflow: hidden;
     }
-    .ref-title { font-weight: 700; font-size: 14px; color: var(--muted); margin-bottom: 10px; }
-    .ref-code { font-size: 30px; font-weight: 900; color: var(--accent); letter-spacing: 4px; margin-bottom: 15px; }
-    
-    .ref-link-group { display: flex; gap: 10px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); }
-    .ref-link-box { flex: 1; padding: 12px; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: ltr; }
-    
-    .btn-copy { background: linear-gradient(45deg, var(--accent-2), var(--accent)); border: none; padding: 10px 20px; border-radius: 12px; color: #fff; font-weight: 900; cursor: pointer; }
-    .btn-copy:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(0, 242, 255, 0.3); }
 
-    /* Table */
-    .table-section { margin-top: 40px; }
-    .table-section h3 { font-size: 18px; color: var(--accent); margin-bottom: 15px; }
-    .table-container { overflow-x: auto; border-radius: 15px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); }
-    table { width: 100%; border-collapse: collapse; min-width: 500px; }
-    th { padding: 15px; text-align: right; font-size: 12px; color: var(--muted); background: rgba(255,255,255,0.02); }
-    td { padding: 15px; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.02); }
+    .code-title { font-size: 13px; color: var(--muted); margin-bottom: 10px; position: relative; }
+    .code-display { 
+      font-family: 'Montserrat'; font-size: 36px; font-weight: 900; 
+      color: var(--neon-cyan); letter-spacing: 5px; margin-bottom: 20px;
+      text-shadow: 0 0 15px rgba(0, 242, 255, 0.3); position: relative; text-align: center;
+    }
+
+    .link-box {
+      background: rgba(0, 0, 0, 0.4); border-radius: 16px; border: 1px solid var(--glass-border);
+      display: flex; align-items: center; padding: 5px; position: relative;
+    }
+    .link-text {
+      flex: 1; padding: 10px; font-size: 11px; color: var(--muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: ltr;
+    }
+    .copy-btn {
+      background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan));
+      border: none; border-radius: 12px; color: #fff; padding: 10px 20px;
+      font-weight: 900; cursor: pointer; font-size: 14px;
+    }
+
+    .table-section { margin-top: 35px; }
+    .table-section h2 { font-size: 18px; color: var(--neon-cyan); margin-bottom: 15px; }
+    .table-wrapper { 
+      background: var(--glass-bg); border-radius: 20px; border: 1px solid var(--glass-border); 
+      overflow: hidden; backdrop-filter: blur(10px);
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: rgba(255,255,255,0.03); padding: 15px; text-align: right; font-size: 12px; color: var(--muted); }
+    td { padding: 15px; font-size: 13px; border-bottom: 1px solid var(--glass-border); }
     
-    .tag { padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; }
-    .tag-bonus { background: rgba(0, 242, 255, 0.1); color: var(--accent); }
+    .friend-info { display: flex; flex-direction: column; }
+    .friend-name { font-weight: 700; color: #fff; }
+    .friend-status { font-size: 10px; margin-top: 2px; font-weight: 700; }
+    
+    .commission-tag { 
+      background: rgba(0, 242, 255, 0.1); color: var(--neon-cyan); 
+      padding: 4px 8px; border-radius: 8px; font-family: 'Montserrat'; font-weight: 700;
+    }
+    .expired { opacity: 0.4; filter: grayscale(1); }
 
     #toast {
-      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-      background: var(--success); color: #fff; padding: 12px 25px;
-      border-radius: 50px; font-weight: 700; visibility: hidden; opacity: 0; z-index: 1000;
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+      background: var(--neon-cyan); color: #000; padding: 12px 30px;
+      border-radius: 50px; font-weight: 900; visibility: hidden; opacity: 0; z-index: 1000;
     }
-    #toast.show { visibility: visible; opacity: 1; top: 40px; }
+    #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
   </style>
 </head>
 <body>
 
-<div class="wrap">
-  <div class="brand">
+<div class="container">
+  <div class="header">
     <h1>🚀 صاروخ الإحالات</h1>
-    <p>شارك الرابط واربح 10% كاش من كل سحب لصديقك</p>
+    <p>اربح 10% من أول 10 عمليات سحب<br>لكل صديق تقوم بدعوته للمنصة</p>
   </div>
 
-  <div class="summary">
+  <div class="stats-grid">
     <div class="stat-card">
       <div class="label">أصدقاء سجلوا</div>
       <div class="value" id="refCount">0</div>
     </div>
     <div class="stat-card">
-      <div class="label">إجمالي أرباحك</div>
-      <div class="value" id="refEarnings">0.00 ج</div>
+      <div class="label">أرباحك (ج.م)</div>
+      <div class="value" id="refEarnings">0.00</div>
     </div>
   </div>
 
-  <div class="card">
-    <div class="ref-title">كود الإحالة الخاص بك</div>
-    <div class="ref-code" id="userCode">------</div>
+  <div class="main-card">
+    <div class="code-title">كود الإحالة الخاص بك</div>
+    <div class="code-display" id="userCode">------</div>
     
-    <div class="ref-title">رابط الدعوة السريع</div>
-    <div class="ref-link-group">
-      <div class="ref-link-box" id="refLink">جارِ التحميل...</div>
-      <button class="btn-copy" onclick="copyRef()">نسخ</button>
+    <div class="code-title">رابط الدعوة المباشر</div>
+    <div class="link-box">
+      <div class="link-text" id="refLink">جارِ التحميل...</div>
+      <button class="copy-btn" onclick="copyRef()">نسخ</button>
     </div>
   </div>
 
   <div class="table-section">
-    <h3>👥 قائمة الأصدقاء (آخر المسجلين)</h3>
-    <div class="table-container">
+    <h2>👥 حالة أصدقائك</h2>
+    <div class="table-wrapper">
       <table>
         <thead>
           <tr>
             <th>الصديق</th>
-            <th>رصيد نقاطه</th>
-            <th>إجمالي مسحوباته</th>
-            <th>عمولتك منه</th>
+            <th>النقاط</th>
+            <th>العمولة</th>
           </tr>
         </thead>
         <tbody id="refTable">
-          <tr><td colspan="4" style="text-align:center; padding:30px; color:var(--muted);">جارِ جلب أصدقائك...</td></tr>
+          <tr><td colspan="3" style="text-align:center; padding:30px; color:var(--muted);">جارِ جلب أصدقائك...</td></tr>
         </tbody>
       </table>
     </div>
@@ -137,49 +171,50 @@
 
   onAuthStateChanged(auth, (user) => {
     if (user) {
-      // 1. جلب بيانات المستخدم وتحديث الواجهة
+      // 1. تحديث بيانات المستخدم
       onSnapshot(doc(db, "users", user.uid), (snap) => {
         if (!snap.exists()) return;
         const data = snap.data();
-        
         document.getElementById('userCode').textContent = data.referralCode || "------";
-        // جعل الرابط يوجه لصفحة التسجيل مع الكود
-        const fullLink = `${window.location.origin}/signup.html?ref=${data.referralCode}`;
-        document.getElementById('refLink').textContent = fullLink;
-        
-        // عرض إجمالي الأرباح المجمعة من حقل تم تحديثه بواسطة الإدارة أو السيستم
-        document.getElementById('refEarnings').textContent = `${(data.totalReferralEarnings || 0).toFixed(2)} ج`;
+        document.getElementById('refLink').textContent = `${window.location.origin}/signup.html?ref=${data.referralCode}`;
+        document.getElementById('refEarnings').textContent = (data.totalReferralEarnings || 0).toFixed(2);
         document.getElementById('refCount').textContent = data.referralCount || 0;
       });
 
-      // 2. جلب قائمة الأصدقاء المدعوين
-      const q = query(
-        collection(db, "users"), 
-        where("referredBy", "==", user.uid),
-        limit(20)
-      );
-
+      // 2. جلب قائمة المدعوين
+      const q = query(collection(db, "users"), where("referredBy", "==", user.uid), limit(25));
       onSnapshot(q, (snap) => {
         const tbody = document.getElementById('refTable');
         tbody.innerHTML = "";
         
         if (snap.empty) {
-          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:40px; color:var(--muted);">لم يسجل أحد بعد، ابدأ بالمشاركة الآن! 📢</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:30px; color:var(--muted);">شارك رابطك لتبدأ في جني الأرباح 📢</td></tr>`;
           return;
         }
 
         snap.forEach(docSnap => {
           const u = docSnap.data();
-          // الحسبة: العمولات المتوقعة هي 10% من إجمالي ما سحبه الصديق
-          const totalWithdrawn = u.withdrawn || 0;
-          const commission = totalWithdrawn * 0.10;
+          const bonusesUsed = u.referralBonusesCount || 0;
+          const remaining = 10 - bonusesUsed;
+          const isExpired = remaining <= 0;
+          const commission = (u.withdrawn || 0) * 0.10;
 
           tbody.innerHTML += `
             <tr>
-              <td style="font-weight:700;">${u.name || 'مستخدم جديد'}</td>
-              <td style="color:var(--accent);">${(u.points || 0).toLocaleString()}</td>
-              <td>${totalWithdrawn.toFixed(2)} ج</td>
-              <td><span class="tag tag-bonus">+ ${commission.toFixed(2)} ج</span></td>
+              <td>
+                <div class="friend-info">
+                  <span class="friend-name">${u.name || 'مستخدم جديد'}</span>
+                  <span class="friend-status" style="color: ${isExpired ? 'var(--danger)' : 'var(--success)'}">
+                    ${isExpired ? 'اكتملت الـ 10 سحبات' : `متبقي ${remaining} سحبات`}
+                  </span>
+                </div>
+              </td>
+              <td style="font-family:'Montserrat'; font-weight:700;">${(u.points || 0).toLocaleString()}</td>
+              <td>
+                <span class="commission-tag ${isExpired ? 'expired' : ''}">
+                  +${commission.toFixed(2)}
+                </span>
+              </td>
             </tr>`;
         });
       });
