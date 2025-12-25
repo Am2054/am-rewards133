@@ -38,24 +38,25 @@ export default async function handler(req, res) {
     userId = decodedToken.uid;
   } catch (err) {
     console.error("Firebase Auth Error:", err.message);
-    return res.status(401).json({ success: false, message: "جلسة العمل منتهية، يرجى تسجيل الدخول مجدداً." });
+    return res.status(401).json({ success: false, message: "رمز مصادقة غير صالح أو منتهي الصلاحية." });
   }
 
+  // ======== 2. البيانات الأمنية المضافة ========
   const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   const userAgent = req.headers['user-agent'] || 'Unknown Agent';
 
-  // ======== 3. التحقق من المدخلات ========
+  // ======== 3. التحقق من المدخلات وتحويل المبلغ ========
   const { amount: rawAmount, wallet } = req.body;
   const amount = Number(rawAmount); 
   
   if (isNaN(amount) || !wallet) { 
-    return res.status(400).json({ success: false, message: "بيانات السحب غير مكتملة." });
+    return res.status(400).json({ success: false, message: "البيانات المدخلة غير صالحة." });
   }
   if (amount < MIN_WITHDRAWAL) {
-    return res.status(400).json({ success: false, message: `أقل مبلغ للسحب هو ${MIN_WITHDRAWAL} جنيه.` });
+    return res.status(400).json({ success: false, message: `الحد الأدنى للسحب هو ${MIN_WITHDRAWAL} جنيه مصري.` });
   }
   if (!/^\d{11}$/.test(wallet)) {
-    return res.status(400).json({ success: false, message: "رقم المحفظة يجب أن يكون 11 رقماً." });
+    return res.status(400).json({ success: false, message: "رقم المحفظة غير صالح. يجب أن يتكون من 11 رقماً." });
   }
 
   try {
@@ -63,14 +64,14 @@ export default async function handler(req, res) {
       // ======== 4. جلب بيانات المستخدم ========
       const userRef = db.collection("users").doc(userId);
       const userSnap = await tr.get(userRef);
-      if (!userSnap.exists) throw new Error("لم يتم العثور على بيانات المستخدم.");
+      if (!userSnap.exists) throw new Error("لم يتم العثور على المستخدم.");
 
       const userData = userSnap.data();
       const currentPoints = userData.points || 0;
       const pointsNeeded = Math.ceil(amount / POINT_VALUE);
 
       if (currentPoints < pointsNeeded) {
-        throw new Error("رصيدك الحالي من النقاط لا يكفي لإتمام هذه العملية.");
+        throw new Error("نقاط غير كافية لإتمام هذا السحب.");
       }
 
       // ======== 5. التحقق من الحد اليومي وعدد العمليات ========
@@ -92,20 +93,18 @@ export default async function handler(req, res) {
         todayAmount += data.amount || 0;
       });
       
-      // إزالة شرط (hasPendingRequest) للسماح بسحوبات متعددة
-      
       if (todayOps >= MAX_OPS_PER_DAY) {
-        throw new Error(`عذراً، وصلت للحد الأقصى المسموح به يومياً وهو (${MAX_OPS_PER_DAY}) عمليات سحب.`);
+        throw new Error(`وصلت للحد الأقصى لعدد عمليات السحب اليومية (${MAX_OPS_PER_DAY} عملية).`);
       }
       if ((todayAmount + amount) > MAX_DAILY_AMOUNT) {
-        throw new Error(`لقد تجاوزت الحد المالي المسموح به للسحب يومياً وهو (${MAX_DAILY_AMOUNT}) جنيه.`);
+        throw new Error(`تجاوزت الحد الأقصى للمبلغ اليومي للسحب (${MAX_DAILY_AMOUNT} جنيه مصري).`);
       }
 
-      // ======== 6. تحديث بيانات المستخدم وإنشاء وثيقة السحب ========
-      tr.update(userRef, { 
+      // ======== 6. تجهيز تحديثات المستخدم وإنشاء وثيقة السحب ========
+      const userUpdates = { 
         points: FieldValue.increment(-pointsNeeded),
         withdrawn: FieldValue.increment(amount) 
-      });
+      };
 
       const withdrawalRef = db.collection("withdrawals").doc();
       const withdrawalData = {
@@ -120,23 +119,27 @@ export default async function handler(req, res) {
         userAgent: userAgent,
       };
 
-      // ======== 7. مكافأة الإحالة ========  
-      const { referredBy } = userData; 
-      if (referredBy) {  
+      // ======== 7. مكافأة الإحالة (أول 10 عمليات فقط) ========  
+      const { referredBy, referralBonusesCount = 0 } = userData; 
+      if (referredBy && referralBonusesCount < 10) {  
         withdrawalData.referredBy = referredBy;
         withdrawalData.referralBonusPercent = REFERRAL_BONUS_PERCENT;  
-        withdrawalData.referralPointsCalculated = Math.ceil((amount * REFERRAL_BONUS_PERCENT) / POINT_VALUE);  
+        withdrawalData.referralPointsCalculated = Math.ceil((amount * REFERRAL_BONUS_PERCENT) / POINT_VALUE);
+        
+        // زيادة عداد المكافآت للمستخدم الحالي
+        userUpdates.referralBonusesCount = FieldValue.increment(1);
       }  
         
+      tr.update(userRef, userUpdates);
       tr.set(withdrawalRef, withdrawalData);  
     });  
 
-    return res.status(200).json({ success: true, message: "✅ تم إرسال طلب السحب بنجاح. سيتم مراجعته قريباً." });
+    return res.status(200).json({ success: true, message: "✅ تم إرسال طلب السحب بنجاح. سيتم مراجعته خلال 24 ساعة." });
 
   } catch (err) {
     console.error("Withdrawal Error:", err);
-    // تنظيف رسالة الخطأ من أي وسوم إنجليزية
+    // تنظيف الرسالة من أي نصوص إنجليزية قبل العلامة :
     const cleanMessage = err.message.includes(':') ? err.message.split(':').pop().trim() : err.message;
-    return res.status(400).json({ success: false, message: cleanMessage || "حدث خطأ غير متوقع، يرجى المحاولة لاحقاً." });
+    return res.status(400).json({ success: false, message: cleanMessage || "خطأ داخلي في الخادم." });
   }
 }
