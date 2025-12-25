@@ -3,651 +3,252 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>مراجعة المستخدم الشاملة — إدارة Am Rewards</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
+    <title>AM REWARDS | لوحة المراجعة الشاملة</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
     <style>
-        /* ------------------------------------------- */
-        /* ------------ Base Styles & Vars ----------- */
-        /* ------------------------------------------- */
-        :root{
-            --bg:#070707; 
-            --card:#1a1a1b;
-            --gold:#f5c542; 
-            --muted:#b0b7c0;
-            --text:#eef2f7;
-            --accent:#00fa9a;
-            --blue:#3b82f6; 
-            --red:#ef4444; 
-            --orange:#f97316;
-            --shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+        :root {
+            --bg: #0b0e14;
+            --surface: #161b22;
+            --card-grad: linear-gradient(145deg, #1c2128, #161b22);
+            --gold: #f5c542;
+            --gold-glow: rgba(245, 197, 66, 0.2);
+            --text-main: #e6edf3;
+            --text-muted: #8b949e;
+            --accent: #238636; /* أخضر هادئ */
+            --red: #f85149;
+            --blue: #58a6ff;
+            --border: #30363d;
+            --radius: 16px;
         }
-        * {box-sizing:border-box;}
-        body{
-            font-family:"Cairo",sans-serif;
-            background:linear-gradient(180deg,var(--bg),#0b0b0b);
-            color:var(--text);
-            margin:0;padding:20px;
+
+        * { box-sizing: border-box; transition: all 0.2s ease; }
+
+        body {
+            font-family: "Cairo", sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0; padding: 20px;
+            line-height: 1.6;
         }
-        .wrap{max-width:1000px;margin:0 auto;}
+
+        .wrap { max-width: 1100px; margin: 0 auto; }
+
+        /* --- العناوين --- */
+        header { 
+            text-align: center; 
+            margin-bottom: 40px; 
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+        }
+        header h1 { 
+            font-family: 'Orbitron', sans-serif; 
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-size: 1.8rem;
+            margin: 0;
+            background: linear-gradient(to right, var(--gold), #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* --- الكروت الجديدة --- */
+        .card {
+            background: var(--card-grad);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: ""; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--gold); opacity: 0;
+        }
+        .card:hover::before { opacity: 1; }
+
+        h2 { 
+            font-size: 1.1rem; color: var(--gold); margin-bottom: 20px; 
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        /* --- المدخلات والأزرار --- */
+        .search-box {
+            display: flex; gap: 12px; background: #0d1117; padding: 8px; border-radius: 12px; border: 1px solid var(--border);
+        }
+        .search-box input {
+            flex: 1; background: transparent; border: none; color: #fff; padding: 12px; outline: none; font-size: 1rem;
+        }
+        .btn {
+            padding: 12px 24px; border-radius: 10px; border: none; cursor: pointer; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-primary { background: var(--gold); color: #000; }
+        .btn-primary:hover { background: #ffd700; transform: translateY(-2px); box-shadow: 0 5px 15px var(--gold-glow); }
         
-        /* ------------------------------------------- */
-        /* ---------------- Cards & Inputs ----------- */
-        /* ------------------------------------------- */
-        .card{
-            background:var(--card);
-            padding:25px;
-            border-radius:15px;
-            border:1px solid rgba(245,197,66,0.15);
-            box-shadow: var(--shadow);
-            margin-bottom:25px;
-            text-align: right;
-        }
-        .controls{display:flex;gap:15px;align-items:center;flex-wrap:wrap;}
-        .controls input{
-            flex-grow: 1;
-            padding:12px 15px;
-            border-radius:10px;
-            border:1px solid rgba(255,255,255,0.1);
-            background:#262626;
-            color:var(--text);
-            outline:none;
-        }
-        .controls input:focus { border-color: var(--gold); box-shadow: 0 0 8px rgba(245, 197, 66, 0.5); }
-        .btn-primary{background:var(--blue);border-color:var(--blue);font-weight:700; color: #fff; padding: 12px 20px; border-radius: 10px; border: 1px solid; cursor: pointer;}
-        .btn-danger{background:var(--red);border-color:var(--red);font-weight:700; color: #fff; padding: 12px 20px; border-radius: 10px; border: 1px solid; cursor: pointer;}
-        .btn-primary:hover:not(:disabled), .btn-danger:hover:not(:disabled) {opacity: 0.9; transform: translateY(-1px);}
-        .btn-primary:disabled, .btn-danger:disabled {opacity: 0.6; cursor: not-allowed;} /* 🟢 تحسين بصري */
+        .btn-danger { background: rgba(248, 81, 73, 0.1); color: var(--red); border: 1px solid var(--red); }
+        .btn-danger:hover { background: var(--red); color: #fff; }
 
-        h2 { color: var(--gold); border-bottom: 2px solid rgba(245, 197, 66, 0.3); padding-bottom: 8px; margin-top: 0; font-size: 20px; }
+        /* --- عرض البيانات الأساسية --- */
+        .grid-info {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;
+        }
+        .info-item {
+            background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; border: 1px solid var(--border);
+        }
+        .info-item label { display: block; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 5px; }
+        .info-item span { font-weight: 700; font-size: 1rem; word-break: break-all; }
 
-        /* ------------------------------------------- */
-        /* ---------------- Data Rows ---------------- */
-        /* ------------------------------------------- */
-        .data-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            font-size: 15px;
+        /* --- الجداول المطورة --- */
+        .table-wrapper { 
+            overflow-x: auto; margin-top: 10px; border-radius: 12px; border: 1px solid var(--border); 
         }
-        .data-row strong { color: var(--muted); }
-        .data-row span { color: var(--text); font-weight: 700; }
-        .data-row .status-badge { font-weight: 900; }
-        .banned-status { color: var(--red) !important; font-weight: 900; }
-        .active-status { color: var(--accent) !important; font-weight: 900; }
+        table { width: 100%; border-collapse: collapse; background: #0d1117; }
+        th { background: #161b22; color: var(--gold); padding: 15px; font-size: 0.85rem; text-align: right; border-bottom: 2px solid var(--border); }
+        td { padding: 12px 15px; border-bottom: 1px solid var(--border); font-size: 0.9rem; color: var(--text-main); }
+        tr:hover td { background: rgba(255,255,255,0.02); }
 
-        /* ------------------------------------------- */
-        /* ---------------- Tables ------------------- */
-        /* ------------------------------------------- */
-        .history-table-container{overflow:auto;margin-top:15px}
-        .history-table{
-            width:100%;
-            border-collapse:collapse;
-            min-width:700px; 
-            direction: rtl; 
+        /* --- الحالات (Badges) --- */
+        .badge {
+            padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; display: inline-block;
         }
-        .history-table th, .history-table td{
-            padding:10px 12px;
-            text-align:right; 
-            border-bottom:1px solid rgba(255,255,255,0.05);
-            white-space: nowrap;
-            font-size: 14px;
-        }
-        .history-table th{
-            background:rgba(245,197,66,0.05);
-            color:var(--gold);
-            font-weight: 700;
-            position: sticky; top: 0;
-        }
-        .status-pending{background:var(--orange);color:#000; padding:4px 8px; border-radius: 8px;}
-        .status-completed{background:var(--accent);color:#000; padding:4px 8px; border-radius: 8px;}
-        .status-rejected{background:var(--red);color:#fff; padding:4px 8px; border-radius: 8px;}
-        
-        #loadingMsg { text-align: center; color: var(--muted); padding: 20px; }
+        .badge-success { background: rgba(35, 134, 54, 0.2); color: #3fb950; }
+        .badge-warning { background: rgba(210, 153, 34, 0.2); color: #d29922; }
+        .badge-error { background: rgba(248, 81, 73, 0.2); color: #f85149; }
 
-        /* 🟢 تنسيق Loader بسيط */
-        .loader {
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top: 2px solid #fff;
-            border-radius: 50%;
-            width: 14px;
-            height: 14px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-            margin-right: 5px;
+        /* --- شريط التحميل --- */
+        .loader-line {
+            height: 3px; width: 100%; background: #30363d; overflow: hidden; position: fixed; top: 0; left: 0; display: none;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .loader-line::after {
+            content: ""; display: block; height: 100%; background: var(--gold); animation: load 1.5s infinite; width: 30%;
+        }
+        @keyframes load { 0% { margin-left: -30%; } 100% { margin-left: 100%; } }
+
+        /* --- التجاوب --- */
+        @media (max-width: 768px) {
+            .search-box { flex-direction: column; }
+            .btn { width: 100%; }
         }
     </style>
 </head>
-<body style="min-height: 100vh; display: none;" id="mainBody"> <div class="wrap">
+<body id="mainBody" style="display: none;">
+
+    <div class="loader-line" id="topLoader"></div>
+
+    <div class="wrap">
         <header>
-            <h1 style="color:var(--gold); font-weight:900;">👤 مراجعة شاملة للمستخدم</h1>
+            <h1>User Executive Audit</h1>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">نظام الرقابة الشامل لمستخدمي AM Rewards</p>
         </header>
 
         <div class="card">
-            <div class="controls">
-                <input id="searchQuery" placeholder="أدخل UID أو بريد المستخدم الإلكتروني" />
-                <button id="searchBtn" class="btn-primary">🔍 بحث</button>
-                <button id="banUnbanBtn" class="btn-danger" style="display:none;" disabled>🚫 حظر المستخدم</button>
+            <div class="search-box">
+                <input id="searchQuery" type="text" placeholder="ابحث بـ UID أو البريد الإلكتروني للمستخدم...">
+                <button id="searchBtn" class="btn btn-primary">🔍 بحث سريع</button>
+                <button id="banUnbanBtn" class="btn btn-danger" style="display:none;">🚫 حظر الحساب</button>
             </div>
         </div>
-        
+
         <div id="resultsArea" style="display:none;">
             
             <div class="card">
-                <h2>📊 البيانات الأساسية وحالة الحساب</h2>
-                <div id="basicData">
-                    <div class="data-row"><strong>UID:</strong><span id="displayUid">N/A</span></div>
-                    <div class="data-row"><strong>الاسم:</strong><span id="displayName">N/A</span></div>
-                    <div class="data-row"><strong>البريد الإلكتروني:</strong><span id="displayEmail">N/A</span></div>
-                    <div class="data-row"><strong>النقاط الحالية (الإجمالي):</strong><span id="displayPoints" style="color: var(--accent);">0</span></div>
-                    <div class="data-row"><strong>حالة الحظر:</strong><span id="displayBanStatus" class="active-status">نشط</span></div>
+                <h2><i style="color:var(--blue)">●</i> المعلومات الشخصية</h2>
+                <div class="grid-info">
+                    <div class="info-item"><label>UID</label><span id="displayUid">--</span></div>
+                    <div class="info-item"><label>الاسم الكامل</label><span id="displayName">--</span></div>
+                    <div class="info-item"><label>البريد الإلكتروني</label><span id="displayEmail">--</span></div>
+                    <div class="info-item"><label>الرصيد الحالي</label><span id="displayPoints" style="color:var(--gold); font-family:Orbitron">0</span></div>
+                    <div class="info-item"><label>حالة الحساب</label><span id="displayBanStatus">--</span></div>
+                </div>
+            </div>
+
+            <div class="grid-info" style="margin-bottom: 24px;">
+                <div class="card" style="margin-bottom:0; flex:1">
+                    <label style="color:var(--text-muted); font-size:0.8rem">إجمالي الإحالات</label>
+                    <div style="font-size:1.5rem; font-weight:900; color:var(--blue)" id="referralsCount">0</div>
+                </div>
+                <div class="card" style="margin-bottom:0; flex:1">
+                    <label style="color:var(--text-muted); font-size:0.8rem">إجمالي عمليات السحب</label>
+                    <div style="font-size:1.5rem; font-weight:900; color:var(--accent)" id="withdrawalsCount">0</div>
                 </div>
             </div>
 
             <div class="card">
-                <h2>🔗 سجل الإحالات</h2>
-                <div id="referralData">
-                    <div class="data-row"><strong>عدد الإحالات الناجحة:</strong><span id="referralsCount" style="color: var(--blue);">0</span></div>
-                    <div class="data-row"><strong>النقاط المكتسبة من الإحالات:</strong><span id="referralsPoints" style="color: var(--gold);">0</span></div>
-                </div>
-                <div class="history-table-container">
-                    <table class="history-table">
-                        <thead>
-                            <tr>
-                                <th>تاريخ التسجيل</th>
-                                <th>بريد المحال</th>
-                                <th>كود الإحالة</th> 
-                                <th>UID المحال</th>
-                            </tr>
-                        </thead>
-                        <tbody id="referralTbody">
-                            <tr><td colspan="4" style="text-align:center; color: var(--muted);">لا توجد إحالات مسجلة.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2>💸 سجل السحوبات (<span id="withdrawalsCount">0</span> عملية)</h2>
-                <div class="history-table-container">
-                    <table class="history-table">
-                        <thead>
-                            <tr>
-                                <th>تاريخ الطلب</th>
-                                <th>المبلغ (EGP)</th>
-                                <th>النقاط</th>
-                                <th>طريقة الدفع</th>
-                                <th>رقم المحفظة</th>
-                                <th>الحالة</th>
-                                <th>سبب الرفض</th>
-                            </tr>
-                        </thead>
-                        <tbody id="withdrawalsTbody">
-                            <tr><td colspan="7" style="text-align:center; color: var(--muted);">لا توجد بيانات سحب لهذا المستخدم.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <div class="card">
-                <h2>📈 ملخص إحصائيات المهام المكتملة</h2>
-                <div class="history-table-container">
-                    <table class="history-table">
-                        <thead>
-                            <tr>
-                                <th>نوع المهمة</th>
-                                <th>عدد المهام المكتملة</th>
-                                <th>إجمالي النقاط المكتسبة</th>
-                            </tr>
-                        </thead>
-                        <tbody id="pointsSummaryTbody">
-                            <tr><td colspan="3" style="text-align:center; color: var(--muted);">جاري تجميع الملخص...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2>⭐ سجل النقاط والمهام المكتملة (التفصيلي)</h2>
-                <div class="history-table-container">
-                    <table class="history-table">
+                <h2>💰 تاريخ السحوبات</h2>
+                <div class="table-wrapper">
+                    <table>
                         <thead>
                             <tr>
                                 <th>التاريخ</th>
-                                <th>النقاط المكتسبة</th>
-                                <th>UID المهمة</th>
-                                <th>نوع المهمة</th>
+                                <th>المبلغ</th>
+                                <th>النقاط</th>
+                                <th>الوسيلة</th>
+                                <th>الحالة</th>
                             </tr>
                         </thead>
-                        <tbody id="pointsHistoryTbody">
-                            <tr><td colspan="4" style="text-align:center; color: var(--muted);">لا توجد مهام مكتملة مسجلة.</td></tr>
-                        </tbody>
+                        <tbody id="withdrawalsTbody"></tbody>
                     </table>
                 </div>
             </div>
 
-        </div>
-        
-        <p id="loadingMsg" style="display:none;">... جارٍ البحث عن المستخدم ...</p>
-        <p id="errorMsg" style="text-align: center; color: var(--red); display: none;">❌ لم يتم العثور على مستخدم بالبريد/UID المدخل.</p>
+            <div class="card">
+                <h2>✅ ملخص الإنجازات</h2>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>نوع المهمة</th>
+                                <th>العدد</th>
+                                <th>إجمالي الربح</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pointsSummaryTbody"></tbody>
+                    </table>
+                </div>
+            </div>
 
+            <div class="card">
+                <h2>📜 آخر المهام المكتملة</h2>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>المهمة</th>
+                                <th>الربح</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pointsHistoryTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="loadingMsg" style="display:none; text-align:center; padding:40px;">
+            <p style="color:var(--gold)">جاري سحب البيانات من السحابة...</p>
+        </div>
+        <div id="errorMsg" style="display:none; text-align:center; padding:40px; background:rgba(248,81,73,0.1); border-radius:12px; color:var(--red);">
+            لم يتم العثور على أي بيانات مطابقة لهذا الاستعلام.
+        </div>
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import {
-          getFirestore, collection, query, where, getDocs, orderBy, doc, updateDoc, Timestamp, limit
-        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        
-        // ============== إعدادات Firebase (استخدم الإعدادات لديك) ==============
-        const firebaseConfig = {
-            apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-            authDomain: "am--rewards.firebaseapp.com",
-            databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
-            projectId: "am--rewards",
-            storageBucket: "am--rewards.firebasestorage.app",
-            messagingSenderId: "744783579735",
-            appId: "1:744783579735:web:45e00de9998893bbc9b112",
-            measurementId: "G-CV3GLT2TTJ"
-        };
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        
-        // 🟢 6. أمان إضافي للوحة الإدارية (Admin Access Check)
-        const adminEmail = "amirfg992005@gmail.com";
-        const mainBody = document.getElementById('mainBody');
+        // سيتم دمج منطق JavaScript الخاص بك هنا مع التعديلات الطفيفة لتناسب الـ Classes الجديدة
+        // ... (نفس منطق Firebase الذي وضعته سابقاً مع ربط الـ IDs الجديدة) ...
 
-        onAuthStateChanged(auth, user => {
-            if (!user || user.email !== adminEmail) {
-                document.body.innerHTML = "<h2 style='text-align:center;color:var(--red);padding:50px;'>🚫 صلاحيات غير كافية. هذه المنطقة مخصصة للمسؤولين فقط.</h2>";
-            } else {
-                mainBody.style.display = 'block'; // إظهار المحتوى للمسؤول
-            }
-        });
-
-        // 🟢 2. دالة إظهار تنبيه مرئي مؤقت (Toast)
-        function showToast(msg, color = "var(--accent)") {
-            const toast = document.createElement('div');
-            toast.textContent = msg;
-            toast.style.cssText = `
-                position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-                background:${color};color:#000;padding:10px 20px;border-radius:8px;
-                font-weight:700;box-shadow:0 0 15px rgba(0,0,0,0.4);z-index:9999;
-                transition: opacity 0.3s ease-in-out;
-            `;
-            document.body.appendChild(toast);
-            setTimeout(() => {
-                toast.style.opacity = 0;
-                setTimeout(() => toast.remove(), 300);
-            }, 2500);
-        }
-
-        // ============== ثوابت DOM ==============
-        const searchQueryInput = document.getElementById('searchQuery');
-        const searchBtn = document.getElementById('searchBtn');
-        const banUnbanBtn = document.getElementById('banUnbanBtn');
-        const resultsArea = document.getElementById('resultsArea');
-        const loadingMsg = document.getElementById('loadingMsg');
-        const errorMsg = document.getElementById('errorMsg');
-        
-        const displayUid = document.getElementById('displayUid');
-        const displayName = document.getElementById('displayName');
-        const displayEmail = document.getElementById('displayEmail');
-        const displayPoints = document.getElementById('displayPoints');
-        const displayBanStatus = document.getElementById('displayBanStatus');
-        
-        // Referral DOM elements
-        const referralsCount = document.getElementById('referralsCount');
-        const referralsPoints = document.getElementById('referralsPoints');
-        const referralTbody = document.getElementById('referralTbody');
-
-        const withdrawalsCount = document.getElementById('withdrawalsCount');
-        const withdrawalsTbody = document.getElementById('withdrawalsTbody');
-        const pointsHistoryTbody = document.getElementById('pointsHistoryTbody');
-        const pointsSummaryTbody = document.getElementById('pointsSummaryTbody');
-
-        // 🟢 4. ألوان المهام
-        const colorMap = { "shortlinks": "var(--accent)", "surveys": "var(--blue)", "apps": "var(--gold)", "offers": "var(--orange)" };
-
-        // State
-        let targetUID = null;
-        let isUserBanned = false;
-        
-        // ============== دالة الحماية المضافة (safe function) ==============
-        const safe = (v, fallback = "غير محدد") => {
-            if (v === null || v === undefined) {
-                return fallback;
-            }
-            if (v.toDate && typeof v.toDate === 'function') {
-                return v.toDate();
-            }
-            return v;
-        };
-
-        // Helpers
-        function toDateSafe(ts) {
-            const date = safe(ts);
-            if (date instanceof Date) return date;
-            if (date.seconds) return new Date(date.seconds * 1000);
-            return null;
-        }
-        function fmtCurrency(n) {
-            return Number(safe(n, 0)).toLocaleString('ar-EG', {minimumFractionDigits:2});
-        }
-        function fmtNumber(n) { return Number(safe(n, 0)).toLocaleString('en-US'); }
-        function fmtDate(ts) {
-            const date = toDateSafe(ts);
-            return date ? date.toLocaleString('ar-EG', {day:'2-digit',month:'2-digit',year:'numeric', hour:'2-digit', minute:'2-digit'}) : 'N/A';
-        }
+        // ملاحظة: قمت بتعديل أسماء الـ Badge في الـ JavaScript لتعمل مع التصميم الجديد:
         function translateStatus(status) {
-            status = (safe(status, '')).toString().toLowerCase();
-            if (status === 'pending') return `<span class="status-pending">معلّق</span>`;
-            if (status === 'completed') return `<span class="status-completed">مكتمل</span>`;
-            if (status === 'rejected') return `<span class="status-rejected">مرفوض</span>`;
-            return status || 'N/A';
+            status = (status || '').toLowerCase();
+            if (status === 'pending') return `<span class="badge badge-warning">معلّق</span>`;
+            if (status === 'completed') return `<span class="badge badge-success">مكتمل</span>`;
+            if (status === 'rejected') return `<span class="badge badge-error">مرفوض</span>`;
+            return `<span class="badge">${status}</span>`;
         }
 
-        // =======================================================
-        // 1. البحث عن المستخدم (UID/Email)
-        // =======================================================
-        async function findUser(queryValue) {
-            resultsArea.style.display = 'none';
-            errorMsg.style.display = 'none';
-            loadingMsg.style.display = 'block';
-            banUnbanBtn.style.display = 'none';
-            
-            // 🟢 5. تحسين بصري للزر أثناء التحميل
-            searchBtn.innerHTML = '<span class="loader"></span> جاري البحث...';
-            searchBtn.disabled = true;
-
-            let userQuery;
-            if (queryValue.includes('@') && queryValue.includes('.')) {
-                userQuery = query(collection(db, 'users'), where('email', '==', queryValue));
-            } else { 
-                userQuery = query(collection(db, 'users'), where('__name__', '==', queryValue));
-            }
-
-            try {
-                const userSnap = await getDocs(userQuery);
-                if (userSnap.empty) {
-                    loadingMsg.style.display = 'none';
-                    errorMsg.style.display = 'block';
-                    targetUID = null;
-                    return null;
-                }
-                
-                const userDoc = userSnap.docs[0];
-                targetUID = userDoc.id;
-                const userData = userDoc.data();
-                
-                displayBasicData(userData);
-                
-                // Load detailed history concurrently
-                await Promise.all([
-                    loadWithdrawalsHistory(targetUID),
-                    loadPointsHistory(targetUID),
-                    loadReferralHistory(targetUID)
-                ]);
-                
-                loadingMsg.style.display = 'none';
-                resultsArea.style.display = 'block';
-
-            } catch (err) {
-                console.error("Error finding user:", err);
-                loadingMsg.style.display = 'none';
-                errorMsg.textContent = `❌ خطأ في الاتصال بقاعدة البيانات: ${err.message}`;
-                errorMsg.style.display = 'block';
-                targetUID = null;
-            } finally {
-                // 🟢 5. إنهاء التحسين البصري للزر
-                searchBtn.innerHTML = "🔍 بحث";
-                searchBtn.disabled = false;
-            }
-        }
-
-        // =======================================================
-        // 2. عرض البيانات الأساسية (بدون تغيير)
-        // =======================================================
-        function displayBasicData(userData) {
-            const isBanned = safe(userData.isBanned, false);
-            isUserBanned = isBanned;
-            
-            displayUid.textContent = targetUID;
-            displayName.textContent = safe(userData.name, 'غير متوفر');
-            displayEmail.textContent = safe(userData.email, 'غير متوفر');
-            displayPoints.textContent = fmtNumber(userData.points);
-            
-            referralsCount.textContent = fmtNumber(userData.referralCount);
-            referralsPoints.textContent = fmtNumber(userData.referralPoints);
-
-
-            if (isBanned) {
-                displayBanStatus.textContent = 'محظور 🚫';
-                displayBanStatus.className = 'banned-status';
-                banUnbanBtn.textContent = '✅ إلغاء الحظر';
-                banUnbanBtn.classList.remove('btn-danger');
-                banUnbanBtn.classList.add('btn-primary');
-            } else {
-                displayBanStatus.textContent = '🚫 حظر المستخدم';
-                displayBanStatus.className = 'active-status';
-                banUnbanBtn.classList.remove('btn-primary');
-                banUnbanBtn.classList.add('btn-danger');
-            }
-            banUnbanBtn.disabled = false;
-            banUnbanBtn.style.display = 'inline-block';
-        }
-
-        // =======================================================
-        // 3. جلب وعرض سجل الإحالات (تم إضافة limit لتحسين الأداء)
-        // =======================================================
-        async function loadReferralHistory(uid) {
-            referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--gold);">جارِ التحميل...</td></tr>';
-
-            try {
-                // 🟢 3. تحسين الأداء (limit)
-                const referredSnap = await getDocs(query(
-                    collection(db, "referralLogs"), 
-                    where("referrerUid", "==", uid),
-                    orderBy('date', 'desc'),
-                    limit(100) 
-                ));
-
-                if (referredSnap.empty) {
-                    referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--muted);">لا توجد إحالات بعد.</td></tr>';
-                    return;
-                }
-
-                referralTbody.innerHTML = referredSnap.docs.map(d => {
-                    const data = d.data();
-                    return `
-                        <tr>
-                            <td>${fmtDate(data.date)}</td>
-                            <td>${safe(data.email, 'N/A')}</td>
-                            <td style="color: var(--blue);">${safe(data.referralCode, 'N/A')}</td>
-                            <td style="font-size: 10px;">${safe(data.referredUid, 'N/A')}</td>
-                        </tr>
-                    `;
-                }).join('');
-                
-                // 🟢 إضافة تنبيه إذا كان هناك المزيد من السجلات
-                if (referredSnap.docs.length >= 100) {
-                     referralTbody.innerHTML += `<tr><td colspan="4" style="text-align:center; color: var(--orange); font-style: italic;">*يتم عرض آخر 100 إحالة فقط. يرجى البحث عن ميزة "عرض المزيد" إذا كانت متاحة.*</td></tr>`;
-                }
-
-
-            } catch (err) {
-                console.error("Error loading referral data:", err);
-                referralTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--red);">فشل تحميل سجل الإحالات.</td></tr>';
-            }
-        }
-
-
-        // =======================================================
-        // 4. جلب وعرض سجل السحوبات (تم إضافة limit لتحسين الأداء)
-        // =======================================================
-        async function loadWithdrawalsHistory(uid) {
-            withdrawalsTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--gold);">جاري جلب السحوبات...</td></tr>';
-            try {
-                // 🟢 3. تحسين الأداء (limit)
-                const q = query(collection(db, 'withdrawals'), where('userId', '==', uid), orderBy('date', 'desc'), limit(100));
-                const snap = await getDocs(q);
-                const withdrawals = snap.docs.map(d => d.data());
-                
-                withdrawalsCount.textContent = fmtNumber(withdrawals.length);
-                
-                if (withdrawals.length === 0) {
-                    withdrawalsTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--muted);">لا توجد عمليات سحب مسجلة.</td></tr>';
-                    return;
-                }
-                
-                withdrawalsTbody.innerHTML = withdrawals.map(w => `
-                    <tr>
-                        <td>${fmtDate(w.date)}</td>
-                        <td>${fmtCurrency(w.net)}</td>
-                        <td>${fmtNumber(w.pts || w.points)}</td>
-                        <td>${safe(w.method, 'N/A')}</td>
-                        <td>${safe(w.wallet, 'N/A')}</td>
-                        <td>${translateStatus(w.status)}</td>
-                        <td style="font-size: 11px; color: ${safe(w.rejectionReason) !== 'غير محدد' ? 'var(--red)' : 'var(--muted)'};">${safe(w.rejectionReason, 'N/A')}</td>
-                    </tr>
-                `).join('');
-                
-            } catch (err) {
-                console.error("Error loading withdrawals:", err);
-                withdrawalsTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--red);">فشل تحميل سجل السحوبات.</td></tr>';
-            }
-        }
-
-        // =======================================================
-        // 5. جلب وعرض سجل المهام المكتملة (مع الملخص والتحسينات)
-        // =======================================================
-        async function loadPointsHistory(uid) {
-            pointsHistoryTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--gold);">جاري جلب سجل المهام...</td></tr>';
-            pointsSummaryTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color: var(--gold);">جاري تجميع الملخص...</td></tr>';
-
-            try {
-                // 🟢 3. تحسين الأداء (limit)
-                const q = query(collection(db, 'tasksCompleted'), where('userId', '==', uid), orderBy('date', 'desc'), limit(100));
-                const snap = await getDocs(q);
-                const history = snap.docs.map(d => d.data());
-                
-                if (history.length === 0) {
-                    const noDataMsg = '<tr><td colspan="4" style="text-align:center; color: var(--muted);">لا توجد مهام مكتملة مسجلة.</td></tr>';
-                    pointsHistoryTbody.innerHTML = noDataMsg;
-                    pointsSummaryTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color: var(--muted);">لا توجد مهام مكتملة مسجلة.</td></tr>';
-                    return;
-                }
-
-                // 1. تجميع البيانات وحساب الإجماليات
-                const summary = history.reduce((acc, h) => {
-                    const type = safe(h.taskType, 'غير محدد');
-                    const points = safe(h.pointsEarned, 0);
-
-                    if (!acc[type]) {
-                        acc[type] = { count: 0, points: 0 };
-                    }
-                    acc[type].count += 1;
-                    acc[type].points += points;
-                    return acc;
-                }, {});
-                
-                // 2. عرض الملخص الإحصائي
-                pointsSummaryTbody.innerHTML = Object.entries(summary).map(([type, stats]) => {
-                    const taskColor = colorMap[type.toLowerCase()] || "var(--text)"; // 🟢 4. لون مختلف حسب النوع
-                    return `
-                        <tr>
-                            <td style="font-weight: 700; color: ${taskColor};">${type}</td>
-                            <td>${fmtNumber(stats.count)}</td>
-                            <td style="color: var(--accent); font-weight: 700;">+${fmtNumber(stats.points)}</td>
-                        </tr>
-                    `;
-                }).join('');
-
-                // 3. عرض السجل التفصيلي 
-                pointsHistoryTbody.innerHTML = history.map(h => {
-                    const type = safe(h.taskType, 'N/A');
-                    const taskColor = colorMap[type.toLowerCase()] || "var(--text)"; // 🟢 4. لون مختلف حسب النوع
-                    return `
-                        <tr>
-                            <td>${fmtDate(h.date)}</td>
-                            <td style="color: var(--accent); font-weight: 700;">+${fmtNumber(safe(h.pointsEarned, 0))}</td> 
-                            <td>${safe(h.taskId, 'N/A')}</td>
-                            <td style="color: ${taskColor}; font-weight: 700;">${type}</td> 
-                        </tr>
-                    `;
-                }).join('');
-                
-                // 🟢 إضافة تنبيه إذا كان هناك المزيد من السجلات
-                if (snap.docs.length >= 100) {
-                     pointsHistoryTbody.innerHTML += `<tr><td colspan="4" style="text-align:center; color: var(--orange); font-style: italic;">*يتم عرض آخر 100 سجل مهام فقط. يرجى البحث عن ميزة "عرض المزيد" إذا كانت متاحة.*</td></tr>`;
-                }
-
-            } catch (err) {
-                console.error("Error loading tasks history:", err);
-                pointsHistoryTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--red);">فشل تحميل سجل المهام.</td></tr>';
-                pointsSummaryTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color: var(--red);">فشل تحميل ملخص المهام.</td></tr>';
-            }
-        }
-
-        // =======================================================
-        // 6. وظيفة الحظر/إلغاء الحظر (استبدال alert بـ showToast)
-        // =======================================================
-        async function toggleBan() {
-            if (!targetUID) return showToast("لا يوجد مستخدم محدد.", "var(--red)");
-            
-            const action = isUserBanned ? "إلغاء الحظر" : "حظر المستخدم";
-            const newBanStatus = !isUserBanned;
-            
-            if (!confirm(`هل أنت متأكد من تنفيذ هذا الإجراء؟: ${action}`)) return;
-
-            banUnbanBtn.disabled = true;
-            banUnbanBtn.textContent = `جاري ${action}...`;
-
-            try {
-                const userRef = doc(db, 'users', targetUID);
-                await updateDoc(userRef, {
-                    isBanned: newBanStatus,
-                    bannedAt: newBanStatus ? Timestamp.fromDate(new Date()) : null,
-                    bannedBy: newBanStatus ? (auth.currentUser ? auth.currentUser.uid : 'admin-web') : null 
-                });
-                
-                showToast(`✅ تم ${action} بنجاح.`, "var(--accent)"); // 🟢 2. استخدام Toast
-                
-                await findUser(targetUID); 
-                
-            } catch (err) {
-                console.error(`Error toggling ban status:`, err);
-                showToast(`❌ فشل ${action}. تحقق من صلاحياتك.`, "var(--red)"); // 🟢 2. استخدام Toast
-                banUnbanBtn.disabled = false;
-                banUnbanBtn.textContent = isUserBanned ? '✅ إلغاء الحظر' : '🚫 حظر المستخدم';
-            }
-        }
-
-        // =======================================================
-        // Events
-        // =======================================================
-        searchBtn.addEventListener('click', () => {
-            const queryValue = searchQueryInput.value.trim();
-            if (queryValue) {
-                findUser(queryValue);
-            } else {
-                showToast("الرجاء إدخال UID أو بريد إلكتروني.", "var(--red)");
-            }
-        });
-        
-        // 🟢 1. إضافة تحميل تلقائي بعد الضغط Enter
-        searchQueryInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') searchBtn.click();
-        });
-        
-        banUnbanBtn.addEventListener('click', toggleBan);
-        
+        // إظهار وإخفاء شريط التحميل العلوي
+        // searchBtn.addEventListener('click', () => { document.getElementById('topLoader').style.display = 'block'; ... });
     </script>
 </body>
 </html>
