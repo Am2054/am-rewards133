@@ -10,208 +10,144 @@
           --neon-cyan: #00f2ff;
           --neon-purple: #7000ff;
           --bg-deep: #020617;
-          --glass-bg: rgba(15, 23, 42, 0.7);
+          --glass: rgba(255, 255, 255, 0.05);
           --glass-border: rgba(255, 255, 255, 0.1);
-          --success: #22c55e;  
-          --error: #f87171;  
-          --warning: #facc15;   
-          --text-main: #f1f5f9;
+          --success: #00ff88;  
+          --error: #ff4d4d;  
+          --warning: #ffcc00;   
         }  
 
-        * { box-sizing: border-box; transition: transform 0.3s ease, box-shadow 0.3s ease; }
-
+        * { box-sizing: border-box; transition: all 0.3s ease; }
         body {  
-          font-family: 'Cairo', sans-serif;  
-          background: var(--bg-deep);  
-          color: var(--text-main);  
-          margin: 0; padding: 0;  
-          min-height: 100vh;
-          background-image: 
-            radial-gradient(circle at 0% 0%, rgba(112, 0, 255, 0.15) 0%, transparent 35%),
-            radial-gradient(circle at 100% 100%, rgba(0, 242, 255, 0.15) 0%, transparent 35%);
-          overflow-x: hidden;  
-        }  
-
-        /* تأثير النجوم في الخلفية */
-        body::after {
-          content: ""; position: fixed; inset: 0; z-index: -1;
-          background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
-          opacity: 0.15; pointer-events: none;
+          font-family: 'Cairo', sans-serif; background: var(--bg-deep); color: #fff;  
+          margin: 0; padding: 0; min-height: 100vh; overflow-x: hidden;
         }
 
-        .container {  
-          max-width: 480px;  
-          margin: 20px auto;  
-          background: var(--glass-bg);  
-          padding: 25px;  
-          border-radius: 24px;  
-          backdrop-filter: blur(20px);
-          border: 1px solid var(--glass-border);
-          box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-          position: relative; z-index: 2;  
-        }  
+        /* خلفية المجرة المتحركة */
+        .space-bg {
+            position: fixed; inset: 0; z-index: -1;
+            background: radial-gradient(circle at 50% 50%, #0f172a, #020617);
+        }
+        .space-bg::after {
+            content: ""; position: absolute; inset: -50%;
+            background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
+            opacity: 0.15; animation: orbit 120s linear infinite;
+        }
+        @keyframes orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        h1 {  
-          text-align: center; margin-bottom: 25px;  
-          color: var(--neon-cyan); font-weight: 900;
-          text-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
-        }  
+        .container { max-width: 450px; margin: 20px auto; padding: 20px; position: relative; }
 
-        .balance-info-card {
-            background: linear-gradient(135deg, rgba(112, 0, 255, 0.1), rgba(0, 242, 255, 0.1));
-            border-radius: 20px; padding: 20px; border: 1px solid var(--glass-border);
-            margin-bottom: 20px; text-align: center;
+        /* بطاقة الرصيد الكبرى */
+        .main-card {
+            background: linear-gradient(135deg, rgba(112, 0, 255, 0.2), rgba(0, 242, 255, 0.2));
+            border-radius: 28px; padding: 30px 20px; border: 1px solid var(--glass-border);
+            backdrop-filter: blur(15px); text-align: center; margin-bottom: 25px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4), inset 0 0 20px rgba(255,255,255,0.05);
+        }
+        .main-card h2 { font-size: 14px; opacity: 0.7; margin-bottom: 10px; letter-spacing: 1px; }
+        .balance-glow { 
+            font-family: 'Montserrat'; font-size: 42px; font-weight: 900; 
+            color: var(--neon-cyan); text-shadow: 0 0 20px rgba(0, 242, 255, 0.5); 
+            display: block;
         }
 
-        .points-large { font-family: 'Montserrat'; font-size: 35px; display: block; color: var(--neon-cyan); }
-        .egp-sub { font-size: 18px; color: var(--text-main); opacity: 0.8; }
-
-        .limits-row {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;
+        /* حقول الإدخال */
+        .input-group { background: var(--glass); padding: 20px; border-radius: 20px; border: 1px solid var(--glass-border); margin-bottom: 20px; }
+        label { display: block; font-size: 13px; color: var(--neon-cyan); margin-bottom: 8px; font-weight: 700; }
+        input {
+            width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border);
+            padding: 15px; border-radius: 12px; color: #fff; font-size: 16px; outline: none;
         }
-        .limit-box {
-            background: rgba(0,0,0,0.2); padding: 10px; border-radius: 12px; font-size: 12px;
+        input:focus { border-color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0,242,255,0.1); }
+
+        /* شريط العمليات */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .stat-item { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 12px; font-size: 12px; text-align: center; border: 1px solid var(--glass-border); }
+        .stat-item b { color: var(--neon-purple); display: block; font-size: 14px; }
+
+        /* الأزرار */
+        #confirmBtn {
+            width: 100%; padding: 18px; border-radius: 18px; border: none;
+            background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan));
+            color: #fff; font-weight: 900; font-size: 18px; cursor: pointer;
+            box-shadow: 0 10px 25px rgba(112, 0, 255, 0.3); margin-top: 10px;
         }
-        .limit-box span { display: block; color: var(--neon-cyan); font-weight: 700; font-size: 14px; }
-
-        label { display:block; margin:15px 0 8px; font-weight:700; color: #94a3b8; font-size: 14px; }  
-        
-        input {  
-          width: 100%; padding: 14px; margin-bottom: 5px;  
-          border: 1px solid var(--glass-border); border-radius: 12px;  
-          background: rgba(0,0,0,0.3); color: #fff;  
-          font-size: 16px; outline: none;
-        }  
-        input:focus { border-color: var(--neon-cyan); box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }  
-        input.invalid { border-color: var(--error); }  
-
-        .calc-details {
-            background: rgba(255,255,255,0.03); border-radius: 15px; padding: 15px; margin: 15px 0;
-            display: flex; justify-content: space-around; text-align: center; border: 1px dashed var(--glass-border);
-        }
-        .calc-item b { display: block; font-family: 'Montserrat'; color: var(--neon-purple); }
-
-        .limit-warning {  
-            background: rgba(248, 113, 113, 0.1); color: var(--error);  
-            padding: 10px; border-radius: 10px; font-weight: 700; font-size: 13px;  
-            margin-bottom: 15px; text-align: center; border: 1px solid rgba(248, 113, 113, 0.2);
-        }  
-
-        button#confirmBtn {  
-          width: 100%; background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan));  
-          color: #fff; font-weight: 900; padding: 16px; border: none;  
-          border-radius: 16px; cursor: pointer; font-size: 18px;  
-          box-shadow: 0 10px 20px rgba(112, 0, 255, 0.3);
-        }  
-        button:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(112, 0, 255, 0.5); }  
-        button:disabled { opacity: 0.3; filter: grayscale(1); cursor: not-allowed; }  
+        #confirmBtn:disabled { filter: grayscale(1); opacity: 0.3; cursor: not-allowed; transform: scale(0.98); }
 
         /* السجل */
-        .history { margin-top: 35px; }  
-        .history h2 { font-size: 18px; color: var(--neon-cyan); text-align: center; margin-bottom: 15px; }  
-        
-        .table-responsive { border-radius: 15px; overflow: hidden; border: 1px solid var(--glass-border); }  
-        table { width: 100%; border-collapse: collapse; background: rgba(0,0,0,0.2); }  
-        th { background: rgba(112, 0, 255, 0.2); color: var(--neon-cyan); padding: 12px; font-size: 13px; }
-        td { padding: 12px 8px; text-align: center; border-bottom: 1px solid var(--glass-border); font-size: 13px; }  
-        
-        .row-pending { color: var(--warning); }
-        .row-completed { color: var(--success); }
-        .row-rejected { color: var(--error); font-style: italic; }
+        .history-section { margin-top: 40px; }
+        .history-section h3 { font-size: 16px; color: var(--neon-cyan); margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .history-section h3::after { content: ""; flex: 1; height: 1px; background: var(--glass-border); }
 
-        /* Modal مخصص بنمط المجرة */
-        #customModal {  
-            position: fixed; inset: 0; background: rgba(0,0,0,0.8);  
-            display: none; justify-content: center; align-items: center; z-index: 1000;  
-            backdrop-filter: blur(10px);
-        }  
-        #customModal.show { display: flex; animation: fadeIn 0.3s ease; }  
-        .modal-content {  
-            background: var(--bg-deep); padding: 30px; border-radius: 24px;  
-            width: 90%; max-width: 380px; text-align: center;  
-            border: 1px solid var(--neon-purple); box-shadow: 0 0 50px rgba(112, 0, 255, 0.3);
-        }  
-        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
-        .modal-actions button { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; }
-        #confirmActionBtn { background: var(--success); color: #fff; }
-        #cancelActionBtn { background: #334155; color: #fff; }
+        .withdraw-row {
+            background: var(--glass); padding: 15px; border-radius: 15px; 
+            margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
+            border-right: 4px solid transparent;
+        }
+        .row-pending { border-right-color: var(--warning); }
+        .row-completed { border-right-color: var(--success); }
+        .row-rejected { border-right-color: var(--error); }
 
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .status-msg { text-align: center; margin-top: 15px; font-weight: 700; padding: 10px; border-radius: 10px; display: none; }
-        .status-msg.show { display: block; animation: fadeIn 0.3s ease; }
-        .status-msg.error { background: rgba(248, 113, 113, 0.1); color: var(--error); }
-        .status-msg.success { background: rgba(34, 197, 94, 0.1); color: var(--success); }
+        .amt-info b { display: block; font-size: 16px; font-family: 'Montserrat'; }
+        .amt-info span { font-size: 11px; opacity: 0.5; }
+        .status-badge { padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; background: rgba(255,255,255,0.05); }
+
+        /* Modal */
+        #customModal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 999; }
+        .modal-box { background: #0f172a; padding: 30px; border-radius: 24px; width: 90%; max-width: 350px; text-align: center; border: 1px solid var(--neon-purple); }
+        .modal-btn { padding: 12px 20px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; margin: 5px; width: 100%; }
+
+        .status-msg { text-align: center; padding: 10px; font-size: 13px; font-weight: 700; margin-top: 10px; border-radius: 10px; display: none; }
+        .status-msg.show { display: block; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>  
 <body>  
+    <div class="space-bg"></div>
     <div class="container">  
-        <h1>💸 سحب الأرباح</h1>  
-        
-        <div class="balance-info-card">  
-            <span style="font-size: 14px; opacity: 0.7;">رصيدك القابل للسحب</span>
-            <span class="points-large" id="pointsVal">0</span>
-            <span class="egp-sub">≈ <span id="egpVal">0.00</span> ج.م</span>
+        <div class="main-card">
+            <h2>الرصيد المتاح للسحب</h2>
+            <span class="balance-glow" id="pointsVal">0</span>
+            <div class="egp-sub" style="margin-top:5px; opacity:0.8;">≈ <span id="egpVal" style="font-family: 'Montserrat';">0.00</span> ج.م</div>
             
-            <div class="limits-row">
-                <div class="limit-box">الحد المتبقي اليوم <span id="remainingLimitVal">200</span></div>
-                <div class="limit-box">عمليات متبقية <span id="remainingOpsVal">--</span></div>
+            <div class="stats-grid">
+                <div class="stat-item">المتبقي يومياً <b id="remainingLimitVal">200</b></div>
+                <div class="stat-item">عمليات متبقية <b id="remainingOpsVal">--</b></div>
             </div>
-        </div>  
-      
-        <label>رقم محفظة فودافون كاش</label>  
-        <input type="text" id="walletVod" placeholder="01xxxxxxxxx" maxlength="11" inputmode="numeric">  
-          
-        <label>المبلغ (الحد الأدنى 20 ج.م)</label>  
-        <input type="number" id="amountInp" placeholder="أدخل المبلغ هنا">  
-
-        <div id="limitWarning" class="limit-warning" style="display:none;"></div>  
-
-        <div class="calc-details">
-            <div class="calc-item">الخصم (10%)<b id="feeVal">0.00</b></div>
-            <div class="calc-item">صافي الاستلام<b id="netVal" style="color:var(--neon-cyan)">0.00</b></div>
-            <div class="calc-item">نقاط مطلوبة<b id="needPts">0</b></div>
         </div>
-          
-        <button id="confirmBtn" disabled>تأكيد طلب السحب</button>  
-        <div id="msg" class="status-msg"></div>  
-          
-        <p style="text-align:center; color:var(--warning); font-size:12px; margin-top: 15px; opacity: 0.8;">  
-            ⚠️ يرجى التأكد من الرقم، لا يمكن تعديل الطلب بعد الإرسال.  
-        </p>  
 
-        <div class="history">  
-            <h2>📜 سجل السحوبات</h2>  
-            <div class="table-responsive">  
-                <table>  
-                    <thead>  
-                        <tr>  
-                            <th>المبلغ</th>  
-                            <th>الصافي</th>  
-                            <th>الحالة</th>  
-                            <th>التاريخ</th>  
-                        </tr>  
-                    </thead>  
-                    <tbody id="withdrawalsTable"><tr><td colspan="4">جارِ التحميل...</td></tr></tbody>  
-                </table>  
-            </div>  
-            <p style="text-align:center; color:#94a3b8; font-size:11px; margin-top: 15px;">  
-                ⏰ المراجعة تتم خلال 24 ساعة عمل  
-            </p>  
-        </div>  
-    </div>  
-  
+        <div class="input-group">
+            <label>رقم محفظة كاش</label>
+            <input type="text" id="walletVod" placeholder="01xxxxxxxxx" maxlength="11" inputmode="numeric">
+            
+            <label style="margin-top:15px;">المبلغ المطلوب (أقل حد 20)</label>
+            <input type="number" id="amountInp" placeholder="أدخل المبلغ">
+            
+            <div id="limitWarning" style="color:var(--error); font-size:12px; margin-top:10px; display:none; font-weight:700;"></div>
+        </div>
+
+        <div style="display:flex; justify-content: space-around; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; margin-bottom: 20px; border: 1px dashed var(--glass-border);">
+            <div style="text-align:center;"><span style="font-size:10px; opacity:0.6;">الصافي</span><b id="netVal" style="display:block; color:var(--success);">0.00</b></div>
+            <div style="text-align:center;"><span style="font-size:10px; opacity:0.6;">النقاط</span><b id="needPts" style="display:block; color:var(--neon-cyan);">0</b></div>
+        </div>
+
+        <button id="confirmBtn" disabled>تأكيد العملية الآن</button>
+        <div id="msg" class="status-msg"></div>
+
+        <div class="history-section">
+            <h3>سجل العمليات</h3>
+            <div id="withdrawalsList">
+                <div style="text-align:center; opacity:0.5; padding:20px;">جارِ جلب البيانات...</div>
+            </div>
+        </div>
+    </div>
+
     <div id="customModal">  
-        <div class="modal-content">  
-            <h3 style="color:var(--neon-cyan)">⚠️ تأكيد العملية</h3>  
-            <div style="text-align: right; font-size: 15px; line-height: 1.8;">  
-                <p>مبلغ السحب: <span id="modalAmount" style="color:var(--neon-purple); font-weight:900;">0.00</span> ج.م</p>  
-                <p>الصافي لك: <span id="modalNet" style="color:var(--success); font-weight:900;">0.00</span> ج.م</p>  
-                <p>رقم المحفظة: <span id="modalWallet" style="color:var(--neon-cyan); font-weight:900;"></span></p>  
-            </div>  
-            <div class="modal-actions">  
-                <button id="cancelActionBtn">تراجع</button>  
-                <button id="confirmActionBtn">تأكيد الآن</button>  
-            </div>  
+        <div class="modal-box">  
+            <h3 style="color:var(--neon-cyan); margin-top:0;">تأكيد السحب</h3>  
+            <p style="font-size:14px; line-height:1.6; color:#cbd5e1;">أنت على وشك سحب مبلغ <b id="modalAmount"></b> ج.م إلى الرقم <b id="modalWallet"></b>. هل البيانات صحيحة؟</p>  
+            <button id="confirmActionBtn" class="modal-btn" style="background:var(--success); color:#000;">نعم، متأكد</button>  
+            <button id="cancelActionBtn" class="modal-btn" style="background:#1e293b; color:#fff;">تعديل البيانات</button>  
         </div>  
     </div>  
 
@@ -220,10 +156,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>  
     
     <script>  
-        const firebaseConfig = {  
-            apiKey:"AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",  
-            authDomain:"am--rewards.firebaseapp.com",  
-            projectId:"am--rewards"  
+        const firebaseConfig = { 
+            apiKey:"AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
+            authDomain:"am--rewards.firebaseapp.com", 
+            projectId:"am--rewards" 
         };  
         firebase.initializeApp(firebaseConfig);  
         const auth = firebase.auth();  
@@ -231,181 +167,137 @@
 
         const POINT_VALUE_EGP = 0.07;  
         const LIMITS = { min: 20, maxDaily: 200, maxOpsPerDay: 2 };   
-        const HISTORY_LIMIT = 20;   
 
-        // عناصر DOM  
-        const pointsVal = document.getElementById('pointsVal');  
-        const egpVal = document.getElementById('egpVal');  
-        const amountInp = document.getElementById('amountInp');  
-        const walletVod = document.getElementById('walletVod');  
-        const feeVal = document.getElementById('feeVal');  
-        const netVal = document.getElementById('netVal');  
-        const needPts = document.getElementById('needPts');  
-        const msgEl = document.getElementById('msg');  
-        const withdrawalsTable = document.getElementById('withdrawalsTable');  
-        const confirmBtn = document.getElementById('confirmBtn');  
-        const remainingOpsEl = document.getElementById('remainingOpsVal');   
-        const remainingLimitEl = document.getElementById('remainingLimitVal');   
-        const limitWarningEl = document.getElementById('limitWarning');   
-        
-        const customModal = document.getElementById('customModal');  
-        const modalAmount = document.getElementById('modalAmount');  
-        const modalNet = document.getElementById('modalNet');  
-        const modalWallet = document.getElementById('modalWallet');  
-        const confirmActionBtn = document.getElementById('confirmActionBtn');  
-        const cancelActionBtn = document.getElementById('cancelActionBtn');  
+        // Elements
+        const pointsVal = document.getElementById('pointsVal');
+        const amountInp = document.getElementById('amountInp');
+        const walletVod = document.getElementById('walletVod');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const withdrawalsList = document.getElementById('withdrawalsList');
         
         let userId = null;  
         let currentPoints = 0;  
         let todayOpsCount = 0;   
-        let todayAmountTotal = 0;   
+        let todayAmountTotal = 0;
 
-        walletVod.value = localStorage.getItem('lastWallet') || '';  
+        function showMsg(text, type) {
+            const m = document.getElementById('msg');
+            m.textContent = text;
+            m.className = `status-msg show ${type === 'success' ? 'success' : 'error'}`;
+            setTimeout(() => m.classList.remove('show'), 4000);
+        }
 
-        function showMsg(text, type = 'success') {  
-            msgEl.textContent = text;  
-            msgEl.className = `status-msg show ${type}`;  
-            setTimeout(() => { msgEl.classList.remove('show'); }, 5000);   
-        }  
+        // تحويل الحالات للعربية
+        const translateStatus = (s) => {
+            const map = { 'pending': 'قيد الانتظار', 'completed': 'تم الدفع ✅', 'rejected': 'مرفوض ❌' };
+            return map[s] || s;
+        };
 
-        function formatNum(num) {  
-            return Number(num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });  
-        }  
-        
-        function formatDate(ts) {  
-            if (!ts?.toDate) return "-";   
-            const dt = ts.toDate();  
-            return `${dt.getDate()}/${dt.getMonth()+1} ${dt.getHours()}:${dt.getMinutes()}`;  
-        }  
-        
-        function validateWallet() {  
-            const wallet = walletVod.value.trim();  
-            const isValid = wallet.length === 11 && /^\d{11}$/.test(wallet);  
-            walletVod.classList.toggle('invalid', !isValid && wallet.length > 0);  
-            return isValid;  
-        }  
+        async function checkDailyLimits() {
+            if (!userId) return;
+            const start = new Date(); start.setUTCHours(0,0,0,0);
+            const snap = await db.collection("withdrawals").where("userId", "==", userId).where("date", ">=", start).get();
+            todayOpsCount = 0; todayAmountTotal = 0;
+            snap.forEach(doc => { 
+                if(doc.data().status !== 'rejected') {
+                    todayOpsCount++; todayAmountTotal += (+doc.data().amount);
+                }
+            });
+            document.getElementById('remainingOpsVal').textContent = Math.max(0, LIMITS.maxOpsPerDay - todayOpsCount);
+            document.getElementById('remainingLimitVal').textContent = Math.max(0, LIMITS.maxDaily - todayAmountTotal);
+        }
 
-        async function checkDailyLimits() {  
-            if (!userId) return;  
-            const start = new Date(); start.setUTCHours(0, 0, 0, 0);   
-            const todaySnapshot = await db.collection("withdrawals")  
-                .where("userId", "==", userId)  
-                .where("date", ">=", start)   
-                .where("status", "in", ['pending', 'completed'])   
-                .get();  
-            
-            let ops = 0, amt = 0;  
-            todaySnapshot.forEach(doc => { ops++; amt += (+doc.data().amount) || 0; });  
-            todayOpsCount = ops; todayAmountTotal = amt;   
-            
-            const remainingOps = Math.max(0, LIMITS.maxOpsPerDay - todayOpsCount);  
-            const remainingAmount = Math.max(0, LIMITS.maxDaily - todayAmountTotal);   
-            
-            remainingOpsEl.textContent = remainingOps;   
-            remainingLimitEl.textContent = formatNum(remainingAmount).replace('.00', '');   
-        }  
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                userId = user.uid;
+                checkDailyLimits();
+                db.collection('users').doc(userId).onSnapshot(doc => {
+                    if (doc.exists) {
+                        currentPoints = doc.data().points || 0;
+                        pointsVal.textContent = Math.floor(currentPoints).toLocaleString();
+                        document.getElementById('egpVal').textContent = (currentPoints * POINT_VALUE_EGP).toFixed(2);
+                        updateCalc();
+                    }
+                });
 
-        auth.onAuthStateChanged(user => {  
-            if (user) {  
-                userId = user.uid;  
-                checkDailyLimits();  
-                db.collection('users').doc(userId).onSnapshot(doc => {  
-                    if (doc.exists) {  
-                        currentPoints = doc.data().points || 0;  
-                        pointsVal.textContent = Math.floor(currentPoints).toLocaleString();  
-                        egpVal.textContent = formatNum(currentPoints * POINT_VALUE_EGP);  
-                        updateCalc();   
-                    }  
-                });  
+                db.collection("withdrawals").where("userId", "==", user.uid).orderBy("date", "desc").limit(10).onSnapshot(snap => {
+                    withdrawalsList.innerHTML = "";
+                    snap.forEach(doc => {
+                        const w = doc.data();
+                        const div = document.createElement('div');
+                        div.className = `withdraw-row row-${w.status}`;
+                        div.innerHTML = `
+                            <div class="amt-info">
+                                <b>${w.amount} ج.م</b>
+                                <span>صافي: ${w.net} ج</span>
+                            </div>
+                            <div class="status-badge">${translateStatus(w.status)}</div>
+                        `;
+                        withdrawalsList.appendChild(div);
+                    });
+                });
+            } else { window.location.href = "index.html"; }
+        });
 
-                db.collection("withdrawals").where("userId", "==", user.uid)  
-                    .orderBy("date", "desc").limit(HISTORY_LIMIT)   
-                    .onSnapshot(snapshot => {  
-                        withdrawalsTable.innerHTML = "";  
-                        if (snapshot.empty) {  
-                            withdrawalsTable.innerHTML = `<tr><td colspan="4">لا يوجد طلبات سحب</td></tr>`;  
-                            return;  
-                        }  
-                        snapshot.forEach(doc => {  
-                            const w = doc.data();  
-                            const tr = document.createElement("tr");  
-                            tr.className = `row-${w.status}`;  
-                            tr.innerHTML = `<td>${w.amount} ج</td><td>${w.net} ج</td><td>${w.status}</td><td>${formatDate(w.date)}</td>`;  
-                            withdrawalsTable.appendChild(tr);  
-                        });  
-                    });  
-            } else { window.location.href = "index.html"; }  
-        });  
+        function updateCalc() {
+            const amt = parseFloat(amountInp.value);
+            const wallet = walletVod.value.trim();
+            const ptsNeeded = Math.ceil(amt / POINT_VALUE_EGP);
+            const remainingAmt = LIMITS.maxDaily - todayAmountTotal;
 
-        function updateCalc() {  
-            const amt = parseFloat(amountInp.value);  
-            const isWalletValid = validateWallet();  
-            const remainingAmount = LIMITS.maxDaily - todayAmountTotal;   
-            const remainingOps = LIMITS.maxOpsPerDay - todayOpsCount;  
-            
-            limitWarningEl.style.display = 'none';  
-            
-            if (isNaN(amt) || amt < LIMITS.min) {  
-                feeVal.textContent = "0.00"; netVal.textContent = "0.00"; needPts.textContent = "0";  
-                confirmBtn.disabled = true;  
-            } else {  
-                const fee = amt * 0.10; const net = amt - fee;  
-                const ptsNeeded = Math.ceil(amt / POINT_VALUE_EGP);  
-                feeVal.textContent = formatNum(fee);  
-                netVal.textContent = formatNum(net);  
-                needPts.textContent = ptsNeeded.toLocaleString();  
+            if (!isNaN(amt) && amt >= LIMITS.min) {
+                document.getElementById('netVal').textContent = (amt * 0.9).toFixed(2);
+                document.getElementById('needPts').textContent = ptsNeeded.toLocaleString();
                 
-                if (ptsNeeded > currentPoints) {  
-                    limitWarningEl.textContent = '❌ رصيد غير كافٍ'; limitWarningEl.style.display = 'block';  
-                    confirmBtn.disabled = true;  
-                } else if (!isWalletValid) {  
-                    confirmBtn.disabled = true;  
-                } else if (amt > remainingAmount) {  
-                    limitWarningEl.textContent = '❌ تجاوزت حد السحب اليومي'; limitWarningEl.style.display = 'block';  
-                    confirmBtn.disabled = true;  
-                } else if (remainingOps <= 0) {  
-                    limitWarningEl.textContent = '❌ الحد الأقصى للعمليات اليوم'; limitWarningEl.style.display = 'block';  
-                    confirmBtn.disabled = true;  
-                } else { confirmBtn.disabled = false; }  
-            }  
-        }  
+                const isPossible = ptsNeeded <= currentPoints && wallet.length === 11 && amt <= remainingAmt && todayOpsCount < LIMITS.maxOpsPerDay;
+                confirmBtn.disabled = !isPossible;
+            } else {
+                confirmBtn.disabled = true;
+            }
+        }
 
-        amountInp.addEventListener('input', updateCalc);  
-        walletVod.addEventListener('input', updateCalc);  
+        amountInp.oninput = updateCalc;
+        walletVod.oninput = updateCalc;
 
-        confirmBtn.addEventListener('click', () => {    
-            modalAmount.textContent = amountInp.value;  
-            modalNet.textContent = netVal.textContent;  
-            modalWallet.textContent = walletVod.value;  
-            customModal.classList.add('show');  
-        });  
+        confirmBtn.onclick = () => {
+            document.getElementById('modalAmount').textContent = amountInp.value;
+            document.getElementById('modalWallet').textContent = walletVod.value;
+            document.getElementById('customModal').style.display = 'flex';
+        };
 
-        cancelActionBtn.addEventListener('click', () => customModal.classList.remove('show'));  
+        document.getElementById('cancelActionBtn').onclick = () => document.getElementById('customModal').style.display = 'none';
 
-        confirmActionBtn.addEventListener('click', async () => {  
-            customModal.classList.remove('show');  
-            confirmBtn.disabled = true;  
-            confirmBtn.textContent = "⏳ جارٍ الإرسال...";  
+        document.getElementById('confirmActionBtn').onclick = async () => {
+            document.getElementById('customModal').style.display = 'none';
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = "جارٍ المعالجة...";
             
-            try {  
-                const idToken = await auth.currentUser.getIdToken();  
-                const response = await fetch('/api/withdraw', {  
-                    method: 'POST',  
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },  
-                    body: JSON.stringify({ amount: parseFloat(amountInp.value), wallet: walletVod.value.trim() })  
-                });  
-                const data = await response.json();  
-                if (!response.ok) throw new Error(data.message);  
-                localStorage.setItem('lastWallet', walletVod.value);  
-                showMsg("تم إرسال الطلب بنجاح", "success");  
-                amountInp.value = ""; checkDailyLimits();  
-            } catch (err) {  
-                showMsg(err.message, "error");  
-            } finally {  
-                confirmBtn.textContent = "تأكيد طلب السحب";  
-                updateCalc();  
-            }  
-        });  
+            try {
+                const idToken = await auth.currentUser.getIdToken();
+                const response = await fetch('/api/withdraw', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+                    body: JSON.stringify({ amount: parseFloat(amountInp.value), wallet: walletVod.value.trim() })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message);
+
+                // --- تحديث حقل withdrawn عند النجاح ---
+                const userRef = db.collection('users').doc(userId);
+                await userRef.update({
+                    totalWithdrawn: firebase.firestore.FieldValue.increment(parseFloat(amountInp.value))
+                });
+
+                showMsg("تم إرسال طلبك للمراجعة بنجاح!", "success");
+                amountInp.value = ""; checkDailyLimits();
+            } catch (err) {
+                showMsg(err.message, "error");
+            } finally {
+                confirmBtn.textContent = "تأكيد العملية الآن";
+                updateCalc();
+            }
+        };
     </script>
 </body>  
 </html>
