@@ -54,7 +54,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, message: "البيانات المدخلة (المبلغ أو المحفظة) غير صالحة أو مفقودة." });
   }
   if (amount < MIN_WITHDRAWAL) {
-    // تم تعريب رسالة الحد الأدنى
     return res.status(400).json({ success: false, message: `الحد الأدنى للسحب هو ${MIN_WITHDRAWAL} جنيه مصري.` });
   }
   if (!/^\d{11}$/.test(wallet)) {
@@ -66,7 +65,6 @@ export default async function handler(req, res) {
       // ======== 4. جلب بيانات المستخدم ========
       const userRef = db.collection("users").doc(userId);
       const userSnap = await tr.get(userRef);
-      // تم تعريب رسالة عدم وجود المستخدم
       if (!userSnap.exists) throw new Error("user-not-found: لم يتم العثور على المستخدم.");
 
       const userData = userSnap.data();
@@ -74,7 +72,6 @@ export default async function handler(req, res) {
       const pointsNeeded = Math.ceil(amount / POINT_VALUE);
 
       if (currentPoints < pointsNeeded) {
-        // تم تعريب رسالة النقاط غير الكافية
         throw new Error("resource-exhausted: نقاط غير كافية لإتمام هذا السحب.");
       }
 
@@ -96,27 +93,25 @@ export default async function handler(req, res) {
         const data = doc.data();
         todayOps++;
         todayAmount += data.amount || 0;
-        
-        if (data.status === "pending") {
-            hasPendingRequest = true;
-        }
+        if (data.status === "pending") hasPendingRequest = true;
       });
       
-      // تم تعريب رسالة الطلب المعلق
       if (hasPendingRequest) {
           throw new Error(`limit-reached: لديك بالفعل طلب سحب قيد المراجعة. يرجى الانتظار حتى يتم معالجته.`);
       }
-      // تم تعريب رسالة الحد الأقصى للعمليات
       if (todayOps >= MAX_OPS_PER_DAY) {
         throw new Error(`limit-reached: وصلت للحد الأقصى لعدد عمليات السحب اليومية (${MAX_OPS_PER_DAY} عملية).`);
       }
-      // تم تعريب رسالة تجاوز الحد اليومي
       if ((todayAmount + amount) > MAX_DAILY_AMOUNT) {
         throw new Error(`limit-reached: تجاوزت الحد الأقصى للمبلغ اليومي للسحب (${MAX_DAILY_AMOUNT} جنيه مصري).`);
       }
 
-      // ======== 6. خصم النقاط وإنشاء وثيقة السحب ========
-      tr.update(userRef, { points: FieldValue.increment(-pointsNeeded) });
+      // ======== 6. تحديث بيانات المستخدم وإنشاء وثيقة السحب ========
+      // التعديل هنا: خصم النقاط وزيادة حقل withdrawn في نفس الوقت
+      tr.update(userRef, { 
+        points: FieldValue.increment(-pointsNeeded),
+        withdrawn: FieldValue.increment(amount) 
+      });
 
       const withdrawalRef = db.collection("withdrawals").doc();
       const withdrawalData = {
@@ -131,22 +126,21 @@ export default async function handler(req, res) {
         userAgent: userAgent,
       };
 
-  // ======== 7. مكافأة الإحالة (تعديل المسمى ليتوافق مع سجلات المستخدمين) ========  
-  const { referredBy } = userData; // تم التعديل من referredByUID إلى referredBy
-  if (referredBy) {  
-    withdrawalData.referredBy = referredBy;  // توحيد المسمى
-    withdrawalData.referralBonusPercent = REFERRAL_BONUS_PERCENT;  
-    withdrawalData.referralPointsCalculated = Math.ceil((amount * REFERRAL_BONUS_PERCENT) / POINT_VALUE);  
-  }  
-    
-  tr.set(withdrawalRef, withdrawalData);  
-});  
+      // ======== 7. مكافأة الإحالة (بدون حذف) ========  
+      const { referredBy } = userData; 
+      if (referredBy) {  
+        withdrawalData.referredBy = referredBy;
+        withdrawalData.referralBonusPercent = REFERRAL_BONUS_PERCENT;  
+        withdrawalData.referralPointsCalculated = Math.ceil((amount * REFERRAL_BONUS_PERCENT) / POINT_VALUE);  
+      }  
+        
+      tr.set(withdrawalRef, withdrawalData);  
+    });  
 
-return res.status(200).json({ success: true, message: "✅ تم إرسال طلب السحب بنجاح. سيتم مراجعته خلال 24 ساعة." });
+    return res.status(200).json({ success: true, message: "✅ تم إرسال طلب السحب بنجاح. سيتم مراجعته خلال 24 ساعة." });
 
   } catch (err) {
     console.error("Withdrawal Error:", err);
-    // رسالة الخطأ العامة
     return res.status(400).json({ success: false, message: err.message || "خطأ داخلي في الخادم." });
   }
 }
