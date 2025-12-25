@@ -16,7 +16,14 @@
       --text-main: #f1f5f9;
     }      
 
-    * { box-sizing: border-box; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }      
+    /* تحسين الأداء: استبدال all بخصائص محددة */
+    * { 
+      box-sizing: border-box; 
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+                  box-shadow 0.4s ease, 
+                  opacity 0.4s ease, 
+                  background-color 0.4s ease; 
+    }      
     
     body { 
       margin: 0; padding: 0; font-family: "Cairo", sans-serif; 
@@ -27,7 +34,6 @@
         radial-gradient(circle at 90% 80%, rgba(0, 242, 255, 0.1) 0%, transparent 40%);
     }
 
-    /* تأثير الـ Mesh Gradient المتحرك */
     .nebula {
       position: fixed; inset: 0; z-index: -1;
       background: radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 100%);
@@ -35,13 +41,13 @@
     .nebula::after {
       content: ""; position: absolute; width: 200%; height: 200%;
       background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
-      opacity: 0.3; animation: stars 100s linear infinite;
+      opacity: 0.15; /* تحسين البطارية */
+      animation: stars 100s linear infinite;
     }
     @keyframes stars { from { transform: translateY(0); } to { transform: translateY(-50%); } }
 
     .container { max-width: 480px; margin: 0 auto; padding: 25px 15px; }
 
-    /* الهيدر الخيالي */
     header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 20px; border-radius: 24px;
@@ -56,7 +62,6 @@
       font-family: 'Montserrat'; font-size: 20px; color: #fff;
     }
 
-    /* كارت البروفايل المطور */
     .profile-card {
       position: relative; padding: 30px 20px; border-radius: 30px;
       background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
@@ -78,10 +83,7 @@
       box-shadow: 0 0 30px rgba(0, 242, 255, 0.3);
     }
 
-    /* عداد النقاط العملاق */
-    .points-section {
-      margin: 20px 0; display: flex; gap: 15px;
-    }
+    .points-section { margin: 20px 0; display: flex; gap: 15px; }
     .point-box {
       flex: 1; padding: 20px; border-radius: 24px;
       background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border);
@@ -91,7 +93,6 @@
     .val { font-family: 'Montserrat'; font-size: 32px; display: block; margin: 5px 0; color: var(--neon-cyan); }
     .val.gold-text { color: var(--gold); }
 
-    /* كارت الهدف اليومي - نيون بار */
     .goal-card {
       padding: 20px; border-radius: 24px; background: var(--glass-bg);
       border: 1px solid var(--glass-border); margin-bottom: 25px;
@@ -104,10 +105,19 @@
       position: absolute; height: 100%; width: 0%;
       background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan));
       box-shadow: 0 0 15px var(--neon-cyan);
-      transition: width 1.5s ease-out;
+      transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* أزرار الأكشن - تأثير عائم */
+    /* تأثير المكافأة Glow */
+    .progress-fill.goal-reached {
+      animation: pulseGlow 1.5s infinite alternate;
+      box-shadow: 0 0 20px var(--neon-cyan), 0 0 40px var(--neon-purple);
+    }
+    @keyframes pulseGlow {
+      from { filter: brightness(1) drop-shadow(0 0 5px var(--neon-cyan)); }
+      to { filter: brightness(1.5) drop-shadow(0 0 20px var(--neon-cyan)); }
+    }
+
     .grid-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
     .action-item {
       padding: 20px; border-radius: 22px; background: var(--glass-bg);
@@ -116,17 +126,16 @@
       font-weight: 700; position: relative; overflow: hidden;
     }
     .action-item:hover { transform: translateY(-10px); background: rgba(255,255,255,0.1); border-color: var(--neon-cyan); }
-    .action-item i { font-size: 24px; }
     .action-item.full { grid-column: span 2; flex-direction: row; justify-content: space-between; border-color: var(--neon-purple); }
-
-    /* فوتر النيون */
-    footer { text-align: center; padding: 30px; opacity: 0.5; font-size: 12px; letter-spacing: 2px; }
 
     .btn-logout {
       background: rgba(255, 95, 95, 0.1); color: #ff5f5f; border: 1px solid #ff5f5f;
       padding: 8px 18px; border-radius: 12px; cursor: pointer; font-weight: 800;
+      transition: all 0.3s ease;
     }
     .btn-logout:hover { background: #ff5f5f; color: #fff; box-shadow: 0 0 20px #ff5f5f; }
+    
+    footer { text-align: center; padding: 30px; opacity: 0.5; font-size: 11px; letter-spacing: 1px; }
   </style>      
 </head>      
 <body>      
@@ -134,9 +143,9 @@
   
   <div class="container">      
     <header>      
-      <div style="display:flex; gap:15px; align-items:center;">
+      <div style="display:flex; gap:12px; align-items:center;">
         <div class="logo-glow">AM</div>
-        <div style="font-weight:900; font-size:18px; letter-spacing:1px;">AM REWARDS</div>
+        <div style="font-weight:900; font-size:16px;">AM REWARDS</div>
       </div>
       <button id="logoutBtn" class="btn-logout">خروج</button>
     </header>    
@@ -145,68 +154,68 @@
       <div class="inner-card">
         <div class="avatar-main" id="avatar">A</div>
         <h2 id="userName" style="margin:10px 0 5px; font-weight:900;">...</h2>
-        <div id="userRefCode" style="font-size:14px; color:var(--neon-cyan); background:rgba(0,242,255,0.05); padding:5px 15px; border-radius:50px; display:inline-block;">كود: ---</div>
+        <div id="userRefCode" style="font-size:13px; color:var(--neon-cyan); background:rgba(0,242,255,0.08); padding:5px 15px; border-radius:50px; display:inline-block;">كود: ---</div>
       </div>
     </div>
 
     <div class="points-section">
       <div class="point-box">
-        <span style="font-size:12px; color:#94a3b8; font-weight:700;">إجمالي النقاط</span>
+        <span style="font-size:11px; color:#94a3b8; font-weight:700;">إجمالي النقاط</span>
         <span class="val" id="userPoints">0</span>
-        <span id="pointsEgp" style="font-size:14px; color:var(--neon-purple);">0.00 ج</span>
+        <span id="pointsEgp" style="font-size:13px; color:var(--neon-purple); font-weight:700;">0.00 ج</span>
       </div>
       <div class="point-box gold">
-        <span style="font-size:12px; color:var(--gold); font-weight:700;">رصيد السحب</span>
+        <span style="font-size:11px; color:var(--gold); font-weight:700;">رصيد السحب</span>
         <span class="val gold-text" id="userBalanceEgp">0.00</span>
-        <span style="font-size:11px; opacity:0.6;">العملة: جنيه مصري</span>
+        <span style="font-size:10px; opacity:0.6;">جنيه مصري</span>
       </div>
     </div>
 
     <div class="goal-card">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-weight:700;">هدف اليوم</span>
-        <span id="progressPercent" style="color:var(--neon-cyan); font-family:'Montserrat';">0%</span>
+        <span style="font-weight:700; font-size:14px;">هدف اليوم (1000 نقطة)</span>
+        <span id="progressPercent" style="color:var(--neon-cyan); font-family:'Montserrat'; font-weight:900;">0%</span>
       </div>
       <div class="progress-container">
         <div class="progress-fill" id="progressFill"></div>
       </div>
-      <div style="text-align:left; font-size:13px; color:#94a3b8;" id="progressLbl">0 / 1000</div>
+      <div style="text-align:left; font-size:12px; color:#94a3b8; font-family:'Montserrat';" id="progressLbl">0 / 1000</div>
     </div>
 
     <div class="grid-actions">
       <a href="tasks.html" class="action-item">
-        <span>📝</span>
+        <span style="font-size:24px;">📝</span>
         <span>المهام اليومية</span>
       </a>
       <a href="referrals.html" class="action-item">
-        <span>👥</span>
+        <span style="font-size:24px;">👥</span>
         <span>الأصدقاء</span>
       </a>
       <a href="withdraw.html" class="action-item full">
         <div style="display:flex; align-items:center; gap:10px;">
-          <span>💸</span>
+          <span style="font-size:24px;">💸</span>
           <span>سحب الأرباح كاش</span>
         </div>
-        <span style="background:var(--neon-cyan); color:#000; padding:4px 12px; border-radius:10px; font-size:12px;">سحب الآن</span>
+        <span style="background:var(--neon-cyan); color:#020617; padding:5px 12px; border-radius:12px; font-size:12px; font-weight:900;">سحب</span>
       </a>
     </div>
 
     <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:20px;">
-        <div style="background:rgba(255,255,255,0.02); padding:15px; border-radius:18px; text-align:center; border:1px solid var(--glass-border);">
-            <div id="pointsToday" style="font-weight:900; color:var(--neon-cyan);">0</div>
+        <div style="background:rgba(255,255,255,0.02); padding:12px; border-radius:18px; text-align:center; border:1px solid var(--glass-border);">
+            <div id="pointsToday" style="font-weight:900; color:var(--neon-cyan); font-family:'Montserrat';">0</div>
             <div style="font-size:10px; opacity:0.5;">نقاط اليوم</div>
         </div>
-        <div style="background:rgba(255,255,255,0.02); padding:15px; border-radius:18px; text-align:center; border:1px solid var(--glass-border);">
-            <div id="totalWithdrawn" style="font-weight:900; color:var(--gold);">0</div>
+        <div style="background:rgba(255,255,255,0.02); padding:12px; border-radius:18px; text-align:center; border:1px solid var(--glass-border);">
+            <div id="totalWithdrawn" style="font-weight:900; color:var(--gold); font-family:'Montserrat';">0</div>
             <div style="font-size:10px; opacity:0.5;">المسحوبات</div>
         </div>
-        <div style="background:rgba(255,255,255,0.02); padding:15px; border-radius:18px; text-align:center; border:1px solid var(--glass-border);">
-            <div id="referralPoints" style="font-weight:900; color:var(--neon-purple);">0</div>
+        <div style="background:rgba(255,255,255,0.02); padding:12px; border-radius:18px; text-align:center; border:1px solid var(--glass-border);">
+            <div id="referralPoints" style="font-weight:900; color:var(--neon-purple); font-family:'Montserrat';">0</div>
             <div style="font-size:10px; opacity:0.5;">إحالات</div>
         </div>
     </div>
 
-    <footer>© 2025 AM REWARDS | تجربة مستقبلية</footer>    
+    <footer>© 2025 AM REWARDS | تجربة مستقبلية مطورة</footer>    
   </div>      
 
   <script type="module">      
@@ -247,7 +256,7 @@
         document.getElementById('avatar').textContent = (d.name || 'A')[0].toUpperCase();
 
         const pts = Number(d.points || 0);
-        animateValue("userPoints", lastPoints, pts, 1500);
+        animateValue("userPoints", lastPoints, pts, 1200);
         lastPoints = pts;
 
         const egp = (pts * POINT_VALUE).toFixed(2);
@@ -259,11 +268,24 @@
         document.getElementById('totalWithdrawn').textContent = (d.totalWithdrawn || 0) + ' ج';
         document.getElementById('referralPoints').textContent = d.referralPoints || 0;
 
-        // تحديث شريط التقدم النيون
+        // تحديث شريط التقدم النيون مع تأثير الـ Glow
         const pct = Math.min(Math.round((ptsToday / 1000) * 100), 100);
-        document.getElementById('progressPercent').textContent = pct + '%';
+        const fill = document.getElementById('progressFill');
+        const percentText = document.getElementById('progressPercent');
+
+        fill.style.width = pct + '%';
+        
+        if (pct >= 100) {
+            fill.classList.add('goal-reached');
+            percentText.style.color = 'var(--gold)';
+            percentText.innerHTML = '🎯 اكتمل!';
+        } else {
+            fill.classList.remove('goal-reached');
+            percentText.style.color = 'var(--neon-cyan)';
+            percentText.innerHTML = pct + '%';
+        }
+
         document.getElementById('progressLbl').textContent = `${ptsToday} / 1000`;
-        document.getElementById('progressFill').style.width = pct + '%';
       });    
     });
 
@@ -271,3 +293,4 @@
   </script>    
 </body>
 </html>
+
