@@ -180,7 +180,7 @@
 
     let allWithdrawals = [];    
     let usersMap = {};
-    let currentWithdrawal = null; // تخزين الطلب الحالي عالمياً لإصلاح مشكلة الرفض
+    let currentWithdrawal = null; 
 
     // --- نظام الأمان ---    
     async function getDeviceFingerprint() {    
@@ -224,7 +224,6 @@
         applyFilters();    
     }
 
-    // وظيفة Highlight لتمييز البحث
     function highlight(text, term) {
         if(!term || !text) return text;
         return text.toString().replace(
@@ -256,7 +255,7 @@
 
         data.forEach(w => {    
             const tr = document.createElement('tr');
-            tr.setAttribute('data-status', w.status); // تلوين الصف
+            tr.setAttribute('data-status', w.status); 
 
             tr.innerHTML = `    
                 <td><div style="font-weight:900;">${highlight(usersMap[w.userId], searchTerm)}</div></td>
@@ -283,12 +282,10 @@
         document.getElementById('pendingAmount').textContent = pending.reduce((a,b) => a + (Number(b.net)||0), 0).toFixed(2);    
     }    
 
-    // --- منطق المراجعة والرفض والقبول ---    
     window.reviewRequest = (id) => {    
-        currentWithdrawal = allWithdrawals.find(x => x.id === id); // تخزين عالمي
+        currentWithdrawal = allWithdrawals.find(x => x.id === id); 
         const w = currentWithdrawal;
         
-        // تصفير المودال
         document.getElementById('rejectReason').value = ''; 
         document.getElementById('modal-reject-box').classList.add('hidden');    
         document.getElementById('action-buttons').classList.remove('hidden');
@@ -309,7 +306,6 @@
         modal.classList.remove('hidden');    
     };    
 
-    // القبول    
     document.getElementById('confirmAccept').onclick = async () => {    
         const w = currentWithdrawal;
         if(!w) return;
@@ -321,15 +317,14 @@
         loadData();    
     };    
 
-    // إظهار صندوق الرفض    
     document.getElementById('showRejectBox').onclick = () => {    
         document.getElementById('action-buttons').classList.add('hidden');    
         document.getElementById('modal-reject-box').classList.remove('hidden');    
     };    
 
-    // تنفيذ الرفض النهائي
+    // --- التصليح هنا لمنع الـ NaN ---
     document.getElementById('confirmReject').onclick = async () => {    
-        const w = currentWithdrawal; // استخدام المتغير العالمي
+        const w = currentWithdrawal; 
         if(!w) return alert("خطأ: لم يتم العثور على بيانات الطلب");
 
         const reason = document.getElementById('rejectReason').value.trim();    
@@ -338,20 +333,22 @@
         if(!confirm("تأكيد الرفض؟ سيتم إرجاع النقاط فوراً للمستخدم.")) return;    
 
         try {
+            // نضمن تحويل النقاط لرقم قبل إرسالها لـ increment
+            const pointsToReturn = Number(w.pts);
+            if(isNaN(pointsToReturn)) throw new Error("قيمة النقاط ليست رقماً صالحاً");
+
             const batch = writeBatch(db);    
-            // 1. تحديث حالة الطلب    
             batch.update(doc(db, 'withdrawals', w.id), {     
                 status: 'rejected',     
                 rejectionReason: reason,    
                 processedAt: Timestamp.now()     
             });    
-            // 2. إرجاع النقاط لحساب المستخدم    
             batch.update(doc(db, 'users', w.userId), {     
-                points: increment(Number(w.pts))     
+                points: increment(pointsToReturn)     
             });    
 
             await batch.commit();    
-            alert("تم رفض الطلب وإرجاع النقاط للمستخدم بنجاح.");    
+            alert("تم رفض الطلب وإرجاع النقاط بنجاح.");    
             closeModal();    
             loadData();
         } catch(e) {
@@ -361,7 +358,6 @@
 
     window.closeModal = () => document.getElementById('modal').classList.add('hidden');    
 
-    // الأحداث    
     document.getElementById('statusFilter').onchange = applyFilters;    
     document.getElementById('searchInput').oninput = applyFilters;    
     document.getElementById('btnLogout').onclick = () => signOut(auth);    
