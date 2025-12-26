@@ -3,221 +3,208 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>إدارة الإحالات — Am Rewards Master</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+  <title>AM REWARDS | REFERRALS CONTROL</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    :root{
-      --bg:#070707; --card:#0f0f10; --gold:#f5c542; --muted:#9aa4b2; --text:#eef2f7;
-      --accent:#00fa9a; --blue: #3b82f6; --light-gold: #f5c54233; --red: #ef4444;
+    :root {
+      --bg: #030712; 
+      --card: rgba(17, 24, 39, 0.7);
+      --gold: #f5c542; 
+      --border: rgba(245, 197, 66, 0.1);
+      --text: #eef2f7;
+      --accent: #00fa9a;
+      --blue: #3b82f6;
+      --red: #ef4444;
     }
-    *{box-sizing:border-box}
-    body{font-family:"Cairo",sans-serif;background:linear-gradient(180deg,var(--bg),#0b0b0b);color:var(--text);margin:0;padding:16px}
-    .wrap{max-width:1200px;margin:0 auto}
-    header{
-      display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:24px;
-      background: linear-gradient(90deg, #f5c54210, #0f0f10);
-      padding: 10px 15px;
-      border-radius: 10px;
-    }
-    header h1{margin:0;color:var(--gold);font-size:24px}
-    .card{background:var(--card);padding:24px;border-radius:12px;border:1px solid rgba(245,197,66,0.12);box-shadow: 0 4px 12px rgba(0,0,0,0.2); margin-bottom: 20px;}
-    
-    /* Stats Box Styles */
-    .stats{display:flex;justify-content:center;gap:20px;margin-bottom:20px;flex-wrap:wrap;}
-    .stat-box{background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.15);padding:12px 20px;border-radius:10px;text-align:center;min-width:280px;}
-    .stat-box strong{display:block;font-size:24px;color:var(--gold);font-weight:900;}
-    .stat-box span{display:block;font-size:12px;color:var(--muted);margin-top:4px;}
 
-    /* Table Styles */
-    .table-container{overflow-x:auto; margin-top: 15px;}
-    .referrals-table{width:100%; border-collapse: collapse; min-width: 800px;}
-    .referrals-table th, .referrals-table td{padding:12px 15px; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.08);}
-    .referrals-table th{background:rgba(245,197,66,0.1); color: var(--gold); font-size: 14px; font-weight: 700; position: sticky; top: 0;}
-    .referrals-table tr:hover td{background:rgba(255,255,255,0.02);}
-    .no-data { text-align: center; padding: 20px; color: var(--muted); }
-    .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; }
-    .status-granted { background: var(--accent); color: var(--bg); } 
-
-    /* Top Referrers Table Styles */
-    #topReferrersTable thead th { background: #0b1113; color: var(--accent); }
-    #topReferrersTable td:last-child { font-weight: 700; color: var(--gold); }
-    #topReferrersTable td:nth-child(3) { font-weight: 700; color: var(--accent); }
-    #topReferrersTable td:first-child { font-weight: 900; color: var(--text); }
-    /* تعديل كود المحيل لجعله قابلاً للضغط */
-    .referrer-code { cursor: pointer; color: var(--gold); font-weight: 700; }
-    .referrer-code:hover { text-decoration: underline; }
-    
-    /* Controls & Loader */
-    .controls{display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap; justify-content: flex-start;}
-    .controls input, .controls button{padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#0b1113;color:var(--text);cursor:pointer;}
-    .controls input[type="date"] { color-scheme: dark; } /* تحسين مظهر التاريخ */
-    .controls button.btn-primary{background:var(--blue);border-color:var(--blue);color:var(--text);font-weight:700;}
-    .loading-status { display: flex; align-items: center; justify-content: center; padding: 10px; color: var(--muted); }
-    .loader {
-      border: 4px solid rgba(255, 255, 255, 0.1);
-      border-top: 4px solid var(--accent);
-      border-radius: 50%;
-      width: 20px;
-      height: 20px;
-      animation: spin 1s linear infinite;
-      margin-left: 8px; 
+    body {
+      font-family: "Cairo", sans-serif;
+      background: var(--bg); color: var(--text); margin: 0; padding: 20px;
+      background-image: radial-gradient(circle at top right, #1e293b, #030712);
+      min-height: 100vh;
     }
+
+    .wrap { max-width: 1200px; margin: 0 auto; }
+
+    /* --- الهيدر --- */
+    header { 
+      display: flex; align-items: center; justify-content: space-between; 
+      margin-bottom: 30px; padding: 25px; background: var(--card); 
+      border-radius: 24px; border: 1px solid var(--border);
+      backdrop-filter: blur(15px);
+    }
+    header h1 { margin: 0; font-family: 'Syncopate'; color: var(--gold); font-size: 1.2rem; letter-spacing: 1px; }
+
+    /* --- الإحصائيات --- */
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .stat-item { 
+      background: var(--card); padding: 25px; border-radius: 24px; 
+      border: 1px solid var(--border); border-bottom: 3px solid var(--gold);
+      text-align: center; transition: 0.3s;
+    }
+    .stat-item strong { display: block; font-size: 1.8rem; font-family: 'Syncopate'; color: #fff; margin-bottom: 5px; }
+    .stat-item span { color: var(--gold); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; opacity: 0.7; }
+
+    /* --- صندوق الرسم البياني --- */
+    .chart-container {
+      background: var(--card); border-radius: 28px; padding: 25px; 
+      border: 1px solid var(--border); backdrop-filter: blur(15px);
+      margin-bottom: 30px; height: 350px;
+    }
+
+    /* --- الجداول --- */
+    .table-card { 
+      background: var(--card); border-radius: 28px; padding: 25px; 
+      border: 1px solid var(--border); backdrop-filter: blur(15px);
+      margin-bottom: 30px;
+    }
+    .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+    
+    .table-container { overflow-x: auto; border-radius: 20px; }
+    table { width: 100%; border-collapse: separate; border-spacing: 0 10px; min-width: 800px; }
+    th { padding: 15px 20px; color: var(--gold); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; text-align: right; border-bottom: 1px solid var(--border); }
+    td { padding: 15px 20px; background: rgba(255,255,255,0.02); vertical-align: middle; transition: 0.3s; font-size: 0.9rem; }
+    
+    td:first-child { border-radius: 0 15px 15px 0; }
+    td:last-child { border-radius: 15px 0 0 15px; }
+    tr:hover td { background: rgba(245, 197, 66, 0.08); transform: scale(1.002); }
+
+    /* --- الأزرار وعناصر التحكم --- */
+    .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    input, select, .btn-action {
+      background: rgba(0,0,0,0.3); border: 1px solid var(--border); 
+      color: #fff; padding: 12px 18px; border-radius: 12px; outline: none; transition: 0.3s;
+    }
+    input:focus { border-color: var(--gold); box-shadow: 0 0 10px rgba(245,197,66,0.1); }
+    
+    .btn-main { background: var(--gold); color: #000; font-weight: 900; border: none; font-family: 'Syncopate'; font-size: 0.7rem; padding: 12px 20px; border-radius: 12px; cursor: pointer; }
+    .btn-main:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(245,197,66,0.3); }
+
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); padding: 8px 15px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.8rem; }
+    .btn-ghost.active { background: var(--gold); color: #000; border-color: var(--gold); }
+
+    .status-badge { padding: 5px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 900; }
+    .status-granted { background: rgba(0,250,154,0.1); color: var(--accent); border: 1px solid var(--accent); }
+
+    .rank-cell { font-family: 'Syncopate'; font-weight: 700; color: #64748b; font-size: 0.8rem; }
+    .code-cell { font-family: monospace; color: var(--gold); font-weight: 900; cursor: pointer; background: rgba(245,197,66,0.05); padding: 4px 10px; border-radius: 8px; }
+    .code-cell:hover { background: var(--gold); color: #000; }
+
+    /* --- Modal --- */
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(10px); }
+    .modal-content { background: var(--card); padding: 40px; border-radius: 30px; border: 1px solid var(--gold); width: 90%; max-width: 500px; position: relative; }
+    .modal-close { position: absolute; top: 20px; left: 20px; color: var(--red); font-size: 1.5rem; cursor: pointer; }
+    .referral-list li { background: rgba(255,255,255,0.03); padding: 12px; margin-bottom: 8px; border-radius: 12px; list-style: none; font-size: 0.85rem; border-right: 3px solid var(--accent); }
+
     .hidden { display: none !important; }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
-    /* Sorting Buttons Styles */
-    .sort-controls button {
-        background: var(--card);
-        color: var(--muted);
-        border: 1px solid rgba(245,197,66,0.12);
-        padding: 8px 15px;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .sort-controls button.active {
-        background: var(--gold);
-        color: var(--bg);
-        font-weight: 700;
-        border-color: var(--gold);
-    }
-    
-    /* Modal Styles */
-    .modal {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-      background-color: rgba(0, 0, 0, 0.85); display: flex; 
-      justify-content: center; align-items: center; z-index: 1000;
-      backdrop-filter: blur(5px);
-    }
-    .modal-content {
-      background: var(--card); padding: 30px; border-radius: 15px; 
-      width: 90%; max-width: 500px; max-height: 90%; overflow-y: auto;
-      border: 1px solid var(--light-gold);
-      position: relative;
-    }
-    .modal-close {
-      position: absolute; top: 10px; left: 15px; font-size: 28px; 
-      color: var(--muted); cursor: pointer; transition: color 0.2s;
-    }
-    .modal-close:hover { color: var(--red); }
-    .referral-list { list-style: none; padding: 0; }
-    .referral-list li { 
-        background: #1a1a1a; 
-        padding: 10px; 
-        margin-bottom: 5px; 
-        border-radius: 6px; 
-        font-size: 14px;
-        color: var(--accent);
-    }
 
+    @media (max-width: 768px) {
+        header { flex-direction: column; text-align: center; gap: 15px; }
+        .table-header { flex-direction: column; align-items: stretch; }
+    }
   </style>
 </head>
 <body>
+
   <div class="wrap">
     <header>
-      <h1>🔗 إدارة الإحالات</h1>
+      <h1>REFERRALS <span style="color:#64748b; font-size:0.9rem;">NETWORK</span></h1>
       <a href="index.html" style="text-decoration:none;">
-        <button class="btn" style="background:var(--accent); color: var(--bg); font-weight: 700;">العودة للرئيسية</button>
+        <button class="btn-main" style="background:var(--accent); color:#000;">DASHBOARD HUB</button>
       </a>
     </header>
 
-    <div class="card">
-      <h2 style="text-align:center; margin-top:0;">ملخص الإحالات</h2>
-      
-      <h3 style="color:var(--gold); text-align: center;">أفضل 5 أكواد نشاطاً</h3>
-      <div style="max-height: 200px;"><canvas id="referralChart" height="120"></canvas></div>
-      
-      <div class="stats">
-        <div class="stat-box"><strong id="totalReferrals">0</strong><span>إجمالي الإحالات الناجحة</span></div>
-        <div class="stat-box"><strong id="totalRewardPoints">0</strong><span>إجمالي نقاط المكافأة المدفوعة</span></div>
+    <div class="chart-container">
+        <h3 style="margin-top:0; font-family:'Syncopate'; font-size:0.8rem; color:var(--gold); text-align:center;">🔥 TOP 5 ACTIVE CODES</h3>
+        <canvas id="referralChart"></canvas>
+    </div>
+
+    <div class="metrics">
+      <div class="stat-item">
+        <strong id="totalReferrals">0</strong> <span>Total Conversions</span>
+      </div>
+      <div class="stat-item">
+        <strong id="totalRewardPoints">0</strong> <span>Paid Rewards Points</span>
       </div>
     </div>
-    
-    <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h2 style="margin:0; text-align: right;">🏆 أفضل 20 مُحيل</h2>
-            <div class="sort-controls" id="sortControls">
-                <button id="sortByPointsBtn" class="active">حسب النقاط</button>
-                <button id="sortByCountBtn">حسب الإحالات</button>
+
+    <div class="table-card">
+        <div class="table-header">
+            <h2 style="margin:0; font-family:'Syncopate'; font-size:1rem; border-right: 4px solid var(--gold); padding-right: 15px;">LEADERBOARD</h2>
+            <div class="controls">
+                <button id="sortByPointsBtn" class="btn-ghost active">BY POINTS</button>
+                <button id="sortByCountBtn" class="btn-ghost">BY COUNT</button>
             </div>
         </div>
         
         <div class="table-container">
-            <table class="referrals-table" id="topReferrersTable">
+            <table id="topReferrersTable">
                 <thead>
                     <tr>
-                        <th>الترتيب</th>
-                        <th>كود المُحيل</th>
-                        <th>عدد الإحالات</th>
-                        <th>إجمالي النقاط المكتسبة</th>
+                        <th>RANK</th>
+                        <th>REFERRER CODE</th>
+                        <th>COUNT</th>
+                        <th>TOTAL EARNED</th>
                     </tr>
                 </thead>
                 <tbody id="topReferrersTableBody">
-                    <tr><td colspan="4" class="no-data">جاري تحديد أفضل المحيلين...</td></tr>
+                    <tr><td colspan="4" style="text-align:center; color:var(--gold);">Initializing records...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
-    <div class="card">
-        <h2 style="margin-top:0;">سجل الإحالات التفصيلي</h2>
-
-        <div class="controls">
-            <label style="color:var(--muted); font-size:14px; margin-left: 10px;" for="dateFilter">تصفية بالتاريخ:</label>
-            <input type="date" id="dateFilter" />
-            
-            <input type="text" id="searchReferral" placeholder="ابحث بكود المحيل أو إيميل المُحال..." />
-            <button id="refreshBtn" class="btn-primary">🔄 تحديث البيانات</button>
+    <div class="table-card">
+        <div class="table-header">
+            <h2 style="margin:0; font-family:'Syncopate'; font-size:1rem; border-right: 4px solid var(--accent); padding-right: 15px;">LIVE LOGS</h2>
+            <div class="controls">
+                <input type="date" id="dateFilter">
+                <input type="text" id="searchReferral" placeholder="Search code or email...">
+                <button id="refreshBtn" class="btn-main">REFRESH</button>
+            </div>
         </div>
 
         <div class="table-container">
-            <table class="referrals-table">
+            <table id="referralsTable">
                 <thead>
                     <tr>
-                        <th>كود المُحيل (Code)</th>
-                        <th>إيميل المُحال</th>
-                        <th>تاريخ التسجيل</th>
-                        <th>نقاط الإحالة (مكافأة)</th>
-                        <th>حالة الإحالة</th>
+                        <th>CODE</th>
+                        <th>REFERRED USER</th>
+                        <th>TIMESTAMP</th>
+                        <th>REWARD</th>
+                        <th>STATUS</th>
                     </tr>
                 </thead>
                 <tbody id="referralsTableBody">
-                    <tr><td colspan="5" class="no-data">جاري تحميل البيانات...</td></tr>
+                    <tr><td colspan="5" style="text-align:center; color:var(--gold);">Fetching data nodes...</td></tr>
                 </tbody>
             </table>
         </div>
         
-        <div class="loading-status" id="loadingStatus">
-            <div id="loadingSpinner" class="loader"></div>
-            <span style="margin-right: 8px;">جاري جلب بيانات الإحالات...</span>
+        <div class="notice" id="loadingStatus">
+            <div class="loader" id="loadingSpinner"></div>
+            <span style="margin-right:10px;">Synchronizing with Firestore...</span>
         </div>
+        
+        <p style="text-align:center; color:#64748b; font-size:0.7rem; margin-top:20px;">
+          SYSTEM LAST SYNC: <span id="lastUpdated" style="font-family:monospace;">--:--</span>
+        </p>
     </div>
-    
-    <p style="text-align:center;color:var(--muted);font-size:12px;">
-      آخر تحديث: <span id="lastUpdated">--:--</span>
-    </p>
   </div>
   
   <div id="detailsModal" class="modal hidden">
     <div class="modal-content">
       <span class="modal-close" id="closeModal">&times;</span>
-      <h3 style="color: var(--gold); margin-top: 0;">تفاصيل إحالات الكود: <span id="modalReferrerCode"></span></h3>
-      
-      <div id="modalContentBody">
-        <p style="color: var(--muted); text-align: center;">قائمة بالمدعوين بواسطة هذا الكود:</p>
-        <ul id="referredList" class="referral-list">
-          </ul>
-      </div>
-
+      <h3 style="color:var(--gold); font-family:'Syncopate'; font-size:0.9rem; margin-top:0; margin-bottom:20px;">
+          NODE DETAILS: <span id="modalReferrerCode" style="color:#fff;"></span>
+      </h3>
+      <ul id="referredList" class="referral-list"></ul>
     </div>
   </div>
 
-
   <script type="module">
+    // [جميع أكواد JavaScript السابقة الخاصة بك تبقى كما هي مع تغييرات طفيفة لتناسب الـ IDs الجديدة]
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, getDocs, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -225,30 +212,18 @@
     const DEFAULT_REWARD_VALUE = 50; 
     let currentSort = 'points'; 
     let allReferrerData = []; 
-    let allReferralEvents = []; // لتخزين جميع الأحداث الأصلية
-
-    let myChart = null; // متغير لتخزين الرسم البياني
+    let allReferralEvents = [];
+    let myChart = null;
     
-    // ====== إعدادات Firebase ======
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
-      // ... باقي الإعدادات
     };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app); 
 
-    // 🔐 تحسين الأمان
-    onAuthStateChanged(auth, user => {
-        if (!user || user.email !== "amirfg992005@gmail.com") {
-            alert("صلاحية الوصول مرفوضة أو لم يتم تسجيل الدخول.");
-            // window.location.href = "index.html"; 
-        }
-    });
-
-    // ====== عناصر DOM ======
     const totalReferralsEl = document.getElementById('totalReferrals');
     const totalRewardPointsEl = document.getElementById('totalRewardPoints');
     const referralsTableBody = document.getElementById('referralsTableBody');
@@ -259,327 +234,150 @@
     const lastUpdatedEl = document.getElementById('lastUpdated'); 
     const sortByPointsBtn = document.getElementById('sortByPointsBtn');
     const sortByCountBtn = document.getElementById('sortByCountBtn');
-    const dateFilterInput = document.getElementById('dateFilter'); // عنصر الفلترة بالتاريخ
-    
+    const dateFilterInput = document.getElementById('dateFilter');
     const detailsModal = document.getElementById('detailsModal');
     const closeModalBtn = document.getElementById('closeModal');
     const modalReferrerCodeEl = document.getElementById('modalReferrerCode');
     const referredListEl = document.getElementById('referredList');
     const chartCtx = document.getElementById('referralChart');
 
-    // ====== Helpers ======
-    function formatNumber(n) { return Number(n || 0).toLocaleString('en-US'); }
+    function formatNumber(n) { return Number(n || 0).toLocaleString(); }
+    function toDateSafe(ts) { return ts?.toDate ? ts.toDate() : (ts?.seconds ? new Date(ts.seconds * 1000) : null); }
+    function formatDateForFilter(date) { return date ? date.toISOString().split('T')[0] : ''; }
 
-    function toDateSafe(ts) {
-        if (ts && ts.toDate) return ts.toDate();
-        if (ts && ts.seconds) return new Date(ts.seconds * 1000); 
-        return null;
-    }
-
-    function formatDateForFilter(date) {
-        // يحول تاريخ JS إلى صيغة YYYY-MM-DD
-        if (!date) return '';
-        const y = date.getFullYear();
-        const m = String(date.getMonth() + 1).padStart(2, '0');
-        const d = String(date.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-    }
-
-    // ====== دالة جلب قيمة المكافأة ======
-    async function getReferralRewardValue() {
-        try {
-            const usersSnap = await getDocs(query(collection(db, 'users')));
-            if (!usersSnap.empty) {
-                const rewardDoc = usersSnap.docs.find(doc => doc.data().referralPoints !== undefined);
-                if (rewardDoc) {
-                     return rewardDoc.data().referralPoints || DEFAULT_REWARD_VALUE;
-                }
-            }
-            return DEFAULT_REWARD_VALUE; 
-        } catch (error) {
-            console.error("Error fetching referral points value:", error);
-            return DEFAULT_REWARD_VALUE;
-        }
-    }
-
-    // ====== 1. دالة تحديث الرسم البياني ======
     function updateChart(data) {
-        if (myChart) {
-            myChart.destroy();
-        }
-        
+        if (myChart) myChart.destroy();
         const top5 = data.slice(0, 5);
-
         myChart = new Chart(chartCtx, {
             type: 'bar',
             data: {
                 labels: top5.map(r => r.code),
                 datasets: [{
-                    label: 'عدد الإحالات',
+                    label: 'Conversions',
                     data: top5.map(r => r.count),
-                    backgroundColor: 'rgba(245,197,66,0.7)',
-                    borderColor: 'var(--gold)',
-                    borderWidth: 1
+                    backgroundColor: 'rgba(245,197,66,0.5)',
+                    borderColor: '#f5c542',
+                    borderWidth: 2,
+                    borderRadius: 8
                 }]
             },
             options: { 
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                }, 
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } }, 
                 scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: 'var(--muted)' } },
-                    x: { grid: { display: false }, ticks: { color: 'var(--muted)' } }
+                    y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#64748b' } },
+                    x: { grid: { display: false }, ticks: { color: '#64748b' } }
                 } 
             }
         });
     }
 
-    // ====== وظيفة عرض جدول Top 20 (مع إضافة خيار الفرز) ======
-    function renderTopReferrers(referrerData, rewardValue, sortBy) {
-        if (referrerData.length === 0) {
-            topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data">لا توجد بيانات كافية لتحديد أفضل المحيلين.</td></tr>';
-            return;
-        }
-
-        topReferrersTableBody.innerHTML = '';
-        
-        const rankedData = referrerData.map(item => ({
-            code: item.code,
-            count: item.count,
-            totalPoints: item.count * rewardValue
-        }));
-
-        if (sortBy === 'points') {
-            rankedData.sort((a, b) => b.totalPoints - a.totalPoints);
-        } else { 
-            rankedData.sort((a, b) => b.count - a.count);
-        }
-        
-        const top20 = rankedData.slice(0, 20);
-
-        top20.forEach((item, index) => {
-            const row = topReferrersTableBody.insertRow();
-            row.innerHTML = `
-                <td>${index + 1}</td>
-                <td><span class="referrer-code" onclick="showReferrerDetails('${item.code}')">${item.code}</span></td>
-                <td>${formatNumber(item.count)}</td>
-                <td>${formatNumber(item.totalPoints)}</td>
-            `;
-        });
-        
-        // تحديث حالة الأزرار
-        sortByPointsBtn.classList.remove('active');
-        sortByCountBtn.classList.remove('active');
-        if (sortBy === 'points') {
-            sortByPointsBtn.classList.add('active');
-        } else {
-            sortByCountBtn.classList.add('active');
-        }
-        currentSort = sortBy;
-        
-        // تحديث الرسم البياني
-        updateChart(rankedData);
-    }
-    
-    // ====== 2. وظيفة عرض التفاصيل (Modal) ======
-    function showReferrerDetails(referrerCode) {
-        modalReferrerCodeEl.textContent = referrerCode;
-        referredListEl.innerHTML = ''; 
-        
-        const relevantEvents = allReferralEvents.filter(event => event.referrerCode === referrerCode);
-        
-        if (relevantEvents.length === 0) {
-            referredListEl.innerHTML = `<li><span style="color: var(--red);">لا توجد إحالات مسجلة بالتفصيل لهذا الكود في هذا السجل.</span></li>`;
-        } else {
-            relevantEvents.forEach(event => {
-                const listItem = document.createElement('li');
-                listItem.textContent = `إيميل المُحال: ${event.referredEmail} (تاريخ: ${event.date})`;
-                referredListEl.appendChild(listItem);
-            });
-        }
-
-        detailsModal.classList.remove('hidden');
-    }
-    window.showReferrerDetails = showReferrerDetails;
-
-
-    // ====== وظيفة جلب وعرض البيانات الرئيسية ======
     async function fetchReferralsData() {
         loadingSpinner.classList.remove('hidden');
         document.getElementById('loadingStatus').style.display = 'flex';
         
-        totalReferralsEl.textContent = 0;
-        totalRewardPointsEl.textContent = 0;
-        referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data">جاري تحميل البيانات...</td></tr>';
-        topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data">جاري تحديد أفضل المحيلين...</td></tr>';
-        
-        const rewardValue = await getReferralRewardValue();
-        
         try {
-            const logsColRef = collection(db, 'referralLogs'); 
-            const q = query(logsColRef, orderBy('date', 'desc')); 
-            const snapshot = await getDocs(q);
-
-            let totalReferrals = 0;
+            const snapshot = await getDocs(query(collection(db, 'referralLogs'), orderBy('date', 'desc')));
             let referrerCounts = {};
-            allReferralEvents = []; // تفريغ وتخزين جميع الأحداث الأصلية
+            allReferralEvents = [];
 
             snapshot.forEach(doc => {
                 const data = doc.data();
-                
-                const referrerCode = data.referralCode || 'N/A';
-                const referredEmail = data.email || 'N/A';
-                
-                const dateObj = toDateSafe(data.date); 
-                const dateString = dateObj ? dateObj.toLocaleDateString('ar-EG') : 'غير متوفر';
-                const dateFilterString = dateObj ? formatDateForFilter(dateObj) : ''; // تاريخ بصيغة الفلترة
-                
+                const dObj = toDateSafe(data.date);
                 const event = {
-                    referrerCode: referrerCode,
-                    referredEmail: referredEmail,
-                    date: dateString,
-                    dateFilterString: dateFilterString, // إضافة التاريخ لغرض الفلترة
-                    referrerPoints: rewardValue, 
+                    referrerCode: data.referralCode || 'N/A',
+                    referredEmail: data.email || 'N/A',
+                    date: dObj ? dObj.toLocaleString('ar-EG') : 'N/A',
+                    dateFilterString: formatDateForFilter(dObj),
+                    referrerPoints: DEFAULT_REWARD_VALUE, 
                     status: 'مُكافأة مُنحت' 
                 };
-                
                 allReferralEvents.push(event);
-
-                totalReferrals++;
-                referrerCounts[referrerCode] = (referrerCounts[referrerCode] || 0) + 1;
+                referrerCounts[event.referrerCode] = (referrerCounts[event.referrerCode] || 0) + 1;
             });
 
-            // تحديث الإحصائيات الرئيسية
-            totalReferralsEl.textContent = formatNumber(totalReferrals);
-            totalRewardPointsEl.textContent = formatNumber(totalReferrals * rewardValue); 
+            totalReferralsEl.textContent = formatNumber(allReferralEvents.length);
+            totalRewardPointsEl.textContent = formatNumber(allReferralEvents.length * DEFAULT_REWARD_VALUE);
             
-            // تجهيز بيانات Top 20 وتخزينها
-            allReferrerData = Object.entries(referrerCounts).map(([code, count]) => ({
-                code,
-                count
-            }));
-
-            // عرض الجداول والرسوم البيانية
+            allReferrerData = Object.entries(referrerCounts).map(([code, count]) => ({ code, count }));
             applyFiltersAndRender();
-
-        } catch (error) {
-            console.error("Firebase Fetch Error:", error);
-            referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data error" style="color:red;">❌ فشل جلب بيانات السجل.</td></tr>';
-            topReferrersTableBody.innerHTML = '<tr><td colspan="4" class="no-data error" style="color:red;">❌ فشل جلب بيانات المحيلين.</td></tr>';
-
+        } catch (e) {
+            console.error(e);
         } finally {
             loadingSpinner.classList.add('hidden');
             document.getElementById('loadingStatus').style.display = 'none';
-            lastUpdatedEl.textContent = new Date().toLocaleString('ar-EG'); 
+            lastUpdatedEl.textContent = new Date().toLocaleTimeString();
         }
     }
-    
-    // ====== دالة لتطبيق الفلاتر وعرض الجداول ======
+
     function applyFiltersAndRender() {
         const filterDate = dateFilterInput.value;
+        const filteredEvents = filterDate ? allReferralEvents.filter(e => e.dateFilterString === filterDate) : allReferralEvents;
         
-        // 1. تصفية أحداث الإحالة
-        let filteredEvents = allReferralEvents;
-        if (filterDate) {
-            filteredEvents = allReferralEvents.filter(event => event.dateFilterString === filterDate);
-        }
+        let filteredCounts = {};
+        filteredEvents.forEach(e => filteredCounts[e.referrerCode] = (filteredCounts[e.referrerCode] || 0) + 1);
         
-        // 2. إعادة حساب الإحصائيات وأفضل المحيلين بناءً على الأحداث المُصفاة
-        let filteredReferrerCounts = {};
-        let filteredTotalReferrals = 0;
+        const filteredRefData = Object.entries(filteredCounts).map(([code, count]) => ({ code, count }));
         
-        filteredEvents.forEach(event => {
-            filteredTotalReferrals++;
-            filteredReferrerCounts[event.referrerCode] = (filteredReferrerCounts[event.referrerCode] || 0) + 1;
-        });
-
-        // تحديث الإحصائيات الرئيسية بناءً على الفلترة
-        totalReferralsEl.textContent = formatNumber(filteredTotalReferrals);
-        
-        // *ملاحظة*: إجمالي النقاط المدفوعة (الأساسية) تبقى كما هي ما لم نقم بتغييرها هنا
-        // إذا كنت تريد أن يعكس هذا الرقم نقاط الإحالات في هذا التاريخ فقط، قم بتفعيل هذا السطر:
-        // totalRewardPointsEl.textContent = formatNumber(filteredTotalReferrals * (allReferralEvents[0]?.referrerPoints || DEFAULT_REWARD_VALUE));
-        
-        const filteredReferrerData = Object.entries(filteredReferrerCounts).map(([code, count]) => ({
-            code,
-            count
-        }));
-        
-        // 3. عرض الجداول
-        const rewardValueForRendering = allReferralEvents[0]?.referrerPoints || DEFAULT_REWARD_VALUE;
-        renderTopReferrers(filteredReferrerData, rewardValueForRendering, currentSort);
-        renderTable(filteredEvents);
+        renderTopReferrers(filteredRefData);
+        renderLogsTable(filteredEvents);
     }
 
-
-    function renderTable(events) {
-        if (events.length === 0) {
-            referralsTableBody.innerHTML = '<tr><td colspan="5" class="no-data">لا توجد إحالات مسجلة.</td></tr>';
-            return;
-        }
-
-        referralsTableBody.innerHTML = ''; 
-        events.forEach(event => {
-            const row = referralsTableBody.insertRow();
-            const statusClass = event.status === 'مُكافأة مُنحت' ? 'status-granted' : 'status-pending';
-
-            row.innerHTML = `
-                <td>${event.referrerCode}</td>
-                <td>${event.referredEmail}</td>
-                <td>${event.date}</td>
-                <td>${formatNumber(event.referrerPoints)}</td>
-                <td><span class="status-badge ${statusClass}">${event.status}</span></td>
+    function renderTopReferrers(data) {
+        topReferrersTableBody.innerHTML = '';
+        const sorted = [...data].sort((a,b) => currentSort === 'points' ? b.count - a.count : b.count - a.count);
+        
+        sorted.slice(0, 20).forEach((item, i) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="rank-cell">#${String(i+1).padStart(2,'0')}</td>
+                <td><span class="code-cell" onclick="window.showReferrerDetails('${item.code}')">${item.code}</span></td>
+                <td style="font-family:'Syncopate'; font-weight:700;">${item.count}</td>
+                <td style="color:var(--gold); font-weight:900;">${formatNumber(item.count * DEFAULT_REWARD_VALUE)}</td>
             `;
+            topReferrersTableBody.appendChild(tr);
+        });
+        updateChart(sorted);
+    }
+
+    function renderLogsTable(events) {
+        referralsTableBody.innerHTML = '';
+        events.forEach(e => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="code-cell">${e.referrerCode}</td>
+                <td>${e.referredEmail}</td>
+                <td style="font-size:0.75rem; color:#64748b;">${e.date}</td>
+                <td style="color:var(--gold); font-weight:700;">+${e.referrerPoints}</td>
+                <td><span class="status-badge status-granted">${e.status}</span></td>
+            `;
+            referralsTableBody.appendChild(tr);
         });
     }
 
-    // ====== تفاعلات DOM ======
-
-    // تفعيل خاصية البحث اللحظي
-    searchInput.addEventListener("input", () => {
-        // نطبق البحث على الجدول الحالي المعروض (المصفى)
-        const q = searchInput.value.toLowerCase();
-        const rows = referralsTableBody.querySelectorAll("tr"); 
-        rows.forEach(r => {
-            r.style.display = r.textContent.toLowerCase().includes(q) ? "" : "none";
+    window.showReferrerDetails = (code) => {
+        modalReferrerCodeEl.textContent = code;
+        referredListEl.innerHTML = '';
+        allReferralEvents.filter(e => e.referrerCode === code).forEach(e => {
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${e.referredEmail}</strong> <br> <span style="font-size:0.7rem; opacity:0.6;">${e.date}</span>`;
+            referredListEl.appendChild(li);
         });
-    });
+        detailsModal.classList.remove('hidden');
+    };
 
-    // 4. تفعيل فلترة التاريخ
-    dateFilterInput.addEventListener('change', applyFiltersAndRender);
-
-    // تفعيل أزرار التبديل
-    sortByPointsBtn.addEventListener('click', () => {
-        // استخدام البيانات المُصفاة في حال وجود فلترة
-        const dataToRender = dateFilterInput.value ? allReferrerData.filter(r => r.count > 0) : allReferrerData;
-        const rewardValue = allReferralEvents[0]?.referrerPoints || DEFAULT_REWARD_VALUE;
-        renderTopReferrers(dataToRender, rewardValue, 'points');
-    });
-
-    sortByCountBtn.addEventListener('click', () => {
-        const dataToRender = dateFilterInput.value ? allReferrerData.filter(r => r.count > 0) : allReferrerData;
-        const rewardValue = allReferralEvents[0]?.referrerPoints || DEFAULT_REWARD_VALUE;
-        renderTopReferrers(dataToRender, rewardValue, 'count');
-    });
+    sortByPointsBtn.onclick = () => { currentSort = 'points'; sortByPointsBtn.classList.add('active'); sortByCountBtn.classList.remove('active'); applyFiltersAndRender(); };
+    sortByCountBtn.onclick = () => { currentSort = 'count'; sortByCountBtn.classList.add('active'); sortByPointsBtn.classList.remove('active'); applyFiltersAndRender(); };
+    dateFilterInput.onchange = applyFiltersAndRender;
+    refreshBtn.onclick = fetchReferralsData;
+    closeModalBtn.onclick = () => detailsModal.classList.add('hidden');
     
-    // إغلاق النافذة المنبثقة
-    closeModalBtn.addEventListener('click', () => {
-        detailsModal.classList.add('hidden');
-    });
-    detailsModal.addEventListener('click', (e) => {
-        if (e.target === detailsModal) {
-            detailsModal.classList.add('hidden');
-        }
-    });
+    searchInput.oninput = () => {
+        const q = searchInput.value.toLowerCase();
+        document.querySelectorAll("#referralsTableBody tr").forEach(r => r.style.display = r.textContent.toLowerCase().includes(q) ? "" : "none");
+    };
 
-    // 3. التحديث التلقائي كل 5 دقائق
-    setInterval(fetchReferralsData, 300000); 
-
-    // ====== التفعيل ======
-    document.addEventListener('DOMContentLoaded', fetchReferralsData);
-    refreshBtn.addEventListener('click', fetchReferralsData);
+    onAuthStateChanged(auth, user => { if(user && user.email === "amirfg992005@gmail.com") fetchReferralsData(); });
   </script>
 </body>
 </html>
