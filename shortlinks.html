@@ -1,36 +1,103 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>مهمة الروابط المختصرة | Am Rewards</title>
-<style>
-  body{font-family:'Tajawal',sans-serif;background:#121212;color:#e0e0e0;margin:0;padding:20px;text-align:center}
-  h2{color:#4caf50;font-size:28px;margin-bottom:20px}
-  .link-box{background:#1e1e1e;padding:15px;border:1px solid #333;margin:12px auto;max-width:420px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.7);transition:.3s}
-  .link-box:hover{background:#2a2a2a}
-  .link-box p{margin:6px 0;font-size:16px}
-  .link-box button{background:#4caf50;color:#121212;border:none;padding:10px 18px;border-radius:8px;font-weight:bold;cursor:pointer;font-size:16px;transition:.3s}
-  .link-box button[disabled]{background:#555;color:#aaa;cursor:not-allowed;}
-  .link-box button:hover:not([disabled]){background:#388e3c}
-  #user-points{background:#263238;padding:12px 20px;border-radius:10px;display:inline-block;margin:0 auto 20px;font-size:20px;border:1px solid #37474f}
-  #status{font-size:18px;margin-bottom:8px;color:#81c784}
-  #err{font-size:15px;color:#ff5252;margin-bottom:15px}
-  .timer-lock{color:#ef4444;font-size:15px;margin-top:10px;}
-  .back-buttons{margin-top:30px}
-  .back-buttons button{background:#4caf50;border:none;color:#121212;padding:12px 24px;margin:8px;border-radius:8px;font-weight:bold;cursor:pointer;font-size:16px;transition:.3s}
-  .back-buttons button:hover{background:#388e3c}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AM REWARDS | SHORT-LINKS HUB</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Syncopate:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #030712; --card: rgba(17, 24, 39, 0.8);
+      --gold: #f5c542; --accent: #00fa9a;
+      --text: #eef2f7; --border: rgba(245, 197, 66, 0.1);
+    }
+
+    body {
+      font-family: 'Cairo', sans-serif; background: var(--bg);
+      color: var(--text); margin: 0; padding: 20px;
+      background-image: radial-gradient(circle at top, #1e293b, #030712);
+      min-height: 100vh;
+    }
+
+    .header-section { text-align: center; margin-bottom: 30px; }
+    h2 { font-family: 'Syncopate'; color: var(--gold); letter-spacing: 2px; font-size: 1.4rem; margin-bottom: 10px; }
+    
+    #user-points {
+      background: var(--card); border: 1px solid var(--gold);
+      padding: 10px 25px; border-radius: 50px; display: inline-flex;
+      align-items: center; gap: 10px; font-weight: 900; color: var(--gold);
+      box-shadow: 0 0 20px rgba(245, 197, 66, 0.1);
+    }
+
+    #status { font-size: 0.9rem; margin: 15px 0; color: var(--accent); opacity: 0.8; }
+    #err { color: #ff5252; font-size: 0.85rem; height: 20px; }
+
+    /* شبكة الروابط */
+    #links-container {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px; max-width: 1100px; margin: 0 auto;
+    }
+
+    .link-card {
+      background: var(--card); border: 1px solid var(--border);
+      padding: 25px; border-radius: 24px; position: relative;
+      transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      backdrop-filter: blur(10px); text-align: center;
+    }
+
+    .link-card:hover { transform: translateY(-8px); border-color: var(--gold); }
+
+    .link-card p { margin: 0 0 20px 0; font-weight: 700; font-size: 1.1rem; }
+    
+    .reward-badge {
+      position: absolute; top: -10px; left: 20px; background: var(--gold);
+      color: #000; padding: 2px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 900;
+    }
+
+    .btn-action {
+      width: 100%; padding: 12px; border-radius: 12px; border: none;
+      font-weight: 900; cursor: pointer; transition: 0.3s;
+      background: var(--accent); color: #030712; font-size: 1rem;
+    }
+
+    .btn-action:disabled {
+      background: rgba(255,255,255,0.05); color: #64748b; cursor: not-allowed;
+    }
+
+    .timer-lock {
+      margin-top: 15px; font-size: 0.8rem; color: #94a3b8;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+    }
+
+    .back-nav {
+      margin-top: 50px; display: flex; justify-content: center; gap: 15px;
+    }
+    .btn-nav {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text); padding: 10px 20px; border-radius: 12px;
+      cursor: pointer; font-weight: 700; text-decoration: none;
+    }
+    .btn-nav:hover { background: var(--card); border-color: var(--gold); }
+
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    .loading-pulse { animation: pulse 1.5s infinite; }
+  </style>
 </head>
 <body>
-  <h2>مهمة الروابط المختصرة</h2>
-  <div id="user-points">نقاطي: 0</div>
-  <div id="status">جاري تحميل الروابط...</div>
-  <div id="err"></div>
-  <div id="links-container"></div>
-  <div class="back-buttons">
-    <button onclick="window.location.href='dashboard.html'">🔙 العودة إلى الصفحة الرئيسية</button>
-    <button onclick="window.location.href='tasks.html'">🗂️ العودة إلى صفحة المهام</button>
+
+  <div class="header-section">
+    <h2>LINKS REWARDS HUB</h2>
+    <div id="user-points">🪙 POINTS: <span id="points-val">0</span></div>
+    <div id="status">INITIALIZING SYSTEM...</div>
+    <div id="err"></div>
+  </div>
+
+  <div id="links-container">
+      </div>
+
+  <div class="back-nav">
+    <a href="dashboard.html" class="btn-nav">🔙 DASHBOARD</a>
+    <a href="tasks.html" class="btn-nav">🗂️ ALL TASKS</a>
   </div>
 
 <script type="module">
@@ -39,192 +106,126 @@ import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey:"AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-  authDomain:"am--rewards.firebaseapp.com",
-  projectId:"am--rewards"
+  apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+  authDomain: "am--rewards.firebaseapp.com",
+  projectId: "am--rewards"
 };
 
-const app  = initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db   = getFirestore(app);
+const db = getFirestore(app);
 
-// **نقطة تحسين:** استخدام serverTimestamp عند التحديث لتقليل التلاعب
-const POINTS_PER_LINK = 2;
-const LINK_COOLDOWN   = 24 * 60 * 60 * 1000; // 24 ساعة
-const MIN_WAIT_TIME   = 15000; // 15 ثانية
+const POINTS_PER_LINK = 5; // تم الرفع لـ 5 لزيادة الحماس
+const LINK_COOLDOWN = 24 * 60 * 60 * 1000;
+const MIN_WAIT_TIME = 15000;
 
+// قائمة الـ 20 رابطاً التي اخترتها أنت
 const shortlinks = [
-  {title:"رابط 1",url:"https://swiftlnx.com/Lzt3c"},
-  {title:"رابط 2",url:"https://exe.io/qEJR4"},
-  {title:"رابط 3",url:"https://yshorten.com/woSf"},
-  {title:"رابط 4",url:"https://oii.la/7o245qg"},
-  {title:"رابط 5",url:"https://short-jambo.ink/oBRa"},
-  {title:"رابط 6",url:"https://shrinkme.top/URiKQI"},
-  {title:"رابط 7",url:"https://tpi.li/1yb5"},
-  {title:"رابط 8",url:"https://srtslug.biz/8dwVH"},
+  {title:"SwiftLnx Server", url:"https://swiftlnx.com/RRIj1Sni"},
+  {title:"Exe Engine", url:"https://exe.io/ED0ipEN"},
+  {title:"YShorten Node", url:"https://yshorten.com/OZpCcW9"},
+  {title:"OII Network", url:"https://oii.la/LcWIK3BD"},
+  {title:"Jambo Ink", url:"https://short-jambo.ink/6XeL7"},
+  {title:"TPI Gateway", url:"https://tpi.li/e6TZ8SqRPLi"},
+  {title:"ShrinkMe Click", url:"https://shrinkme.click/k4EXrq"},
+  {title:"ShortSlug Biz", url:"https://shrtslug.biz/8xx8c"},
+  {title:"RevLink Pro", url:"https://revlink.pro/Egc9E"},
+  {title:"CutWin Express", url:"https://cutw.in/tFu9b17C"},
+  {title:"LinkJust Hub", url:"https://linkjust.com/ooilAAdJ"},
+  {title:"GP Links X", url:"https://gplinks.co/XA30n0vz"},
+  {title:"TMEarn Network", url:"https://tmearn.net/link/82sq"},
+  {title:"UII IO Shield", url:"https://uii.io/INzfKhNW"},
+  {title:"Link4Earn Main", url:"https://go.link4earn.in/jtXBvLz"},
+  {title:"ShortFly MT", url:"https://www.short-fly.com/MTGN"},
+  {title:"LNBZ Global", url:"https://lnbz.la/eAUo"},
+  {title:"DropLink Cloud", url:"https://droplink.co/gXE1an"},
+  {title:"XP Short Link", url:"https://xpshort.com/oBwyc"},
+  {title:"Easy4Skip Portal", url:"http://easy4skip.com/TJmg"}
 ];
 
-const $ = (id) => document.getElementById(id);
-const setStatus = (t) => { $("status").textContent = t; };
-const setErr    = (t) => { $("err").textContent = t || ""; };
-
 let currentUserRef = null;
-let serverTimeOffset = 0; // لحساب فرق التوقيت
+let serverTimeOffset = 0;
 
 onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    alert("⚠️ يجب تسجيل الدخول أولاً.");
-    location.href = "index.html";
-    return;
-  }
-
+  if (!user) { location.href = "index.html"; return; }
   currentUserRef = doc(db, "users", user.uid);
+  
+  // مزامنة الوقت
+  const nowRef = doc(db, "system", "time");
+  await setDoc(nowRef, { time: serverTimestamp() });
+  const nowSnap = await getDoc(nowRef);
+  serverTimeOffset = (nowSnap.data()?.time?.toMillis() || Date.now()) - Date.now();
 
-  try {
-    // **تحسين: الحصول على وقت الخادم لتأمين التوقيت**
-    const nowRef = doc(db, "system", "time");
-    await setDoc(nowRef, { time: serverTimestamp() });
-    const nowSnap = await getDoc(nowRef);
-    const serverTime = nowSnap.data()?.time?.toMillis() || Date.now();
-    serverTimeOffset = serverTime - Date.now(); 
+  await checkPendingReward();
 
-    await handlePendingLink(currentUserRef);
-
-    onSnapshot(currentUserRef, (snap) => {
-      const data = snap.data() || {};
-      const points = data.points ?? 0;
-      $("user-points").textContent = `نقاطي: ${points}`;
-      renderLinks(data.lastLinks || {});
-      setStatus("✅ اختر أي رابط متاح");
-      setErr("");
-    }, (err) => setErr("خطأ في التحديث الحي: " + err.message) );
-
-  } catch(e) {
-    console.error(e);
-    setErr("حدث خطأ: " + e.message);
-    setStatus("⚠️ حاول تحديث الصفحة");
-    renderLinks({});
-  }
+  onSnapshot(currentUserRef, (snap) => {
+    const data = snap.data() || {};
+    document.getElementById("points-val").textContent = data.points || 0;
+    renderUI(data.lastLinks || {});
+    document.getElementById("status").textContent = "📡 SYSTEM OPERATIONAL";
+  });
 });
 
-// **دالة مساعدة:** للحصول على الوقت الحالي المعدل
-function getClientAdjustedTime() {
-    return Date.now() + serverTimeOffset;
+async function checkPendingReward() {
+  const linkIdx = localStorage.getItem("p_idx");
+  const startTime = localStorage.getItem("p_time");
+  if (!linkIdx || !startTime) return;
+
+  const now = Date.now() + serverTimeOffset;
+  const elapsed = now - Number(startTime);
+
+  if (elapsed >= MIN_WAIT_TIME) {
+    try {
+      await updateDoc(currentUserRef, {
+        points: increment(POINTS_PER_LINK),
+        [`lastLinks.${linkIdx}`]: serverTimestamp()
+      });
+      alert(`✅ MISSION COMPLETE: +${POINTS_PER_LINK} Points`);
+    } catch (e) { console.error("Reward Error", e); }
+  } else {
+    alert("⚠️ تم اكتشاف عودة سريعة! يجب البقاء 15 ثانية على الأقل.");
+  }
+  localStorage.removeItem("p_idx");
+  localStorage.removeItem("p_time");
 }
 
-// **دالة مساعدة:** لتنظيف localStorage
-function clearPendingLink() {
-    localStorage.removeItem("pendingLink");
-    localStorage.removeItem("pendingLinkTime");
-}
-
-
-// ---- التحقق من الوقت وتسجيل المهمة ----
-async function handlePendingLink(userRef) {
-  const raw = localStorage.getItem("pendingLink");
-  const ts  = localStorage.getItem("pendingLinkTime");
-
-  if (raw === null || ts === null) return;
-
-  const idx = Number(raw);
-  const visitTime = Number(ts);
-  
-  // **تحسين: تنظيف مؤقت قبل الخروج في حال وجود خطأ في البيانات**
-  clearPendingLink();
-
-  if (!Number.isInteger(idx) || idx < 0 || idx >= shortlinks.length) {
-    return;
-  }
-  
-  const now = getClientAdjustedTime();
-
-  if (now - visitTime < MIN_WAIT_TIME) {
-    setErr("يجب عليك البقاء في الرابط لمدة لا تقل عن 15 ثانية قبل العودة!");
-    return;
-  }
-  
-  // **نقطة أمان حرجة: إعادة التحقق من المدة الزمنية**
-  try {
-    const snap = await getDoc(userRef);
-    const data = snap.data() || {};
-    const lastLinks = data.lastLinks || {};
-    const last = lastLinks[idx] || 0;
-    
-    // **تحسين: استخدام serverTimestamp هنا يزيد من الأمان ضد تغيير توقيت الجهاز**
-    if (last && now - last < LINK_COOLDOWN) {
-      setErr("⚠️ لا يمكنك فتح هذا الرابط الآن. جرب لاحقًا.");
-      return;
-    }
-
-    // ✅ تحديث النقاط + وقت آخر فتح للرابط (باستخدام serverTimestamp)
-    await updateDoc(userRef, {
-      points: increment(POINTS_PER_LINK),
-      [`lastLinks.${idx}`]: serverTimestamp() // **تحسين رئيسي: استخدام وقت الخادم**
-    });
-
-    // ✅ تسجيل المهمة في tasksCompleted (باستخدام وقت الخادم)
-    const taskId = `shortlink-${idx}-${Date.now()}`;
-    const taskRef = doc(db, "tasksCompleted", taskId);
-    await setDoc(taskRef, {
-      userId: userRef.id,
-      taskId: `shortlink-${idx}`,
-      taskType: "shortlinks",
-      pointsEarned: POINTS_PER_LINK,
-      // **تحسين: استخدام وقت الخادم**
-      date: serverTimestamp(), 
-      status: "done"
-    });
-
-    alert(`🎉 تم إضافة ${POINTS_PER_LINK} نقطة لحسابك!`);
-location.reload();
-
-  } catch(e) {
-    setErr("تعذر تسجيل إنجاز الرابط: " + e.message);
-  }
-  // **ملاحظة:** تم حذف finally لأننا قمنا بتنظيفها في البداية
-}
-
-function renderLinks(lastLinks) {
-  const container = $("links-container");
+function renderUI(lastLinks) {
+  const container = document.getElementById("links-container");
   container.innerHTML = "";
-  
-  const now = getClientAdjustedTime();
+  const now = Date.now() + serverTimeOffset;
 
-  shortlinks.forEach((item, index) => {
-    const last = lastLinks[index] || 0;
-    let locked = false, timerText = "";
-
-    if (last && now - last < LINK_COOLDOWN) {
-      locked = true;
-      let remain = LINK_COOLDOWN - (now - last);
-      let hours = Math.floor(remain / (1000 * 60 * 60));
-      let minutes = Math.floor((remain % (1000 * 60 * 60)) / (1000 * 60));
-      timerText = `⏳ انتظر ${hours} ساعة و ${minutes} دقيقة`;
+  shortlinks.forEach((item, i) => {
+    const lastTime = lastLinks[i]?.toMillis ? lastLinks[i].toMillis() : (lastLinks[i] || 0);
+    const isLocked = lastTime && (now - lastTime < LINK_COOLDOWN);
+    
+    const card = document.createElement("div");
+    card.className = "link-card";
+    
+    let timerHTML = "";
+    if (isLocked) {
+      const diff = LINK_COOLDOWN - (now - lastTime);
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      timerHTML = `<div class="timer-lock">⏳ Recharges in ${h}h ${m}m</div>`;
     }
 
-    const div = document.createElement("div");
-    div.className = "link-box";
-    div.innerHTML =
-      `<p>${item.title}</p>
-       <button 
-          ${locked ? "disabled" : ""} 
-          ${locked ? `title="${timerText}"` : ""} 
-          onclick="openLink(${index}, '${item.url}')">
-          ${locked ? "🔒 غير متاح الآن" : "افتح الرابط"}
-       </button>
-       ${locked ? `<div class="timer-lock">${timerText}</div>` : ""}`;
-    container.appendChild(div);
+    card.innerHTML = `
+      <div class="reward-badge">+${POINTS_PER_LINK} PTS</div>
+      <p>${item.title}</p>
+      <button class="btn-action" ${isLocked ? "disabled" : ""} 
+        onclick="window.openLink(${i}, '${item.url}')">
+        ${isLocked ? "LOCKED" : "EXECUTE TASK"}
+      </button>
+      ${timerHTML}
+    `;
+    container.appendChild(card);
   });
 }
 
-// فتح الرابط + تسجيل وقت الفتح
-window.openLink = function(index, url) {
-  try {
-    localStorage.setItem("pendingLink", String(index));
-    // **نستخدم Date.now() هنا لأننا نحتاج وقت العميل الفعلي للتحقق من MIN_WAIT_TIME**
-    localStorage.setItem("pendingLinkTime", String(Date.now())); 
-  } catch {}
-  location.href = url;
+window.openLink = (i, url) => {
+  localStorage.setItem("p_idx", i);
+  localStorage.setItem("p_time", Date.now() + serverTimeOffset);
+  window.location.href = url;
 };
 </script>
 </body>
