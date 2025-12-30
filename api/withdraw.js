@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       .where("status", "==", "pending")
       .limit(1).get();
 
-    if (!pendingCheck.empty) throw new Error("لديك طلب سحب قيد الانتظار.");
+    if (!pendingCheck.empty) throw new Error("لديك  طلب سحب قيد الانتظار برجاء الانتظار حتى يتم مراجعته لن يستغرق الامر وقتا طويلا .");
 
     const startOfDay = new Date(); startOfDay.setUTCHours(0, 0, 0, 0);
     const todaySnap = await db.collection("withdrawals")
