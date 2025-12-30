@@ -98,98 +98,133 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>  
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>  
     
-    <script>  
-        const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };  
-        firebase.initializeApp(firebaseConfig);  
-        const auth = firebase.auth(); const db = firebase.firestore();  
-        const POINT_VALUE = 0.07; const LIMITS = { min: 20, maxDaily: 200, maxOps: 2 };  
+<script>
+    const firebaseConfig = { 
+        apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
+        authDomain: "am--rewards.firebaseapp.com", 
+        projectId: "am--rewards" 
+    };  
+    firebase.initializeApp(firebaseConfig);  
+    const auth = firebase.auth(); 
+    const db = firebase.firestore();  
+    const POINT_VALUE = 0.07; 
+    const LIMITS = { min: 20, maxDaily: 200, maxOps: 2 };  
 
-        let userId, currentPoints, todayOps = 0, todayAmt = 0;  
+    let userId, currentPoints, todayOps = 0, todayAmt = 0;  
 
-        const translateStatus = (s) => ({ 'pending': 'قيد الانتظار ⏳', 'completed': 'تم الدفع ✅', 'rejected': 'مرفوض ❌' }[s] || s);  
+    const translateStatus = (s) => ({ 
+        'pending': 'قيد الانتظار ⏳', 
+        'completed': 'تم الدفع ✅', 
+        'rejected': 'مرفوض ❌' 
+    }[s] || s);  
 
-        async function checkLimits() {  
-            if (!userId) return;  
-            const start = new Date(); start.setUTCHours(0,0,0,0);  
-            const snap = await db.collection("withdrawals").where("userId", "==", userId).where("date", ">=", start).get();  
-            todayOps = 0; todayAmt = 0;  
-            snap.forEach(doc => { if(doc.data().status !== 'rejected') { todayOps++; todayAmt += doc.data().amount; } });  
-            document.getElementById('remainingOpsVal').textContent = Math.max(0, LIMITS.maxOps - todayOps);  
-            document.getElementById('remainingLimitVal').textContent = Math.max(0, LIMITS.maxDaily - todayAmt).toFixed(2);  
-        }  
+    async function checkLimits() {  
+        if (!userId) return;  
+        const start = new Date(); start.setUTCHours(0,0,0,0);  
+        const snap = await db.collection("withdrawals")
+            .where("userId", "==", userId)
+            .where("date", ">=", start).get();  
+        todayOps = 0; todayAmt = 0;  
+        snap.forEach(doc => { if(doc.data().status !== 'rejected') { todayOps++; todayAmt += doc.data().amount; } });  
+        document.getElementById('remainingOpsVal').textContent = Math.max(0, LIMITS.maxOps - todayOps);  
+        document.getElementById('remainingLimitVal').textContent = Math.max(0, LIMITS.maxDaily - todayAmt).toFixed(2);  
+    }  
 
-        auth.onAuthStateChanged(user => {  
-            if (user) {  
-                userId = user.uid; checkLimits();  
-                db.collection('users').doc(userId).onSnapshot(doc => {  
-                    if (doc.exists) {  
-                        currentPoints = doc.data().points || 0;  
-                        document.getElementById('pointsVal').textContent = Math.floor(currentPoints).toLocaleString();  
-                        document.getElementById('egpVal').textContent = (currentPoints * POINT_VALUE).toFixed(2);  
-                        updateCalc();  
-                    }  
-                });  
-                db.collection("withdrawals").where("userId", "==", userId).orderBy("date", "desc").limit(10).onSnapshot(snap => {  
-                    const table = document.getElementById('withdrawalsTable'); table.innerHTML = "";  
+    auth.onAuthStateChanged(user => {  
+        if (user) {  
+            userId = user.uid; 
+            checkLimits();  
+            db.collection('users').doc(userId).onSnapshot(doc => {  
+                if (doc.exists) {  
+                    currentPoints = doc.data().points || 0;  
+                    document.getElementById('pointsVal').textContent = Math.floor(currentPoints).toLocaleString();  
+                    document.getElementById('egpVal').textContent = (currentPoints * POINT_VALUE).toFixed(2);  
+                    updateCalc();  
+                }  
+            });  
+            db.collection("withdrawals").where("userId", "==", userId)
+                .orderBy("date", "desc").limit(10)
+                .onSnapshot(snap => {  
+                    const table = document.getElementById('withdrawalsTable'); 
+                    table.innerHTML = "";  
                     snap.forEach(doc => {  
-                        const w = doc.data(); const tr = document.createElement('tr'); tr.className = `row-${w.status}`;  
+                        const w = doc.data(); 
+                        const tr = document.createElement('tr'); 
+                        tr.className = `row-${w.status}`;  
                         tr.innerHTML = `<td>${w.amount} ج</td><td>${translateStatus(w.status)}</td><td>${w.date?.toDate().toLocaleDateString('ar-EG')}</td>`;  
                         table.appendChild(tr);  
                     });  
                 });  
-            } else { window.location.href = "login.html"; }  
-        });  
+        } else { window.location.href = "login.html"; }  
+    });  
 
-        function updateCalc() {  
-            const amt = parseFloat(document.getElementById('amountInp').value);  
-            const wallet = document.getElementById('walletVod').value.trim();  
-            const ptsNeeded = Math.ceil(amt / POINT_VALUE);  
-            const warning = document.getElementById('limitWarning');  
-            warning.style.display = 'none';  
+    function updateCalc() {  
+        const amt = parseFloat(document.getElementById('amountInp').value);  
+        const wallet = document.getElementById('walletVod').value.trim();  
+        const ptsNeeded = Math.ceil(amt / POINT_VALUE);  
+        const warning = document.getElementById('limitWarning');  
+        warning.style.display = 'none';  
 
-            if (amt >= LIMITS.min) {  
-                document.getElementById('feeVal').textContent = (amt * 0.1).toFixed(2);  
-                document.getElementById('netVal').textContent = (amt * 0.9).toFixed(2);  
-                document.getElementById('needPts').textContent = ptsNeeded.toLocaleString();  
-                
-                const canSubmit = ptsNeeded <= currentPoints && wallet.length === 11 && (todayAmt + amt) <= LIMITS.maxDaily && todayOps < LIMITS.maxOps;  
-                document.getElementById('confirmBtn').disabled = !canSubmit;  
-                if (ptsNeeded > currentPoints) { warning.textContent = "⚠️ نقاطك لا تكفي"; warning.style.display = "block"; }  
-            } else { document.getElementById('confirmBtn').disabled = true; }  
+        if (amt >= LIMITS.min) {  
+            document.getElementById('feeVal').textContent = (amt * 0.1).toFixed(2);  
+            document.getElementById('netVal').textContent = (amt * 0.9).toFixed(2);  
+            document.getElementById('needPts').textContent = ptsNeeded.toLocaleString();  
+            
+            const canSubmit = ptsNeeded <= currentPoints && wallet.length === 11 && (todayAmt + amt) <= LIMITS.maxDaily && todayOps < LIMITS.maxOps;  
+            document.getElementById('confirmBtn').disabled = !canSubmit;  
+            if (ptsNeeded > currentPoints) { warning.textContent = "⚠️ نقاطك لا تكفي"; warning.style.display = "block"; }  
+        } else { document.getElementById('confirmBtn').disabled = true; }  
+    }  
+
+    document.getElementById('amountInp').oninput = updateCalc;  
+    document.getElementById('walletVod').oninput = updateCalc;  
+
+    document.getElementById('confirmBtn').onclick = () => {  
+        document.getElementById('modalAmount').textContent = document.getElementById('amountInp').value;  
+        document.getElementById('modalWallet').textContent = document.getElementById('walletVod').value;  
+        document.getElementById('customModal').style.display = 'flex';  
+    };  
+
+    document.getElementById('cancelActionBtn').onclick = () => document.getElementById('customModal').style.display = 'none';  
+
+    document.getElementById('confirmActionBtn').onclick = async () => {  
+        document.getElementById('customModal').style.display = 'none';  
+        const btn = document.getElementById('confirmBtn'); 
+        btn.disabled = true; 
+        btn.textContent = "جارِ الإرسال...";  
+        try {  
+            const idToken = await auth.currentUser.getIdToken();  
+            const response = await fetch('/api/withdraw', { 
+                method: 'POST',  
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },  
+                body: JSON.stringify({ 
+                    amount: parseFloat(document.getElementById('amountInp').value), 
+                    wallet: document.getElementById('walletVod').value.trim() 
+                })  
+            });  
+
+            let data;
+            try {
+                data = await response.json();
+            } catch(e) {
+                const text = await response.text();
+                throw new Error("رد غير صالح من السيرفر: " + text);
+            }
+
+            if (!response.ok) throw new Error(data.message || "حدث خطأ غير معروف");  
+
+            document.getElementById('msg').textContent = "✅ " + data.message;  
+            document.getElementById('msg').className = "status-msg show success";  
+            document.getElementById('amountInp').value = ""; 
+            checkLimits();  
+        } catch (err) {  
+            document.getElementById('msg').textContent = "❌ " + err.message;  
+            document.getElementById('msg').className = "status-msg show error";  
+        } finally { 
+            btn.textContent = "إرسال طلب السحب"; 
+            updateCalc(); 
         }  
-
-        document.getElementById('amountInp').oninput = updateCalc;  
-        document.getElementById('walletVod').oninput = updateCalc;  
-
-        document.getElementById('confirmBtn').onclick = () => {  
-            document.getElementById('modalAmount').textContent = document.getElementById('amountInp').value;  
-            document.getElementById('modalWallet').textContent = document.getElementById('walletVod').value;  
-            document.getElementById('customModal').style.display = 'flex';  
-        };  
-
-        document.getElementById('cancelActionBtn').onclick = () => document.getElementById('customModal').style.display = 'none';  
-
-        document.getElementById('confirmActionBtn').onclick = async () => {  
-            document.getElementById('customModal').style.display = 'none';  
-            const btn = document.getElementById('confirmBtn'); btn.disabled = true; btn.textContent = "جارِ الإرسال...";  
-            try {  
-                const idToken = await auth.currentUser.getIdToken();  
-                const response = await fetch('/api/withdraw', { // تأكد أن هذا الرابط هو رابط الـ API الخاص بك
-                    method: 'POST',  
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },  
-                    body: JSON.stringify({ amount: parseFloat(document.getElementById('amountInp').value), wallet: document.getElementById('walletVod').value.trim() })  
-                });  
-                const data = await response.json();  
-                if (!response.ok) throw new Error(data.message);  
-                
-                document.getElementById('msg').textContent = "✅ " + data.message;  
-                document.getElementById('msg').className = "status-msg show success";  
-                document.getElementById('amountInp').value = ""; checkLimits();  
-            } catch (err) {  
-                document.getElementById('msg').textContent = "❌ " + err.message;  
-                document.getElementById('msg').className = "status-msg show error";  
-            } finally { btn.textContent = "إرسال طلب السحب"; updateCalc(); }  
-        };  
-    </script>  
+    };  
+</script>
 </body>  
     </html>
