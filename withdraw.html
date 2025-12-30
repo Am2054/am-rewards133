@@ -188,43 +188,41 @@
     document.getElementById('cancelActionBtn').onclick = () => document.getElementById('customModal').style.display = 'none';  
 
     document.getElementById('confirmActionBtn').onclick = async () => {  
-        document.getElementById('customModal').style.display = 'none';  
-        const btn = document.getElementById('confirmBtn'); 
-        btn.disabled = true; 
-        btn.textContent = "جارِ الإرسال...";  
-        try {  
-            const idToken = await auth.currentUser.getIdToken();  
-            const response = await fetch('/api/withdraw', { 
-                method: 'POST',  
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },  
-                body: JSON.stringify({ 
-                    amount: parseFloat(document.getElementById('amountInp').value), 
-                    wallet: document.getElementById('walletVod').value.trim() 
-                })  
-            });  
+    document.getElementById('customModal').style.display = 'none';  
+    const btn = document.getElementById('confirmBtn'); 
+    btn.disabled = true; 
+    btn.textContent = "جارِ الإرسال...";  
 
-            let data;
-            try {
-                data = await response.json();
-            } catch(e) {
-                const text = await response.text();
-                throw new Error("رد غير صالح من السيرفر: " + text);
-            }
+    try {  
+        const idToken = await auth.currentUser.getIdToken();  
+        const response = await fetch('/api/withdraw', { 
+            method: 'POST',  
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },  
+            body: JSON.stringify({ 
+                amount: parseFloat(document.getElementById('amountInp').value), 
+                wallet: document.getElementById('walletVod').value.trim() 
+            })  
+        });  
 
-            if (!response.ok) throw new Error(data.message || "حدث خطأ غير معروف");  
+        // قراءة body مرة واحدة فقط
+        const text = await response.text();
+        let data;
+        try { data = JSON.parse(text); } catch { data = { message: text }; }
 
-            document.getElementById('msg').textContent = "✅ " + data.message;  
-            document.getElementById('msg').className = "status-msg show success";  
-            document.getElementById('amountInp').value = ""; 
-            checkLimits();  
-        } catch (err) {  
-            document.getElementById('msg').textContent = "❌ " + err.message;  
-            document.getElementById('msg').className = "status-msg show error";  
-        } finally { 
-            btn.textContent = "إرسال طلب السحب"; 
-            updateCalc(); 
-        }  
-    };  
+        if (!response.ok) throw new Error(data.message || "حدث خطأ غير معروف");  
+
+        document.getElementById('msg').textContent = "✅ " + data.message;  
+        document.getElementById('msg').className = "status-msg show success";  
+        document.getElementById('amountInp').value = ""; 
+        checkLimits();  
+    } catch (err) {  
+        document.getElementById('msg').textContent = "❌ " + err.message;  
+        document.getElementById('msg').className = "status-msg show error";  
+    } finally { 
+        btn.textContent = "إرسال طلب السحب"; 
+        updateCalc(); 
+    }  
+};
 </script>
 </body>  
     </html>
