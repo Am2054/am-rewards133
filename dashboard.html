@@ -221,7 +221,7 @@
   <script type="module">      
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";      
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";      
-    import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";      
+    import { getFirestore, doc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";      
 
     const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };      
     const app = initializeApp(firebaseConfig);      
@@ -266,7 +266,6 @@
         const ptsToday = d.pointsToday || 0;
         document.getElementById('pointsToday').textContent = ptsToday;
         document.getElementById('totalWithdrawn').textContent = (d.withdrawn || 0) + ' ج';
-        document.getElementById('referralPoints').textContent = d.refEarnings || 0;
 
         // تحديث شريط التقدم النيون مع تأثير الـ Glow
         const pct = Math.min(Math.round((ptsToday / 1000) * 100), 100);
@@ -286,11 +285,23 @@
         }
 
         document.getElementById('progressLbl').textContent = `${ptsToday} / 1000`;
-      });    
+      });
+
+      // منطق تحديث أرباح الإحالات حركياً
+      const qRef = query(collection(db, "users"), where("referredBy", "==", user.uid));
+      onSnapshot(qRef, async (friendsSnap) => {
+        let totalRefPoints = 0;
+        for (const friendDoc of friendsSnap.docs) {
+          const wQ = query(collection(db, "withdrawals"), where("userId", "==", friendDoc.id), where("status", "==", "completed"));
+          const wS = await getDocs(wQ);
+          wS.docs.forEach((wD, i) => { if(i < 10) totalRefPoints += Math.ceil((wD.data().pointsUsed || 0) * 0.10); });
+        }
+        document.getElementById('referralPoints').textContent = totalRefPoints.toLocaleString();
+      });
+
     });
 
     document.getElementById('logoutBtn').onclick = () => signOut(auth).then(() => location.href = 'index.html');
   </script>    
 </body>
 </html>
-
