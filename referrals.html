@@ -10,7 +10,7 @@
       --neon-cyan: #00f2ff; --neon-purple: #7000ff; --bg-deep: #020617;
       --glass-bg: rgba(15, 23, 42, 0.7); --glass-border: rgba(255, 255, 255, 0.1);
       --text-main: #f1f5f9; --muted: #94a3b8;
-      --success: #22c55e; --danger: #f87171; --gold: #FFD369;
+      --success: #22c55e; --danger: #f87171;
     }
 
     * { box-sizing: border-box; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -24,14 +24,7 @@
         radial-gradient(circle at 90% 80%, rgba(0, 242, 255, 0.15) 0%, transparent 40%);
     }
 
-    /* تأثير النيبولا الأصلي */
-    .nebula {
-      position: fixed; inset: 0; z-index: -1;
-      background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
-      opacity: 0.1; pointer-events: none;
-    }
-
-    .container { max-width: 550px; margin: 20px auto; padding: 15px; position: relative; z-index: 1; }
+    .container { max-width: 550px; margin: 20px auto; padding: 15px; }
 
     .header { text-align: center; margin-bottom: 30px; }
     .header h1 { 
@@ -75,7 +68,8 @@
       font-weight: 900; cursor: pointer; font-size: 14px;
     }
 
-    .progress-container { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-top: 8px; overflow: hidden; }
+    /* تصميم الـ Progress Bar الاحترافي */
+    .progress-container { width: 100px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-top: 8px; overflow: hidden; }
     .progress-bar { height: 100%; background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan)); border-radius: 10px; }
 
     .table-section { margin-top: 35px; }
@@ -93,11 +87,10 @@
       padding: 6px 10px; border-radius: 10px; font-family: 'Montserrat'; font-weight: 700;
     }
 
-    /* تفاصيل السجل المنسدلة */
-    .view-log-link { color: var(--neon-cyan); font-size: 11px; cursor: pointer; text-decoration: underline; margin-top: 8px; display: block; }
-    .history-box { display: none; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 12px; margin-top: 10px; border: 1px solid var(--glass-border); }
-    .history-item { display: flex; justify-content: space-between; font-size: 11px; padding: 6px 0; border-bottom: 1px dashed rgba(255,255,255,0.1); }
-    .history-item:last-child { border: none; }
+    /* الأجزاء المضافة لسجل السحبات دون حذف القديم */
+    .view-log-link { color: var(--neon-cyan); font-size: 10px; cursor: pointer; text-decoration: underline; margin-top: 5px; display: block; }
+    .history-box { display: none; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 10px; margin-top: 10px; border: 1px dashed var(--glass-border); }
+    .history-item { display: flex; justify-content: space-between; font-size: 11px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
 
     #toast {
       position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
@@ -108,8 +101,6 @@
   </style>
 </head>
 <body>
-
-<div class="nebula"></div>
 
 <div class="container">
   <div class="header">
@@ -124,7 +115,7 @@
     </div>
     <div class="stat-card">
       <div class="label">أرباحك المحققة</div>
-      <div class="value" id="refEarnings" style="color:var(--gold)">0.00 <small style="font-size:12px">EGP</small></div>
+      <div class="value" id="refEarnings">0.00 <small style="font-size:12px">EGP</small></div>
     </div>
   </div>
 
@@ -144,7 +135,7 @@
         <thead>
           <tr>
             <th>الصديق / التقدم</th>
-            <th style="text-align:center;">العمولة</th>
+            <th>العمولة</th>
           </tr>
         </thead>
         <tbody id="refTable">
@@ -162,13 +153,19 @@
   import { getFirestore, doc, onSnapshot, collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-  const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };
+  const firebaseConfig = {
+    apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+    authDomain: "am--rewards.firebaseapp.com",
+    projectId: "am--rewards",
+  };
+
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
 
   onAuthStateChanged(auth, (user) => {
     if (user) {
+      // 1. جلب بيانات الأدمين
       onSnapshot(doc(db, "users", user.uid), (snap) => {
         if (!snap.exists()) return;
         const data = snap.data();
@@ -177,6 +174,7 @@
         document.getElementById('refCount').textContent = data.referralCount || 0;
       });
 
+      // 2. جلب الأصدقاء وحساب الأرباح
       const q = query(collection(db, "users"), where("referredBy", "==", user.uid));
       onSnapshot(q, async (snap) => {
         const tbody = document.getElementById('refTable');
@@ -184,19 +182,20 @@
         
         if (snap.empty) {
           tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding:40px; color:var(--muted);">لم تقم بدعوة أحد بعد.. ابدأ الآن! 📢</td></tr>`;
-          document.getElementById('refEarnings').innerHTML = "0.00 <small>EGP</small>";
+          document.getElementById('refEarnings').innerHTML = `0.00 <small style="font-size:12px">EGP</small>`;
           return;
         }
 
         tbody.innerHTML = "";
-
-        // جلب سحبات كل صديق لبناء السجل
+        
+        // استخدام حلقة لجلب السحبات لكل صديق لضمان عدم اختفاء البيانات
         for (const docSnap of snap.docs) {
           const u = docSnap.data();
           const uId = docSnap.id;
           
-          const wQ = query(collection(db, "withdrawals"), where("userId", "==", uId), where("status", "==", "completed"), orderBy("date", "desc"));
-          const wSnap = await getDocs(wQ);
+          // جلب السحبات المكتملة فقط
+          const wQuery = query(collection(db, "withdrawals"), where("userId", "==", uId), where("status", "==", "completed"), orderBy("date", "desc"));
+          const wSnap = await getDocs(wQuery);
           
           let friendCommission = 0;
           let historyHtml = "";
@@ -204,7 +203,6 @@
           wSnap.docs.forEach((wDoc, index) => {
             if(index < 10) {
               const wData = wDoc.data();
-              // نعتمد على مبلغ السحب الفعلي 'amount' أو النقاط 'pointsUsed' لحساب الـ 10%
               const comm = (Number(wData.amount || 0) * 0.10); 
               friendCommission += comm;
               historyHtml += `<div class="history-item"><span>سحب #${index+1}</span><span style="color:var(--neon-cyan)">+${comm.toFixed(2)} ج</span></div>`;
@@ -229,10 +227,13 @@
                 </div>
               </td>
               <td style="text-align:center;">
-                <span class="commission-tag">+${friendCommission.toFixed(2)} <small>EGP</small></span>
+                <span class="commission-tag">
+                  +${friendCommission.toFixed(2)} <small>EGP</small>
+                </span>
               </td>
             </tr>`;
         }
+
         document.getElementById('refEarnings').innerHTML = `${totalEarnings.toFixed(2)} <small style="font-size:12px">EGP</small>`;
       });
     } else {
