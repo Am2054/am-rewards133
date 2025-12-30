@@ -10,7 +10,7 @@
       --neon-cyan: #00f2ff; --neon-purple: #7000ff; --bg-deep: #020617;
       --glass-bg: rgba(15, 23, 42, 0.7); --glass-border: rgba(255, 255, 255, 0.1);
       --text-main: #f1f5f9; --muted: #94a3b8;
-      --success: #22c55e; --danger: #f87171;
+      --success: #22c55e; --danger: #f87171; --gold: #FFD369;
     }
 
     * { box-sizing: border-box; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -68,7 +68,6 @@
       font-weight: 900; cursor: pointer; font-size: 14px;
     }
 
-    /* تصميم الـ Progress Bar الاحترافي */
     .progress-container { width: 100px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-top: 8px; overflow: hidden; }
     .progress-bar { height: 100%; background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan)); border-radius: 10px; }
 
@@ -87,10 +86,10 @@
       padding: 6px 10px; border-radius: 10px; font-family: 'Montserrat'; font-weight: 700;
     }
 
-    /* استايلات السجل المضافة لضمان الشفافية */
-    .view-log-link { color: var(--neon-cyan); font-size: 10px; cursor: pointer; text-decoration: underline; margin-top: 5px; display: block; }
-    .history-box { display: none; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 10px; margin-top: 10px; border: 1px dashed var(--glass-border); }
-    .history-item { display: flex; justify-content: space-between; font-size: 11px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .view-log-link { color: var(--neon-cyan); font-size: 10px; cursor: pointer; text-decoration: underline; margin-top: 8px; display: block; }
+    .history-box { display: none; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 12px; margin-top: 10px; border: 1px solid var(--glass-border); }
+    .history-item { display: flex; justify-content: space-between; font-size: 11px; padding: 6px 0; border-bottom: 1px dashed rgba(255,255,255,0.1); }
+    .history-item:last-child { border: none; }
 
     #toast {
       position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
@@ -165,6 +164,7 @@
 
   onAuthStateChanged(auth, (user) => {
     if (user) {
+      // 1. بيانات المستخدم الأساسية
       onSnapshot(doc(db, "users", user.uid), (snap) => {
         if (!snap.exists()) return;
         const data = snap.data();
@@ -173,11 +173,11 @@
         document.getElementById('refCount').textContent = data.referralCount || 0;
       });
 
+      // 2. قائمة الأصدقاء والأرباح
       const q = query(collection(db, "users"), where("referredBy", "==", user.uid));
       onSnapshot(q, async (snap) => {
         const tbody = document.getElementById('refTable');
         let totalEarnings = 0;
-        tbody.innerHTML = "";
         
         if (snap.empty) {
           tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding:40px; color:var(--muted);">لم تقم بدعوة أحد بعد.. ابدأ الآن! 📢</td></tr>`;
@@ -185,60 +185,76 @@
           return;
         }
 
-        // استخدام حلقة لقراءة سحبات كل صديق
-        for (const docSnap of snap.docs) {
+        tbody.innerHTML = "";
+
+        // معالجة كل الأصدقاء بشكل متوازي لتحسين الأداء
+        const friendPromises = snap.docs.map(async (docSnap) => {
           const u = docSnap.data();
           const uId = docSnap.id;
           const count = u.referralBonusesCount || 0;
+          const progressPercent = (count / 10) * 100;
 
-          // جلب سجل السحبات المكتملة لهذا الصديق
-          const wQuery = query(collection(db, "withdrawals"), where("userId", "==", uId), where("status", "==", "completed"), orderBy("date", "desc"));
-          const wSnap = await getDocs(wQuery);
+          // جلب السحبات المكتملة
+          const wQuery = query(
+            collection(db, "withdrawals"), 
+            where("userId", "==", uId), 
+            where("status", "==", "completed"), 
+            orderBy("date", "desc")
+          );
           
           let friendCommission = 0;
           let historyHtml = "";
-
-          wSnap.docs.forEach((wDoc, index) => {
-            if(index < 10) { // أول 10 سحبات فقط
-              const wData = wDoc.data();
-              const pts = Number(wData.pointsUsed || 0);
-              const bonus = pts * 0.10; // حساب 10% نقاط
-              // تحويل النقاط لمبلغ مادي لو كان السيستم EGP (مثال: كل 1000 نقطة بـ 7 جنيه)
-              // أو اتركها كقيمة مطلقة كما هي في حسابك. هنا سنعتمد نفس منطقك withdrawn * 0.10
-              const comm = (Number(wData.amount || 0) * 0.10); 
-              friendCommission += comm;
-
-              historyHtml += `
-                <div class="history-item">
-                  <span>سحب #${index+1}</span>
-                  <span style="color:var(--neon-cyan)">+${comm.toFixed(2)} ج</span>
-                </div>`;
-            }
-          });
-
-          totalEarnings += friendCommission;
-          const progressPercent = (count / 10) * 100;
           
+          try {
+            const wSnap = await getDocs(wQuery);
+            wSnap.docs.forEach((wDoc, index) => {
+              if(index < 10) {
+                const wData = wDoc.data();
+                const comm = (Number(wData.amount || 0) * 0.10); 
+                friendCommission += comm;
+                historyHtml += `
+                  <div class="history-item">
+                    <span>سحب #${index+1}</span>
+                    <span style="color:var(--neon-cyan)">+${comm.toFixed(2)} ج</span>
+                  </div>`;
+              }
+            });
+          } catch (e) { console.error("Error fetching withdrawals:", e); }
+
+          return {
+            uId,
+            name: u.name || 'مستخدم',
+            count,
+            progressPercent,
+            friendCommission,
+            historyHtml
+          };
+        });
+
+        const friendsData = await Promise.all(friendPromises);
+
+        friendsData.forEach(friend => {
+          totalEarnings += friend.friendCommission;
           tbody.innerHTML += `
             <tr>
               <td>
-                <div style="font-weight:700; color:#fff;">${u.name || 'مستخدم'}</div>
-                <div style="font-size:10px; color:var(--muted); margin-top:4px;">سحبات الربح: ${count}/10</div>
+                <div style="font-weight:700; color:#fff;">${friend.name}</div>
+                <div style="font-size:10px; color:var(--muted); margin-top:4px;">سحبات الربح: ${friend.count}/10</div>
                 <div class="progress-container">
-                  <div class="progress-bar" style="width: ${progressPercent}%"></div>
+                  <div class="progress-bar" style="width: ${friend.progressPercent}%"></div>
                 </div>
-                <span class="view-log-link" onclick="toggleHistory('${uId}')">عرض تفاصيل السحبات 👇</span>
-                <div id="hist-${uId}" class="history-box">
-                  ${historyHtml || '<div style="font-size:10px; color:var(--muted)">لا يوجد سحبات مكتملة لهذا الصديق</div>'}
+                <span class="view-log-link" onclick="toggleHistory('${friend.uId}')">عرض تفاصيل السحبات 👇</span>
+                <div id="hist-${friend.uId}" class="history-box">
+                  ${friend.historyHtml || '<div style="font-size:10px; color:var(--muted)">لا يوجد سحبات مكتملة بعد.</div>'}
                 </div>
               </td>
               <td style="text-align:center;">
                 <span class="commission-tag">
-                  +${friendCommission.toFixed(2)} <small>EGP</small>
+                  +${friend.friendCommission.toFixed(2)} <small>EGP</small>
                 </span>
               </td>
             </tr>`;
-        }
+        });
 
         document.getElementById('refEarnings').innerHTML = `${totalEarnings.toFixed(2)} <small style="font-size:12px">EGP</small>`;
       });
@@ -249,7 +265,10 @@
 
   window.toggleHistory = (id) => {
     const el = document.getElementById('hist-' + id);
-    el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+    if(el) {
+      const isVisible = el.style.display === 'block';
+      el.style.display = isVisible ? 'none' : 'block';
+    }
   };
 
   window.copyRef = () => {
