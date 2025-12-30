@@ -35,8 +35,8 @@
         .history { margin-top: 35px; }  
         .table-responsive { border-radius: 15px; overflow: hidden; border: 1px solid var(--glass-border); }  
         table { width: 100%; border-collapse: collapse; background: rgba(0,0,0,0.2); }  
-        th { background: rgba(112, 0, 255, 0.2); color: var(--neon-cyan); padding: 12px; font-size: 12px; }  
-        td { padding: 12px 8px; text-align: center; border-bottom: 1px solid var(--glass-border); font-size: 12px; }  
+        th { background: rgba(112, 0, 255, 0.2); color: var(--neon-cyan); padding: 12px; font-size: 11px; }  
+        td { padding: 12px 8px; text-align: center; border-bottom: 1px solid var(--glass-border); font-size: 11px; }  
         .row-pending { color: var(--warning); } .row-completed { color: var(--success); } .row-rejected { color: var(--error); }  
         #customModal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(10px); }  
         .modal-content { background: var(--bg-deep); padding: 30px; border-radius: 24px; width: 90%; max-width: 380px; text-align: center; border: 1px solid var(--neon-purple); }  
@@ -76,8 +76,8 @@
             <h2 style="font-size:16px; text-align:center; color:var(--neon-cyan);">📜 سجل العمليات</h2>  
             <div class="table-responsive">  
                 <table>  
-                    <thead><tr><th>المبلغ</th><th>الحالة</th><th>التاريخ</th></tr></thead>  
-                    <tbody id="withdrawalsTable"><tr><td colspan="3">جارِ التحميل...</td></tr></tbody>  
+                    <thead><tr><th>المبلغ</th><th>الصافي</th><th>الحالة</th><th>التاريخ</th></tr></thead>  
+                    <tbody id="withdrawalsTable"><tr><td colspan="4">جارِ التحميل...</td></tr></tbody>  
                 </table>  
             </div>  
         </div>  
@@ -105,7 +105,6 @@
         const POINT_VALUE = 0.07; const LIMITS = { min: 20, maxDaily: 200, maxOps: 2 };  
 
         let userId, currentPoints, todayOps = 0, todayAmt = 0;  
-
         const translateStatus = (s) => ({ 'pending': 'قيد الانتظار ⏳', 'completed': 'تم الدفع ✅', 'rejected': 'مرفوض ❌' }[s] || s);  
 
         async function checkLimits() {  
@@ -133,7 +132,12 @@
                     const table = document.getElementById('withdrawalsTable'); table.innerHTML = "";  
                     snap.forEach(doc => {  
                         const w = doc.data(); const tr = document.createElement('tr'); tr.className = `row-${w.status}`;  
-                        tr.innerHTML = `<td>${w.amount} ج</td><td>${translateStatus(w.status)}</td><td>${w.date?.toDate().toLocaleDateString('ar-EG')}</td>`;  
+                        tr.innerHTML = `
+                            <td>${w.amount} ج</td>
+                            <td style="color:var(--neon-cyan)">${w.net ? w.net.toFixed(2) : '--'} ج</td>
+                            <td>${translateStatus(w.status)}</td>
+                            <td>${w.date?.toDate().toLocaleDateString('ar-EG')}</td>
+                        `;  
                         table.appendChild(tr);  
                     });  
                 });  
@@ -141,13 +145,14 @@
         });  
 
         function updateCalc() {  
-            const amt = parseFloat(document.getElementById('amountInp').value);  
+            const amtInp = document.getElementById('amountInp').value;
+            const amt = parseFloat(amtInp);  
             const wallet = document.getElementById('walletVod').value.trim();  
-            const ptsNeeded = Math.ceil(amt / POINT_VALUE);  
             const warning = document.getElementById('limitWarning');  
             warning.style.display = 'none';  
 
-            if (amt >= LIMITS.min) {  
+            if (amtInp && amt >= LIMITS.min) {  
+                const ptsNeeded = Math.ceil(amt / POINT_VALUE);  
                 document.getElementById('feeVal').textContent = (amt * 0.1).toFixed(2);  
                 document.getElementById('netVal').textContent = (amt * 0.9).toFixed(2);  
                 document.getElementById('needPts').textContent = ptsNeeded.toLocaleString();  
@@ -155,7 +160,12 @@
                 const canSubmit = ptsNeeded <= currentPoints && wallet.length === 11 && (todayAmt + amt) <= LIMITS.maxDaily && todayOps < LIMITS.maxOps;  
                 document.getElementById('confirmBtn').disabled = !canSubmit;  
                 if (ptsNeeded > currentPoints) { warning.textContent = "⚠️ نقاطك لا تكفي"; warning.style.display = "block"; }  
-            } else { document.getElementById('confirmBtn').disabled = true; }  
+            } else {   
+                document.getElementById('feeVal').textContent = "0.00";
+                document.getElementById('netVal').textContent = "0.00";
+                document.getElementById('needPts').textContent = "0";
+                document.getElementById('confirmBtn').disabled = true; 
+            }  
         }  
 
         document.getElementById('amountInp').oninput = updateCalc;  
@@ -174,7 +184,7 @@
             const btn = document.getElementById('confirmBtn'); btn.disabled = true; btn.textContent = "جارِ الإرسال...";  
             try {  
                 const idToken = await auth.currentUser.getIdToken();  
-                const response = await fetch('/api/withdraw', { // تأكد أن هذا الرابط هو رابط الـ API الخاص بك
+                const response = await fetch('/api/withdraw', { 
                     method: 'POST',  
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },  
                     body: JSON.stringify({ amount: parseFloat(document.getElementById('amountInp').value), wallet: document.getElementById('walletVod').value.trim() })  
