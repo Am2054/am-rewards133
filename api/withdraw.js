@@ -1,8 +1,6 @@
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { getAuth } from "firebase-admin/auth";
 
 const db = getFirestore();
-const auth = getAuth();
 
 const POINT_VALUE = 0.07;
 const MIN_WITHDRAWAL = 20;
@@ -14,19 +12,17 @@ const REFERRAL_PERCENT = 0.10;
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ message: "الطريقة غير مسموحة" });
 
-  const token = req.headers.authorization?.split("Bearer ")[1];
-  if (!token) return res.status(401).json({ message: "غير مصرح لك" });
-
-  // جلب بيانات الحماية
+  // جلب بيانات الحماية والبيانات المرسلة
   const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   const userAgent = req.headers['user-agent'] || 'Unknown';
 
-  try {
-    const decodedToken = await auth.verifyIdToken(token);
-    const userId = decodedToken.uid;
-    const { amount: rawAmount, wallet } = req.body;
-    const amount = Number(rawAmount);
+  // استخراج البيانات من الـ body (تأكد من إرسال userId من الفرونت إند)
+  const { userId, amount: rawAmount, wallet } = req.body;
+  const amount = Number(rawAmount);
 
+  if (!userId) return res.status(400).json({ message: "معرف المستخدم مطلوب." });
+
+  try {
     const isVodafone = /^010\d{8}$/.test(wallet);
     if (!isVodafone) throw new Error("يرجى إدخال رقم فودافون كاش صحيح.");
 
@@ -91,8 +87,8 @@ export default async function handler(req, res) {
       tr.set(withdrawalRef, withdrawalData);
     });
 
-    res.status(200).json({ success: true, message: "تم    إرسال الطلب بنجاح وسيتم مراجعته خلال 24 ساعه." });
+    res.status(200).json({ success: true, message: "تم إرسال الطلب بنجاح وسيتم مراجعته خلال 24 ساعه." });
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
-      }
+}
