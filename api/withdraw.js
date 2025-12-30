@@ -1,8 +1,8 @@
-import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { getAuth } from "firebase-admin/auth";
+const { initializeApp, cert, getApps } = require("firebase-admin/app");
+const { getFirestore, FieldValue } = require("firebase-admin/firestore");
+const { getAuth } = require("firebase-admin/auth");
 
-// ======== تهيئة Firebase Admin ========
+// تأكد من أن السطر التالي مكتوب بشكل صحيح
 const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
 
 if (!getApps().length) {
