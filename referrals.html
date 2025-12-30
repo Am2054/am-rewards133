@@ -24,12 +24,6 @@
         radial-gradient(circle at 90% 80%, rgba(0, 242, 255, 0.15) 0%, transparent 40%);
     }
 
-    body::after {
-      content: ""; position: fixed; inset: 0; z-index: -1;
-      background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
-      opacity: 0.2; pointer-events: none;
-    }
-
     .container { max-width: 550px; margin: 20px auto; padding: 15px; }
 
     .header { text-align: center; margin-bottom: 30px; }
@@ -37,33 +31,32 @@
       font-weight: 900; font-size: 28px; color: var(--neon-cyan);
       text-shadow: 0 0 20px rgba(0, 242, 255, 0.5); margin: 0;
     }
-    .header p { color: var(--muted); font-size: 14px; margin-top: 5px; line-height: 1.6; }
 
     .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
     .stat-card {
       background: var(--glass-bg); border: 1px solid var(--glass-border);
       border-radius: 20px; padding: 20px; text-align: center;
       backdrop-filter: blur(15px); box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      border-bottom: 3px solid var(--neon-cyan);
     }
     .stat-card .label { font-size: 12px; color: var(--muted); margin-bottom: 5px; }
     .stat-card .value { font-family: 'Montserrat'; font-size: 24px; font-weight: 900; color: #fff; }
 
     .main-card {
-      background: linear-gradient(135deg, rgba(112, 0, 255, 0.05), rgba(0, 242, 255, 0.05));
+      background: linear-gradient(135deg, rgba(112, 0, 255, 0.1), rgba(0, 242, 255, 0.1));
       border: 1px solid var(--glass-border); border-radius: 24px; padding: 25px;
-      backdrop-filter: blur(20px); position: relative; overflow: hidden;
+      backdrop-filter: blur(20px); text-align: center;
     }
 
-    .code-title { font-size: 13px; color: var(--muted); margin-bottom: 10px; position: relative; }
     .code-display { 
       font-family: 'Montserrat'; font-size: 36px; font-weight: 900; 
-      color: var(--neon-cyan); letter-spacing: 5px; margin-bottom: 20px;
-      text-shadow: 0 0 15px rgba(0, 242, 255, 0.3); position: relative; text-align: center;
+      color: var(--neon-cyan); letter-spacing: 5px; margin: 15px 0;
+      text-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
     }
 
     .link-box {
       background: rgba(0, 0, 0, 0.4); border-radius: 16px; border: 1px solid var(--glass-border);
-      display: flex; align-items: center; padding: 5px; position: relative;
+      display: flex; align-items: center; padding: 5px; margin-top: 15px;
     }
     .link-text {
       flex: 1; padding: 10px; font-size: 11px; color: var(--muted);
@@ -75,25 +68,24 @@
       font-weight: 900; cursor: pointer; font-size: 14px;
     }
 
+    /* تصميم الـ Progress Bar الاحترافي */
+    .progress-container { width: 100px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-top: 8px; overflow: hidden; }
+    .progress-bar { height: 100%; background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan)); border-radius: 10px; }
+
     .table-section { margin-top: 35px; }
     .table-section h2 { font-size: 18px; color: var(--neon-cyan); margin-bottom: 15px; }
     .table-wrapper { 
       background: var(--glass-bg); border-radius: 20px; border: 1px solid var(--glass-border); 
-      overflow: hidden; backdrop-filter: blur(10px);
+      overflow: hidden;
     }
     table { width: 100%; border-collapse: collapse; }
     th { background: rgba(255,255,255,0.03); padding: 15px; text-align: right; font-size: 12px; color: var(--muted); }
-    td { padding: 15px; font-size: 13px; border-bottom: 1px solid var(--glass-border); }
-    
-    .friend-info { display: flex; flex-direction: column; }
-    .friend-name { font-weight: 700; color: #fff; }
-    .friend-status { font-size: 10px; margin-top: 2px; font-weight: 700; }
+    td { padding: 15px; font-size: 13px; border-bottom: 1px solid var(--glass-border); vertical-align: middle; }
     
     .commission-tag { 
-      background: rgba(0, 242, 255, 0.1); color: var(--neon-cyan); 
-      padding: 4px 8px; border-radius: 8px; font-family: 'Montserrat'; font-weight: 700;
+      display: inline-block; background: rgba(34, 197, 94, 0.15); color: #4ade80; 
+      padding: 6px 10px; border-radius: 10px; font-family: 'Montserrat'; font-weight: 700;
     }
-    .expired { opacity: 0.4; filter: grayscale(1); }
 
     #toast {
       position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
@@ -108,55 +100,52 @@
 <div class="container">
   <div class="header">
     <h1>🚀 صاروخ الإحالات</h1>
-    <p>اربح 10% من أول 10 عمليات سحب<br>لكل صديق تقوم بدعوته للمنصة</p>
+    <p style="color:var(--muted); font-size: 14px;">اربح عمولة مدى الحياة عن أول 10 سحبات لكل صديق</p>
   </div>
 
   <div class="stats-grid">
     <div class="stat-card">
-      <div class="label">أصدقاء سجلوا</div>
+      <div class="label">إجمالي الأصدقاء</div>
       <div class="value" id="refCount">0</div>
     </div>
     <div class="stat-card">
-      <div class="label">أرباحك (ج.م)</div>
-      <div class="value" id="refEarnings">0.00</div>
+      <div class="label">أرباحك المحققة</div>
+      <div class="value" id="refEarnings">0.00 <small style="font-size:12px">EGP</small></div>
     </div>
   </div>
 
   <div class="main-card">
-    <div class="code-title">كود الإحالة الخاص بك</div>
+    <div style="font-size: 13px; color: var(--muted);">كود الدعوة الخاص بك</div>
     <div class="code-display" id="userCode">------</div>
-    
-    <div class="code-title">رابط الدعوة المباشر</div>
     <div class="link-box">
       <div class="link-text" id="refLink">جارِ التحميل...</div>
-      <button class="copy-btn" onclick="copyRef()">نسخ</button>
+      <button class="copy-btn" onclick="copyRef()">نسخ الرابط</button>
     </div>
   </div>
 
   <div class="table-section">
-    <h2>👥 حالة أصدقائك</h2>
+    <h2>👥 سجل الأصدقاء (10 سحبات/صديق)</h2>
     <div class="table-wrapper">
       <table>
         <thead>
           <tr>
-            <th>الصديق</th>
-            <th>النقاط</th>
+            <th>الصديق / التقدم</th>
             <th>العمولة</th>
           </tr>
         </thead>
         <tbody id="refTable">
-          <tr><td colspan="3" style="text-align:center; padding:30px; color:var(--muted);">جارِ جلب أصدقائك...</td></tr>
+          <tr><td colspan="2" style="text-align:center; padding:30px; color:var(--muted);">جارِ جلب أصدقائك...</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 </div>
 
-<div id="toast">تم النسخ بنجاح! 📋</div>
+<div id="toast">تم نسخ الرابط بنجاح! 📋</div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, doc, onSnapshot, collection, query, where, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, doc, onSnapshot, collection, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
   const firebaseConfig = {
@@ -171,52 +160,56 @@
 
   onAuthStateChanged(auth, (user) => {
     if (user) {
-      // 1. تحديث بيانات المستخدم
+      // 1. جلب بيانات الأدمين (الكود والرابط)
       onSnapshot(doc(db, "users", user.uid), (snap) => {
         if (!snap.exists()) return;
         const data = snap.data();
         document.getElementById('userCode').textContent = data.referralCode || "------";
         document.getElementById('refLink').textContent = `${window.location.origin}/signup.html?ref=${data.referralCode}`;
-        document.getElementById('refEarnings').textContent = (data.totalReferralEarnings || 0).toFixed(2);
         document.getElementById('refCount').textContent = data.referralCount || 0;
       });
 
-      // 2. جلب قائمة المدعوين
-      const q = query(collection(db, "users"), where("referredBy", "==", user.uid), limit(25));
+      // 2. جلب الأصدقاء وحساب الأرباح حركياً
+      const q = query(collection(db, "users"), where("referredBy", "==", user.uid));
       onSnapshot(q, (snap) => {
         const tbody = document.getElementById('refTable');
+        let totalEarnings = 0;
         tbody.innerHTML = "";
         
         if (snap.empty) {
-          tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:30px; color:var(--muted);">شارك رابطك لتبدأ في جني الأرباح 📢</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding:40px; color:var(--muted);">لم تقم بدعوة أحد بعد.. ابدأ الآن! 📢</td></tr>`;
+          document.getElementById('refEarnings').textContent = "0.00";
           return;
         }
 
         snap.forEach(docSnap => {
           const u = docSnap.data();
-          const bonusesUsed = u.referralBonusesCount || 0;
-          const remaining = 10 - bonusesUsed;
-          const isExpired = remaining <= 0;
-          const commission = (u.withdrawn || 0) * 0.10;
+          const count = u.referralBonusesCount || 0;
+          const withdrawn = Number(u.withdrawn || 0);
+          const commission = withdrawn * 0.10; // حساب 10% من إجمالي مسحوبات الصديق
+          totalEarnings += commission;
 
+          const progressPercent = (count / 10) * 100;
+          
           tbody.innerHTML += `
             <tr>
               <td>
-                <div class="friend-info">
-                  <span class="friend-name">${u.name || 'مستخدم جديد'}</span>
-                  <span class="friend-status" style="color: ${isExpired ? 'var(--danger)' : 'var(--success)'}">
-                    ${isExpired ? 'اكتملت الـ 10 سحبات' : `متبقي ${remaining} سحبات`}
-                  </span>
+                <div style="font-weight:700; color:#fff;">${u.name || 'مستخدم'}</div>
+                <div style="font-size:10px; color:var(--muted); margin-top:4px;">سحبات الربح: ${count}/10</div>
+                <div class="progress-container">
+                  <div class="progress-bar" style="width: ${progressPercent}%"></div>
                 </div>
               </td>
-              <td style="font-family:'Montserrat'; font-weight:700;">${(u.points || 0).toLocaleString()}</td>
-              <td>
-                <span class="commission-tag ${isExpired ? 'expired' : ''}">
-                  +${commission.toFixed(2)}
+              <td style="text-align:center;">
+                <span class="commission-tag">
+                  +${commission.toFixed(2)} <small>EGP</small>
                 </span>
               </td>
             </tr>`;
         });
+
+        // تحديث إجمالي الأرباح في الأعلى
+        document.getElementById('refEarnings').innerHTML = `${totalEarnings.toFixed(2)} <small style="font-size:12px">EGP</small>`;
       });
     } else {
       window.location.href = "login.html";
