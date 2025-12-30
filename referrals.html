@@ -87,6 +87,11 @@
       padding: 6px 10px; border-radius: 10px; font-family: 'Montserrat'; font-weight: 700;
     }
 
+    /* استايلات السجل المضافة لضمان الشفافية */
+    .view-log-link { color: var(--neon-cyan); font-size: 10px; cursor: pointer; text-decoration: underline; margin-top: 5px; display: block; }
+    .history-box { display: none; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 10px; margin-top: 10px; border: 1px dashed var(--glass-border); }
+    .history-item { display: flex; justify-content: space-between; font-size: 11px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
     #toast {
       position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
       background: var(--neon-cyan); color: #000; padding: 12px 30px;
@@ -145,7 +150,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, doc, onSnapshot, collection, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, doc, onSnapshot, collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
   const firebaseConfig = {
@@ -160,7 +165,6 @@
 
   onAuthStateChanged(auth, (user) => {
     if (user) {
-      // 1. جلب بيانات الأدمين (الكود والرابط)
       onSnapshot(doc(db, "users", user.uid), (snap) => {
         if (!snap.exists()) return;
         const data = snap.data();
@@ -169,9 +173,8 @@
         document.getElementById('refCount').textContent = data.referralCount || 0;
       });
 
-      // 2. جلب الأصدقاء وحساب الأرباح حركياً
       const q = query(collection(db, "users"), where("referredBy", "==", user.uid));
-      onSnapshot(q, (snap) => {
+      onSnapshot(q, async (snap) => {
         const tbody = document.getElementById('refTable');
         let totalEarnings = 0;
         tbody.innerHTML = "";
@@ -182,13 +185,38 @@
           return;
         }
 
-        snap.forEach(docSnap => {
+        // استخدام حلقة لقراءة سحبات كل صديق
+        for (const docSnap of snap.docs) {
           const u = docSnap.data();
+          const uId = docSnap.id;
           const count = u.referralBonusesCount || 0;
-          const withdrawn = Number(u.withdrawn || 0);
-          const commission = withdrawn * 0.10; // حساب 10% من إجمالي مسحوبات الصديق
-          totalEarnings += commission;
 
+          // جلب سجل السحبات المكتملة لهذا الصديق
+          const wQuery = query(collection(db, "withdrawals"), where("userId", "==", uId), where("status", "==", "completed"), orderBy("date", "desc"));
+          const wSnap = await getDocs(wQuery);
+          
+          let friendCommission = 0;
+          let historyHtml = "";
+
+          wSnap.docs.forEach((wDoc, index) => {
+            if(index < 10) { // أول 10 سحبات فقط
+              const wData = wDoc.data();
+              const pts = Number(wData.pointsUsed || 0);
+              const bonus = pts * 0.10; // حساب 10% نقاط
+              // تحويل النقاط لمبلغ مادي لو كان السيستم EGP (مثال: كل 1000 نقطة بـ 7 جنيه)
+              // أو اتركها كقيمة مطلقة كما هي في حسابك. هنا سنعتمد نفس منطقك withdrawn * 0.10
+              const comm = (Number(wData.amount || 0) * 0.10); 
+              friendCommission += comm;
+
+              historyHtml += `
+                <div class="history-item">
+                  <span>سحب #${index+1}</span>
+                  <span style="color:var(--neon-cyan)">+${comm.toFixed(2)} ج</span>
+                </div>`;
+            }
+          });
+
+          totalEarnings += friendCommission;
           const progressPercent = (count / 10) * 100;
           
           tbody.innerHTML += `
@@ -199,22 +227,30 @@
                 <div class="progress-container">
                   <div class="progress-bar" style="width: ${progressPercent}%"></div>
                 </div>
+                <span class="view-log-link" onclick="toggleHistory('${uId}')">عرض تفاصيل السحبات 👇</span>
+                <div id="hist-${uId}" class="history-box">
+                  ${historyHtml || '<div style="font-size:10px; color:var(--muted)">لا يوجد سحبات مكتملة لهذا الصديق</div>'}
+                </div>
               </td>
               <td style="text-align:center;">
                 <span class="commission-tag">
-                  +${commission.toFixed(2)} <small>EGP</small>
+                  +${friendCommission.toFixed(2)} <small>EGP</small>
                 </span>
               </td>
             </tr>`;
-        });
+        }
 
-        // تحديث إجمالي الأرباح في الأعلى
         document.getElementById('refEarnings').innerHTML = `${totalEarnings.toFixed(2)} <small style="font-size:12px">EGP</small>`;
       });
     } else {
       window.location.href = "login.html";
     }
   });
+
+  window.toggleHistory = (id) => {
+    const el = document.getElementById('hist-' + id);
+    el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+  };
 
   window.copyRef = () => {
     const link = document.getElementById('refLink').textContent;
@@ -227,4 +263,4 @@
 </script>
 
 </body>
-</html> 
+</html>
