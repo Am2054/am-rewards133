@@ -96,35 +96,37 @@
   onAuthStateChanged(auth, user => {
     if (!user) return;
 
-    // 1. مراقبة بيانات المستخدم الحالي
+    // 1. مراقبة البيانات الأساسية (الكود والعدد)
     onSnapshot(doc(db, "users", user.uid), s => {
       if(!s.exists()) return;
       const d = s.data();
       document.getElementById('userCode').innerText = d.referralCode || "---";
       document.getElementById('refCount').innerText = d.referralCount || 0;
-      // قراءة حقل totalReferralEarnings من الصورة
-      const totalReady = d.totalReferralEarnings || 0;
-      document.getElementById('refEarnings').innerHTML = `${totalReady.toFixed(2)} <small>EGP</small>`;
       document.getElementById('refLink').innerText = `https://am-rewards.vercel.app/signup.html?ref=${d.referralCode}`;
     });
 
-    // 2. جلب الأصدقاء وعرض السحبات
-    // استخدمنا الحقل الافتراضي referredBy لربط الأصدقاء
+    // 2. جلب الأصدقاء وعمل الحسبة الموحدة
     const q = query(collection(db, "users"), where("referredBy", "==", user.uid));
     
     onSnapshot(q, async snap => {
       const tbody = document.getElementById('refTable');
+      let totalCalculatedEarnings = 0; // هذا المتغير سيجمع كل العمولات بدقة
+
       if (snap.empty) {
         tbody.innerHTML = "<tr><td colspan='2' style='text-align:center;padding:40px;'>لا يوجد أصدقاء بعد.</td></tr>";
+        document.getElementById('refEarnings').innerHTML = `0.00 <small>EGP</small>`;
         return;
       }
 
       let rowsHtml = "";
-      for (const docSnap of snap.docs) {
+      
+      // نستخدم For loop عادية لضمان الترتيب والحساب
+      const friendDocs = snap.docs;
+      for (const docSnap of friendDocs) {
         const u = docSnap.data();
         const uId = docSnap.id;
 
-        // جلب سحبات الصديق المكتملة لحساب التقدم
+        // جلب سحبات الصديق المكتملة
         const wQ = query(collection(db, "withdrawals"), where("userId", "==", uId), where("status", "==", "completed"));
         const wSnap = await getDocs(wQ);
         
@@ -132,12 +134,15 @@
         let historyHtml = "";
         
         wSnap.docs.forEach((wDoc, i) => {
-          if(i < 10) {
+          if(i < 10) { // عمولة على أول 10 سحبات فقط
             const amt = (Number(wDoc.data().amount || 0) * 0.10);
             friendComm += amt;
             historyHtml += `<div class="history-item"><span>سحب #${i+1}</span><span style="color:var(--neon-cyan)">+${amt.toFixed(2)} ج</span></div>`;
           }
         });
+
+        // إضافة عمولة هذا الصديق للمجموع الكلي العلوي
+        totalCalculatedEarnings += friendComm;
 
         const count = wSnap.size > 10 ? 10 : wSnap.size;
         const progress = (count / 10) * 100;
@@ -149,12 +154,16 @@
               <div style="font-size:10px; color:var(--muted); margin-top:4px;">سحبات الربح: ${count}/10</div>
               <div class="progress-container"><div class="progress-bar" style="width:${progress}%"></div></div>
               <span class="view-log-link" onclick="toggleHistory('${uId}')">تفاصيل السحبات 👇</span>
-              <div id="hist-${uId}" class="history-box">${historyHtml || 'لا يوجد سحبات مكتملة.'}</div>
+              <div id="hist-${uId}" class="history-box">${historyHtml || 'لا يوجد سحبات مكتملة بعد.'}</div>
             </td>
             <td style="text-align:center"><span class="commission-tag">+${friendComm.toFixed(2)}</span></td>
           </tr>`;
       }
+      
+      // تحديث الجدول
       tbody.innerHTML = rowsHtml;
+      // تحديث الرقم العلوي (أرباحك المحققة) ليتطابق مع مجموع الجدول
+      document.getElementById('refEarnings').innerHTML = `${totalCalculatedEarnings.toFixed(2)} <small>EGP</small>`;
     });
   });
 
@@ -174,5 +183,3 @@
 </script>
 </body>
 </html>
-
-
