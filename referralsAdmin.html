@@ -1,64 +1,113 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AM REWARDS | REFERRALS CONTROL</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #030712; --card: rgba(17, 24, 39, 0.7); --gold: #f5c542; 
+      --border: rgba(245, 197, 66, 0.1); --text: #eef2f7; --accent: #00fa9a;
+      --blue: #3b82f6; --red: #ef4444;
+    }
+    body { font-family: "Cairo", sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; background-image: radial-gradient(circle at top right, #1e293b, #030712); min-height: 100vh; }
+    .wrap { max-width: 1200px; margin: 0 auto; }
+    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; padding: 25px; background: var(--card); border-radius: 24px; border: 1px solid var(--border); backdrop-filter: blur(15px); }
+    header h1 { margin: 0; font-family: 'Syncopate'; color: var(--gold); font-size: 1.2rem; }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .stat-item { background: var(--card); padding: 25px; border-radius: 24px; border: 1px solid var(--border); border-bottom: 3px solid var(--gold); text-align: center; }
+    .stat-item strong { display: block; font-size: 1.8rem; font-family: 'Syncopate'; color: #fff; margin-bottom: 5px; }
+    .stat-item span { color: var(--gold); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+    .chart-container { background: var(--card); border-radius: 28px; padding: 25px; border: 1px solid var(--border); margin-bottom: 30px; height: 350px; }
+    .table-card { background: var(--card); border-radius: 28px; padding: 25px; border: 1px solid var(--border); margin-bottom: 30px; }
+    .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+    .table-container { overflow-x: auto; border-radius: 20px; }
+    table { width: 100%; border-collapse: separate; border-spacing: 0 10px; min-width: 800px; }
+    th { padding: 15px 20px; color: var(--gold); font-size: 0.75rem; text-align: right; border-bottom: 1px solid var(--border); }
+    td { padding: 15px 20px; background: rgba(255,255,255,0.02); transition: 0.3s; font-size: 0.9rem; }
+    td:first-child { border-radius: 0 15px 15px 0; }
+    td:last-child { border-radius: 15px 0 0 15px; }
+    .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    input, .btn-ghost { background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff; padding: 10px 15px; border-radius: 10px; outline: none; }
+    .btn-main { background: var(--gold); color: #000; font-weight: 900; border: none; font-family: 'Syncopate'; font-size: 0.7rem; padding: 12px 20px; border-radius: 12px; cursor: pointer; }
+    .btn-ghost { cursor: pointer; }
+    .btn-ghost.active { background: var(--gold); color: #000; }
+    .status-badge { padding: 5px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 900; background: rgba(0,250,154,0.1); color: var(--accent); border: 1px solid var(--accent); }
+    .code-cell { font-family: monospace; color: var(--gold); font-weight: 900; cursor: pointer; background: rgba(245,197,66,0.05); padding: 4px 10px; border-radius: 8px; }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(10px); }
+    .modal-content { background: #111827; padding: 40px; border-radius: 30px; border: 1px solid var(--gold); width: 90%; max-width: 500px; position: relative; }
+    .modal-close { position: absolute; top: 20px; left: 20px; color: var(--red); font-size: 1.5rem; cursor: pointer; }
+    .referral-list li { background: rgba(255,255,255,0.03); padding: 12px; margin-bottom: 8px; border-radius: 12px; list-style: none; border-right: 3px solid var(--accent); }
+    .hidden { display: none !important; }
+  </style>
+</head>
 <body>
+
   <div class="wrap">
     <header>
       <h1>REFERRALS <span style="color:#64748b; font-size:0.9rem;">NETWORK</span></h1>
-      <a href="index.html" style="text-decoration:none;">
-        <button class="btn-main" style="background:var(--accent); color:#000;">DASHBOARD HUB</button>
-      </a>
+      <a href="index.html" style="text-decoration:none;"><button class="btn-main" style="background:var(--accent);">DASHBOARD HUB</button></a>
     </header>
 
     <div class="chart-container">
-        <h3 style="margin-top:0; font-family:'Syncopate'; font-size:0.8rem; color:var(--gold); text-align:center;">🔥 TOP 5 ACTIVE CODES</h3>
+        <h3 style="margin-top:0; font-family:'Syncopate'; font-size:0.8rem; color:var(--gold); text-align:center;">🔥 TOP 5 ACTIVE USERS</h3>
         <canvas id="referralChart"></canvas>
     </div>
 
     <div class="metrics">
-      <div class="stat-item">
-        <strong id="totalReferrals">0</strong> <span>Total Conversions</span>
-      </div>
-      <div class="stat-item">
-        <strong id="totalRewardPoints">0</strong> <span>Total Referral Earnings (EGP)</span>
-      </div>
+      <div class="stat-item"><strong id="totalReferrals">0</strong> <span>Total Conversions</span></div>
+      <div class="stat-item"><strong id="totalRewardEGP">0.00</strong> <span>Distributed Earnings (EGP)</span></div>
     </div>
+
     <div class="table-card">
         <div class="table-header">
-            <h2 style="margin:0; font-family:'Syncopate'; font-size:1rem; border-right: 4px solid var(--gold); padding-right: 15px;">LEADERBOARD</h2>
+            <h2 style="margin:0; font-family:'Syncopate'; font-size:1rem;">LEADERBOARD</h2>
             <div class="controls">
                 <button id="sortByPointsBtn" class="btn-ghost active">BY EARNINGS</button>
                 <button id="sortByCountBtn" class="btn-ghost">BY COUNT</button>
             </div>
         </div>
-        
         <div class="table-container">
-            <table id="topReferrersTable">
-                <thead>
-                    <tr>
-                        <th>RANK</th>
-                        <th>REFERRER NAME/CODE</th>
-                        <th>FRIENDS JOINED</th>
-                        <th>TOTAL EARNED</th>
-                    </tr>
-                </thead>
-                <tbody id="topReferrersTableBody">
-                    <tr><td colspan="4" style="text-align:center; color:var(--gold);">Initializing records...</td></tr>
-                </tbody>
+            <table>
+                <thead><tr><th>RANK</th><th>REFERRER NAME</th><th>COUNT</th><th>EARNED</th></tr></thead>
+                <tbody id="topReferrersTableBody"><tr><td colspan="4" style="text-align:center;">Loading...</td></tr></tbody>
             </table>
         </div>
     </div>
+
+    <div class="table-card">
+        <div class="table-header">
+            <h2 style="margin:0; font-family:'Syncopate'; font-size:1rem;">LIVE LOGS</h2>
+            <div class="controls">
+                <input type="text" id="searchReferral" placeholder="Search name or code...">
+                <button id="refreshBtn" class="btn-main">REFRESH</button>
+            </div>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>CODE</th><th>USER EMAIL</th><th>NAME</th><th>EARNINGS</th><th>STATUS</th></tr></thead>
+                <tbody id="referralsTableBody"><tr><td colspan="5" style="text-align:center;">Fetching...</td></tr></tbody>
+            </table>
+        </div>
     </div>
+  </div>
+  
+  <div id="detailsModal" class="modal hidden">
+    <div class="modal-content">
+      <span class="modal-close" id="closeModal">&times;</span>
+      <h3 id="modalTitle">FRIENDS LIST</h3>
+      <ul id="referredList" class="referral-list"></ul>
+    </div>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     
-    const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards",
-    };
+    const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app); 
@@ -66,165 +115,86 @@
     let currentSort = 'points'; 
     let allReferrerData = []; 
     let myChart = null;
-    
-    const totalReferralsEl = document.getElementById('totalReferrals');
-    const totalRewardPointsEl = document.getElementById('totalRewardPoints');
-    const topReferrersTableBody = document.getElementById('topReferrersTableBody');
-    const chartCtx = document.getElementById('referralChart');
 
-    function formatNumber(n) { return Number(n || 0).toLocaleString(); }
+    async function fetchData() {
+        const usersSnap = await getDocs(collection(db, "users"));
+        const users = [];
+        usersSnap.forEach(d => users.push({ id: d.id, ...d.data() }));
 
-    function updateChart(data) {
-        if (myChart) myChart.destroy();
-        const top5 = data.slice(0, 5);
-        myChart = new Chart(chartCtx, {
-            type: 'bar',
-            data: {
-                labels: top5.map(r => r.name || r.code),
-                datasets: [{
-                    label: 'Friends Joined',
-                    data: top5.map(r => r.count),
-                    backgroundColor: 'rgba(245,197,66,0.5)',
-                    borderColor: '#f5c542',
-                    borderWidth: 2,
-                    borderRadius: 8
-                }]
-            },
-            options: { 
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } }, 
-                scales: {
-                    y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#64748b' } },
-                    x: { grid: { display: false }, ticks: { color: '#64748b' } }
-                } 
+        const referrersMap = {};
+        let totalCount = 0;
+        let totalCash = 0;
+
+        // تحليل البيانات
+        users.forEach(u => {
+            if (u.referralCode) {
+                referrersMap[u.id] = { id: u.id, name: u.name || 'Anonymous', code: u.referralCode, count: 0, earnings: Number(u.totalReferralEarnings || 0), friends: [] };
             }
         });
-    }
 
-    async function fetchReferralsData() {
-        try {
-            const usersSnap = await getDocs(collection(db, "users"));
-            const usersList = [];
-            usersSnap.forEach(doc => usersList.push({ id: doc.id, ...doc.data() }));
-
-            let globalRefCount = 0;
-            let globalTotalEarnings = 0;
-
-            // حساب البيانات لكل "داعي"
-            const referrersMap = {};
-
-            usersList.forEach(user => {
-                // إذا كان المستخدم الحالي داعي (لديه أرباح أو كود)
-                if (user.referralCode) {
-                    if (!referrersMap[user.id]) {
-                        referrersMap[user.id] = {
-                            id: user.id,
-                            name: user.name || 'Anonymous',
-                            code: user.referralCode,
-                            count: 0,
-                            earnings: Number(user.totalReferralEarnings || 0)
-                        };
-                    }
-                }
-
-                // إذا كان المستخدم الحالي قد تم دعوته من قبل شخص آخر
-                if (user.referredBy) {
-                    globalRefCount++;
-                    const referrerId = user.referredBy;
-                    if (referrersMap[referrerId]) {
-                        referrersMap[referrerId].count += 1;
-                    }
-                }
-                
-                globalTotalEarnings += Number(user.totalReferralEarnings || 0);
-            });
-
-            allReferrerData = Object.values(referrersMap).filter(r => r.count > 0 || r.earnings > 0);
-            
-            totalReferralsEl.textContent = formatNumber(globalRefCount);
-            totalRewardPointsEl.textContent = globalTotalEarnings.toFixed(2) + " EGP";
-
-            renderTopReferrers();
-        } catch (e) {
-            console.error("Error fetching referrers:", e);
-        }
-    }
-
-    function renderTopReferrers() {
-        topReferrersTableBody.innerHTML = '';
-        
-        // الترتيب حسب الربح أو حسب العدد
-        const sorted = [...allReferrerData].sort((a,b) => {
-            return currentSort === 'points' ? b.earnings - a.earnings : b.count - a.count;
+        users.forEach(u => {
+            if (u.referredBy && referrersMap[u.referredBy]) {
+                referrersMap[u.referredBy].count++;
+                referrersMap[u.referredBy].friends.push(u.email || u.name);
+                totalCount++;
+            }
+            totalCash += Number(u.totalReferralEarnings || 0);
         });
-        
-        sorted.forEach((item, i) => {
+
+        allReferrerData = Object.values(referrersMap).filter(r => r.count > 0 || r.earnings > 0);
+        document.getElementById('totalReferrals').innerText = totalCount;
+        document.getElementById('totalRewardEGP').innerText = totalCash.toFixed(2);
+
+        renderLeaderboard();
+        renderLogs(users);
+        updateChart();
+    }
+
+    function renderLeaderboard() {
+        const body = document.getElementById('topReferrersTableBody');
+        body.innerHTML = '';
+        const sorted = [...allReferrerData].sort((a,b) => currentSort === 'points' ? b.earnings - a.earnings : b.count - a.count);
+        sorted.forEach((r, i) => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="rank-cell">#${String(i+1).padStart(2,'0')}</td>
-                <td>
-                    <div style="font-weight:bold;">${item.name}</div>
-                    <span class="code-cell">${item.code}</span>
-                </td>
-                <td style="font-family:'Syncopate'; font-weight:700;">${item.count}</td>
-                <td style="color:var(--gold); font-weight:900;">${item.earnings.toFixed(2)} EGP</td>
-            `;
-            topReferrersTableBody.appendChild(tr);
+            tr.innerHTML = `<td>#${i+1}</td><td><span class="code-cell" onclick="showModal('${r.id}')">${r.name}</span></td><td>${r.count}</td><td style="color:var(--gold)">${r.earnings.toFixed(2)}</td>`;
+            body.appendChild(tr);
         });
-        updateChart(sorted);
     }
 
-    // Live Logs (اختياري: يعرض آخر المستخدمين الذين سجلوا)
-    async function renderLiveLogs() {
-        const logsBody = document.getElementById('referralsTableBody');
-        const usersSnap = await getDocs(collection(db, "users"));
-        let logsHtml = "";
-        
-        // جلب آخر 10 مستخدمين تم دعوتهم
-        const invitedUsers = [];
-        usersSnap.forEach(doc => {
-            const d = doc.data();
-            if(d.referredBy) invitedUsers.push(d);
+    function renderLogs(users) {
+        const body = document.getElementById('referralsTableBody');
+        body.innerHTML = '';
+        users.filter(u => u.referredBy).slice(-15).reverse().forEach(u => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${u.referredBy.substring(0,6)}</td><td>${u.email}</td><td>${u.name}</td><td>${Number(u.totalReferralEarnings || 0).toFixed(2)}</td><td><span class="status-badge">ACTIVE</span></td>`;
+            body.appendChild(tr);
         });
-
-        invitedUsers.slice(-10).reverse().forEach(u => {
-            logsHtml += `
-                <tr>
-                    <td class="code-cell">NODE</td>
-                    <td>${u.email || u.name}</td>
-                    <td style="font-size:0.75rem; color:#64748b;">Recently Joined</td>
-                    <td style="color:var(--gold); font-weight:700;">Active</td>
-                    <td><span class="status-badge status-granted">DONE</span></td>
-                </tr>`;
-        });
-        logsBody.innerHTML = logsHtml || "<tr><td colspan='5'>No recent logs</td></tr>";
     }
 
-    sortByPointsBtn.onclick = () => { 
-        currentSort = 'points'; 
-        sortByPointsBtn.classList.add('active'); 
-        sortByCountBtn.classList.remove('active'); 
-        renderTopReferrers(); 
-    };
-    
-    sortByCountBtn.onclick = () => { 
-        currentSort = 'count'; 
-        sortByCountBtn.classList.add('active'); 
-        sortByPointsBtn.classList.remove('active'); 
-        renderTopReferrers(); 
+    window.showModal = (id) => {
+        const r = allReferrerData.find(x => x.id === id);
+        document.getElementById('modalTitle').innerText = "Friends invited by " + r.name;
+        document.getElementById('referredList').innerHTML = r.friends.map(f => `<li>${f}</li>`).join('') || '<li>No friends joined yet</li>';
+        document.getElementById('detailsModal').classList.remove('hidden');
     };
 
-    onAuthStateChanged(auth, user => { 
-        if(user && user.email === "amirfg992005@gmail.com") {
-            fetchReferralsData();
-            renderLiveLogs();
-        } 
-    });
-    
-    document.getElementById('refreshBtn').onclick = () => {
-        fetchReferralsData();
-        renderLiveLogs();
-    };
+    function updateChart() {
+        if (myChart) myChart.destroy();
+        const top = allReferrerData.sort((a,b) => b.count - a.count).slice(0, 5);
+        myChart = new Chart(document.getElementById('referralChart'), {
+            type: 'bar',
+            data: { labels: top.map(t => t.name), datasets: [{ label: 'Referrals', data: top.map(t => t.count), backgroundColor: '#f5c542' }] },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    document.getElementById('closeModal').onclick = () => document.getElementById('detailsModal').classList.add('hidden');
+    document.getElementById('sortByPointsBtn').onclick = () => { currentSort = 'points'; fetchData(); };
+    document.getElementById('sortByCountBtn').onclick = () => { currentSort = 'count'; fetchData(); };
+    document.getElementById('refreshBtn').onclick = fetchData;
+
+    onAuthStateChanged(auth, user => { if(user?.email === "amirfg992005@gmail.com") fetchData(); });
   </script>
 </body>
 </html>
+
