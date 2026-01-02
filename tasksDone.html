@@ -3,153 +3,89 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AM REWARDS | TASKS ANALYTICS</title>
+  <title>AM REWARDS | TASKS ANALYTICS PRO</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
-      --bg: #030712; 
-      --card: rgba(17, 24, 39, 0.7);
-      --gold: #f5c542; 
-      --border: rgba(245, 197, 66, 0.1);
-      --text: #eef2f7;
-      --accent: #00fa9a;
-      --blue: #3b82f6;
-      --red: #ef4444;
+      --bg: #030712; --card: rgba(17, 24, 39, 0.7); --gold: #f5c542; 
+      --border: rgba(245, 197, 66, 0.1); --text: #eef2f7; --accent: #00fa9a;
+      --blue: #3b82f6; --red: #ef4444;
     }
-
-    body {
-      font-family: "Cairo", sans-serif;
-      background: var(--bg); color: var(--text); margin: 0; padding: 20px;
-      background-image: radial-gradient(circle at top right, #1e293b, #030712);
-      min-height: 100vh;
-    }
-
+    body { font-family: "Cairo", sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; background-image: radial-gradient(circle at top right, #1e293b, #030712); min-height: 100vh; }
     .wrap { max-width: 1000px; margin: 0 auto; }
-
-    /* --- الهيدر --- */
-    header { 
-      display: flex; align-items: center; justify-content: space-between; 
-      margin-bottom: 30px; padding: 25px; background: var(--card); 
-      border-radius: 24px; border: 1px solid var(--border);
-      backdrop-filter: blur(15px);
-    }
-    header h1 { margin: 0; font-family: 'Syncopate'; color: var(--gold); font-size: 1.2rem; letter-spacing: 1px; }
-
-    /* --- الإحصائيات --- */
+    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; padding: 25px; background: var(--card); border-radius: 24px; border: 1px solid var(--border); backdrop-filter: blur(15px); }
+    header h1 { margin: 0; font-family: 'Syncopate'; color: var(--gold); font-size: 1.2rem; }
     .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-    .stat-item { 
-      background: var(--card); padding: 25px; border-radius: 24px; 
-      border: 1px solid var(--border); border-bottom: 3px solid var(--gold);
-      text-align: center; transition: 0.3s;
-    }
+    .stat-item { background: var(--card); padding: 25px; border-radius: 24px; border: 1px solid var(--border); border-bottom: 3px solid var(--gold); text-align: center; transition: 0.3s; }
     .stat-item strong { display: block; font-size: 1.8rem; font-family: 'Syncopate'; color: #fff; margin-bottom: 5px; }
-    .stat-item span { color: var(--gold); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; opacity: 0.7; }
-
-    /* --- صندوق التحكم --- */
-    .control-card {
-      background: var(--card); border-radius: 28px; padding: 25px; 
-      border: 1px solid var(--border); backdrop-filter: blur(15px);
-      margin-bottom: 30px;
-    }
-
+    .stat-item span { color: var(--gold); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+    .control-card { background: var(--card); border-radius: 28px; padding: 25px; border: 1px solid var(--border); backdrop-filter: blur(15px); margin-bottom: 30px; }
     .controls { display: flex; gap: 15px; align-items: center; justify-content: center; flex-wrap: wrap; }
-    
-    select, .btn-main {
-      background: rgba(0,0,0,0.3); border: 1px solid var(--border); 
-      color: #fff; padding: 12px 20px; border-radius: 14px; 
-      outline: none; font-family: 'Cairo'; cursor: pointer; transition: 0.3s;
-    }
-
-    .btn-main { 
-      background: var(--gold); color: #000; font-weight: 900; border: none;
-      font-family: 'Syncopate'; font-size: 0.7rem;
-    }
-    .btn-main:hover { transform: scale(1.05); box-shadow: 0 0 15px var(--gold); }
-
-    .btn-back {
-      background: transparent; border: 1px solid var(--accent); color: var(--accent);
-      padding: 8px 16px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 0.8rem;
-    }
-
-    /* --- قائمة أفضل المهام --- */
+    select, input[type="date"], .btn-main { background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff; padding: 10px 15px; border-radius: 12px; outline: none; font-family: 'Cairo'; cursor: pointer; }
+    .btn-main { background: var(--gold); color: #000; font-weight: 900; border: none; font-family: 'Syncopate'; font-size: 0.7rem; padding: 12px 20px; }
+    .chart-box { height: 300px; margin: 25px 0; background: rgba(0,0,0,0.2); border-radius: 20px; padding: 15px; border: 1px solid var(--border); }
     .task-list { list-style: none; padding: 0; margin: 0; }
-    .task-item {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 18px 25px; margin-bottom: 10px; background: rgba(255,255,255,0.03);
-      border-radius: 18px; border: 1px solid transparent; transition: 0.3s;
-    }
-    .task-item:hover {
-      background: rgba(245, 197, 66, 0.05); border-color: var(--border);
-      transform: translateX(-5px);
-    }
-    
-    .task-name { font-weight: 700; color: #fff; font-size: 0.95rem; display: flex; align-items: center; gap: 10px; }
-    .rank-badge { 
-      width: 28px; height: 28px; background: var(--gold); color: #000; 
-      display: flex; align-items: center; justify-content: center; 
-      border-radius: 8px; font-weight: 900; font-size: 0.8rem;
-    }
-    
-    .count-badge {
-      background: #000; color: var(--accent); padding: 6px 15px;
-      border-radius: 10px; font-family: 'Syncopate'; font-weight: 700; font-size: 0.9rem;
-      border: 1px solid rgba(0,250,154,0.2);
-    }
-
-    /* --- لودر وحالات --- */
-    .notice { text-align: center; margin-top: 20px; color: #64748b; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 10px; }
-    .loader {
-      border: 3px solid rgba(255, 255, 255, 0.1); border-top: 3px solid var(--gold);
-      border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite;
-    }
+    .task-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; margin-bottom: 10px; background: rgba(255,255,255,0.03); border-radius: 18px; border: 1px solid transparent; transition: 0.3s; }
+    .task-name { font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
+    .rank-badge { width: 28px; height: 28px; background: var(--gold); color: #000; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 900; font-size: 0.8rem; }
+    .count-badge { background: #000; color: var(--accent); padding: 6px 15px; border-radius: 10px; font-family: 'Syncopate'; font-weight: 700; border: 1px solid rgba(0,250,154,0.2); }
+    .loader { border: 3px solid rgba(255, 255, 255, 0.1); border-top: 3px solid var(--gold); border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .hidden { display: none !important; }
-
+    #auth-gate { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 10000; }
   </style>
 </head>
 <body>
 
-  <div class="wrap">
+  <div id="auth-gate">
+      <div style="text-align:center;">
+          <div class="loader" style="width:40px; height:40px; margin:0 auto 20px;"></div>
+          <p style="font-family:'Syncopate'; color:var(--gold);">VERIFYING AUTHORITY...</p>
+      </div>
+  </div>
+
+  <div id="main-content" class="wrap hidden">
     <header>
-      <h1>TASKS <span style="color:#64748b; font-size:0.9rem;">ANALYTICS</span></h1>
-      <a href="index.html" class="btn-back">BACK TO HUB</a>
+      <h1>TASKS <span style="color:#64748b; font-size:0.9rem;">ANALYTICS PRO</span></h1>
+      <a href="index.html" style="text-decoration:none; color:var(--accent); font-weight:700;">BACK TO HUB</a>
     </header>
 
     <div class="metrics">
-      <div class="stat-item">
-        <strong id="totalTasks">0</strong> <span>Total Executions</span>
-      </div>
-      <div class="stat-item" style="border-right-color: var(--accent);">
-        <strong id="todayTasks">0</strong> <span>Today's Tasks</span>
-      </div>
-      <div class="stat-item" style="border-right-color: var(--blue);">
-        <strong id="uniqueTasks">0</strong> <span>Unique Task Types</span>
-      </div>
+      <div class="stat-item"><strong id="totalTasks">0</strong><span>Total Executions</span></div>
+      <div class="stat-item" style="border-right-color:var(--accent);"><strong id="todayTasks">0</strong><span>Today's Tasks</span></div>
+      <div class="stat-item" style="border-right-color:var(--blue);"><strong id="uniqueTasks">0</strong><span>Unique Types</span></div>
     </div>
 
     <div class="control-card">
       <div class="controls">
-          <label style="font-size: 0.8rem; color: var(--gold); font-weight: 700;">SELECT TIMEFRAME:</label>
           <select id="timeFilter">
-              <option value="today">Today Only</option>
-              <option value="7days">Last 7 Days</option>
-              <option value="30days" selected>Last 30 Days</option>
-              <option value="all">Lifetime Analytics</option>
+              <option value="today">Today</option>
+              <option value="7days">7 Days</option>
+              <option value="30days" selected>30 Days</option>
+              <option value="custom">Custom Range</option>
+              <option value="all">Lifetime</option>
           </select>
-          <button id="refreshBtn" class="btn-main">REFRESH DATA</button>
+          <div id="customDateGroup" class="hidden" style="display:inline-flex; gap:5px;">
+              <input type="date" id="dateFrom">
+              <input type="date" id="dateTo">
+          </div>
+          <button id="refreshBtn" class="btn-main">REFRESH</button>
+      </div>
+
+      <div class="chart-box">
+          <canvas id="taskDistributionChart"></canvas>
       </div>
 
       <div style="margin-top: 40px;">
-        <h3 style="text-align: center; font-family: 'Syncopate'; font-size: 0.9rem; color: var(--gold); margin-bottom: 25px;">
-            🥇 TOP PERFORMING TASKS
-        </h3>
-        <ul id="topTasksList" class="task-list">
-            </ul>
+        <h3 style="text-align: center; font-family: 'Syncopate'; font-size: 0.9rem; color: var(--gold); margin-bottom: 25px;">🥇 TOP PERFORMING TASKS</h3>
+        <ul id="topTasksList" class="task-list"></ul>
       </div>
 
-      <div class="notice" id="chartStatus">
-          <div id="loadingSpinner" class="loader hidden"></div>
+      <div style="text-align:center; margin-top:20px; font-size:0.7rem; color:#64748b;">
+          <div id="loadingSpinner" class="loader hidden" style="display:inline-block; vertical-align:middle; margin-left:10px;"></div>
           <span id="statusText">System ready...</span>
+          <div id="autoRefreshNotice" style="margin-top:5px; color:var(--accent); font-weight:700;">Auto-refresh: Active (60s)</div>
       </div>
     </div>
   </div>
@@ -157,116 +93,132 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      projectId: "am--rewards",
-    };
+    const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const auth = getAuth(app);
 
-    const statusText = document.getElementById('statusText');
-    const loadingSpinner = document.getElementById('loadingSpinner');
-    const timeFilter = document.getElementById('timeFilter');
-    const refreshBtn = document.getElementById('refreshBtn');
-    const totalTasksEl = document.getElementById('totalTasks');
-    const todayTasksEl = document.getElementById('todayTasks');
-    const uniqueTasksEl = document.getElementById('uniqueTasks');
-    const topTasksListEl = document.getElementById('topTasksList'); 
+    const ADMIN_EMAIL = "amirfg992005@gmail.com";
+    let taskChart = null;
 
-    function formatNumber(n) { return Number(n||0).toLocaleString(); }
-    function toDateSafe(ts) { return ts?.toDate ? ts.toDate() : (ts?.seconds ? new Date(ts.seconds * 1000) : null); }
-
-    function getStartDate(filter) {
-        const now = new Date(); now.setHours(0, 0, 0, 0); 
-        if (filter === 'today') return now;
-        if (filter === '7days') return new Date(now.setDate(now.getDate() - 7));
-        if (filter === '30days') return new Date(now.setDate(now.getDate() - 30));
-        return null; 
-    }
-
-    function renderTopTasks(topTasks) {
-        topTasksListEl.innerHTML = '';
-        if (topTasks.length === 0) {
-            topTasksListEl.innerHTML = '<div style="text-align:center; opacity:0.5; padding:20px;">No data found for this period</div>';
-            return;
+    // --- الحماية الصارمة ---
+    onAuthStateChanged(auth, user => {
+        if (user && user.email === ADMIN_EMAIL) {
+            document.getElementById('auth-gate').classList.add('hidden');
+            document.getElementById('main-content').classList.remove('hidden');
+            fetchAndAnalyzeTasks();
+            setInterval(fetchAndAnalyzeTasks, 60000); // تحديث تلقائي كل دقيقة
+        } else {
+            window.location.href = "index.html";
         }
+    });
 
-        topTasks.forEach((task, index) => {
-            const li = document.createElement('li');
-            li.className = 'task-item';
-            li.innerHTML = `
-                <div class="task-name">
-                    <div class="rank-badge">${index + 1}</div>
-                    ${task.name}
-                </div>
-                <div class="count-badge">${formatNumber(task.count)}</div>
-            `;
-            topTasksListEl.appendChild(li);
+    // --- منطق الرسم البياني ---
+    function updateChart(labels, data) {
+        const ctx = document.getElementById('taskDistributionChart').getContext('2d');
+        if (taskChart) taskChart.destroy();
+        taskChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Executions',
+                    data: data,
+                    backgroundColor: 'rgba(245, 197, 66, 0.6)',
+                    borderColor: '#f5c542',
+                    borderWidth: 1,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { 
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b' } },
+                    x: { grid: { display: false }, ticks: { color: '#64748b' } }
+                },
+                plugins: { legend: { display: false } }
+            }
         });
     }
 
     async function fetchAndAnalyzeTasks() {
-        statusText.textContent = 'Analyzing Firestore records...';
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const statusText = document.getElementById('statusText');
         loadingSpinner.classList.remove('hidden');
-        
-        const filter = timeFilter.value;
-        const startDate = getStartDate(filter);
-        const todayString = new Date().toDateString();
+        statusText.textContent = 'Updating live metrics...';
+
+        const filter = document.getElementById('timeFilter').value;
+        let startDate = null;
+        let endDate = null;
+
+        if (filter === 'today') startDate = new Date(new Date().setHours(0,0,0,0));
+        else if (filter === '7days') startDate = new Date(Date.now() - 7*24*60*60*1000);
+        else if (filter === '30days') startDate = new Date(Date.now() - 30*24*60*60*1000);
+        else if (filter === 'custom') {
+            startDate = new Date(document.getElementById('dateFrom').value);
+            endDate = new Date(document.getElementById('dateTo').value);
+            endDate.setHours(23,59,59,999);
+        }
 
         try {
-            const q = startDate ? query(collection(db, 'tasksCompleted'), where('date', '>=', startDate)) : collection(db, 'tasksCompleted');
-            const snap = await getDocs(q);
-            
-            if (snap.empty) {
-                totalTasksEl.textContent = '0';
-                uniqueTasksEl.textContent = '0';
-                todayTasksEl.textContent = '0';
-                renderTopTasks([]);
-                statusText.textContent = 'No records found.';
-                return;
+            let q = collection(db, 'tasksCompleted');
+            if (startDate && filter !== 'all') {
+                q = query(q, where('date', '>=', startDate));
+                if (filter === 'custom' && endDate) q = query(q, where('date', '<=', endDate));
             }
-
-            const taskCounts = {}; 
-            const uniqueTaskTypes = new Set(); 
-            let todayCount = 0; 
+            
+            const snap = await getDocs(q);
+            const taskCounts = {};
+            let todayCount = 0;
+            const todayStr = new Date().toDateString();
 
             snap.forEach(doc => {
                 const d = doc.data();
-                const typeOrId = d.taskType || d.taskId; 
-                const taskDate = toDateSafe(d.date);
-
-                if (typeOrId) {
-                    taskCounts[typeOrId] = (taskCounts[typeOrId] || 0) + 1;
-                    uniqueTaskTypes.add(typeOrId); 
-                }
-                if (taskDate && taskDate.toDateString() === todayString) todayCount++;
+                const type = d.taskType || d.taskId || 'Unknown';
+                taskCounts[type] = (taskCounts[type] || 0) + 1;
+                const dDate = d.date?.toDate ? d.date.toDate() : null;
+                if (dDate && dDate.toDateString() === todayStr) todayCount++;
             });
 
-            totalTasksEl.textContent = formatNumber(snap.docs.length);
-            uniqueTasksEl.textContent = formatNumber(uniqueTaskTypes.size);
-            todayTasksEl.textContent = formatNumber(todayCount); 
+            // تحديث الواجهة
+            document.getElementById('totalTasks').textContent = snap.size.toLocaleString();
+            document.getElementById('todayTasks').textContent = todayCount.toLocaleString();
+            document.getElementById('uniqueTasks').textContent = Object.keys(taskCounts).length;
 
-            const top10 = Object.entries(taskCounts)
-                .map(([name, count]) => ({ name, count }))
-                .sort((a, b) => b.count - a.count)
-                .slice(0, 10);
+            const sorted = Object.entries(taskCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
             
-            renderTopTasks(top10); 
-            statusText.textContent = `Analysis complete for ${formatNumber(snap.docs.length)} records.`;
+            // تحديث القائمة والرسم البياني
+            renderList(sorted);
+            updateChart(sorted.map(s => s[0]), sorted.map(s => s[1]));
 
-        } catch (error) {
-            statusText.textContent = '❌ Analysis failed. Check console.';
-            console.error(error);
+            statusText.textContent = 'Sync Complete: ' + new Date().toLocaleTimeString();
+        } catch (e) {
+            statusText.textContent = 'Error syncing data.';
+            console.error(e);
         } finally {
             loadingSpinner.classList.add('hidden');
         }
     }
 
-    timeFilter.addEventListener('change', fetchAndAnalyzeTasks);
-    refreshBtn.addEventListener('click', fetchAndAnalyzeTasks);
-    document.addEventListener('DOMContentLoaded', fetchAndAnalyzeTasks);
+    function renderList(data) {
+        const list = document.getElementById('topTasksList');
+        list.innerHTML = data.map(([name, count], i) => `
+            <li class="task-item">
+                <div class="task-name"><div class="rank-badge">${i+1}</div>${name}</div>
+                <div class="count-badge">${count.toLocaleString()}</div>
+            </li>
+        `).join('') || '<p style="text-align:center; opacity:0.5;">No data found</p>';
+    }
+
+    // إدارة الفلترة اليدوية
+    document.getElementById('timeFilter').onchange = (e) => {
+        document.getElementById('customDateGroup').classList.toggle('hidden', e.target.value !== 'custom');
+        fetchAndAnalyzeTasks();
+    };
+    document.getElementById('refreshBtn').onclick = fetchAndAnalyzeTasks;
   </script>
 </body>
 </html>
