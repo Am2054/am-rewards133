@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>تسجيل الدخول - Am Rewards</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --main-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 60%, #38bdf8 100%);
+      --dark-box-bg: rgba(2,6,23,0.95);
+      --glass-bg: rgba(255,255,255,0.13);
+      --glass-border: rgba(56,189,248,0.18);
+      --input-bg: rgba(30,41,59,0.9);
+      --input-focus: #38bdf8;
+      --input-border: #334155;
+      --error: #f87171;
+      --success: #22c55e;
+      --muted: #a5f3fc;
+      --radius: 28px;
+      --shadow: 0 8px 32px 0 rgba(2,6,23,0.4);
+      --gold: #FFD369;
+      --gold-dark: #bfa243;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      height: 100%; margin: 0; padding: 0;
+      font-family: "Cairo", sans-serif; color: #f1f6fb; direction: rtl;
+      background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.9)), var(--main-gradient), url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80');
+      background-size: cover; background-attachment: fixed; background-blend-mode: overlay;
+    }
+
+    .bg-glass {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background: radial-gradient(circle at 65% 17%, rgba(56,189,248,0.05) 0%, transparent 90%), radial-gradient(circle at 25% 80%, rgba(34,197,94,0.06) 0%, transparent 80%);
+      filter: blur(28px) saturate(1.1); animation: floatGlass 16s ease-in-out infinite alternate;
+    }
+
+    @keyframes floatGlass { 0% { background-position: 65% 17%, 25% 80%; } 100% { background-position: 55% 27%, 20% 95%; } }
+
+    .center-box {
+      width: 100%; max-width: 420px; margin: 56px auto; padding: 38px 18px;
+      border-radius: var(--radius); background: var(--dark-box-bg);
+      box-shadow: var(--shadow); border: 2px solid var(--glass-border);
+      z-index: 2; position: relative; display: flex; flex-direction: column; align-items: center;
+    }
+
+    h2 { font-family: "Montserrat", sans-serif; color: #38bdf8; font-size: 1.7rem; text-align: center; margin-bottom: 10px; }
+    .subtitle { color: var(--muted); font-size: 1rem; margin-bottom: 19px; text-align: center; }
+    .gold-name { background: var(--gold); color: var(--gold-dark); padding: 8px 15px; border-radius: 12px; font-weight: 900; margin-bottom: 20px; }
+
+    .form-row { width: 100%; margin-bottom: 18px; position: relative; text-align: right; }
+    label { font-size: 1rem; color: var(--muted); margin-bottom: 6px; display: block; }
+    
+    input {
+      width: 100%; padding: 16px; border-radius: 15px; border: 2px solid var(--input-border);
+      background: var(--input-bg); color: #fff; font-size: 1.1rem; outline: none; transition: 0.2s;
+    }
+    input:focus { border-color: var(--input-focus); box-shadow: 0 0 12px #38bdf8a6; }
+
+    .password-eye {
+      position: absolute; left: 14px; top: 42px; background: none; border: none;
+      cursor: pointer; color: #38bdf8; display: flex; align-items: center;
+    }
+
+    .login-btn {
+      width: 100%; padding: 14px; border-radius: 15px; background: linear-gradient(90deg, #FFD369, #bfa243);
+      color: #2e2300; font-weight: 900; border: none; cursor: pointer; transition: 0.2s;
+    }
+    .login-btn:hover { transform: scale(1.02); color: #000; }
+    .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .message {
+      width: 100%; padding: 12px; border-radius: 11px; font-size: 1rem;
+      font-weight: bold; text-align: center; margin-bottom: 15px; display: none;
+    }
+    .message.error { background: #ffeaea; color: #c00; border: 2px solid #ff6b6b; }
+    .message.success { background: #e7ffea; color: #049c3f; border: 2px solid #22c55e; }
+
+    .switcher { color: var(--muted); text-decoration: underline; cursor: pointer; margin-top: 15px; font-size: 0.9rem; }
+    
+    @media (max-width: 600px) { .center-box { max-width: 92%; } }
+  </style>
+</head>
+<body>
+  <div class="bg-glass"></div>
+  <div class="center-box">
+    <h2>Am Rewards</h2>
+    <div class="subtitle">سجل دخولك لمتابعة أرباحك</div>
+    <span class="gold-name">تسجيل الدخول</span>
+
+    <div id="msg" class="message"></div>
+
+    <form id="login-form" style="width: 100%;">
+      <div class="form-row">
+        <label for="login-email">البريد الإلكتروني</label>
+        <input type="email" id="login-email" placeholder="example@mail.com" required />
+      </div>
+
+      <div class="form-row">
+        <label for="login-password">كلمة المرور</label>
+        <input type="password" id="login-password" placeholder="••••••••" required />
+        <button type="button" class="password-eye" id="password-toggle-btn" tabindex="-1">
+          <svg id="eye-open" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg id="eye-closed" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24M1 1l22 22"/></svg>
+        </button>
+      </div>
+
+      <button class="login-btn" id="login-btn" type="submit">دخول للمنصة</button>
+    </form>
+
+    <a href="signup.html" class="switcher">ليس لديك حساب؟ أنشئ حسابك الآن</a>
+    <div style="margin-top: 20px; color: #94a3b8; font-size: 0.8rem;">© 2025 Am Rewards • كل الحقوق محفوظة</div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, setPersistence, browserLocalPersistence, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const loginForm = document.getElementById("login-form");
+    const loginBtn = document.getElementById("login-btn");
+    const msgEl = document.getElementById("msg");
+
+    function showMessage(text, type) {
+      msgEl.textContent = text;
+      msgEl.className = `message ${type}`;
+      msgEl.style.display = "block";
+    }
+
+    // تحديث وقت الدخول فقط (أسرع من setDoc)
+    async function updateLastLogin(uid) {
+      try {
+        const userRef = doc(db, "users", uid);
+        await updateDoc(userRef, { lastLogin: serverTimestamp() });
+      } catch (e) { console.error("Update login error:", e); }
+    }
+
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("login-email").value.trim();
+      const password = document.getElementById("login-password").value;
+
+      loginBtn.disabled = true;
+      loginBtn.textContent = "جاري التحقق...";
+      msgEl.style.display = "none";
+
+      try {
+        await setPersistence(auth, browserLocalPersistence);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        await updateLastLogin(user.uid);
+
+        // فحص رتبة المشرف
+        const adminSnap = await getDoc(doc(db, "admins", email));
+        const isAdmin = adminSnap.exists() && adminSnap.data().active === true;
+        
+        sessionStorage.setItem("isAdmin", isAdmin ? "true" : "false");
+        
+        showMessage(isAdmin ? "✅ أهلاً بك أيها المشرف.." : "✅ تم تسجيل الدخول بنجاح!", "success");
+        setTimeout(() => window.location.href = isAdmin ? "admin.html" : "dashboard.html", 1000);
+
+      } catch (error) {
+        loginBtn.disabled = false;
+        loginBtn.textContent = "دخول للمنصة";
+        let errMsg = "بيانات الدخول غير صحيحة";
+        if(error.code === "auth/too-many-requests") errMsg = "محاولات كثيرة خاطئة، انتظر قليلاً";
+        showMessage("❌ " + errMsg, "error");
+      }
+    });
+
+    // تبديل رؤية كلمة المرور
+    document.getElementById("password-toggle-btn").addEventListener("click", () => {
+      const passInput = document.getElementById("login-password");
+      const open = document.getElementById("eye-open");
+      const closed = document.getElementById("eye-closed");
+      
+      if (passInput.type === "password") {
+        passInput.type = "text";
+        open.style.display = "none";
+        closed.style.display = "block";
+      } else {
+        passInput.type = "password";
+        open.style.display = "block";
+        closed.style.display = "none";
+      }
+    });
+  </script>
+</body>
+</html>
