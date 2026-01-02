@@ -46,8 +46,9 @@
         .input-group input {
             width: 100%; padding: 16px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1);
             background: rgba(0,0,0,0.3); color: white; outline: none; font-family: 'Cairo';
-            text-align: center;
+            text-align: center; transition: 0.3s;
         }
+        .input-group input:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(255,215,0,0.1); }
 
         .btn-prime {
             width: 100%; padding: 16px; border-radius: 15px; border: none;
@@ -55,23 +56,27 @@
             color: #000; font-weight: 900; cursor: pointer; transition: 0.3s;
             font-family: 'Syncopate'; font-size: 0.8rem;
         }
+        .btn-prime:hover { transform: scale(1.02); filter: brightness(1.1); }
 
         /* لوحة التحكم */
         .dashboard-content { max-width: 1300px; margin: 0 auto; padding: 40px 20px; }
         .header-main { display: flex; justify-content: space-between; align-items: center; margin-bottom: 50px; }
         .header-main h1 { font-family: 'Syncopate'; font-weight: 700; color: var(--primary); font-size: 1.5rem; }
 
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; }
+        /* الكروت الشبكية */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
         .stats-card {
             background: var(--card); border: 1px solid var(--border);
-            padding: 30px; border-radius: 30px; position: relative;
+            padding: 25px; border-radius: 25px; position: relative;
             overflow: hidden; transition: 0.4s ease;
         }
+        .stats-card:hover { transform: translateY(-8px); background: rgba(17, 24, 39, 0.9); border-color: var(--primary); }
 
-        .label { font-size: 0.8rem; color: #9CA3AF; letter-spacing: 1px; margin-bottom: 10px; display: block; }
-        .number { font-family: 'Syncopate'; font-size: 2rem; font-weight: 700; display: block; margin-bottom: 5px; }
-        .sub-text { font-size: 0.9rem; color: var(--secondary); font-weight: 700; }
+        .label { font-size: 0.75rem; color: #9CA3AF; letter-spacing: 1px; margin-bottom: 8px; display: block; }
+        .number { font-family: 'Syncopate'; font-size: 1.8rem; font-weight: 700; display: block; margin-bottom: 5px; color: #fff; }
+        .sub-text { font-size: 0.85rem; color: var(--secondary); font-weight: 700; }
 
+        /* الأزرار */
         .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 40px; }
         .action-card {
             background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
@@ -106,7 +111,7 @@
         <div class="stats-card">
             <span class="label">USERS BASE</span>
             <span class="number" id="stat-users">0</span>
-            <span class="sub-text">إجمالي الأعضاء</span>
+            <span class="sub-text">إجمالي المسجلين</span>
         </div>
         <div class="stats-card">
             <span class="label">TOTAL LIQUIDITY</span>
@@ -116,12 +121,17 @@
         <div class="stats-card" style="border-right: 4px solid var(--danger);">
             <span class="label">PENDING REQUESTS</span>
             <span class="number" id="stat-pending">0</span>
-            <span class="sub-text">طلبات تنتظر الموافقة</span>
+            <span class="sub-text">سحوبات قيد الانتظار</span>
+        </div>
+        <div class="stats-card" style="border-bottom: 3px solid var(--secondary);">
+            <span class="label">TOTAL REFERRALS</span>
+            <span class="number" id="stat-ref-count">0</span>
+            <span class="sub-text">عدد المسجلين عبر إحالة</span>
         </div>
         <div class="stats-card">
             <span class="label">REFERRAL REWARDS</span>
             <span class="number" id="stat-ref">0.00</span>
-            <span class="sub-text" id="stat-ref-egp">EGP (إجمالي الإحالات)</span>
+            <span class="sub-text" id="stat-ref-egp">EGP (إجمالي العمولات)</span>
         </div>
     </div>
 
@@ -178,7 +188,7 @@
                 await setDoc(lockRef, { device_id: fingerprint, registered_by: email });
             } else if (snap.data().device_id !== fingerprint) {
                 await signOut(auth);
-                errMsg.textContent = "SECURITY_VIOLATION: هذا الجهاز غير مسجل";
+                errMsg.textContent = "SECURITY_VIOLATION: جهاز غير مصرح له";
                 return;
             }
         } catch (e) {
@@ -186,7 +196,6 @@
         }
     };
 
-    // --- الوظيفة المعدلة لحساب الإحالات والنقاط بدقة ---
     async function updateDashboard() {
         try {
             const usersSnap = await getDocs(collection(db, "users"));
@@ -195,21 +204,30 @@
             
             let totalPoints = 0;
             let totalRefEarnings = 0;
+            let totalRefCount = 0;
 
             usersSnap.forEach(u => {
                 const data = u.data();
+                // جمع النقاط
                 totalPoints += (Number(data.points) || 0);
-                // قراءة الحقل المالي للإحالات مباشرة
+                // جمع أرباح الإحالات المالية
                 totalRefEarnings += (Number(data.totalReferralEarnings) || 0);
+                // حساب عدد الإحالات (أي شخص سجل بكود)
+                if (data.referredBy) {
+                    totalRefCount++;
+                }
             });
 
+            // تحديث الأرقام في الصفحة
             document.getElementById('stat-users').textContent = usersSnap.size;
             document.getElementById('stat-points').textContent = totalPoints.toLocaleString();
             document.getElementById('stat-egp').textContent = (totalPoints * 0.07).toFixed(2) + " EGP";
             document.getElementById('stat-pending').textContent = pendingSnap.size;
             
-            // عرض إجمالي أرباح الإحالات الموزعة في النظام
+            // تحديث الإحالات الجديد
+            document.getElementById('stat-ref-count').textContent = totalRefCount.toLocaleString();
             document.getElementById('stat-ref').textContent = totalRefEarnings.toFixed(2);
+            
         } catch (err) {
             console.error("Dashboard Error:", err);
         }
@@ -230,4 +248,3 @@
 </script>
 </body>
 </html>
-
