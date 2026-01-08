@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>حساب الفاتورة | AM Rewards</title>
+    <title>رادار الكهرباء الذكي | AM Rewards</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
             --neon-yellow: #facc15;
             --neon-purple: #7000ff;
+            --neon-red: #ff4444;
             --bg-deep: #020617;
             --glass: rgba(255, 255, 255, 0.05);
         }
@@ -28,7 +29,8 @@
             backdrop-filter: blur(15px);
         }
 
-        h1 { text-align: center; color: var(--neon-yellow); font-weight: 900; }
+        h1 { text-align: center; color: var(--neon-yellow); font-weight: 900; margin-bottom: 5px; }
+        .sub-title { text-align: center; font-size: 12px; color: #94a3b8; margin-bottom: 25px; }
 
         .input-row { display: flex; gap: 10px; margin-bottom: 20px; }
         .input-group { flex: 1; }
@@ -41,7 +43,6 @@
             font-size: 16px; text-align: center; outline: none;
             box-sizing: border-box;
         }
-        input:focus { border-color: var(--neon-purple); }
 
         .calc-btn {
             width: 100%; padding: 16px; border-radius: 12px;
@@ -49,28 +50,41 @@
             color: #fff; font-weight: 900; cursor: pointer; font-size: 18px;
         }
 
+        /* صندوق النتائج */
         .result-box {
             display: none; margin-top: 25px; padding: 20px;
             border-radius: 15px; background: rgba(255,255,255,0.03);
             border: 1px solid rgba(0, 242, 255, 0.2);
+            animation: slideUp 0.4s ease-out;
         }
 
-        .result-header { text-align: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
-        .kwh-display { font-size: 20px; color: var(--neon-purple); font-weight: 900; }
-        
-        .result-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
-        .total-price { 
-            font-size: 28px; color: var(--neon-yellow); text-align: center; 
-            margin-top: 15px; display: block; font-weight: 900;
-            text-shadow: 0 0 10px rgba(250, 204, 21, 0.4);
+        /* التحذير الذكي */
+        .smart-warning {
+            margin-top: 15px; padding: 12px; border-radius: 10px;
+            font-size: 13px; line-height: 1.5; display: none;
+            border-right: 4px solid;
         }
+        .warn-danger { background: rgba(255, 68, 68, 0.1); color: var(--neon-red); border-color: var(--neon-red); }
+        .warn-safe { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: #10b981; }
+
+        .total-price { 
+            font-size: 32px; color: var(--neon-yellow); text-align: center; 
+            margin: 10px 0; display: block; font-weight: 900;
+        }
+
+        .disclaimer {
+            text-align: center; font-size: 10px; color: #64748b;
+            margin-top: 20px; line-height: 1.4;
+        }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>⚡ رادار الكهرباء</h1>
-        <p style="text-align: center; font-size: 12px; color: #94a3b8; margin-bottom: 25px;">أدخل القراءات الموجودة على عدادك</p>
+        <p class="sub-title">تحليل ذكي لاستهلاكك (إصدار 2026)</p>
 
         <div class="input-row">
             <div class="input-group">
@@ -83,81 +97,68 @@
             </div>
         </div>
 
-        <button class="calc-btn" onclick="calculateBill()">احسب الفاتورة</button>
+        <button class="calc-btn" onclick="calculateSmartBill()">تحليل الاستهلاك 🔍</button>
 
         <div id="resultBox" class="result-box">
-            <div class="result-header">
-                <div>استهلاكك هذا الشهر</div>
-                <div class="kwh-display"><span id="totalKwh">0</span> كيلووات</div>
-            </div>
-            
-            <div class="result-item"><span>تكلفة الكهرباء:</span> <span id="usageVal">0</span> ج.م</div>
-            <div class="result-item"><span>خدمة العملاء:</span> <span id="serviceVal">0</span> ج.م</div>
-            <div class="result-item"><span>الشريحة:</span> <span id="shText" style="color:var(--neon-yellow)">-</span></div>
-            
+            <div style="text-align: center; font-size: 14px;">إجمالي الفاتورة التقديرية</div>
             <span class="total-price" id="totalVal">0.00 ج.م</span>
+            
+            <div id="smartWarning" class="smart-warning"></div>
+            
+            <div style="margin-top: 15px; font-size: 13px; opacity: 0.8;">
+                <div style="display:flex; justify-content:space-between"><span>الاستهلاك:</span> <span id="totalKwh">0</span> كيلووات</div>
+                <div style="display:flex; justify-content:space-between"><span>الشريحة:</span> <span id="shText">-</span></div>
+            </div>
         </div>
+
+        <p class="disclaimer">
+            * هذا الحساب تقديري بناءً على أسعار الشرائح المعلنة. <br>
+            قد تختلف القيمة الفعلية حسب منطقتك، رسوم النظافة، أو نوع العداد.
+        </p>
     </div>
 
     <script>
-        function calculateBill() {
+        function calculateSmartBill() {
             const current = parseFloat(document.getElementById('currentRead').value);
             const previous = parseFloat(document.getElementById('prevRead').value);
 
-            if (isNaN(current) || isNaN(previous)) {
-                alert("يرجى إدخال القراءات بشكل صحيح");
+            if (isNaN(current) || isNaN(previous) || current < previous) {
+                alert("يرجى التأكد من إدخال القراءات بشكل صحيح");
                 return;
             }
 
-            if (current < previous) {
-                alert("خطأ: القراءة الحالية يجب أن تكون أكبر من السابقة");
-                return;
-            }
-
-            const kwh = current - previous; // هنا يتم حساب الواط تلقائياً
+            const kwh = current - previous;
             let cost = 0;
             let serviceFee = 0;
             let sh = "";
 
-            // تطبيق منطق الشرائح المصري 2025
-            if (kwh <= 50) {
-                cost = kwh * 0.68;
-                serviceFee = 1;
-                sh = "الأولى";
-            } else if (kwh <= 100) {
-                cost = (50 * 0.68) + ((kwh - 50) * 0.78);
-                serviceFee = 2;
-                sh = "الثانية";
-            } else if (kwh <= 200) {
-                cost = kwh * 0.95; // دخول الشريحة الثالثة يلغي ما قبلها
-                serviceFee = 6;
-                sh = "الثالثة";
-            } else if (kwh <= 350) {
-                cost = (200 * 0.95) + ((kwh - 200) * 1.55);
-                serviceFee = 11;
-                sh = "الرابعة";
-            } else if (kwh <= 650) {
-                cost = (200 * 0.95) + (150 * 1.55) + ((kwh - 350) * 1.65);
-                serviceFee = 15;
-                sh = "الخامسة";
-            } else if (kwh <= 1000) {
-                cost = kwh * 2.10;
-                serviceFee = 25;
-                sh = "السادسة";
-            } else {
-                cost = kwh * 2.23;
-                serviceFee = 40;
-                sh = "السابعة";
-            }
+            // حساب الفاتورة (المنطق المصري المطور)
+            if (kwh <= 50) { cost = kwh * 0.68; serviceFee = 1; sh = "الأولى"; }
+            else if (kwh <= 100) { cost = (50 * 0.68) + ((kwh - 50) * 0.78); serviceFee = 2; sh = "الثانية"; }
+            else if (kwh <= 200) { cost = kwh * 0.95; serviceFee = 6; sh = "الثالثة"; }
+            else if (kwh <= 350) { cost = (200 * 0.95) + ((kwh - 200) * 1.55); serviceFee = 11; sh = "الرابعة"; }
+            else if (kwh <= 650) { cost = (200 * 0.95) + (150 * 1.55) + ((kwh - 350) * 1.65); serviceFee = 15; sh = "الخامسة"; }
+            else { cost = kwh * 2.10; serviceFee = 40; sh = "السادسة/السابعة"; }
 
             const total = cost + serviceFee;
 
+            // 1. عرض النتائج الأساسية
             document.getElementById('resultBox').style.display = 'block';
-            document.getElementById('totalKwh').innerText = kwh.toFixed(0);
-            document.getElementById('usageVal').innerText = cost.toFixed(2);
-            document.getElementById('serviceVal').innerText = serviceFee;
+            document.getElementById('totalKwh').innerText = kwh;
             document.getElementById('shText').innerText = sh;
             document.getElementById('totalVal').innerText = total.toFixed(2) + " ج.م";
+
+            // 2. محرك التحذير الذكي
+            const warnBox = document.getElementById('smartWarning');
+            warnBox.style.display = 'block';
+            
+            if (kwh > 200) {
+                warnBox.className = "smart-warning warn-danger";
+                warnBox.innerHTML = "⚠️ <b>تحذير:</b> استهلاكك مرتفع (دخلت الشريحة الثالثة فأعلى). حاول تقليل استخدام المكيف والسخان لخفض التكلفة.";
+            } else {
+                warnBox.className = "smart-warning warn-safe";
+                warnBox.innerHTML = "✅ <b>ممتاز:</b> استهلاكك متزن. أنت لا تزال في الشرائح الموفرة، استمر في ترشيد الاستهلاك.";
+            }
         }
     </script>
 </body>
