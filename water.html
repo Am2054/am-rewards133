@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>رادار المياه الذكي | AM Rewards</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00f2ff;
+            --neon-purple: #7000ff;
+            --neon-red: #ff4444;
+            --bg-deep: #020617;
+            --glass: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: var(--bg-deep);
+            color: #fff;
+            margin: 0; padding: 20px;
+        }
+
+        .container {
+            max-width: 500px; margin: 0 auto;
+            background: var(--glass);
+            padding: 25px; border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(15px);
+        }
+
+        h1 { text-align: center; color: var(--neon-blue); font-weight: 900; margin-bottom: 5px; text-shadow: 0 0 10px var(--neon-blue); }
+        .sub-title { text-align: center; font-size: 12px; color: #94a3b8; margin-bottom: 25px; }
+
+        .input-row { display: flex; gap: 10px; margin-bottom: 20px; }
+        .input-group { flex: 1; }
+        label { display: block; margin-bottom: 8px; color: #94a3b8; font-size: 12px; }
+        
+        input {
+            width: 100%; padding: 12px; border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.3); color: #fff;
+            font-size: 16px; text-align: center; outline: none; box-sizing: border-box;
+        }
+
+        .calc-btn {
+            width: 100%; padding: 16px; border-radius: 12px;
+            border: none; background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            color: #fff; font-weight: 900; cursor: pointer; font-size: 18px;
+            box-shadow: 0 4px 15px rgba(0, 242, 255, 0.2);
+        }
+
+        .result-box {
+            display: none; margin-top: 25px; padding: 20px;
+            border-radius: 15px; background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            animation: slideIn 0.4s ease-out;
+        }
+
+        .total-price { 
+            font-size: 32px; color: var(--neon-blue); text-align: center; 
+            margin: 10px 0; display: block; font-weight: 900;
+        }
+
+        .details-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+        .sh-label { font-size: 11px; color: #94a3b8; display: block; text-align: left; }
+
+        .smart-alert {
+            margin-top: 15px; padding: 12px; border-radius: 10px;
+            font-size: 12px; line-height: 1.5; border-right: 4px solid;
+            display: none;
+        }
+        .alert-danger { background: rgba(255, 68, 68, 0.1); color: var(--neon-red); border-color: var(--neon-red); }
+        .alert-safe { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: #10b981; }
+
+        /* الربط بالخدمات */
+        .cross-link {
+            margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+        .link-btn {
+            display: inline-block; padding: 8px 15px; border-radius: 20px;
+            background: rgba(255,255,255,0.05); color: #94a3b8;
+            font-size: 12px; text-decoration: none; border: 1px solid rgba(255,255,255,0.1);
+            transition: 0.3s;
+        }
+        .link-btn:hover { border-color: #facc15; color: #facc15; }
+
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>💧 رادار المياه</h1>
+        <p class="sub-title">تحليل ذكي لاستهلاكك المائي</p>
+
+        <div class="input-row">
+            <div class="input-group">
+                <label>القراءة الحالية</label>
+                <input type="number" id="currentRead" placeholder="0000" inputmode="numeric">
+            </div>
+            <div class="input-group">
+                <label>القراءة السابقة</label>
+                <input type="number" id="prevRead" placeholder="0000" inputmode="numeric">
+            </div>
+        </div>
+
+        <button class="calc-btn" onclick="calculateWaterBill()">تحليل الفاتورة 🔍</button>
+
+        <div id="resultBox" class="result-box">
+            <div style="text-align: center; font-size: 14px;">الإجمالي التقديري</div>
+            <span class="total-price" id="totalVal">0.00 ج.م</span>
+            
+            <div class="details-item">
+                <span>الشريحة الحالية:</span>
+                <div style="text-align: left;">
+                    <span id="shText" style="color:var(--neon-blue); font-weight:bold;">-</span>
+                    <span id="shRange" class="sh-label"></span>
+                </div>
+            </div>
+
+            <div class="details-item"><span>الاستهلاك الفعلي:</span> <span id="totalM3">0</span> م³</div>
+            <hr style="opacity: 0.1;">
+            
+            <div id="smartAlert" class="smart-alert"></div>
+        </div>
+
+        <div class="cross-link">
+            <span style="font-size: 11px; color: #64748b; display: block; margin-bottom: 10px;">انتقل إلى خدمة أخرى:</span>
+            <a href="electricity.html" class="link-btn">🔌 رادار الكهرباء</a>
+        </div>
+
+        <p style="text-align: center; font-size: 10px; color: #64748b; margin-top: 20px;">
+            * الحساب تقديري وقد يختلف حسب المنطقة ونوع النشاط.
+        </p>
+    </div>
+
+    <script>
+        function calculateWaterBill() {
+            const current = parseFloat(document.getElementById('currentRead').value);
+            const previous = parseFloat(document.getElementById('prevRead').value);
+
+            if (isNaN(current) || isNaN(previous) || current < previous) {
+                alert("يرجى إدخال القراءات بشكل صحيح");
+                return;
+            }
+
+            const m3 = current - previous;
+            let waterPrice = 0;
+            let serviceFee = 0;
+            let shName = "";
+            let shRange = "";
+
+            // محرك الشرائح المطور
+            if (m3 <= 10) { 
+                waterPrice = m3 * 1.25; serviceFee = 5; 
+                shName = "الأولى"; shRange = "(من 0 إلى 10 م³)";
+            } else if (m3 <= 20) { 
+                waterPrice = (10 * 1.25) + ((m3 - 10) * 2.50); serviceFee = 10; 
+                shName = "الثانية"; shRange = "(من 11 إلى 20 م³)";
+            } else if (m3 <= 30) { 
+                waterPrice = (10 * 1.25) + (10 * 2.50) + ((m3 - 20) * 3.50); serviceFee = 20; 
+                shName = "الثالثة"; shRange = "(من 21 إلى 30 م³)";
+            } else { 
+                waterPrice = m3 * 5.00; serviceFee = 40; 
+                shName = "الرابعة فأعلى"; shRange = "(أكثر من 30 م³)";
+            }
+
+            const sewage = waterPrice * 0.75;
+            const total = waterPrice + sewage + serviceFee;
+
+            // عرض النتائج
+            document.getElementById('resultBox').style.display = 'block';
+            document.getElementById('totalVal').innerText = total.toFixed(2) + " ج.م";
+            document.getElementById('totalM3').innerText = m3;
+            document.getElementById('shText').innerText = shName;
+            document.getElementById('shRange').innerText = shRange;
+
+            // نظام التحذير الذكي
+            const alertBox = document.getElementById('smartAlert');
+            alertBox.style.display = 'block';
+            
+            if (m3 > 25) {
+                alertBox.className = "smart-alert alert-danger";
+                alertBox.innerHTML = "⚠️ <b>تحذير:</b> استهلاكك أعلى من المتوسط السكني للأسرة. راجع التوصيلات بحثاً عن أي تسريب خفي.";
+            } else {
+                alertBox.className = "smart-alert alert-safe";
+                alertBox.innerHTML = "✅ <b>استهلاك رشيد:</b> أنت ضمن النطاق الطبيعي للاستهلاك المنزلي. حافظ على هذا المستوى.";
+            }
+        }
+    </script>
+</body>
+</html>
