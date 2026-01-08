@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>رادار الكهرباء | AM Rewards</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-yellow: #facc15;
+            --neon-purple: #7000ff;
+            --bg-deep: #020617;
+            --glass: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: var(--bg-deep);
+            color: #fff;
+            margin: 0; padding: 20px;
+            background-image: radial-gradient(circle at top right, rgba(112,0,255,0.1), transparent);
+        }
+
+        .container {
+            max-width: 500px; margin: 0 auto;
+            background: var(--glass);
+            padding: 25px; border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(15px);
+        }
+
+        h1 { text-align: center; color: var(--neon-yellow); font-weight: 900; margin-bottom: 30px; }
+
+        .input-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 10px; color: #94a3b8; font-size: 14px; }
+        
+        input {
+            width: 100%; padding: 15px; border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.3); color: #fff;
+            font-size: 18px; text-align: center; outline: none;
+            box-sizing: border-box;
+        }
+        input:focus { border-color: var(--neon-yellow); box-shadow: 0 0 10px rgba(250, 204, 21, 0.2); }
+
+        .calc-btn {
+            width: 100%; padding: 16px; border-radius: 12px;
+            border: none; background: linear-gradient(90deg, var(--neon-purple), #4f46e5);
+            color: #fff; font-weight: 900; cursor: pointer; font-size: 18px;
+            transition: 0.3s;
+        }
+        .calc-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(112, 0, 255, 0.4); }
+
+        .result-box {
+            display: none; margin-top: 25px; padding: 20px;
+            border-radius: 15px; background: rgba(255,255,255,0.03);
+            border: 1px dashed rgba(255,255,255,0.2);
+            animation: fadeIn 0.5s ease;
+        }
+
+        .result-item { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 15px; }
+        .total-price { 
+            font-size: 24px; color: var(--neon-yellow); text-align: center; 
+            margin-top: 15px; display: block; font-weight: 900;
+        }
+
+        .advice-card {
+            margin-top: 20px; padding: 15px; border-radius: 12px;
+            font-size: 13px; line-height: 1.6; display: none;
+        }
+        .sh-1 { background: rgba(34, 197, 94, 0.1); color: #4ade80; border: 1px solid #22c55e; }
+        .sh-high { background: rgba(248, 113, 113, 0.1); color: #f87171; border: 1px solid #ef4444; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>⚡ رادار الكهرباء</h1>
+
+        <div class="input-group">
+            <label>كم استهلاكك هذا الشهر؟ (كيلووات)</label>
+            <input type="number" id="kwhInput" placeholder="0" inputmode="numeric">
+        </div>
+
+        <button class="calc-btn" onclick="calculateBill()">احسب الفاتورة الآن</button>
+
+        <div id="resultBox" class="result-box">
+            <div class="result-item"><span>قيمة الاستهلاك:</span> <span id="usageVal">0</span> ج.م</div>
+            <div class="result-item"><span>خدمة العملاء:</span> <span id="serviceVal">0</span> ج.م</div>
+            <div class="result-item"><span>الشريحة الحالية:</span> <span id="shText" style="color:var(--neon-yellow)">-</span></div>
+            <hr style="opacity: 0.1;">
+            <span class="total-price" id="totalVal">0.00 ج.م</span>
+        </div>
+
+        <div id="adviceCard" class="advice-card"></div>
+        
+        <button onclick="window.history.back()" style="background:none; border:none; color:#94a3b8; width:100%; margin-top:20px; cursor:pointer;">⬅️ عودة</button>
+    </div>
+
+    <script>
+        function calculateBill() {
+            const kwh = parseFloat(document.getElementById('kwhInput').value);
+            if (isNaN(kwh) || kwh < 0) return;
+
+            let cost = 0;
+            let serviceFee = 0;
+            let sh = "";
+            let advice = "";
+
+            // منطق حساب الشرائح (أسعار تقريبية محدثة لعام 2025)
+            if (kwh <= 50) {
+                cost = kwh * 0.68;
+                serviceFee = 1;
+                sh = "الأولى";
+                advice = "✅ أنت في النطاق الآمن. حافظ على استهلاكك أقل من 50 كيلو لتظل في أرخص شريحة.";
+            } else if (kwh <= 100) {
+                cost = (50 * 0.68) + ((kwh - 50) * 0.78);
+                serviceFee = 2;
+                sh = "الثانية";
+                advice = "💡 اقتربت من 100 كيلووات. إذا تخطيتها ستدخل في نظام حسابي أغلى (الشريحة الثالثة).";
+            } else if (kwh <= 200) {
+                cost = kwh * 0.95;
+                serviceFee = 6;
+                sh = "الثالثة";
+                advice = "⚠️ تنبيه: تخطي الـ 100 كيلو جعلك تحاسب بسعر موحد أعلى. حاول تقليل الإضاءة غير الضرورية.";
+            } else if (kwh <= 350) {
+                cost = (200 * 0.95) + ((kwh - 200) * 1.55);
+                serviceFee = 11;
+                sh = "الرابعة";
+                advice = "🔴 استهلاك مرتفع. الشريحة الرابعة تزيد من تكلفة الفاتورة بشكل كبير. افصل الأجهزة في حالة عدم الاستخدام.";
+            } else if (kwh <= 650) {
+                cost = (200 * 0.95) + (150 * 1.55) + ((kwh - 350) * 1.65);
+                serviceFee = 15;
+                sh = "الخامسة";
+                advice = "❗ استهلاك كثيف. أنت الآن في منطقة الخطر المالي. ينصح بتقليل استخدام المكيفات والسخانات.";
+            } else {
+                cost = kwh * 2.10;
+                serviceFee = 40;
+                sh = "السادسة / السابعة";
+                advice = "⛔ استهلاك فائق! أنت تحاسب الآن بأعلى سعر للكيلووات. راجع الأجهزة التي تسحب طاقة عالية فوراً.";
+            }
+
+            const total = cost + serviceFee;
+
+            // عرض النتائج
+            document.getElementById('resultBox').style.display = 'block';
+            document.getElementById('usageVal').innerText = cost.toFixed(2);
+            document.getElementById('serviceVal').innerText = serviceFee;
+            document.getElementById('shText').innerText = sh;
+            document.getElementById('totalVal').innerText = total.toFixed(2) + " ج.م";
+
+            // عرض النصيحة
+            const adviceEl = document.getElementById('adviceCard');
+            adviceEl.style.display = 'block';
+            adviceEl.innerText = advice;
+            adviceEl.className = (kwh <= 100) ? "advice-card sh-1" : "advice-card sh-high";
+        }
+    </script>
+</body>
+</html>
