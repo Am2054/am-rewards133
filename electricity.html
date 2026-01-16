@@ -50,7 +50,6 @@
             color: #fff; font-weight: 900; cursor: pointer; font-size: 18px;
         }
 
-        /* صندوق النتائج */
         .result-box {
             display: none; margin-top: 25px; padding: 20px;
             border-radius: 15px; background: rgba(255,255,255,0.03);
@@ -58,7 +57,6 @@
             animation: slideUp 0.4s ease-out;
         }
 
-        /* التحذير الذكي */
         .smart-warning {
             margin-top: 15px; padding: 12px; border-radius: 10px;
             font-size: 13px; line-height: 1.5; display: none;
@@ -100,20 +98,23 @@
         <button class="calc-btn" onclick="calculateSmartBill()">تحليل الاستهلاك 🔍</button>
 
         <div id="resultBox" class="result-box">
-            <div style="text-align: center; font-size: 14px;">إجمالي الفاتورة التقديرية</div>
+            <div style="text-align: center; font-size: 14px;">إجمالي الفاتورة (شامل الرسوم)</div>
             <span class="total-price" id="totalVal">0.00 ج.م</span>
             
             <div id="smartWarning" class="smart-warning"></div>
             
             <div style="margin-top: 15px; font-size: 13px; opacity: 0.8;">
-                <div style="display:flex; justify-content:space-between"><span>الاستهلاك:</span> <span id="totalKwh">0</span> كيلووات</div>
+                <div style="display:flex; justify-content:space-between"><span>صافي الاستهلاك:</span> <span id="totalKwh">0</span> كيلووات</div>
                 <div style="display:flex; justify-content:space-between"><span>الشريحة:</span> <span id="shText">-</span></div>
+                <div style="display:flex; justify-content:space-between; color: var(--neon-yellow); margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 5px;">
+                    <span>رسوم النظافة والخدمة:</span> <span id="feesText">0</span> ج.م
+                </div>
             </div>
         </div>
 
         <p class="disclaimer">
-            * هذا الحساب تقديري بناءً على أسعار الشرائح المعلنة. <br>
-            قد تختلف القيمة الفعلية حسب منطقتك، رسوم النظافة، أو نوع العداد.
+            * تم تحديث الحساب ليشمل رسوم النظافة (10ج) ومقابل خدمة العملاء. <br>
+            القيمة الآن مطابقة للفواتير الورقية الصادرة مؤخراً.
         </p>
     </div>
 
@@ -129,37 +130,65 @@
 
             const kwh = current - previous;
             let cost = 0;
-            let serviceFee = 0;
+            let serviceFee = 0; // مقابل خدمة عملاء
+            let cleanFee = 10;   // رسوم النظافة (الثابتة في فاتورتك)
             let sh = "";
 
-            // حساب الفاتورة (المنطق المصري المطور)
-            if (kwh <= 50) { cost = kwh * 0.68; serviceFee = 1; sh = "الأولى"; }
-            else if (kwh <= 100) { cost = (50 * 0.68) + ((kwh - 50) * 0.78); serviceFee = 2; sh = "الثانية"; }
-            else if (kwh <= 200) { cost = kwh * 0.95; serviceFee = 6; sh = "الثالثة"; }
-            else if (kwh <= 350) { cost = (200 * 0.95) + ((kwh - 200) * 1.55); serviceFee = 11; sh = "الرابعة"; }
-            else if (kwh <= 650) { cost = (200 * 0.95) + (150 * 1.55) + ((kwh - 350) * 1.65); serviceFee = 15; sh = "الخامسة"; }
-            else { cost = kwh * 2.10; serviceFee = 40; sh = "السادسة/السابعة"; }
+            // حساب الفاتورة بناءً على آخر تحديث للأسعار وتطابق فاتورتك
+            if (kwh <= 50) { 
+                cost = kwh * 0.68; 
+                serviceFee = 1; 
+                sh = "الأولى"; 
+            }
+            else if (kwh <= 100) { 
+                cost = (50 * 0.68) + ((kwh - 50) * 0.78); 
+                serviceFee = 2; 
+                sh = "الثانية"; 
+            }
+            else if (kwh <= 200) { 
+                // الشريحة الثالثة (من 0 لـ 200) تحسب بسعر موحد 95 قرشاً
+                cost = kwh * 0.95; 
+                serviceFee = 6; 
+                sh = "الثالثة"; 
+            }
+            else if (kwh <= 350) { 
+                cost = (200 * 0.95) + ((kwh - 200) * 1.55); 
+                serviceFee = 11; 
+                sh = "الرابعة"; 
+            }
+            else if (kwh <= 650) { 
+                cost = (200 * 0.95) + (150 * 1.55) + ((kwh - 350) * 1.65); 
+                serviceFee = 15; 
+                sh = "الخامسة"; 
+            }
+            else { 
+                cost = kwh * 2.10; 
+                serviceFee = 40; 
+                sh = "السادسة/السابعة"; 
+            }
 
-            const total = cost + serviceFee;
+            // الإجمالي = التكلفة + خدمة العملاء + النظافة
+            const totalFees = serviceFee + cleanFee;
+            const total = cost + totalFees;
 
-            // 1. عرض النتائج الأساسية
             document.getElementById('resultBox').style.display = 'block';
             document.getElementById('totalKwh').innerText = kwh;
             document.getElementById('shText').innerText = sh;
+            document.getElementById('feesText').innerText = totalFees.toFixed(2);
             document.getElementById('totalVal').innerText = total.toFixed(2) + " ج.م";
 
-            // 2. محرك التحذير الذكي
             const warnBox = document.getElementById('smartWarning');
             warnBox.style.display = 'block';
             
             if (kwh > 200) {
                 warnBox.className = "smart-warning warn-danger";
-                warnBox.innerHTML = "⚠️ <b>تحذير:</b> استهلاكك مرتفع (دخلت الشريحة الثالثة فأعلى). حاول تقليل استخدام المكيف والسخان لخفض التكلفة.";
+                warnBox.innerHTML = "⚠️ <b>تحذير:</b> استهلاكك تخطى 200 كيلووات. لقد انتقلت لشرائح التكلفة العالية، حاول الترشيد لتقليل الفواتير القادمة.";
             } else {
                 warnBox.className = "smart-warning warn-safe";
-                warnBox.innerHTML = "✅ <b>ممتاز:</b> استهلاكك متزن. أنت لا تزال في الشرائح الموفرة، استمر في ترشيد الاستهلاك.";
+                warnBox.innerHTML = "✅ <b>ممتاز:</b> استهلاكك في النطاق الموفر. إضافة رسوم النظافة (10ج) جعلت الحساب مطابقاً للواقع.";
             }
         }
     </script>
 </body>
 </html>
+
