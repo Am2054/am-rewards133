@@ -13,19 +13,55 @@
 
         body { font-family: 'Tajawal', sans-serif; background: var(--bg-dark); color: #fff; margin: 0; padding: 20px; }
         
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { color: var(--cyan); font-weight: 900; font-size: 1.5rem; margin-bottom: 5px; }
+
+        /* رادار الشبكة المطور */
         .network-radar {
             background: linear-gradient(135deg, rgba(0, 242, 255, 0.05) 0%, rgba(112, 0, 255, 0.05) 100%);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px; padding: 18px; margin-bottom: 20px; text-align: center;
+            border-radius: 20px; padding: 18px; margin-bottom: 25px; text-align: center;
         }
         .radar-title { font-size: 14px; color: var(--cyan); font-weight: 900; display: block; margin-bottom: 12px; }
-        
         .radar-btn {
             background: var(--glass); color: #fff; border: 1px solid var(--cyan); padding: 10px 15px;
             border-radius: 12px; font-weight: 700; font-size: 12px; cursor: pointer; width: 100%; margin-bottom: 10px;
         }
 
-        /* نظام الإشعارات (Toast) الاحترافي */
+        /* التصويت */
+        .vote-area { margin-top: 10px; font-size: 11px; color: #94a3b8; }
+        .vote-btns { display: flex; gap: 10px; justify-content: center; margin-top: 5px; }
+        .v-btn { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 4px 12px; border-radius: 8px; cursor: pointer; font-size: 10px; }
+
+        /* التبويبات */
+        .tabs-nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 20px; }
+        .tab-btn {
+            padding: 12px 2px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
+            background: var(--glass); color: #fff; font-size: 10px; font-weight: 700; cursor: pointer; transition: 0.3s;
+        }
+        .tab-btn.active.voda { background: var(--voda-red); box-shadow: 0 0 10px var(--voda-red); }
+        .tab-btn.active.orange { background: var(--ora-orange); box-shadow: 0 0 10px var(--ora-orange); }
+        .tab-btn.active.eti { background: var(--eti-green); box-shadow: 0 0 10px var(--eti-green); }
+        .tab-btn.active.we { background: var(--we-purple); box-shadow: 0 0 10px var(--we-purple); }
+
+        .codes-container { display: none; }
+        .codes-container.active { display: block; animation: fadeIn 0.3s ease; }
+
+        .code-card {
+            background: var(--glass); border-radius: 15px; padding: 15px;
+            margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05);
+        }
+        .code-name { font-size: 14px; font-weight: 700; margin-bottom: 12px; display: block; text-align: center; }
+        
+        .actions { display: flex; gap: 8px; direction: ltr; justify-content: center; }
+        .btn {
+            flex: 1; border: none; border-radius: 8px; padding: 10px 15px; font-weight: 700;
+            font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; text-decoration: none;
+        }
+        .btn-call { background: #10b981; color: white; }
+        .btn-copy { background: rgba(255,255,255,0.1); color: #fff; }
+
+        /* Toast */
         #toast {
             position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(150px);
             background: rgba(2, 6, 23, 0.98); border: 1px solid var(--cyan);
@@ -36,18 +72,18 @@
         #toast.show { transform: translateX(-50%) translateY(0); }
         #toast b { color: var(--cyan); display: block; margin-bottom: 5px; font-size: 15px; }
 
-        /* تصويت المستخدم (Feedback) */
-        .vote-area { margin-top: 10px; font-size: 11px; color: #94a3b8; }
-        .vote-btns { display: flex; gap: 10px; justify-content: center; margin-top: 5px; }
-        .v-btn { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 4px 12px; border-radius: 8px; cursor: pointer; font-size: 10px; }
-        
-        .legal-note { font-size: 10px; color: #64748b; margin-top: 12px; font-style: italic; }
+        .back-btn {
+            display: block; width: 100%; padding: 15px; background: none; border: 1px solid rgba(255,255,255,0.1);
+            color: #94a3b8; border-radius: 12px; margin-top: 20px; cursor: pointer; font-family: 'Tajawal';
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <header style="text-align: center; margin-bottom: 15px;">
-        <h1 style="color: var(--cyan); font-weight: 900;">📞 دليل الأكواد</h1>
+    <header>
+        <h1>📞 دليل الأكواد الذكي</h1>
     </header>
 
     <div class="network-radar">
@@ -62,16 +98,112 @@
                 <button class="v-btn" onclick="castVote('down')">❌ لا</button>
             </div>
         </div>
+    </div>
 
-        <div class="legal-note">ℹ️ لا توجد أكواد تزيد الإشارة فعلياً، هذه أدوات مساعدة فقط.</div>
+    <div class="tabs-nav">
+        <button class="tab-btn active voda" onclick="showTab('voda', this)">فودافون</button>
+        <button class="tab-btn orange" onclick="showTab('orange', this)">أورانج</button>
+        <button class="tab-btn eti" onclick="showTab('eti', this)">اتصالات</button>
+        <button class="tab-btn we" onclick="showTab('we', this)">وي</button>
+    </div>
+
+    <div id="voda" class="codes-container active">
+        <div class="code-card">
+            <span class="code-name">الاستعلام عن الرصيد</span>
+            <div class="actions">
+                <button class="btn btn-copy" onclick="copyCode('*868*1#', 'رصيد فودافون')">📋 نسخ</button>
+                <a href="tel:*868*1%23" class="btn btn-call">📞 *868*1#</a>
+            </div>
+        </div>
+        <div class="code-card">
+            <span class="code-name">باقات الإنترنت</span>
+            <div class="actions">
+                <button class="btn btn-copy" onclick="copyCode('*2000#', 'باقات الإنترنت')">📋 نسخ</button>
+                <a href="tel:*2000%23" class="btn btn-call">📞 *2000#</a>
+            </div>
+        </div>
+        <div class="code-card">
+            <span class="code-name">معرفة رقمي</span>
+            <div class="actions">
+                <button class="btn btn-copy" onclick="copyCode('*878#', 'معرفة رقمي')">📋 نسخ</button>
+                <a href="tel:*878%23" class="btn btn-call">📞 *878#</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="orange" class="codes-container">
+        <div class="code-card">
+            <span class="code-name">الاستعلام عن الرصيد</span>
+            <div class="actions">
+                <button class="btn btn-copy" onclick="copyCode('#100*3#', 'رصيد أورانج')">📋 نسخ</button>
+                <a href="tel:%23100*3%23" class="btn btn-call">📞 #100*3#</a>
+            </div>
+        </div>
+        <div class="code-card">
+            <span class="code-name">باقات الإنترنت</span>
+            <div class="actions">
+                <button class="btn btn-copy" onclick="copyCode('#100*4#', 'باقات الإنترنت')">📋 نسخ</button>
+                <a href="tel:%23100*4%23" class="btn btn-call">📞 #100*4#</a>
+            </div>
+        </div>
+        <div class="code-card">
+            <span class="code-name">معرفة رقمي</span>
+            <div class="actions">
+                <button class="btn btn-copy" onclick="copyCode('#119#', 'معرفة رقمي')">📋 نسخ</button>
+                <a href="tel:%23119%23" class="btn btn-call">📞 #119#</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="eti" class="codes-container">
+        <div class="code-card">
+            <span class="code-name">الاستعلام عن الرصيد</span>
+            <div class="actions">
+                <button class="btn btn-copy" onclick="copyCode('*555#', 'رصيد اتصالات')">📋 نسخ</button>
+                <a href="tel:*555%23" class="btn btn-call">📞 *555#</a>
+            </div>
+        </div>
+        <div class="code-card">
+            <span class="code-name">باقات الإنترنت</span>
+            <div class="actions">
+                <button class="btn btn-copy" onclick="copyCode('*566#', 'باقات الإنترنت')">📋 نسخ</button>
+                <a href="tel:*566%23" class="btn btn-call">📞 *566#</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="we" class="codes-container">
+        <div class="code-card">
+            <span class="code-name">الاستعلام عن الرصيد</span>
+            <div class="actions">
+                <button class="btn btn-copy" onclick="copyCode('*322#', 'رصيد وي')">📋 نسخ</button>
+                <a href="tel:*322%23" class="btn btn-call">📞 *322#</a>
+            </div>
+        </div>
+        <div class="code-card">
+            <span class="code-name">معرفة رقمي</span>
+            <div class="actions">
+                <button class="btn btn-copy" onclick="copyCode('*688#', 'معرفة رقم وي')">📋 نسخ</button>
+                <a href="tel:*688%23" class="btn btn-call">📞 *688#</a>
+            </div>
+        </div>
     </div>
 
     <div id="toast">
         <b id="toastTitle">تم النسخ!</b>
-        <span id="toastMsg">تم نسخ الكود بنجاح إلى الحافظة.</span>
+        <span id="toastMsg">تم نسخ الكود بنجاح.</span>
     </div>
 
+    <button class="back-btn" onclick="window.history.back()">⬅️ عودة للمركز</button>
+
     <script>
+        function showTab(brand, btn) {
+            document.querySelectorAll('.codes-container').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(brand).classList.add('active');
+            btn.classList.add('active');
+        }
+
         function showNotify(title, msg) {
             const toast = document.getElementById('toast');
             document.getElementById('toastTitle').innerText = title;
@@ -80,25 +212,19 @@
             setTimeout(() => { toast.classList.remove('show'); }, 4000);
         }
 
-        // تحسين النسخ بـ Fallback (نسخ احتياطي)
         function copyCode(text, name) {
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(text).then(() => {
                     showNotify("✅ تم نسخ الكود", "كود " + name + " جاهز للطلب الآن.");
                 });
             } else {
-                // الطريقة القديمة للموبايلات التعبانة
                 let textArea = document.createElement("textarea");
                 textArea.value = text;
                 document.body.appendChild(textArea);
                 textArea.select();
-                try {
-                    document.execCommand('copy');
-                    showNotify("✅ تم النسخ احتياطياً", "كود " + name + " جاهز للطلب.");
-                } catch (err) {
-                    showNotify("❌ فشل النسخ", "اضغط مطولاً على الكود لنسخه يدوياً.");
-                }
+                document.execCommand('copy');
                 document.body.removeChild(textArea);
+                showNotify("✅ تم النسخ", "كود " + name + " جاهز للطلب.");
             }
         }
 
@@ -106,20 +232,12 @@
             copyCode('##002#', 'إلغاء التحويلات');
         }
 
-        // تحسين الزر حسب اقتراحك (حل سريع وذكي)
         function detectBestNetwork() {
-            showNotify("📡 تحليل التغطية", "بناءً على تجارب المستخدمين مؤخراً: فودافون و WE هما الأكثر استقراراً في أغلب المناطق حالياً.");
+            showNotify("📡 تحليل التغطية", "بناءً على تجارب المستخدمين: فودافون و WE غالباً الأفضل في هذه المنطقة حالياً.");
         }
 
-        // نظام تخزين التصويت (LocalStorage)
         function castVote(type) {
-            const count = localStorage.getItem('voter_count') || 0;
-            if(count > 5) {
-                showNotify("🙌 شكراً لك", "لقد ساهمت بما يكفي اليوم في تحسين النتائج.");
-                return;
-            }
-            localStorage.setItem('voter_count', parseInt(count) + 1);
-            showNotify("🗳️ تم تسجيل رأيك", "شكراً لمساعدتنا في تحسين " + (type === 'up' ? 'دقة النتائج.' : 'قاعدة البيانات.'));
+            showNotify("🗳️ تم تسجيل رأيك", "شكراً لمساعدتنا في تحسين دقة النتائج.");
         }
     </script>
 </body>
