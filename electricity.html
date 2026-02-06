@@ -47,7 +47,6 @@
         }
         input:focus { border-color: var(--neon-yellow); box-shadow: 0 0 10px rgba(250, 204, 21, 0.2); }
 
-        /* Error Box Style */
         #errorMsg { 
             display: none; background: rgba(239, 68, 68, 0.1); color: #ef4444; 
             padding: 10px; border-radius: 10px; border: 1px solid #ef4444; 
@@ -87,7 +86,6 @@
             margin: 5px 0; display: block; font-weight: 900;
         }
 
-        /* Tips Section */
         .tips-btn {
             width: 100%; margin-top: 15px; padding: 12px; background: none;
             border: 1px solid var(--neon-yellow); color: var(--neon-yellow);
@@ -144,7 +142,7 @@
 
             <div style="margin-top: 20px; font-size: 13px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px;">
                 <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>صافي الاستهلاك:</span> <span id="totalKwh" style="color:var(--cyan)">0</span></div>
-                <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>الشريحة:</span> <span id="shText"> - </span></div>
+                <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>الشريحة الحالية:</span> <span id="shText"> - </span></div>
                 <div style="display:flex; justify-content:space-between; color: var(--neon-yellow); padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
                     <span>رسوم الخدمات:</span> <span id="feesText">0</span>
                 </div>
@@ -169,27 +167,32 @@
             errorDiv.style.display = 'none';
 
             const kwh = current - previous;
-            let cost = 0, serviceFee = 0, cleanFee = 10, sh = "", nextStep = "";
+            let cost = 0, serviceFee = 0, cleanFee = 10, sh = "";
             let radarMsg = "";
 
+            // تطبيق شرائح 2026 مع ذكر الشريحة الرابعة (200-350)
             if (kwh <= 50) { 
-                cost = kwh * 0.68; serviceFee = 1; sh = "الأولى"; 
+                cost = kwh * 0.68; serviceFee = 1; sh = "الأولى (0 - 50)"; 
                 radarMsg = "📡 الرادار شايف إن استهلاكك مثالي جداً.. استمر!";
             }
             else if (kwh <= 100) { 
-                cost = (50 * 0.68) + ((kwh - 50) * 0.78); serviceFee = 2; sh = "الثانية"; 
+                cost = (50 * 0.68) + ((kwh - 50) * 0.78); serviceFee = 2; sh = "الثانية (51 - 100)"; 
                 radarMsg = "📡 الرادار يرصد استهلاك منزلي بسيط ومستقر.";
             }
             else if (kwh <= 200) { 
-                cost = kwh * 0.95; serviceFee = 6; sh = "الثالثة"; 
-                radarMsg = "📡 الرادار ملاحظ زيادة طفيفة.. ابدأ بالترشيد لتجنب الشريحة الرابعة.";
+                cost = kwh * 0.95; serviceFee = 6; sh = "الثالثة (0 - 200)"; 
+                radarMsg = "📡 الرادار ملاحظ زيادة طفيفة.. ابدأ بالترشيد.";
+            }
+            else if (kwh <= 350) { 
+                cost = (200 * 0.95) + ((kwh - 200) * 1.55); serviceFee = 11; sh = "الرابعة (201 - 350)"; 
+                radarMsg = "📡 الرادار: استهلاكك متوسط، حاول تقليل الأحمال غير الضرورية.";
             }
             else if (kwh <= 650) { 
-                cost = (200 * 0.95) + (150 * 1.55) + ((kwh - 350) * 1.65); serviceFee = 15; sh = "الخامسة"; 
+                cost = (200 * 0.95) + (150 * 1.55) + ((kwh - 350) * 1.65); serviceFee = 15; sh = "الخامسة (351 - 650)"; 
                 radarMsg = "📡 تحذير: الرادار شايف إن الاستهلاك عالي اليومين دول!";
             }
             else { 
-                cost = kwh * 2.10; serviceFee = 40; sh = "خارج الدعم"; 
+                cost = kwh * 2.10; serviceFee = 40; sh = "السادسة/السابعة (خارج الدعم)"; 
                 radarMsg = "🚨 الرادار في حالة إنذار! أنت الآن في أعلى فئة استهلاك.";
             }
 
