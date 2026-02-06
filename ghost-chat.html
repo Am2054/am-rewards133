@@ -14,7 +14,6 @@
             --system: #94a3b8;
         }
 
-        /* منع مشاكل الطول في المتصفحات المختلفة */
         html, body {
             height: 100%;
             margin: 0;
@@ -36,13 +35,12 @@
             background: rgba(2, 6, 23, 0.95); 
             backdrop-filter: blur(10px); 
             border-bottom: 1px solid rgba(255,255,255,0.1);
-            flex-shrink: 0; /* يمنع الرأس من الانضغاط */
+            flex-shrink: 0; 
             z-index: 10; 
         }
         h2 { margin: 0; color: var(--cyan); text-shadow: 0 0 10px var(--cyan); font-size: 18px; }
         #status { font-size: 10px; color: var(--system); display: block; margin-top: 3px; }
 
-        /* تعديل منطقة الرسائل لتأخذ المساحة المتاحة فقط */
         #chatBox { 
             flex: 1; 
             overflow-y: auto; 
@@ -51,7 +49,7 @@
             flex-direction: column; 
             gap: 12px; 
             background: radial-gradient(circle at center, #0a0a2e 0%, #020617 100%);
-            -webkit-overflow-scrolling: touch; /* سكرول ناعم للايفون */
+            -webkit-overflow-scrolling: touch;
         }
 
         .msg { 
@@ -62,9 +60,17 @@
             animation: ghostSlide 0.3s ease; 
             word-wrap: break-word;
             line-height: 1.4;
+            transition: opacity 0.3s ease;
         }
 
-        .msg-remote { align-self: flex-start; background: rgba(255,255,255,0.05); border: 1px solid rgba(0, 242, 255, 0.2); }
+        /* أنيميشن نبض عند استقبال رسائل الآخرين */
+        .msg-remote { 
+            align-self: flex-start; 
+            background: rgba(255,255,255,0.05); 
+            border: 1px solid rgba(0, 242, 255, 0.2); 
+            animation: ghostPulse 0.5s ease-out;
+        }
+        
         .msg-me { align-self: flex-end; background: var(--purple); box-shadow: 0 4px 15px rgba(112, 0, 255, 0.3); }
         .msg-secret { border: 1px solid var(--danger) !important; box-shadow: 0 0 12px var(--danger) !important; font-style: italic; }
 
@@ -73,15 +79,14 @@
 
         .system-msg { text-align: center; color: var(--cyan); font-size: 11px; padding: 10px; opacity: 0.7; font-style: italic; }
 
-        /* تثبيت منطقة الإدخال وحل مشكلة الاختفاء */
         .input-area { 
             padding: 12px; 
             display: flex; 
             gap: 8px; 
             background: #000; 
             border-top: 1px solid rgba(255,255,255,0.1); 
-            flex-shrink: 0; /* يضمن بقاء الصندوق ثابتاً في الأسفل */
-            padding-bottom: env(safe-area-inset-bottom, 12px); /* دعم حواف الايفون الحديثة */
+            flex-shrink: 0;
+            padding-bottom: env(safe-area-inset-bottom, 12px);
         }
 
         input { 
@@ -93,7 +98,7 @@
             color: #fff; 
             outline: none; 
             font-family: 'Tajawal'; 
-            font-size: 16px; /* يمنع الزووم التلقائي المزعج في الايفون */
+            font-size: 16px; 
         }
         input:focus { border-color: var(--cyan); }
 
@@ -109,10 +114,20 @@
             justify-content: center; 
             box-shadow: 0 0 10px var(--cyan);
             flex-shrink: 0;
+            transition: 0.3s;
+            color: #000;
+            font-weight: bold;
         }
-        .send-btn:disabled { opacity: 0.4; filter: grayscale(1); }
+        .send-btn:disabled { opacity: 0.4; filter: grayscale(1); cursor: not-allowed; }
+        .cooldown-text { font-size: 12px; }
 
         @keyframes ghostSlide { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        @keyframes ghostPulse {
+            0% { border-color: var(--cyan); box-shadow: 0 0 0px var(--cyan); }
+            50% { border-color: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+            100% { border-color: rgba(0, 242, 255, 0.2); box-shadow: 0 0 0px var(--cyan); }
+        }
     </style>
 </head>
 <body>
@@ -132,7 +147,6 @@
 </div>
 
 <script type="module">
-    // --- جميع بيانات البرمجة والـ Firebase تظل كما هي دون أي تغيير ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, push, onChildAdded, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
@@ -161,32 +175,60 @@
 
     document.getElementById('status').innerText = "هويتك: " + myGhostName;
 
+    // إصلاح الـ Report لتكون متاحة عالمياً خارج الموديول
+    window.report = (id) => {
+        if(confirm("هل هذه الهمسة مسيئة؟ سيتم إخفاؤها عنك فوراً.")) {
+            const el = document.getElementById(id);
+            if(el) {
+                el.style.opacity = '0';
+                setTimeout(() => el.style.display = 'none', 300);
+            }
+        }
+    };
+
     async function send() {
         const input = document.getElementById('msgInput');
         const btn = document.getElementById('sendBtn');
         const text = input.value.trim();
+        
         if(!text || isCooling) return;
         if (text.length > 250) { alert("الهمسة طويلة جداً!"); return; }
-        if (/(010|011|012|015)\d+/.test(text)) { alert("ممنوع مشاركة أرقام الهواتف."); return; }
+        if (/(010|011|012|015)\d+/.test(text)) { alert("ممنوع مشاركة أرقام الهواتف حفاظاً على خصوصيتك."); return; }
 
         try {
             isCooling = true;
             btn.disabled = true;
+            
+            // نظام العداد التنازلي البصري (Level Up UX)
+            let timeLeft = 5;
+            const timer = setInterval(() => {
+                btn.innerHTML = `<span class="cooldown-text">${timeLeft}s</span>`;
+                timeLeft--;
+                if(timeLeft < 0) {
+                    clearInterval(timer);
+                    btn.innerHTML = "⚡";
+                    btn.disabled = false;
+                    isCooling = false;
+                }
+            }, 1000);
+
             await push(messagesRef, {
                 sender: myGhostName,
                 text: text,
-                isSecret: text.startsWith("اعتراف") || text.startsWith("سر"),
+                isSecret: text.startsWith("اعتراف") || text.startsWith("سر") || text.includes("🤫"),
                 timestamp: serverTimestamp()
             });
+            
             input.value = "";
             mySentCount++;
             if(mySentCount % 10 === 0) {
-                addSystemMsg("👻 تذكير: حافظ على غموضك ولا تشارك بياناتك الحقيقية.");
+                addSystemMsg("👻 تذكير: الرادار يحميك.. لا تشارك بياناتك الحقيقية مع أحد.");
             }
-            setTimeout(() => { isCooling = false; btn.disabled = false; }, 5000);
         } catch (e) {
-            alert("فشل الاتصال! تأكد من الإنترنت.");
-            isCooling = false; btn.disabled = false;
+            alert("فشل في إيصال الهمسة! تأكد من اتصالك بالسماء (الإنترنت).");
+            isCooling = false; 
+            btn.disabled = false;
+            btn.innerHTML = "⚡";
         }
     }
 
@@ -212,6 +254,7 @@
             <div class="text">${data.text}</div>
         `;
         chatBox.appendChild(div);
+        
         const currentMsgs = chatBox.getElementsByClassName('msg');
         if (currentMsgs.length > 50) { chatBox.removeChild(currentMsgs[0]); }
         chatBox.scrollTop = chatBox.scrollHeight;
@@ -219,12 +262,6 @@
 
     document.getElementById('sendBtn').onclick = send;
     document.getElementById('msgInput').onkeypress = (e) => { if(e.key === 'Enter') send(); };
-    window.report = (id) => {
-        if(confirm("إخفاء هذه الهمسة؟")) {
-            const el = document.getElementById(id);
-            if(el) el.style.display = 'none';
-        }
-    };
 </script>
 </body>
 </html>
