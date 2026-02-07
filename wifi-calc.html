@@ -11,6 +11,8 @@
             --secondary: #7000ff;
             --bg-glass: rgba(15, 23, 42, 0.85);
             --input-bg: rgba(255, 255, 255, 0.05);
+            --danger: #ff4444;
+            --success: #10b981;
         }
 
         body {
@@ -30,10 +32,10 @@
             text-align: center;
         }
 
-        .logo-area { margin-bottom: 30px; }
+        .logo-area { margin-bottom: 25px; }
         .logo-area h1 { font-size: 24px; color: var(--primary); margin: 0; text-shadow: 0 0 15px var(--primary); }
 
-        .input-wrapper { text-align: right; margin-bottom: 20px; }
+        .input-wrapper { text-align: right; margin-bottom: 15px; position: relative; }
         .input-wrapper label { display: block; font-size: 13px; margin-bottom: 8px; color: #94a3b8; padding-right: 5px; }
         
         .input-field {
@@ -51,17 +53,26 @@
 
         .icon { font-size: 18px; color: var(--primary); width: 25px; text-align: center; }
 
-        .actions { display: flex; gap: 10px; margin-top: 30px; }
+        /* تحسينات الملاحظات الذكية */
+        .hint-text { font-size: 10px; color: var(--primary); margin-top: 5px; display: block; opacity: 0.8; }
+        .error-msg { font-size: 10px; color: var(--danger); margin-top: 5px; display: none; }
+
+        .actions { display: flex; flex-direction: column; gap: 10px; margin-top: 25px; }
+        .btns-row { display: flex; gap: 10px; }
 
         .btn {
-            flex: 1; padding: 15px; border-radius: 15px; border: none;
-            font-family: 'Tajawal'; font-weight: 900; cursor: pointer; transition: 0.3s;
+            flex: 1; padding: 14px; border-radius: 15px; border: none;
+            font-family: 'Tajawal'; font-weight: 900; cursor: pointer; transition: 0.3s; font-size: 14px;
         }
+
+        .btn-test { background: rgba(0, 242, 255, 0.1); color: var(--primary); border: 1px dashed var(--primary); }
+        .btn-test:hover { background: rgba(0, 242, 255, 0.2); }
 
         .btn-connect { background: var(--primary); color: #020617; }
         .btn-connect:hover { transform: scale(1.02); box-shadow: 0 0 20px var(--primary); }
+        .btn-connect:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .btn-save { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); }
+        .btn-save { background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1); }
 
     </style>
 </head>
@@ -79,21 +90,23 @@
         <label>نوع مزود الخدمة / الراوتر</label>
         <div class="input-field">
             <span class="icon">🏢</span>
-            <select id="ispType">
+            <select id="ispType" onchange="updateIspHint()">
                 <option value="we">WE (Huawei/ZTE)</option>
                 <option value="vodafone">Vodafone</option>
                 <option value="orange">Orange</option>
                 <option value="etisalat">Etisalat</option>
             </select>
         </div>
+        <small id="ispHint" class="hint-text">غالباً admin / admin أو مكتوب خلف الراوتر</small>
     </div>
 
     <div class="input-wrapper">
         <label>عنوان IP الراوتر</label>
-        <div class="input-field">
+        <div class="input-field" id="ipField">
             <span class="icon">📍</span>
-            <input type="text" id="routerIp" value="192.168.1.1">
+            <input type="text" id="routerIp" value="192.168.1.1" oninput="validateIP()">
         </div>
+        <small id="ipError" class="error-msg">⚠️ عنوان IP غير شائع للراوتر</small>
     </div>
 
     <div class="input-wrapper">
@@ -105,7 +118,7 @@
     </div>
 
     <div class="input-wrapper">
-        <label>الرقم السري (Password)</label>
+        <label>كلمة مرور الراوتر (Password)</label>
         <div class="input-field">
             <span class="icon">🔑</span>
             <input type="password" id="routerPass" placeholder="مكتوب خلف الراوتر">
@@ -113,25 +126,80 @@
     </div>
 
     <div class="actions">
-        <button class="btn btn-save">حفظ المفضل ⭐️</button>
-        <button class="btn btn-connect" onclick="startConnection()">ابدأ الاتصال ⚡</button>
+        <button class="btn btn-test" id="testBtn" onclick="testAccess()">🔍 اختبار الوصول للراوتر</button>
+        
+        <div class="btns-row">
+            <button class="btn btn-save">حفظ المفضل ⭐️</button>
+            <button class="btn btn-connect" id="connectBtn" onclick="startConnection()">ابدأ الاتصال ⚡</button>
+        </div>
     </div>
 
-    <p style="font-size: 10px; margin-top: 20px; color: #94a3b8;">
-        🔒 يتم تشفير بياناتك محلياً ولا يتم مشاركتها أبداً.
+    <p style="font-size: 10px; margin-top: 20px; color: #94a3b8; line-height: 1.5;">
+        🔒 لا يتم حفظ كلمة المرور، وتُستخدم فقط لجلسة التحليل الحالية لضمان أقصى درجات الخصوصية.
     </p>
 </div>
 
 <script>
+    const ispHints = {
+      we: "غالباً admin / admin أو مكتوب خلف الراوتر",
+      vodafone: "اسم الدخول غالباً vodafone",
+      orange: "قد تحتاج الدخول بحساب الدعم",
+      etisalat: "تأكد من تفعيل الدخول المحلي"
+    };
+
+    function updateIspHint() {
+        const isp = document.getElementById('ispType').value;
+        document.getElementById('ispHint').innerText = ispHints[isp];
+    }
+
+    function validateIP() {
+        const ip = document.getElementById('routerIp').value;
+        const errorMsg = document.getElementById('ipError');
+        const ipField = document.getElementById('ipField');
+        
+        // RegExp للتحقق من الـ IP الشائع
+        const isValid = /^(192\.168\.(0|1)\.\d{1,3})$/.test(ip);
+        
+        if (!isValid && ip !== "") {
+            errorMsg.style.display = 'block';
+            ipField.style.borderColor = 'var(--danger)';
+        } else {
+            errorMsg.style.display = 'none';
+            ipField.style.borderColor = 'rgba(255,255,255,0.1)';
+        }
+    }
+
+    function testAccess() {
+        const testBtn = document.getElementById('testBtn');
+        testBtn.innerText = "جاري الفحص... 📡";
+        testBtn.disabled = true;
+
+        // محاكاة Ping وهمي
+        setTimeout(() => {
+            testBtn.innerText = "✅ تم العثور على الراوتر";
+            testBtn.style.color = "var(--success)";
+            testBtn.style.borderColor = "var(--success)";
+            setTimeout(() => {
+                testBtn.innerText = "🔍 اختبار الوصول للراوتر";
+                testBtn.style.color = "var(--primary)";
+                testBtn.style.borderColor = "var(--primary)";
+                testBtn.disabled = false;
+            }, 2000);
+        }, 1500);
+    }
+
     function startConnection() {
-        const btn = document.querySelector('.btn-connect');
+        const btn = document.getElementById('connectBtn');
+        const ip = document.getElementById('routerIp').value;
+
+        // منع الاتصال لو الـ IP غلط تماماً (اختياري)
+        if (ip === "") return alert("برجاء إدخال عنوان IP");
+
         btn.innerText = "جاري التحقق... ⏳";
         btn.disabled = true;
 
-        // محاكاة عملية الاتصال
         setTimeout(() => {
             alert("✅ تم الاتصال بنجاح! جاري سحب بيانات الباقة...");
-            // هنا سينتقل المستخدم للوحة التحكم التي صنعناها سابقاً
             window.location.href = "#dashboard"; 
         }, 2000);
     }
@@ -139,3 +207,4 @@
 
 </body>
 </html>
+
