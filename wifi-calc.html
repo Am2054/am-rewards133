@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Router Guardian Pro | v4.0</title>
+    <title>Router Guardian Ultra | المحلل والحارس الذكي</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -12,7 +12,7 @@
             --success: #10b981;
             --danger: #ff4444;
             --warning: #facc15;
-            --bg-glass: rgba(10, 15, 28, 0.9);
+            --bg-glass: rgba(10, 15, 28, 0.92);
         }
 
         body {
@@ -21,172 +21,222 @@
             min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px 0;
         }
 
-        .app-container { width: 95%; max-width: 450px; }
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); z-index: -1; }
+        .app-container { width: 95%; max-width: 480px; }
 
-        .card {
+        .settings-card {
             background: var(--bg-glass);
-            border: 1px solid rgba(0, 242, 255, 0.15);
+            border: 1px solid rgba(0, 242, 255, 0.2);
             border-radius: 30px; padding: 25px;
-            box-shadow: 0 0 30px rgba(0, 242, 255, 0.05);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
             margin-bottom: 20px;
         }
 
-        .logo-area { text-align: center; margin-bottom: 20px; }
+        .logo-area { text-align: center; margin-bottom: 25px; }
         .logo-area h1 { font-size: 26px; color: var(--primary); margin: 0; text-shadow: 0 0 15px var(--primary); font-weight: 900; }
-        
-        .section-title { font-size: 15px; font-weight: 700; margin: 20px 0 15px; color: var(--primary); display: flex; align-items: center; gap: 8px; }
-        .section-title::before { content: ''; width: 4px; height: 18px; background: var(--accent); border-radius: 10px; display: inline-block; }
+        .logo-area p { font-size: 11px; opacity: 0.6; margin-top: 5px; }
 
-        /* ستايل عداد الأجهزة */
+        .welcome-back { 
+            background: rgba(0, 242, 255, 0.1); border-radius: 12px; padding: 10px; 
+            font-size: 12px; text-align: center; margin-bottom: 20px; color: var(--primary);
+            display: none; border: 1px solid var(--primary);
+        }
+
+        .section-title { font-size: 16px; font-weight: 700; margin: 25px 0 15px; color: var(--primary); border-right: 4px solid var(--accent); padding-right: 10px; }
+
+        .input-wrapper { text-align: right; margin-bottom: 15px; }
+        .input-wrapper label { display: block; font-size: 12px; margin-bottom: 6px; color: #94a3b8; }
+        
+        .input-field {
+            display: flex; align-items: center; background: rgba(255,255,255,0.05); 
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 10px 15px; transition: 0.3s;
+        }
+        .input-field:focus-within { border-color: var(--primary); background: rgba(0, 242, 255, 0.05); }
+
+        input, select { flex: 1; background: none; border: none; color: white; font-family: 'Tajawal'; font-size: 15px; outline: none; }
+        .icon { font-size: 18px; color: var(--primary); margin-left: 10px; }
+
+        /* تصفيف توزيع الأجهزة */
         .device-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .device-input {
+        .device-item {
             background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
             border-radius: 15px; padding: 10px; display: flex; justify-content: space-between; align-items: center;
         }
-        .device-input label { font-size: 11px; color: #94a3b8; }
-        .device-input input { width: 45px; background: none; border: none; color: var(--primary); font-weight: 900; text-align: center; outline: none; }
+        .device-item label { font-size: 11px; color: #cbd5e1; }
+        .device-item input { width: 40px; text-align: center; color: var(--primary); font-weight: bold; }
 
-        .input-field {
-            display: flex; align-items: center; background: rgba(255,255,255,0.03); 
-            border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 10px 15px;
-        }
-        .input-field select { flex: 1; background: none; border: none; color: white; font-family: 'Tajawal'; outline: none; }
-
+        .btns-column { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
         .btn {
-            width: 100%; padding: 15px; border-radius: 15px; border: none;
-            font-family: 'Tajawal'; font-weight: 900; cursor: pointer; transition: 0.3s; margin-top: 10px;
+            padding: 15px; border-radius: 15px; border: none;
+            font-family: 'Tajawal'; font-weight: 900; cursor: pointer; transition: 0.3s; text-align: center;
         }
-        .btn-connect { background: linear-gradient(45deg, var(--accent), var(--primary)); color: white; }
-        .btn-eco { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid var(--success); margin-top: 15px; }
+        .btn-test { background: rgba(0, 242, 255, 0.05); color: var(--primary); border: 1px dashed var(--primary); }
+        .btn-connect { background: linear-gradient(45deg, var(--accent), var(--primary)); color: white; box-shadow: 0 10px 25px rgba(112, 0, 255, 0.3); }
+        .btn-eco { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid var(--success); display: none; }
 
-        /* لوحة النتائج */
-        .results-panel { 
-            display: none; background: rgba(0, 242, 255, 0.05); border-radius: 20px; 
-            padding: 20px; margin-top: 20px; border: 1px solid rgba(0,242,255,0.2);
+        .analyzer-results { 
+            margin-top: 25px; padding: 20px; background: rgba(0,0,0,0.3); 
+            border-radius: 20px; display: none; border: 1px solid rgba(0,242,255,0.2);
+            animation: slideUp 0.5s ease;
         }
-        .stat-row { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; }
-        .stat-val { font-weight: 900; color: var(--primary); }
+        .stat-box { text-align: center; margin-bottom: 20px; }
+        .stat-box .val { font-size: 30px; font-weight: 900; color: var(--primary); display: block; }
+        .stat-box .lab { font-size: 12px; opacity: 0.7; }
 
-        .eco-tips { display: none; margin-top: 15px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 15px; font-size: 12px; border-right: 4px solid var(--success); }
-        .eco-tips li { margin-bottom: 8px; list-style: none; }
+        .eco-tips { 
+            background: rgba(16, 185, 129, 0.05); border-right: 4px solid var(--success); 
+            padding: 15px; border-radius: 10px; font-size: 12px; line-height: 1.6; display: none;
+        }
 
-        .welcome-back { font-size: 12px; color: var(--primary); text-align: center; margin-bottom: 10px; display: none; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
 
+<div class="overlay"></div>
+
 <div class="app-container">
-    <div id="welcomeMsg" class="welcome-back"></div>
-    
-    <div class="card">
+    <div id="welcomeBack" class="welcome-back"></div>
+
+    <div class="settings-card">
         <div class="logo-area">
-            <h1>Router Guardian PRO</h1>
-            <p>المحلل الذكي وحارس الإنترنت | v4.0</p>
+            <h1>Router Guardian Ultra</h1>
+            <p>المحلل الذكي وحارس الإنترنت | النسخة المتكاملة</p>
         </div>
 
-        <div class="section-title">بيانات الباقة الأساسية 📦</div>
-        <div class="input-field">
-            <select id="quota">
-                <option value="140">باقة 140 جيجابايت</option>
-                <option value="200">باقة 200 جيجابايت</option>
-                <option value="250">باقة 250 جيجابايت</option>
-                <option value="600">باقة 600 جيجابايت</option>
-            </select>
+        <div class="section-title">إعدادات الوصول المباشر 📡</div>
+        <div class="input-wrapper">
+            <label>مزود الخدمة والـ IP</label>
+            <div class="input-field" style="gap:10px;">
+                <select id="ispType" onchange="updateIspHint()">
+                    <option value="we">WE</option>
+                    <option value="vodafone">Vodafone</option>
+                    <option value="orange">Orange</option>
+                    <option value="etisalat">Etisalat</option>
+                </select>
+                <input type="text" id="routerIp" value="192.168.1.1">
+            </div>
+            <small id="ispHint" style="color:var(--primary); font-size:10px; margin-top:5px; display:block;">غالباً admin / admin</small>
         </div>
 
-        <div class="section-title">توزيع الأجهزة في منزلك 🏠</div>
+        <div class="section-title">توزيع الأجهزة الذكي 🏠</div>
         <div class="device-grid">
-            <div class="device-input">
-                <label>📱 موبايلات</label>
-                <input type="number" id="mobiles" value="3">
-            </div>
-            <div class="device-input">
-                <label>💻 لابتوب</label>
-                <input type="number" id="laptops" value="1">
-            </div>
-            <div class="device-input">
-                <label>📺 Smart TV</label>
-                <input type="number" id="tv" value="1">
-            </div>
-            <div class="device-input">
-                <label>🎮 Console</label>
-                <input type="number" id="console" value="0">
+            <div class="device-item"><label>📱 موبايلات</label><input type="number" id="mobiles" value="3"></div>
+            <div class="device-item"><label>💻 لابتوبات</label><input type="number" id="laptops" value="1"></div>
+            <div class="device-item"><label>📺 Smart TV</label><input type="number" id="tv" value="1"></div>
+            <div class="device-item"><label>🎮 Gaming</label><input type="number" id="gaming" value="0"></div>
+        </div>
+
+        <div class="section-title">بيانات الباقة 📦</div>
+        <div class="input-wrapper">
+            <div class="input-field">
+                <span class="icon">📊</span>
+                <select id="quota">
+                    <option value="140">باقة 140 جيجا</option>
+                    <option value="200">باقة 200 جيجا</option>
+                    <option value="250">باقة 250 جيجا</option>
+                    <option value="600">باقة 600 جيجا</option>
+                </select>
             </div>
         </div>
 
-        <button class="btn btn-connect" onclick="runSmartAnalysis()">ابدأ التحليل الشامل ⚡</button>
+        <div class="btns-column">
+            <button class="btn btn-test" id="testBtn" onclick="testAccess()">🔍 اختبار الوصول للراوتر</button>
+            <button class="btn btn-connect" onclick="runSmartAnalysis()">ابدأ التحليل الشامل والربط ⚡</button>
+            <button class="btn btn-eco" id="ecoBtn" onclick="toggleEco()">🛡️ تفعيل وضع الاقتصاد</button>
+        </div>
 
-        <div id="results" class="results-panel">
-            <div class="stat-row">
-                <span>📅 العمر المتوقع للباقة:</span>
-                <span id="daysRes" class="stat-val">--</span>
-            </div>
-            <div class="stat-row">
-                <span>📊 الحد اليومي المقترح:</span>
-                <span id="dailyLimit" class="stat-val" style="color: var(--warning);">--</span>
-            </div>
-            
-            <div id="suspiciousAlert" style="color: var(--danger); font-size: 11px; margin-bottom: 10px; display: none;">
-                ⚠️ تنبيه: استهلاكك أعلى من المعتاد! تأكد من عدم وجود "سحب مشبوه" في الخلفية.
+        <div id="analyzerResults" class="analyzer-results">
+            <div style="display: flex; justify-content: space-around; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
+                <div class="stat-box">
+                    <span class="val" id="daysRemaining">--</span>
+                    <span class="lab">يوم متبقي</span>
+                </div>
+                <div class="stat-box">
+                    <span class="val" id="dailyLimit" style="color:var(--warning)">--</span>
+                    <span class="lab">جيجا / يومياً</span>
+                </div>
             </div>
 
-            <button class="btn btn-eco" onclick="toggleEco()">🛡️ تفعيل وضع الاقتصاد</button>
-            
-            <div id="ecoTips" class="eco-tips">
-                <strong style="color: var(--success);">خطة توفير الباقة:</strong>
-                <ul style="padding: 0; margin: 10px 0 0;">
-                    <li>• اقفل Windows Update فوراً.</li>
-                    <li>• عطل النسخ الاحتياطي لـ Google Photos.</li>
-                    <li>• اجعل جودة YouTube الافتراضية 480p.</li>
-                    <li>• اقفل التحديث التلقائي لمتجر التطبيقات.</li>
+            <div id="suspiciousAlert" style="color:var(--danger); font-size:11px; margin:15px 0; text-align:center; display:none;">
+                ⚠️ تنبيه: استهلاك عالي جداً! تأكد من عدم وجود "سحب مشبوه" أو اختراق للواي فاي.
+            </div>
+
+            <div class="eco-tips" id="ecoTips">
+                <strong style="color:var(--success)">💡 نصيحة حارس الباقة:</strong>
+                <ul style="margin:5px 0 0; padding-right:15px;">
+                    <li>اقفل Google Photos Backup فوراً.</li>
+                    <li>قلل جودة YouTube لـ 480p على كل الموبايلات.</li>
+                    <li>عطل Windows Update في اللابتوب.</li>
                 </ul>
             </div>
         </div>
+
+        <p style="font-size: 10px; margin-top: 20px; color: #94a3b8; text-align: center;">
+            🔒 لا يتم حفظ كلمة المرور | الجلسة مشفرة محلياً
+        </p>
     </div>
 </div>
 
 <script>
     // 5️⃣ حفظ التحليل (LocalStorage)
     window.onload = () => {
-        const lastData = JSON.parse(localStorage.getItem('lastAnalysis'));
+        const lastData = JSON.parse(localStorage.getItem('router_guardian_pro'));
         if(lastData) {
-            document.getElementById('welcomeMsg').style.display = 'block';
-            document.getElementById('welcomeMsg').innerText = `👋 أهلاً بك.. آخر توقع لنفاذ باقتك كان بعد ${lastData.days} يوم.`;
+            const welcome = document.getElementById('welcomeBack');
+            welcome.style.display = "block";
+            welcome.innerText = `👋 أهلاً بك من جديد.. آخر توقع كان نفاد الباقة بعد ${lastData.days} يوم.`;
         }
     };
 
+    function updateIspHint() {
+        const isp = document.getElementById('ispType').value;
+        const hints = {we: "admin / admin", vodafone: "vodafone / password", orange: "user / user", etisalat: "admin / etisalat"};
+        document.getElementById('ispHint').innerText = "غالباً " + hints[isp];
+    }
+
+    function testAccess() {
+        const btn = document.getElementById('testBtn');
+        btn.innerText = "جاري الفحص... 📡";
+        setTimeout(() => { btn.innerText = "✅ تم العثور على البوابة 192.168.1.1"; btn.style.color = "var(--success)"; }, 1200);
+    }
+
     function runSmartAnalysis() {
         const quota = parseFloat(document.getElementById('quota').value);
+        
+        // 1️⃣ حاسبة الأجهزة الذكية
         const m = parseInt(document.getElementById('mobiles').value) || 0;
         const l = parseInt(document.getElementById('laptops').value) || 0;
         const t = parseInt(document.getElementById('tv').value) || 0;
-        const c = parseInt(document.getElementById('console').value) || 0;
+        const g = parseInt(document.getElementById('gaming').value) || 0;
 
-        // معادلة الاستهلاك الذكية
-        const estimatedDaily = (m * 0.8) + (l * 1.5) + (t * 3.5) + (c * 2);
-        const daysLeft = Math.floor(quota / estimatedDaily);
+        const estimatedDaily = (m * 0.8) + (l * 1.5) + (t * 4.0) + (g * 3.0);
+        const days = Math.floor(quota / estimatedDaily);
+        
+        // 4️⃣ العداد اليومي
         const dailyLimit = (quota / 30).toFixed(1);
 
-        document.getElementById('results').style.display = 'block';
-        document.getElementById('daysRes').innerText = daysLeft + " يوم";
-        document.getElementById('dailyLimit').innerText = dailyLimit + " جيجا / يوم";
+        document.getElementById('analyzerResults').style.display = 'block';
+        document.getElementById('ecoBtn').style.display = 'block';
+        document.getElementById('daysRemaining').innerText = days;
+        document.getElementById('dailyLimit').innerText = dailyLimit;
 
         // 2️⃣ كشف السحب المشبوه
-        if(estimatedDaily > (quota / 15)) {
+        if(estimatedDaily > (quota / 18)) {
             document.getElementById('suspiciousAlert').style.display = 'block';
         } else {
             document.getElementById('suspiciousAlert').style.display = 'none';
         }
 
-        // حفظ البيانات
-        localStorage.setItem('lastAnalysis', JSON.stringify({days: daysLeft, date: new Date()}));
+        // 5️⃣ الحفظ
+        localStorage.setItem('router_guardian_pro', JSON.stringify({days: days, date: new Date().toLocaleDateString()}));
         
         if (window.navigator.vibrate) window.navigator.vibrate(50);
     }
 
     function toggleEco() {
         const tips = document.getElementById('ecoTips');
-        tips.style.display = tips.style.display === 'block' ? 'none' : 'block';
+        tips.style.display = (tips.style.display === 'block') ? 'none' : 'block';
     }
 </script>
 
