@@ -60,6 +60,11 @@
             box-shadow: 0 10px 20px rgba(0, 242, 255, 0.2); transition: 0.3s;
         }
 
+        .reset-link {
+            display: block; text-align: center; margin-top: 10px;
+            color: #64748b; font-size: 11px; text-decoration: underline; cursor: pointer;
+        }
+
         .result-box {
             display: none; margin-top: 25px; padding: 20px;
             border-radius: 18px; background: rgba(255,255,255,0.03);
@@ -140,7 +145,13 @@
             </div>
         </div>
 
+        <div class="input-group" style="margin-bottom: 20px;">
+            <label>عدد الوحدات (الشقق) المشتركة في العداد</label>
+            <input type="number" id="unitsCount" value="1" min="1" inputmode="numeric">
+        </div>
+
         <button class="calc-btn" onclick="calculateWaterBill()">تحليل الفاتورة 🔍</button>
+        <span class="reset-link" onclick="resetApp()">🔄 مسح البيانات والبدء من جديد</span>
 
         <div id="resultBox" class="result-box">
             <div class="radar-status" id="radarStatus">📡 الرادار يرصد تدفق المياه...</div>
@@ -151,14 +162,15 @@
             <div id="familyFact" class="family-fact"></div>
 
             <div class="details-item" style="margin-top: 15px;">
-                <span>الشريحة:</span>
+                <span>الشريحة المحسوبة:</span>
                 <div style="text-align: left;">
                     <span id="shText" style="color:var(--neon-blue); font-weight:bold;">-</span>
                     <span id="shRange" class="sh-label"></span>
                 </div>
             </div>
 
-            <div class="details-item"><span>كمية الاستهلاك:</span> <span id="totalM3" style="font-weight:bold;">0</span> م³</div>
+            <div class="details-item"><span>إجمالي الاستهلاك:</span> <span id="totalM3" style="font-weight:bold;">0</span> م³</div>
+            <div class="details-item"><span>نصيب الوحدة الواحدة:</span> <span id="unitM3" style="color:var(--neon-blue)">0</span> م³</div>
             
             <div id="smartAlert" class="smart-alert"></div>
 
@@ -173,12 +185,37 @@
         <div class="cross-link">
             <a href="electricity.html" class="link-btn">🔌 رادار الكهرباء</a>
         </div>
+        
+        <p style="text-align: center; font-size: 9px; color: #475569; margin-top: 15px;">
+            * الرسوم والشرائح تقديرية لعام 2026 وقد تختلف حسب المحافظة.
+        </p>
     </div>
 
     <script>
+        // حفظ واسترجاع البيانات تلقائياً
+        window.onload = function() {
+            const savedWater = localStorage.getItem('lastWaterRead');
+            if (savedWater) {
+                document.getElementById('prevRead').value = savedWater;
+            }
+        };
+
+        function animateValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const currentVal = (progress * (end - start) + start).toFixed(2);
+                obj.innerHTML = currentVal + " ج.م";
+                if (progress < 1) window.requestAnimationFrame(step);
+            };
+            window.requestAnimationFrame(step);
+        }
+
         function calculateWaterBill() {
             const current = parseFloat(document.getElementById('currentRead').value);
             const previous = parseFloat(document.getElementById('prevRead').value);
+            const units = parseInt(document.getElementById('unitsCount').value) || 1;
             const errorDiv = document.getElementById('errorMsg');
             const resultBox = document.getElementById('resultBox');
 
@@ -189,56 +226,69 @@
             }
             errorDiv.style.display = 'none';
 
-            const m3 = current - previous;
-            let waterPrice = 0, serviceFee = 0, shName = "", shRange = "", radarMsg = "";
+            const totalM3 = current - previous;
+            const m3PerUnit = totalM3 / units; // حساب الشريحة بناءً على استهلاك الوحدة الواحدة
+            
+            let unitWaterPrice = 0, serviceFeePerUnit = 0, shName = "", shRange = "", radarMsg = "";
 
-            // تطبيق الشرائح التراكمي (المعادلة الدقيقة)
-            if (m3 <= 10) { 
-                waterPrice = m3 * 1.25; serviceFee = 5; 
+            // تطبيق الشرائح التراكمية بناءً على نصيب الوحدة (النظام الرسمي)
+            if (m3PerUnit <= 10) { 
+                unitWaterPrice = m3PerUnit * 1.25; serviceFeePerUnit = 5; 
                 shName = "الأولى"; shRange = "(0 - 10 م³)";
-                radarMsg = "📡 الرادار يرصد استهلاكاً منخفضاً.. أحسنت!";
-            } else if (m3 <= 20) { 
-                waterPrice = (10 * 1.25) + ((m3 - 10) * 2.50); serviceFee = 10; 
+                radarMsg = "📡 الرادار يرصد استهلاكاً مثالياً.. استمر!";
+            } else if (m3PerUnit <= 20) { 
+                unitWaterPrice = (10 * 1.25) + ((m3PerUnit - 10) * 2.50); serviceFeePerUnit = 10; 
                 shName = "الثانية"; shRange = "(11 - 20 م³)";
                 radarMsg = "📡 الرادار: استهلاكك في النطاق الطبيعي.";
-            } else if (m3 <= 30) { 
-                waterPrice = (10 * 1.25) + (10 * 2.50) + ((m3 - 20) * 3.50); serviceFee = 20; 
+            } else if (m3PerUnit <= 30) { 
+                unitWaterPrice = (10 * 1.25) + (10 * 2.50) + ((m3PerUnit - 20) * 3.50); serviceFeePerUnit = 20; 
                 shName = "الثالثة"; shRange = "(21 - 30 م³)";
-                radarMsg = "📡 الرادار يلاحظ زيادة.. راجع استهلاك الأسرة.";
+                radarMsg = "📡 الرادار يلاحظ زيادة.. راجع مصادر الهدر.";
             } else { 
-                // الشريحة الرابعة التراكمية (الصح)
-                waterPrice = (10 * 1.25) + (10 * 2.50) + (10 * 3.50) + ((m3 - 30) * 5.00); 
-                serviceFee = 40; 
+                unitWaterPrice = (10 * 1.25) + (10 * 2.50) + (10 * 3.50) + ((m3PerUnit - 30) * 5.00); 
+                serviceFeePerUnit = 40; 
                 shName = "الرابعة فأعلى"; shRange = "(أكثر من 30 م³)";
-                radarMsg = "🚨 الرادار في حالة إنذار! استهلاك كثيف للمياه.";
+                radarMsg = "🚨 الرادار في حالة إنذار! استهلاك مرتفع جداً.";
             }
 
-            const sewage = waterPrice * 0.75; 
-            const total = waterPrice + sewage + serviceFee;
+            // الحساب الإجمالي لكل الوحدات
+            const totalWaterPrice = unitWaterPrice * units;
+            const totalSewage = totalWaterPrice * 0.75; 
+            const totalServiceFees = serviceFeePerUnit * units;
+            const finalTotal = totalWaterPrice + totalSewage + totalServiceFees;
 
-            // حساب التقدير الأسري (متوسط الفرد 150 لتر يومياً)
-            // الأسرة 4 أفراد = 600 لتر يومياً = 0.6 م3
-            const familyDays = Math.floor(m3 / 0.6);
+            // حفظ القراءة
+            localStorage.setItem('lastWaterRead', current);
 
+            // عرض النتائج
             resultBox.style.display = 'block';
-            document.getElementById('totalVal').innerText = total.toFixed(2) + " ج.م";
-            document.getElementById('totalM3').innerText = m3;
+            animateValue(document.getElementById('totalVal'), 0, finalTotal, 1000);
+            document.getElementById('totalM3').innerText = totalM3;
+            document.getElementById('unitM3').innerText = m3PerUnit.toFixed(1);
             document.getElementById('shText').innerText = shName;
             document.getElementById('shRange').innerText = shRange;
             document.getElementById('radarStatus').innerText = radarMsg;
+            
+            // حقيقة أسرية
+            const familyDays = Math.floor(totalM3 / 0.6);
             document.getElementById('familyFact').innerHTML = `💡 هذا الاستهلاك يكفي أسرة من 4 أفراد لمدة <b>${familyDays}</b> يوم تقريباً.`;
 
             const alertBox = document.getElementById('smartAlert');
-            // التحذير الاستباقي من 20 م3
-            if (m3 > 20) {
-                alertBox.style.display = 'block';
+            if (m3PerUnit > 20) {
                 alertBox.className = "smart-alert alert-danger";
-                alertBox.innerHTML = "⚠️ <b>تحذير استباقي:</b> استهلاكك تخطى 20 م³. أنت تقترب من الشريحة الثالثة الأغلى.";
+                alertBox.innerHTML = "⚠️ <b>تحذير:</b> الوحدة الواحدة تخطت 20 م³. هذا يرفع التكلفة بسبب الدخول في شرائح أعلى.";
             } else {
-                alertBox.style.display = 'block';
                 alertBox.className = "smart-alert alert-safe";
-                alertBox.innerHTML = "✅ <b>ممتاز:</b> أنت تحافظ على الموارد المائية وتوفر في فاتورتك.";
+                alertBox.innerHTML = "✅ <b>وضع آمن:</b> الاستهلاك لكل وحدة مازال داخل الشرائح المدعومة.";
             }
+        }
+
+        function resetApp() {
+            localStorage.removeItem('lastWaterRead');
+            document.getElementById('currentRead').value = "";
+            document.getElementById('prevRead').value = "";
+            document.getElementById('unitsCount').value = "1";
+            document.getElementById('resultBox').style.display = 'none';
         }
 
         function toggleTips() {
