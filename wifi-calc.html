@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Router Guardian Ultra Pro | النسخة الشاملة v6.0</title>
+    <title>Router Guardian | كاشف ظلم الباقة</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -36,24 +36,23 @@
         .logo-area h1 { font-size: 28px; color: var(--primary); margin: 0; text-shadow: 0 0 20px var(--primary); font-weight: 900; }
         .logo-area p { font-size: 11px; opacity: 0.6; margin-top: 5px; }
 
-        .welcome-msg { font-size: 11px; text-align: center; margin-bottom: 10px; color: var(--primary); display: none; }
-
         .section-title { font-size: 16px; font-weight: 700; margin: 25px 0 15px; color: var(--primary); border-right: 4px solid var(--accent); padding-right: 12px; }
 
-        /* مدخلات الراوتر الأساسية */
+        /* أسئلة التشخيص */
+        .check-group { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); }
+        .check-item { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 13px; cursor: pointer; }
+        .check-item input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
+
         .input-wrapper { text-align: right; margin-bottom: 18px; }
         .input-wrapper label { display: block; font-size: 12px; margin-bottom: 8px; color: #94a3b8; }
         
         .input-field {
             display: flex; align-items: center; background: rgba(255,255,255,0.05); 
-            border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 12px 15px; transition: 0.3s;
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 12px 15px;
         }
-        .input-field:focus-within { border-color: var(--primary); background: rgba(0, 242, 255, 0.08); }
 
         input, select { flex: 1; background: none; border: none; color: white; font-family: 'Tajawal'; font-size: 15px; outline: none; }
-        .icon { font-size: 18px; color: var(--primary); margin-left: 10px; }
-
-        /* الأجهزة - Grid */
+        
         .device-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .device-item {
             background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
@@ -61,29 +60,27 @@
         }
         .device-item input { width: 45px; text-align: center; color: var(--primary); font-weight: bold; background: none; border: none; font-size: 16px; }
 
-        /* الأزرار */
-        .btn {
+        .btn-main { 
             width: 100%; padding: 16px; border-radius: 18px; border: none;
-            font-family: 'Tajawal'; font-weight: 900; cursor: pointer; transition: 0.3s; margin-top: 10px;
+            font-family: 'Tajawal'; font-weight: 900; cursor: pointer;
+            background: linear-gradient(45deg, var(--accent), var(--primary)); color: white; 
+            margin-top: 25px; font-size: 17px; box-shadow: 0 10px 30px rgba(112, 0, 255, 0.3);
         }
-        .btn-test { background: rgba(0, 242, 255, 0.05); color: var(--primary); border: 1px dashed var(--primary); }
-        .btn-main { background: linear-gradient(45deg, var(--accent), var(--primary)); color: white; margin-top: 25px; font-size: 17px; }
-        .btn-eco { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid var(--success); margin-top: 15px; display: none; }
 
-        /* لوحة النتائج */
         .results-panel { 
             display: none; margin-top: 25px; padding: 25px; background: rgba(0,0,0,0.4); 
             border-radius: 25px; border: 1px solid var(--primary); animation: slideUp 0.6s ease;
         }
-        .main-stats { display: flex; justify-content: space-around; text-align: center; margin-bottom: 20px; }
-        .stat-val { font-size: 28px; font-weight: 900; color: var(--primary); display: block; }
 
-        /* مين السبب */
-        .rank-section { margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .verdict-box { 
+            background: rgba(255, 68, 68, 0.1); border: 1px solid var(--danger);
+            padding: 15px; border-radius: 15px; text-align: center; margin-bottom: 20px;
+        }
+        .verdict-title { font-size: 12px; opacity: 0.8; }
+        .verdict-val { display: block; font-size: 22px; font-weight: 900; color: var(--danger); }
+
         .rank-bar-bg { height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 6px 0 15px; overflow: hidden; }
-        .rank-bar-fill { height: 100%; background: var(--primary); transition: 1.5s cubic-bezier(0.17, 0.67, 0.83, 0.67); }
-
-        .eco-tips { display: none; margin-top: 15px; background: rgba(16,185,129,0.08); padding: 15px; border-radius: 15px; border-right: 4px solid var(--success); font-size: 12px; }
+        .rank-bar-fill { height: 100%; background: var(--primary); transition: 1.5s ease; width: 0; }
 
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -93,157 +90,126 @@
 <div class="overlay"></div>
 
 <div class="app-container">
-    <div id="welcome" class="welcome-msg"></div>
-
     <div class="card">
         <div class="logo-area">
-            <h1>Router Guardian Ultra</h1>
-            <p>المستشار الذكي ونظام التحكم الشامل</p>
+            <h1>Router Guardian</h1>
+            <p>كاشف ظلم الشركات ومدير النجاة الرقمي</p>
         </div>
 
-        <div class="section-title">إعدادات الوصول المباشر 📡</div>
-        
+        <div class="section-title">تشخيص الأداء 🕵️‍♂️</div>
+        <div class="check-group">
+            <label class="check-item"><input type="checkbox" id="q1"> الباقة بتخلص قبل ميعادها بكتير؟</label>
+            <label class="check-item"><input type="checkbox" id="q2"> السرعة بتقل فجأة بدون سبب؟</label>
+            <label class="check-item"><input type="checkbox" id="q3"> شك شاكك إن حد بيسحب منك؟</label>
+        </div>
+
+        <div class="section-title">معلومات الباقة 🧾</div>
         <div class="input-wrapper">
-            <label>مزود الخدمة والـ IP</label>
-            <div class="input-field" style="gap:10px;">
-                <select id="ispType" onchange="updateHint()">
-                    <option value="we">WE (Huawei/ZTE)</option>
-                    <option value="vodafone">Vodafone</option>
-                    <option value="orange">Orange</option>
-                    <option value="etisalat">Etisalat</option>
+            <div class="input-field">
+                <select id="quota">
+                    <option value="140">باقة WE/Orange 140GB</option>
+                    <option value="200">باقة 200GB</option>
+                    <option value="250">باقة Vodafone/Etisalat 250GB</option>
+                    <option value="600">باقة الـ Ultra 600GB</option>
                 </select>
-                <input type="text" id="routerIp" value="192.168.1.1">
             </div>
-            <small id="hint" style="color:var(--primary); font-size:10px; margin-top:5px; display:block;">غالباً admin / admin</small>
-        </div> 
-        <div class="section-title">توزيع الأجهزة والاستهلاك 🏠</div>
-        
+        </div>
+
+        <div class="section-title">توزيع الأجهزة الفعلي 🏠</div>
         <div class="device-grid">
             <div class="device-item"><label>📱 موبايل</label><input type="number" id="mobs" value="3"></div>
             <div class="device-item"><label>💻 لابتوب</label><input type="number" id="laps" value="1"></div>
             <div class="device-item"><label>📺 Smart TV</label><input type="number" id="tvs" value="1"></div>
-            <div class="device-item"><label>🎮 Console</label><input type="number" id="cons" value="0"></div>
+            <div class="device-item"><label>🎮 كونسول</label><input type="number" id="cons" value="0"></div>
         </div>
 
-        <div class="section-title">بيانات الباقة 📦</div>
-        <div class="input-wrapper">
-            <div class="input-field">
-                <span class="icon">📊</span>
-                <select id="quota">
-                    <option value="140">باقة 140 جيجابايت</option>
-                    <option value="200">باقة 200 جيجابايت</option>
-                    <option value="250">باقة 250 جيجابايت</option>
-                    <option value="600">باقة 600 جيجابايت</option>
-                </select>
-            </div>
-        </div>
-
-        <button class="btn btn-main" onclick="fullAnalysis()">ابدأ التحليل والربط الشامل ⚡</button>
+        <button class="btn-main" onclick="fullAnalysis()">كشف حالة الباقة والنجاة ⚡</button>
 
         <div id="results" class="results-panel">
-            <div class="main-stats">
-                <div><span class="stat-val" id="resDays">--</span><small>يوم متبقي</small></div>
-                <div><span class="stat-val" id="resDaily" style="color:var(--warning)">--</span><small>جيجا / يومياً</small></div>
+            <div class="verdict-box" id="verdictBox">
+                <span class="verdict-title">⚠️ نسبة استهلاك "غير مبرر":</span>
+                <span class="verdict-val" id="injusticeLevel">متوسطة</span>
             </div>
 
-            <div id="compText" style="text-align:center; font-size:11px; margin-bottom:15px; color:var(--success);"></div>
+            <div style="display:flex; justify-content:space-around; text-align:center; margin-bottom:20px;">
+                <div><span id="resDays" style="font-size:24px; font-weight:900; color:var(--primary);">--</span><br><small>يوم نجاة</small></div>
+                <div><span id="resDaily" style="font-size:24px; font-weight:900; color:var(--warning);">--</span><br><small>حدك اليومي (GB)</small></div>
+            </div>
 
             <div class="rank-section">
-                <span style="font-size:13px; color:var(--primary); font-weight:700;">🕵️ تحليل مصادر السحب:</span>
+                <span style="font-size:13px; color:var(--primary); font-weight:700;">🕵️ المتهم الأول في السحب:</span>
                 <div id="rankList"></div>
             </div>
 
-            <div id="smartAlert" style="margin:15px 0; padding:12px; background:rgba(255,68,68,0.1); border-radius:12px; font-size:11px; border-right:4px solid var(--danger); display:none;"></div>
+            <div id="smartAlert" style="margin:15px 0; padding:12px; background:rgba(255,68,68,0.1); border-radius:12px; font-size:11px; border-right:4px solid var(--danger);"></div>
 
-            <button class="btn btn-eco" id="ecoBtn" onclick="toggleEco()">🛡️ تفعيل وضع الاقتصاد الذكي</button>
-            <div class="eco-tips" id="ecoTips">
-                <strong>💡 روشتة التوفير:</strong>
-                <ul style="margin:5px 0 0; padding-right:15px;">
-                    <li>قلل جودة تيك توك وإنستجرام.</li>
-                    <li>اقفل النسخ الاحتياطي للصور (Google Photos).</li>
-                    <li>تأكد من قفل تحديثات الويندوز التلقائية.</li>
-                </ul>
-            </div>
+            <button class="btn-main" style="background:var(--success); margin-top:10px;" onclick="alert('سأذكرك غداً بالحد اليومي لضمان النجاة!')">🔔 ذكّرني بحدي اليومي غداً</button>
         </div>
-
-        <p style="text-align:center; font-size:10px; color:#64748b; margin-top:20px;">
-            🔒 جميع البيانات تُعالج محلياً ولا يتم حفظ كلمات المرور.
-        </p>
     </div>
 </div>
 
 <script>
-    // حفظ واسترجاع البيانات (LocalStorage)
-    window.onload = () => {
-        const last = JSON.parse(localStorage.getItem('ultra_guard_data'));
-        if(last) {
-            document.getElementById('welcome').style.display = "block";
-            document.getElementById('welcome').innerText = `👋 أهلاً.. آخر توقع كان نفاد باقتك خلال ${last.days} يوم.`;
-        }
-    };
-
-    function updateHint() {
-        const hints = {we: "admin / admin", vodafone: "vodafone / pass", orange: "user / user", etisalat: "admin / etisalat"};
-        document.getElementById('hint').innerText = "غالباً " + hints[document.getElementById('ispType').value];
-    }
     function fullAnalysis() {
         const q = parseFloat(document.getElementById('quota').value);
-        const m = document.getElementById('mobs').value * 0.8;
+        const m = document.getElementById('mobs').value * 0.9; 
         const l = document.getElementById('laps').value * 1.6;
-        const t = document.getElementById('tvs').value * 4.2;
-        const c = document.getElementById('cons').value * 3.0;
+        const t = document.getElementById('tvs').value * 4.5;
+        const c = document.getElementById('cons').value * 3.5;
         
         const totalDaily = m + l + t + c;
+        if(totalDaily <= 0) return;
 
-        if(totalDaily <= 0) { alert("⚠️ برجاء تحديد جهاز واحد على الأقل."); return; }
+        // منطق "كاشف الظلم"
+        let injusticeScore = 0;
+        if(document.getElementById('q1').checked) injusticeScore += 40;
+        if(document.getElementById('q2').checked) injusticeScore += 30;
+        if(document.getElementById('q3').checked) injusticeScore += 30;
 
-        const days = Math.floor(q / totalDaily);
-        const dailyLimit = (q / 30).toFixed(1);
+        const vBox = document.getElementById('verdictBox');
+        const vVal = document.getElementById('injusticeLevel');
+        
+        if(injusticeScore >= 70) {
+            vVal.innerText = "مرتفعة جداً 🔥";
+            vBox.style.borderColor = "var(--danger)";
+        } else if(injusticeScore >= 30) {
+            vVal.innerText = "متوسطة ⚠️";
+            vVal.style.color = "var(--warning)";
+            vBox.style.borderColor = "var(--warning)";
+        } else {
+            vVal.innerText = "طبيعية ✅";
+            vVal.style.color = "var(--success)";
+            vBox.style.borderColor = "var(--success)";
+        }
 
         document.getElementById('results').style.display = "block";
-        document.getElementById('ecoBtn').style.display = "block";
-        document.getElementById('resDays').innerText = days;
-        document.getElementById('resDaily').innerText = dailyLimit;
+        document.getElementById('resDays').innerText = Math.floor(q / totalDaily);
+        document.getElementById('resDaily').innerText = (q / 30).toFixed(1);
 
-        // تحليل مين السبب
+        // الترتيب
         const data = [
             {n: "الموبايلات", v: m, i: "📱"}, {n: "اللابتوب", v: l, i: "💻"},
-            {n: "الشاشات", v: t, i: "📺"}, {n: "أجهزة الألعاب", v: c, i: "🎮"}
+            {n: "الشاشات", v: t, i: "📺"}, {n: "الكونسول", v: c, i: "🎮"}
         ].sort((a,b) => b.v - a.v);
 
         let html = "";
         data.forEach(s => {
             const p = ((s.v / totalDaily) * 100).toFixed(0);
             if(p > 0) {
-                html += `<div style="display:flex; justify-content:space-between; font-size:11px;"><span>${s.i} ${s.n}</span><span>${p}%</span></div>
+                html += `<div style="display:flex; justify-content:space-between; font-size:11px; margin-top:8px;"><span>${s.i} ${s.n}</span><span>${p}%</span></div>
                          <div class="rank-bar-bg"><div class="rank-bar-fill" style="width:${p}%"></div></div>`;
             }
         });
         document.getElementById('rankList').innerHTML = html;
 
-        // التنبيه الذكي
-        const top = data[0];
         const alertBox = document.getElementById('smartAlert');
-        alertBox.style.display = "block";
-        if(top.n === "الشاشات") alertBox.innerText = "⚠️ تنبيه: الشاشة الذكية تسحب 40% من باقتك. قلل الجودة فوراً.";
-        else if(top.n === "اللابتوب") alertBox.innerText = "⚠️ تنبيه: اللابتوب يستهلك الكثير بسبب التحديثات الخلفية.";
-        else alertBox.innerText = "⚠️ تنبيه: الموبايلات هي المصدر الأول للسحب (سوشيال ميديا).";
-
-        // المقارنة
-        const last = JSON.parse(localStorage.getItem('ultra_guard_data'));
-        if(last) {
-            const diff = (((last.daily - totalDaily) / last.daily) * 100).toFixed(0);
-            document.getElementById('compText').innerText = diff > 0 ? `🎉 استهلاكك الحالي أفضل بـ ${diff}%` : `📉 استهلاكك زاد بـ ${Math.abs(diff)}%`;
+        if(injusticeScore > 50) {
+            alertBox.innerText = "💡 التشخيص: هناك هدر غير مبرر. ابدأ بتقليل جودة اليوتيوب فوراً، وراقب الأجهزة المتصلة أثناء نومك.";
+        } else {
+            alertBox.innerText = "💡 التشخيص: باقتك في أمان نسبياً، التزم بالحد اليومي الموضح أعلاه.";
         }
-
-        localStorage.setItem('ultra_guard_data', JSON.stringify({days, daily: totalDaily}));
-        if (window.navigator.vibrate) window.navigator.vibrate(50);
-    }
-
-    function toggleEco() {
-        const t = document.getElementById('ecoTips');
-        t.style.display = t.style.display === "block" ? "none" : "block";
+        
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 </script>
 </body>
-                                                                                                         </html>
+</html>
