@@ -89,7 +89,7 @@
             text-align: center; margin-top: 15px; border: 1px dashed var(--neon-blue);
         }
 
-        .details-item { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px; }
+        .details-item { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px; align-items: center;}
         .sh-label { font-size: 10px; color: #94a3b8; display: block; }
 
         .smart-alert {
@@ -98,6 +98,13 @@
         }
         .alert-danger { background: rgba(255, 68, 68, 0.1); color: var(--neon-red); border-color: var(--neon-red); }
         .alert-safe { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: #10b981; }
+
+        .unit-money-box {
+            background: rgba(112, 0, 255, 0.1);
+            border: 1px solid var(--neon-purple);
+            padding: 12px; border-radius: 15px;
+            margin: 15px 0; text-align: center;
+        }
 
         .tips-btn {
             width: 100%; margin-top: 15px; padding: 12px; background: none;
@@ -156,9 +163,14 @@
         <div id="resultBox" class="result-box">
             <div class="radar-status" id="radarStatus">📡 الرادار يرصد تدفق المياه...</div>
             
-            <div style="text-align: center; font-size: 13px; color: #94a3b8;">الإجمالي التقديري (مياه + صرف + خدمة)</div>
+            <div style="text-align: center; font-size: 13px; color: #94a3b8;">إجمالي فاتورة العمارة/المبنى</div>
             <span class="total-price" id="totalVal">0.00 ج.م</span>
             
+            <div class="unit-money-box">
+                <span style="font-size: 12px; color: #cbd5e1; display: block; margin-bottom: 5px;">نصيب الوحدة الواحدة من الفاتورة</span>
+                <span id="unitMoneyVal" style="font-size: 24px; color: var(--neon-purple); font-weight: 900;">0.00 ج.م</span>
+            </div>
+
             <div id="familyFact" class="family-fact"></div>
 
             <div class="details-item" style="margin-top: 15px;">
@@ -170,7 +182,7 @@
             </div>
 
             <div class="details-item"><span>إجمالي الاستهلاك:</span> <span id="totalM3" style="font-weight:bold;">0</span> م³</div>
-            <div class="details-item"><span>نصيب الوحدة الواحدة:</span> <span id="unitM3" style="color:var(--neon-blue)">0</span> م³</div>
+            <div class="details-item"><span>نصيب الوحدة من المياه:</span> <span id="unitM3" style="color:var(--neon-blue)">0</span> م³</div>
             
             <div id="smartAlert" class="smart-alert"></div>
 
@@ -192,21 +204,18 @@
     </div>
 
     <script>
-        // حفظ واسترجاع البيانات تلقائياً
         window.onload = function() {
             const savedWater = localStorage.getItem('lastWaterRead');
-            if (savedWater) {
-                document.getElementById('prevRead').value = savedWater;
-            }
+            if (savedWater) { document.getElementById('prevRead').value = savedWater; }
         };
 
-        function animateValue(obj, start, end, duration) {
+        function animateValue(obj, start, end, duration, suffix = " ج.م") {
             let startTimestamp = null;
             const step = (timestamp) => {
                 if (!startTimestamp) startTimestamp = timestamp;
                 const progress = Math.min((timestamp - startTimestamp) / duration, 1);
                 const currentVal = (progress * (end - start) + start).toFixed(2);
-                obj.innerHTML = currentVal + " ج.م";
+                obj.innerHTML = currentVal + suffix;
                 if (progress < 1) window.requestAnimationFrame(step);
             };
             window.requestAnimationFrame(step);
@@ -220,18 +229,15 @@
             const resultBox = document.getElementById('resultBox');
 
             if (isNaN(current) || isNaN(previous) || current < previous) {
-                errorDiv.style.display = 'block';
-                resultBox.style.display = 'none';
-                return;
+                errorDiv.style.display = 'block'; resultBox.style.display = 'none'; return;
             }
             errorDiv.style.display = 'none';
 
             const totalM3 = current - previous;
-            const m3PerUnit = totalM3 / units; // حساب الشريحة بناءً على استهلاك الوحدة الواحدة
+            const m3PerUnit = totalM3 / units;
             
             let unitWaterPrice = 0, serviceFeePerUnit = 0, shName = "", shRange = "", radarMsg = "";
 
-            // تطبيق الشرائح التراكمية بناءً على نصيب الوحدة (النظام الرسمي)
             if (m3PerUnit <= 10) { 
                 unitWaterPrice = m3PerUnit * 1.25; serviceFeePerUnit = 5; 
                 shName = "الأولى"; shRange = "(0 - 10 م³)";
@@ -251,25 +257,27 @@
                 radarMsg = "🚨 الرادار في حالة إنذار! استهلاك مرتفع جداً.";
             }
 
-            // الحساب الإجمالي لكل الوحدات
             const totalWaterPrice = unitWaterPrice * units;
             const totalSewage = totalWaterPrice * 0.75; 
             const totalServiceFees = serviceFeePerUnit * units;
             const finalTotal = totalWaterPrice + totalSewage + totalServiceFees;
+            
+            // حساب نصيب الوحدة بالفلوس
+            const moneyPerUnit = finalTotal / units;
 
-            // حفظ القراءة
             localStorage.setItem('lastWaterRead', current);
-
-            // عرض النتائج
             resultBox.style.display = 'block';
+
+            // تشغيل العدادات
             animateValue(document.getElementById('totalVal'), 0, finalTotal, 1000);
+            animateValue(document.getElementById('unitMoneyVal'), 0, moneyPerUnit, 1000);
+
             document.getElementById('totalM3').innerText = totalM3;
             document.getElementById('unitM3').innerText = m3PerUnit.toFixed(1);
             document.getElementById('shText').innerText = shName;
             document.getElementById('shRange').innerText = shRange;
             document.getElementById('radarStatus').innerText = radarMsg;
             
-            // حقيقة أسرية
             const familyDays = Math.floor(totalM3 / 0.6);
             document.getElementById('familyFact').innerHTML = `💡 هذا الاستهلاك يكفي أسرة من 4 أفراد لمدة <b>${familyDays}</b> يوم تقريباً.`;
 
