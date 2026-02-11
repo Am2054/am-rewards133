@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>رادار المياه الذكي | AM Rewards</title>
+    <title>رادار المياه الذكي | AM Rewards PRO</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
             --neon-blue: #00f2ff;
             --neon-purple: #7000ff;
             --neon-red: #ff4444;
+            --neon-orange: #f97316;
             --bg-deep: #020617;
             --glass: rgba(255, 255, 255, 0.05);
         }
@@ -72,6 +73,13 @@
             animation: slideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
+        /* تنبيه التسريب الذكي */
+        #leakAlert { 
+            display: none; background: rgba(249, 115, 22, 0.15); color: var(--neon-orange); 
+            padding: 15px; border-radius: 15px; border: 1px solid var(--neon-orange); 
+            margin-bottom: 15px; font-size: 13px; line-height: 1.5; border-right: 4px solid var(--neon-orange);
+        }
+
         .radar-status {
             text-align: center; font-size: 11px; margin-bottom: 15px; color: var(--neon-blue);
             background: rgba(0, 242, 255, 0.05); padding: 8px; border-radius: 50px;
@@ -81,6 +89,13 @@
         .total-price { 
             font-size: 36px; color: var(--neon-blue); text-align: center; 
             margin: 5px 0; display: block; font-weight: 900;
+        }
+
+        .unit-money-box {
+            background: rgba(112, 0, 255, 0.1);
+            border: 1px solid var(--neon-purple);
+            padding: 12px; border-radius: 15px;
+            margin: 15px 0; text-align: center;
         }
 
         .family-fact {
@@ -98,13 +113,6 @@
         }
         .alert-danger { background: rgba(255, 68, 68, 0.1); color: var(--neon-red); border-color: var(--neon-red); }
         .alert-safe { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: #10b981; }
-
-        .unit-money-box {
-            background: rgba(112, 0, 255, 0.1);
-            border: 1px solid var(--neon-purple);
-            padding: 12px; border-radius: 15px;
-            margin: 15px 0; text-align: center;
-        }
 
         .tips-btn {
             width: 100%; margin-top: 15px; padding: 12px; background: none;
@@ -153,14 +161,18 @@
         </div>
 
         <div class="input-group" style="margin-bottom: 20px;">
-            <label>عدد الوحدات (الشقق) المشتركة في العداد</label>
+            <label>عدد الوحدات (الشقق) بالعداد</label>
             <input type="number" id="unitsCount" value="1" min="1" inputmode="numeric">
         </div>
 
-        <button class="calc-btn" onclick="calculateWaterBill()">تحليل الفاتورة 🔍</button>
+        <button class="calc-btn" onclick="calculateWaterBill()">تحليل الفاتورة والبحث عن تسريب 🔍</button>
         <span class="reset-link" onclick="resetApp()">🔄 مسح البيانات والبدء من جديد</span>
 
         <div id="resultBox" class="result-box">
+            <div id="leakAlert">
+                ⚠️ <b>احتمالية تسريب خفي:</b> إجمالي الاستهلاك عالٍ جداً رغم انخفاض نصيب الوحدة. يرجى فحص الخطوط الرئيسية والعوامات الأرضية فوراً.
+            </div>
+
             <div class="radar-status" id="radarStatus">📡 الرادار يرصد تدفق المياه...</div>
             
             <div style="text-align: center; font-size: 13px; color: #94a3b8;">إجمالي فاتورة العمارة/المبنى</div>
@@ -199,7 +211,7 @@
         </div>
         
         <p style="text-align: center; font-size: 9px; color: #475569; margin-top: 15px;">
-            * الرسوم والشرائح تقديرية لعام 2026 وقد تختلف حسب المحافظة.
+            * الرسوم والشرائح تقديرية لعام 2026 وتشمل الصرف الصحي (75%).
         </p>
     </div>
 
@@ -235,40 +247,46 @@
 
             const totalM3 = current - previous;
             const m3PerUnit = totalM3 / units;
+
+            // --- خوارزمية كشف التسريب الذكي ---
+            const leakAlert = document.getElementById('leakAlert');
+            if (totalM3 > 50 && m3PerUnit < 7) {
+                leakAlert.style.display = 'block';
+            } else {
+                leakAlert.style.display = 'none';
+            }
             
             let unitWaterPrice = 0, serviceFeePerUnit = 0, shName = "", shRange = "", radarMsg = "";
 
+            // الحساب التراكمي الدقيق للشرائح
             if (m3PerUnit <= 10) { 
                 unitWaterPrice = m3PerUnit * 1.25; serviceFeePerUnit = 5; 
                 shName = "الأولى"; shRange = "(0 - 10 م³)";
-                radarMsg = "📡 الرادار يرصد استهلاكاً مثالياً.. استمر!";
+                radarMsg = "📡 استهلاك مثالي للوحدات.";
             } else if (m3PerUnit <= 20) { 
                 unitWaterPrice = (10 * 1.25) + ((m3PerUnit - 10) * 2.50); serviceFeePerUnit = 10; 
                 shName = "الثانية"; shRange = "(11 - 20 م³)";
-                radarMsg = "📡 الرادار: استهلاكك في النطاق الطبيعي.";
+                radarMsg = "📡 استهلاك طبيعي ضمن الحدود.";
             } else if (m3PerUnit <= 30) { 
                 unitWaterPrice = (10 * 1.25) + (10 * 2.50) + ((m3PerUnit - 20) * 3.50); serviceFeePerUnit = 20; 
                 shName = "الثالثة"; shRange = "(21 - 30 م³)";
-                radarMsg = "📡 الرادار يلاحظ زيادة.. راجع مصادر الهدر.";
+                radarMsg = "📡 رصد زيادة في الاستهلاك.. يرجى الحذر.";
             } else { 
                 unitWaterPrice = (10 * 1.25) + (10 * 2.50) + (10 * 3.50) + ((m3PerUnit - 30) * 5.00); 
                 serviceFeePerUnit = 40; 
                 shName = "الرابعة فأعلى"; shRange = "(أكثر من 30 م³)";
-                radarMsg = "🚨 الرادار في حالة إنذار! استهلاك مرتفع جداً.";
+                radarMsg = "🚨 إنذار! استهلاك خارج النطاق المدعوم.";
             }
 
             const totalWaterPrice = unitWaterPrice * units;
             const totalSewage = totalWaterPrice * 0.75; 
             const totalServiceFees = serviceFeePerUnit * units;
             const finalTotal = totalWaterPrice + totalSewage + totalServiceFees;
-            
-            // حساب نصيب الوحدة بالفلوس
             const moneyPerUnit = finalTotal / units;
 
             localStorage.setItem('lastWaterRead', current);
             resultBox.style.display = 'block';
 
-            // تشغيل العدادات
             animateValue(document.getElementById('totalVal'), 0, finalTotal, 1000);
             animateValue(document.getElementById('unitMoneyVal'), 0, moneyPerUnit, 1000);
 
@@ -284,19 +302,16 @@
             const alertBox = document.getElementById('smartAlert');
             if (m3PerUnit > 20) {
                 alertBox.className = "smart-alert alert-danger";
-                alertBox.innerHTML = "⚠️ <b>تحذير:</b> الوحدة الواحدة تخطت 20 م³. هذا يرفع التكلفة بسبب الدخول في شرائح أعلى.";
+                alertBox.innerHTML = "⚠️ <b>تحذير:</b> تخطيتم حاجز 20 م³ للوحدة. التكلفة أصبحت مرتفعة جداً.";
             } else {
                 alertBox.className = "smart-alert alert-safe";
-                alertBox.innerHTML = "✅ <b>وضع آمن:</b> الاستهلاك لكل وحدة مازال داخل الشرائح المدعومة.";
+                alertBox.innerHTML = "✅ <b>وضع آمن:</b> الاستهلاك ضمن الشرائح الاجتماعية المدعومة.";
             }
         }
 
         function resetApp() {
             localStorage.removeItem('lastWaterRead');
-            document.getElementById('currentRead').value = "";
-            document.getElementById('prevRead').value = "";
-            document.getElementById('unitsCount').value = "1";
-            document.getElementById('resultBox').style.display = 'none';
+            location.reload();
         }
 
         function toggleTips() {
