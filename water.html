@@ -83,13 +83,6 @@
             margin: 5px 0; display: block; font-weight: 900;
         }
 
-        .unit-money-box {
-            background: rgba(112, 0, 255, 0.1);
-            border: 1px solid var(--neon-purple);
-            padding: 12px; border-radius: 15px;
-            margin: 15px 0; text-align: center;
-        }
-
         .family-fact {
             background: rgba(0, 242, 255, 0.1); color: var(--neon-blue);
             padding: 10px; border-radius: 10px; font-size: 11px;
@@ -105,6 +98,13 @@
         }
         .alert-danger { background: rgba(255, 68, 68, 0.1); color: var(--neon-red); border-color: var(--neon-red); }
         .alert-safe { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: #10b981; }
+
+        .unit-money-box {
+            background: rgba(112, 0, 255, 0.1);
+            border: 1px solid var(--neon-purple);
+            padding: 12px; border-radius: 15px;
+            margin: 15px 0; text-align: center;
+        }
 
         .tips-btn {
             width: 100%; margin-top: 15px; padding: 12px; background: none;
@@ -181,8 +181,8 @@
                 </div>
             </div>
 
-            <div class="details-item"><span>إجمالي كمية الاستهلاك:</span> <span id="totalM3" style="font-weight:bold;">0</span> م³</div>
-            <div class="details-item"><span>نصيب الوحدة من المياه:</span> <span id="unitM3" style="color:var(--neon-blue); font-weight:bold;">0</span> م³</div>
+            <div class="details-item"><span>إجمالي الاستهلاك:</span> <span id="totalM3" style="font-weight:bold;">0</span> م³</div>
+            <div class="details-item"><span>نصيب الوحدة من المياه:</span> <span id="unitM3" style="color:var(--neon-blue)">0</span> م³</div>
             
             <div id="smartAlert" class="smart-alert"></div>
 
@@ -241,7 +241,7 @@
             if (m3PerUnit <= 10) { 
                 unitWaterPrice = m3PerUnit * 1.25; serviceFeePerUnit = 5; 
                 shName = "الأولى"; shRange = "(0 - 10 م³)";
-                radarMsg = "📡 الرادار شايف إن استهلاكك مثالي.. استمر!";
+                radarMsg = "📡 الرادار يرصد استهلاكاً مثالياً.. استمر!";
             } else if (m3PerUnit <= 20) { 
                 unitWaterPrice = (10 * 1.25) + ((m3PerUnit - 10) * 2.50); serviceFeePerUnit = 10; 
                 shName = "الثانية"; shRange = "(11 - 20 م³)";
@@ -254,13 +254,15 @@
                 unitWaterPrice = (10 * 1.25) + (10 * 2.50) + (10 * 3.50) + ((m3PerUnit - 30) * 5.00); 
                 serviceFeePerUnit = 40; 
                 shName = "الرابعة فأعلى"; shRange = "(أكثر من 30 م³)";
-                radarMsg = "🚨 الرادار في حالة إنذار! استهلاك مرتفع.";
+                radarMsg = "🚨 الرادار في حالة إنذار! استهلاك مرتفع جداً.";
             }
 
             const totalWaterPrice = unitWaterPrice * units;
             const totalSewage = totalWaterPrice * 0.75; 
             const totalServiceFees = serviceFeePerUnit * units;
             const finalTotal = totalWaterPrice + totalSewage + totalServiceFees;
+            
+            // حساب نصيب الوحدة بالفلوس
             const moneyPerUnit = finalTotal / units;
 
             localStorage.setItem('lastWaterRead', current);
@@ -271,21 +273,21 @@
             animateValue(document.getElementById('unitMoneyVal'), 0, moneyPerUnit, 1000);
 
             document.getElementById('totalM3').innerText = totalM3;
-            document.getElementById('unitM3').innerText = m3PerUnit.toFixed(1) + " م³";
+            document.getElementById('unitM3').innerText = m3PerUnit.toFixed(1);
             document.getElementById('shText').innerText = shName;
             document.getElementById('shRange').innerText = shRange;
             document.getElementById('radarStatus').innerText = radarMsg;
             
             const familyDays = Math.floor(totalM3 / 0.6);
-            document.getElementById('familyFact').innerHTML = `💡 استهلاك العمارة يكفي أسرة من 4 أفراد لمدة <b>${familyDays}</b> يوم تقريباً.`;
+            document.getElementById('familyFact').innerHTML = `💡 هذا الاستهلاك يكفي أسرة من 4 أفراد لمدة <b>${familyDays}</b> يوم تقريباً.`;
 
             const alertBox = document.getElementById('smartAlert');
             if (m3PerUnit > 20) {
                 alertBox.className = "smart-alert alert-danger";
-                alertBox.innerHTML = "⚠️ <b>تحذير:</b> نصيب الشقة الواحدة تخطى 20 م³. هذا يرفع التكلفة بسبب الشرائح الأغلى.";
+                alertBox.innerHTML = "⚠️ <b>تحذير:</b> الوحدة الواحدة تخطت 20 م³. هذا يرفع التكلفة بسبب الدخول في شرائح أعلى.";
             } else {
                 alertBox.className = "smart-alert alert-safe";
-                alertBox.innerHTML = "✅ <b>وضع آمن:</b> استهلاك الشقة الواحدة مازال داخل الشرائح المدعومة.";
+                alertBox.innerHTML = "✅ <b>وضع آمن:</b> الاستهلاك لكل وحدة مازال داخل الشرائح المدعومة.";
             }
         }
 
