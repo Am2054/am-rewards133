@@ -25,10 +25,7 @@
         .warn-danger { background: rgba(255, 68, 68, 0.1); color: var(--neon-red); border-color: var(--neon-red); }
         .warn-safe { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: #10b981; }
         .total-price { font-size: 36px; color: var(--neon-yellow); text-align: center; margin: 5px 0; display: block; font-weight: 900; }
-        
-        /* تصميم صندوق نصيب الوحدة الجديد */
         .unit-money-box { background: rgba(250, 204, 21, 0.1); border: 1px solid var(--neon-yellow); padding: 12px; border-radius: 15px; margin: 15px 0; text-align: center; display: none; }
-        
         .tips-btn { width: 100%; margin-top: 15px; padding: 12px; background: none; border: 1px solid var(--neon-yellow); color: var(--neon-yellow); border-radius: 12px; font-weight: 700; cursor: pointer; font-family: 'Tajawal'; }
         #tipsContent { display: none; margin-top: 15px; background: rgba(250, 204, 21, 0.05); padding: 15px; border-radius: 15px; border: 1px dotted var(--neon-yellow); font-size: 12px; line-height: 1.8; color: #cbd5e1; }
         .disclaimer { text-align: center; font-size: 10px; color: #64748b; margin-top: 20px; line-height: 1.5; }
@@ -47,11 +44,11 @@
     <div class="input-row">
         <div class="input-group">
             <label>القراءة الحالية</label>
-            <input type="number" id="currentRead" placeholder="0000" inputmode="numeric" min="0">
+            <input type="number" id="currentRead" placeholder="0000" inputmode="numeric">
         </div>
         <div class="input-group">
             <label>القراءة السابقة</label>
-            <input type="number" id="prevRead" placeholder="0000" inputmode="numeric" min="0">
+            <input type="number" id="prevRead" placeholder="0000" inputmode="numeric">
         </div>
     </div>
 
@@ -64,8 +61,8 @@
     <button class="reset-btn" onclick="resetApp()">🔄 حساب جديد / مسح الذاكرة</button>
 
     <div id="resultBox" class="result-box">
-        <div class="radar-status" id="radarStatus">📡 الرادار يحلل نمط استهلاكك الآن...</div>
-        <div id="totalLabel" style="text-align: center; font-size: 13px; color: #94a3b8;">إجمالي الفاتورة التقديري</div>
+        <div class="radar-status" id="radarStatus">📡 الرادار يحلل نمط استهلاك العداد...</div>
+        <div id="totalLabel" style="text-align: center; font-size: 13px; color: #94a3b8;">إجمالي فاتورة العداد بالكامل</div>
         <span class="total-price" id="totalVal">0.00 ج.م</span>
         
         <div class="unit-money-box" id="unitBox">
@@ -84,18 +81,18 @@
         </div>
 
         <div style="margin-top: 20px; font-size: 13px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px;">
-            <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>إجمالي الاستهلاك:</span> <span id="totalKwh" style="color:var(--cyan)">0</span></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>إجمالي استهلاك العداد:</span> <span id="totalKwh" style="color:var(--cyan)">0</span></div>
             <div id="unitKwhRow" style="display:none; justify-content:space-between; margin-bottom: 8px;"><span>نصيب الوحدة (كمية):</span> <span id="unitKwh" style="color:var(--cyan)">0</span></div>
-            <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>الشريحة الحالية:</span> <span id="shText"> - </span></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>الشريحة (على الإجمالي):</span> <span id="shText"> - </span></div>
             <div style="display:flex; justify-content:space-between; color: var(--neon-yellow); padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
-                <span>إجمالي الرسوم (خدمة + نظافة):</span> <span id="feesText">0</span>
+                <span>إجمالي رسوم العداد الثابتة:</span> <span id="feesText">0</span>
             </div>
         </div>
     </div>
 
     <p class="disclaimer">
-        * الحساب يشمل رسوم النظافة وخدمة العملاء لعام 2026.<br>
-        * الرسوم تقديرية وقد تختلف حسب المحافظة ونوع العداد.
+        * الحساب يشمل الشرائح الأعلى (فوق 1000 كيلووات) لعام 2026.<br>
+        * الرسوم تشمل (نظافة + خدمة عملاء) لعداد واحد فقط.
     </p>
 </div>
 
@@ -105,13 +102,13 @@
         if (savedRead) { document.getElementById('prevRead').value = savedRead; }
     };
 
-    function animateValue(obj, start, end, duration) {
+    function animateValue(obj, start, end, duration, suffix = " ج.م") {
         let startTimestamp = null;
         const step = (timestamp) => {
             if (!startTimestamp) startTimestamp = timestamp;
             const progress = Math.min((timestamp - startTimestamp) / duration, 1);
             const currentVal = (progress * (end - start) + start).toFixed(2);
-            obj.innerHTML = currentVal + " ج.م";
+            obj.innerHTML = currentVal + suffix;
             if (progress < 1) window.requestAnimationFrame(step);
         };
         window.requestAnimationFrame(step);
@@ -132,58 +129,60 @@
         const totalKwh = current - previous;
         const kwhPerUnit = totalKwh / units;
         
-        let unitCost = 0, serviceFee = 0, cleanFee = 10, sh = "", radarMsg = "";
+        let totalCost = 0, serviceFee = 0, cleanFee = 15, sh = "", radarMsg = "";
 
-        // حساب الشريحة بناءً على نصيب الوحدة الواحدة
-        if (kwhPerUnit <= 50) {
-            unitCost = kwhPerUnit * 0.68; serviceFee = 1; sh = "الأولى (0 - 50)";
-            radarMsg = "📡 الرادار شايف إن استهلاكك مثالي جداً.. استمر!";
-        } else if (kwhPerUnit <= 100) {
-            unitCost = (50 * 0.68) + ((kwhPerUnit - 50) * 0.78); serviceFee = 2; sh = "الثانية (51 - 100)";
-            radarMsg = "📡 الرادار يرصد استهلاك منزلي بسيط ومستقر.";
-        } else if (kwhPerUnit <= 200) {
-            unitCost = kwhPerUnit * 0.95; serviceFee = 6; sh = "الثالثة (101 - 200)";
-            radarMsg = "📡 الرادار ملاحظ زيادة طفيفة.. ابدأ بالترشيد.";
-        } else if (kwhPerUnit <= 350) {
-            unitCost = (200 * 0.95) + ((kwhPerUnit - 200) * 1.55); serviceFee = 11; sh = "الرابعة (201 - 350)";
-            radarMsg = "📡 الرادار: استهلاكك متوسط، حاول تقليل الأحمال.";
-        } else if (kwhPerUnit <= 650) {
-            unitCost = (200 * 0.95) + (150 * 1.55) + ((kwhPerUnit - 350) * 1.65); serviceFee = 15; sh = "الخامسة (351 - 650)";
-            radarMsg = "📡 تحذير: الرادار شايف إن الاستهلاك عالي!";
+        // نظام الشرائح الجديد (تحديث 1000 كيلووات)
+        if (totalKwh <= 50) {
+            totalCost = totalKwh * 0.68; serviceFee = 1; sh = "الأولى (0 - 50)";
+            radarMsg = "📡 استهلاك مثالي للعداد بالكامل.";
+        } else if (totalKwh <= 100) {
+            totalCost = (50 * 0.68) + ((totalKwh - 50) * 0.78); serviceFee = 2; sh = "الثانية (51 - 100)";
+            radarMsg = "📡 الاستهلاك في النطاق المنزلي البسيط.";
+        } else if (totalKwh <= 200) {
+            totalCost = totalKwh * 0.95; serviceFee = 6; sh = "الثالثة (101 - 200)";
+            radarMsg = "📡 العداد بدأ يدخل في شرائح متوسطة.";
+        } else if (totalKwh <= 350) {
+            totalCost = (200 * 0.95) + ((totalKwh - 200) * 1.55); serviceFee = 11; sh = "الرابعة (201 - 350)";
+            radarMsg = "📡 استهلاك متوسط، يرجى الحذر.";
+        } else if (totalKwh <= 650) {
+            totalCost = (200 * 0.95) + (150 * 1.55) + ((totalKwh - 350) * 1.65); serviceFee = 15; sh = "الخامسة (351 - 650)";
+            radarMsg = "📡 تحذير: العداد في شريحة مرتفعة!";
+        } else if (totalKwh <= 1000) {
+            // شريحة إلغاء الدعم (651 - 1000)
+            totalCost = totalKwh * 2.10; serviceFee = 25; sh = "السادسة (إلغاء الدعم)";
+            radarMsg = "🚨 تحذير شديد: العداد خارج منطقة الدعم.";
         } else {
-            unitCost = kwhPerUnit * 2.10; serviceFee = 40; sh = "خارج الدعم";
-            radarMsg = "🚨 الرادار في حالة إنذار! استهلاك مرتفع جداً.";
+            // شريحة الرفاهية (فوق 1000)
+            totalCost = totalKwh * 3.00; serviceFee = 40; sh = "السابعة (أعلى فئة استهلاك)";
+            radarMsg = "☢️ إنذار كارثي: العداد في شريحة الرفاهية (3 جنيه للكيلو).";
         }
 
-        const totalPerUnit = unitCost + serviceFee + cleanFee;
-        const finalTotal = totalPerUnit * units;
+        const finalTotal = totalCost + serviceFee + cleanFee;
+        const moneyPerUnit = finalTotal / units;
         
         localStorage.setItem('lastCurrentRead', current);
         resultBox.style.display = 'block';
 
-        // عرض نصيب الوحدة لو العدد أكبر من 1
         if (units > 1) {
             document.getElementById('unitBox').style.display = 'block';
             document.getElementById('unitKwhRow').style.display = 'flex';
-            document.getElementById('totalLabel').innerText = "إجمالي فاتورة العداد (لكل الوحدات)";
-            animateValue(document.getElementById('unitMoneyVal'), 0, totalPerUnit, 1000);
+            animateValue(document.getElementById('unitMoneyVal'), 0, moneyPerUnit, 1000);
         } else {
             document.getElementById('unitBox').style.display = 'none';
             document.getElementById('unitKwhRow').style.display = 'none';
-            document.getElementById('totalLabel').innerText = "إجمالي الفاتورة التقديري";
         }
 
         document.getElementById('radarStatus').innerText = radarMsg;
         document.getElementById('totalKwh').innerText = totalKwh + " ك.و.س";
         document.getElementById('unitKwh').innerText = kwhPerUnit.toFixed(1) + " ك.و.س";
         document.getElementById('shText').innerText = sh;
-        document.getElementById('feesText').innerText = ((serviceFee + cleanFee) * units).toFixed(2) + " ج.م";
+        document.getElementById('feesText').innerText = (serviceFee + cleanFee).toFixed(2) + " ج.م";
         
         animateValue(document.getElementById('totalVal'), 0, finalTotal, 1000);
 
         const warnBox = document.getElementById('smartWarning');
-        warnBox.className = kwhPerUnit > 200 ? "smart-warning warn-danger" : "smart-warning warn-safe";
-        warnBox.innerHTML = kwhPerUnit > 200 ? "⚠️ <b>تحذير:</b> الوحدة الواحدة دخلت منطقة التكلفة العالية." : "✅ <b>ممتاز:</b> استهلاك الوحدة لسه تحت السيطرة.";
+        warnBox.className = totalKwh > 650 ? "smart-warning warn-danger" : "smart-warning warn-safe";
+        warnBox.innerHTML = totalKwh > 650 ? "⚠️ <b>خطر:</b> العداد تخطى 650 كيلووات، التكلفة تضاعفت فوراً." : "✅ <b>وضع آمن:</b> إجمالي العداد مازال تحت حدود الدعم.";
     }
 
     function resetApp() {
