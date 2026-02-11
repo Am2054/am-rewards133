@@ -25,6 +25,10 @@
         .warn-danger { background: rgba(255, 68, 68, 0.1); color: var(--neon-red); border-color: var(--neon-red); }
         .warn-safe { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: #10b981; }
         .total-price { font-size: 36px; color: var(--neon-yellow); text-align: center; margin: 5px 0; display: block; font-weight: 900; }
+        
+        /* تصميم صندوق نصيب الوحدة الجديد */
+        .unit-money-box { background: rgba(250, 204, 21, 0.1); border: 1px solid var(--neon-yellow); padding: 12px; border-radius: 15px; margin: 15px 0; text-align: center; display: none; }
+        
         .tips-btn { width: 100%; margin-top: 15px; padding: 12px; background: none; border: 1px solid var(--neon-yellow); color: var(--neon-yellow); border-radius: 12px; font-weight: 700; cursor: pointer; font-family: 'Tajawal'; }
         #tipsContent { display: none; margin-top: 15px; background: rgba(250, 204, 21, 0.05); padding: 15px; border-radius: 15px; border: 1px dotted var(--neon-yellow); font-size: 12px; line-height: 1.8; color: #cbd5e1; }
         .disclaimer { text-align: center; font-size: 10px; color: #64748b; margin-top: 20px; line-height: 1.5; }
@@ -51,14 +55,24 @@
         </div>
     </div>
 
+    <div class="input-group" style="margin-bottom: 20px;">
+        <label>عدد الوحدات (لتقسيم فاتورة الخدمات أو العائلات)</label>
+        <input type="number" id="unitsCount" value="1" min="1" inputmode="numeric">
+    </div>
+
     <button class="calc-btn" onclick="calculateSmartBill()">تحليل الاستهلاك 🔍</button>
     <button class="reset-btn" onclick="resetApp()">🔄 حساب جديد / مسح الذاكرة</button>
 
     <div id="resultBox" class="result-box">
         <div class="radar-status" id="radarStatus">📡 الرادار يحلل نمط استهلاكك الآن...</div>
-        <div style="text-align: center; font-size: 13px; color: #94a3b8;">إجمالي الفاتورة التقديري</div>
+        <div id="totalLabel" style="text-align: center; font-size: 13px; color: #94a3b8;">إجمالي الفاتورة التقديري</div>
         <span class="total-price" id="totalVal">0.00 ج.م</span>
         
+        <div class="unit-money-box" id="unitBox">
+            <span style="font-size: 12px; color: #cbd5e1; display: block; margin-bottom: 5px;">نصيب الوحدة الواحدة من الفاتورة</span>
+            <span id="unitMoneyVal" style="font-size: 24px; color: var(--neon-yellow); font-weight: 900;">0.00 ج.م</span>
+        </div>
+
         <div id="smartWarning" class="smart-warning"></div>
         
         <button class="tips-btn" onclick="toggleTips()">💡 ازاي أقلل الفاتورة الشهر الجاي؟</button>
@@ -70,10 +84,11 @@
         </div>
 
         <div style="margin-top: 20px; font-size: 13px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px;">
-            <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>صافي الاستهلاك:</span> <span id="totalKwh" style="color:var(--cyan)">0</span></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>إجمالي الاستهلاك:</span> <span id="totalKwh" style="color:var(--cyan)">0</span></div>
+            <div id="unitKwhRow" style="display:none; justify-content:space-between; margin-bottom: 8px;"><span>نصيب الوحدة (كمية):</span> <span id="unitKwh" style="color:var(--cyan)">0</span></div>
             <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>الشريحة الحالية:</span> <span id="shText"> - </span></div>
             <div style="display:flex; justify-content:space-between; color: var(--neon-yellow); padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
-                <span>رسوم الخدمات:</span> <span id="feesText">0</span>
+                <span>إجمالي الرسوم (خدمة + نظافة):</span> <span id="feesText">0</span>
             </div>
         </div>
     </div>
@@ -85,12 +100,9 @@
 </div>
 
 <script>
-    // ميزة الحفظ: استرجاع القراءة السابقة تلقائياً
     window.onload = function() {
         const savedRead = localStorage.getItem('lastCurrentRead');
-        if (savedRead) {
-            document.getElementById('prevRead').value = savedRead;
-        }
+        if (savedRead) { document.getElementById('prevRead').value = savedRead; }
     };
 
     function animateValue(obj, start, end, duration) {
@@ -100,9 +112,7 @@
             const progress = Math.min((timestamp - startTimestamp) / duration, 1);
             const currentVal = (progress * (end - start) + start).toFixed(2);
             obj.innerHTML = currentVal + " ج.م";
-            if (progress < 1) {
-                window.requestAnimationFrame(step);
-            }
+            if (progress < 1) window.requestAnimationFrame(step);
         };
         window.requestAnimationFrame(step);
     }
@@ -110,65 +120,75 @@
     function calculateSmartBill() {
         const current = parseFloat(document.getElementById('currentRead').value);
         const previous = parseFloat(document.getElementById('prevRead').value);
+        const units = parseInt(document.getElementById('unitsCount').value) || 1;
         const errorDiv = document.getElementById('errorMsg');
         const resultBox = document.getElementById('resultBox');
 
         if (isNaN(current) || isNaN(previous) || current < previous) {
-            errorDiv.style.display = 'block';
-            resultBox.style.display = 'none';
-            return;
+            errorDiv.style.display = 'block'; resultBox.style.display = 'none'; return;
         }
 
         errorDiv.style.display = 'none';
-        const kwh = current - previous;
-        let cost = 0, serviceFee = 0, cleanFee = 10, sh = "";
-        let radarMsg = "";
+        const totalKwh = current - previous;
+        const kwhPerUnit = totalKwh / units;
+        
+        let unitCost = 0, serviceFee = 0, cleanFee = 10, sh = "", radarMsg = "";
 
-        // معادلات الشرائح
-        if (kwh <= 50) {
-            cost = kwh * 0.68; serviceFee = 1; sh = "الأولى (0 - 50)";
+        // حساب الشريحة بناءً على نصيب الوحدة الواحدة
+        if (kwhPerUnit <= 50) {
+            unitCost = kwhPerUnit * 0.68; serviceFee = 1; sh = "الأولى (0 - 50)";
             radarMsg = "📡 الرادار شايف إن استهلاكك مثالي جداً.. استمر!";
-        } else if (kwh <= 100) {
-            cost = (50 * 0.68) + ((kwh - 50) * 0.78); serviceFee = 2; sh = "الثانية (51 - 100)";
+        } else if (kwhPerUnit <= 100) {
+            unitCost = (50 * 0.68) + ((kwhPerUnit - 50) * 0.78); serviceFee = 2; sh = "الثانية (51 - 100)";
             radarMsg = "📡 الرادار يرصد استهلاك منزلي بسيط ومستقر.";
-        } else if (kwh <= 200) {
-            cost = kwh * 0.95; serviceFee = 6; sh = "الثالثة (101 - 200)";
+        } else if (kwhPerUnit <= 200) {
+            unitCost = kwhPerUnit * 0.95; serviceFee = 6; sh = "الثالثة (101 - 200)";
             radarMsg = "📡 الرادار ملاحظ زيادة طفيفة.. ابدأ بالترشيد.";
-        } else if (kwh <= 350) {
-            cost = (200 * 0.95) + ((kwh - 200) * 1.55); serviceFee = 11; sh = "الرابعة (201 - 350)";
-            radarMsg = "📡 الرادار: استهلاكك متوسط، حاول تقليل الأحمال غير الضرورية.";
-        } else if (kwh <= 650) {
-            cost = (200 * 0.95) + (150 * 1.55) + ((kwh - 350) * 1.65); serviceFee = 15; sh = "الخامسة (351 - 650)";
-            radarMsg = "📡 تحذير: الرادار شايف إن الاستهلاك عالي اليومين دول!";
+        } else if (kwhPerUnit <= 350) {
+            unitCost = (200 * 0.95) + ((kwhPerUnit - 200) * 1.55); serviceFee = 11; sh = "الرابعة (201 - 350)";
+            radarMsg = "📡 الرادار: استهلاكك متوسط، حاول تقليل الأحمال.";
+        } else if (kwhPerUnit <= 650) {
+            unitCost = (200 * 0.95) + (150 * 1.55) + ((kwhPerUnit - 350) * 1.65); serviceFee = 15; sh = "الخامسة (351 - 650)";
+            radarMsg = "📡 تحذير: الرادار شايف إن الاستهلاك عالي!";
         } else {
-            cost = kwh * 2.10; serviceFee = 40; sh = "السادسة/السابعة (خارج الدعم)";
-            radarMsg = "🚨 الرادار في حالة إنذار! أنت الآن في أعلى فئة استهلاك.";
+            unitCost = kwhPerUnit * 2.10; serviceFee = 40; sh = "خارج الدعم";
+            radarMsg = "🚨 الرادار في حالة إنذار! استهلاك مرتفع جداً.";
         }
 
-        const total = cost + serviceFee + cleanFee;
+        const totalPerUnit = unitCost + serviceFee + cleanFee;
+        const finalTotal = totalPerUnit * units;
         
-        // حفظ القراءة لاستخدامها المرة القادمة
         localStorage.setItem('lastCurrentRead', current);
-
         resultBox.style.display = 'block';
+
+        // عرض نصيب الوحدة لو العدد أكبر من 1
+        if (units > 1) {
+            document.getElementById('unitBox').style.display = 'block';
+            document.getElementById('unitKwhRow').style.display = 'flex';
+            document.getElementById('totalLabel').innerText = "إجمالي فاتورة العداد (لكل الوحدات)";
+            animateValue(document.getElementById('unitMoneyVal'), 0, totalPerUnit, 1000);
+        } else {
+            document.getElementById('unitBox').style.display = 'none';
+            document.getElementById('unitKwhRow').style.display = 'none';
+            document.getElementById('totalLabel').innerText = "إجمالي الفاتورة التقديري";
+        }
+
         document.getElementById('radarStatus').innerText = radarMsg;
-        document.getElementById('totalKwh').innerText = kwh + " ك.و.س";
+        document.getElementById('totalKwh').innerText = totalKwh + " ك.و.س";
+        document.getElementById('unitKwh').innerText = kwhPerUnit.toFixed(1) + " ك.و.س";
         document.getElementById('shText').innerText = sh;
-        document.getElementById('feesText').innerText = (serviceFee + cleanFee).toFixed(2) + " ج.م";
+        document.getElementById('feesText').innerText = ((serviceFee + cleanFee) * units).toFixed(2) + " ج.م";
         
-        // تشغيل تأثير العداد
-        animateValue(document.getElementById('totalVal'), 0, total, 1000);
+        animateValue(document.getElementById('totalVal'), 0, finalTotal, 1000);
 
         const warnBox = document.getElementById('smartWarning');
-        warnBox.className = kwh > 200 ? "smart-warning warn-danger" : "smart-warning warn-safe";
-        warnBox.innerHTML = kwh > 200 ? "⚠️ <b>تحذير:</b> دخلت منطقة التكلفة العالية." : "✅ <b>ممتاز:</b> استهلاكك لسه تحت السيطرة.";
+        warnBox.className = kwhPerUnit > 200 ? "smart-warning warn-danger" : "smart-warning warn-safe";
+        warnBox.innerHTML = kwhPerUnit > 200 ? "⚠️ <b>تحذير:</b> الوحدة الواحدة دخلت منطقة التكلفة العالية." : "✅ <b>ممتاز:</b> استهلاك الوحدة لسه تحت السيطرة.";
     }
 
     function resetApp() {
         localStorage.removeItem('lastCurrentRead');
-        document.getElementById('currentRead').value = "";
-        document.getElementById('prevRead').value = "";
-        document.getElementById('resultBox').style.display = 'none';
+        location.reload();
     }
 
     function toggleTips() {
@@ -176,6 +196,5 @@
         content.style.display = content.style.display === 'block' ? 'none' : 'block';
     }
 </script>
-
 </body>
 </html>
