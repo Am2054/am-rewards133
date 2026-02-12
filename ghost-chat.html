@@ -11,18 +11,25 @@
             --danger: #ff4444; --system: #94a3b8; --success: #10b981;  
             --glass: rgba(2, 6, 23, 0.7);  
         }  
-        * { -webkit-tap-highlight-color: transparent; user-select: none; }  
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }  
         input, .text { user-select: text; }  
-
+        
         html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; color: #fff; }  
-        body { font-family: 'Tajawal', sans-serif; display: flex; flex-direction: column; background: #020617 url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1500') no-repeat center center fixed; background-size: cover; }  
+        body { 
+            font-family: 'Tajawal', sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            background: #020617 url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1500') no-repeat center center fixed; 
+            background-size: cover; 
+            user-select: none;
+        }  
         body::before { content: ""; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: -1; }  
 
         /* Overlay القوانين */
         #rulesOverlay { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.96); backdrop-filter: blur(20px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; transition: 0.5s all ease; }  
-        .rules-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(0, 242, 255, 0.3); border-radius: 30px; padding: 30px; max-width: 400px; width: 100%; }  
-        .rules-card h3 { color: var(--cyan); text-align: center; margin: 0 0 20px; }  
-        .rules-list { list-style: none; padding: 0; font-size: 13px; color: #cbd5e1; margin-bottom: 25px; }  
+        .rules-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(0, 242, 255, 0.3); border-radius: 30px; padding: 30px; max-width: 400px; width: 100%; text-align: center; }  
+        .rules-card h3 { color: var(--cyan); margin: 0 0 20px; }  
+        .rules-list { list-style: none; padding: 0; font-size: 13px; color: #cbd5e1; margin-bottom: 25px; text-align: right; }  
         .rules-list li { margin-bottom: 12px; padding-right: 25px; position: relative; }  
         .rules-list li::before { content: "✦"; position: absolute; right: 0; color: var(--cyan); }  
         .agree-btn { width: 100%; background: linear-gradient(135deg, var(--cyan), var(--purple)); color: #fff; border: none; padding: 16px; border-radius: 50px; font-weight: 900; cursor: pointer; }  
@@ -43,20 +50,21 @@
         .msg-confession { background: linear-gradient(135deg, rgba(153, 27, 27, 0.9), rgba(69, 10, 10, 0.9)) !important; border: 1px solid var(--danger) !important; box-shadow: 0 0 15px rgba(255, 68, 68, 0.3); }
 
         .sender { font-size: 10px; font-weight: 900; color: var(--cyan); margin-bottom: 6px; display: flex; justify-content: space-between; }  
+        .text { word-wrap: break-word; line-height: 1.4; }
 
         .input-area { padding: 15px; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(15px); border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: calc(15px + env(safe-area-inset-bottom)); }  
         .input-wrapper { display: flex; gap: 10px; align-items: center; max-width: 600px; margin: 0 auto; }  
         input { flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid #444; padding: 14px 20px; border-radius: 30px; color: #fff; outline: none; font-size: 16px; }  
         input:disabled { opacity: 0.5; }
-        .send-btn { background: var(--cyan); border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; font-size: 20px; color: #000; font-weight: bold; }  
-        .send-btn:disabled { background: #444; color: #777; opacity: 0.5; }  
+        .send-btn { background: var(--cyan); border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; font-size: 20px; color: #000; font-weight: bold; transition: 0.3s; }  
+        .send-btn:disabled { background: #444; color: #777; opacity: 0.5; filter: grayscale(1); }  
     </style>
 </head>  
 <body>  
 
 <div id="rulesOverlay">  
     <div class="rules-card">  
-        <h3>📜 ميثاق الأشباح v4.0</h3>  
+        <h3>📜 ميثاق الأشباح v5.0</h3>  
         <ul class="rules-list">  
             <li><b>التشفير:</b> هويتك متغيرة يومياً ومحمية بسيرفر سحابي.</li>  
             <li><b>الاعتراف:</b> استخدم <b>#اعتراف</b> ليتوهج كلامك بلون الدم.</li>  
@@ -70,7 +78,7 @@
 <header>  
     <h2 style="margin:0; font-weight:900; font-size:18px;">GHOST CHAT <span style="color:var(--cyan)">ULTIMATE</span></h2>  
     <span id="status">جاري استدعاء كيانك...</span>  
-    <div id="onlineCounter">👁️ أشباح متصلة الآن: --</div>
+    <div id="onlineCounter">👁️ أشباح حاضرة الآن: 0</div>
 </header>  
 
 <div id="chatBox"></div>  
@@ -84,7 +92,7 @@
 
 <script type="module">  
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";  
-    import { getDatabase, ref, onChildAdded, onValue, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";  
+    import { getDatabase, ref, onChildAdded, onValue, query, limitToLast, set, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";  
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 
@@ -107,7 +115,6 @@
     let currentUser = null;
     let myGhostName = "";
 
-    // نظام الهوية المتغيرة يومياً
     const getDailyIdentity = () => {
         const today = new Date().toDateString();
         const savedDate = localStorage.getItem('ghost_id_date');
@@ -136,60 +143,63 @@
     });
 
     window.acceptRules = () => {  
-        localStorage.setItem('ghost_rules_v4_final', 'true');  
+        localStorage.setItem('ghost_rules_final_v5', 'true');  
         document.getElementById('rulesOverlay').style.opacity = '0';  
         setTimeout(() => document.getElementById('rulesOverlay').style.display = 'none', 500);  
     };  
-    if(localStorage.getItem('ghost_rules_v4_final')) acceptRules();  
+    if(localStorage.getItem('ghost_rules_final_v5')) acceptRules();  
 
-    // وظيفة الإرسال عبر الـ Cloud Function
     async function send() {  
         const input = document.getElementById('msgInput');  
+        const btn = document.getElementById('sendBtn');
         const text = input.value.trim();  
-        if(!text || !currentUser) return;  
+        if(!text || btn.disabled) return;  
 
-        document.getElementById('sendBtn').disabled = true;  
+        btn.disabled = true;  
         try {  
-            // استدعاء السيرفر للإرسال والفلترة
             await sendSecureMessage({ text: text, sender: myGhostName });  
             input.value = "";  
         } catch(e) {
             alert(e.message);
         } finally {  
-            setTimeout(() => { document.getElementById('sendBtn').disabled = false; }, 3000);  
+            setTimeout(() => { btn.disabled = false; }, 3000);  
         }  
     }  
   
-    // تحسين الأداء: Listener واحد لكل الرسائل في المسار العالمي الجديد
     function initChat() {
-        // 1. التحقق من الحظر الشخصي
-        const banRef = ref(db, `banned_users/${currentUser.uid}`);
-        onValue(banRef, (snapshot) => {
-            if (snapshot.exists()) {
-                document.getElementById('status').innerText = "🚫 كيانك منفي حالياً من عالمنا";
-                document.getElementById('msgInput').placeholder = "تم حظرك..";
+        // تتبع الحضور (Presence) الفعلي
+        const presenceRef = ref(db, `online_users/${currentUser.uid}`);
+        onValue(ref(db, '.info/connected'), (snap) => {
+            if (snap.val()) {
+                onDisconnect(presenceRef).remove();
+                set(presenceRef, { name: myGhostName, last_seen: serverTimestamp() });
+            }
+        });
+
+        // تحديث العداد الفعلي
+        onValue(ref(db, 'online_users'), (snap) => {
+            const count = snap.exists() ? Object.keys(snap.val()).length : 0;
+            document.getElementById('onlineCounter').innerText = `👁️ أشباح حاضرة الآن: ${count}`;
+        });
+
+        // التحقق من الحظر الشخصي
+        onValue(ref(db, `banned_users/${currentUser.uid}`), (snap) => {
+            if (snap.exists()) {
+                document.getElementById('status').innerText = "🚫 كيانك منفي حالياً";
+                document.getElementById('msgInput').placeholder = "تم حظرك نهائياً..";
                 document.getElementById('msgInput').disabled = true;
                 document.getElementById('sendBtn').disabled = true;
             }
         });
 
-        // 2. مراقبة الرسائل العالمية (Global Structure)
-        const globalRef = query(ref(db, "messages/global"), limitToLast(40));
-        
-        onChildAdded(globalRef, (snap) => {
+        // استقبال الرسائل من المسار العالمي
+        const q = query(ref(db, "messages/global"), limitToLast(40));
+        onChildAdded(q, (snap) => {
             const data = snap.val();
-            // الفلترة الزمنية (عرض رسائل آخر 24 ساعة فقط للأمان)
-            const oneDayInMs = 24 * 60 * 60 * 1000;
-            const isFresh = (Date.now() - data.timestamp) < oneDayInMs;
-
-            if (isFresh) {
+            // الفلترة الزمنية (آخر 24 ساعة)
+            if ((Date.now() - data.timestamp) < 86400000) {
                 renderMsg(data, data.uid === currentUser.uid);
             }
-        });
-
-        // عداد أشباح تقديري
-        onValue(ref(db, "messages/global"), () => {
-            document.getElementById('onlineCounter').innerText = `👁️ أشباح متصلة الآن: ${Math.floor(Math.random()*10 + 10)}`;
         });
     }
 
@@ -200,15 +210,21 @@
         let msgClass = isMe ? 'msg-me' : 'msg-remote';
         if(data.isSecret) msgClass += ' msg-secret';
         if(data.isConfession) msgClass += ' msg-confession';
-        
         div.className = `msg ${msgClass}`;  
-        div.innerHTML = `
-            <div class="sender">
-                <span>${isMe ? 'أنت' : data.sender}</span>
-                ${data.isConfession ? '<span style="font-size:8px;">🕯️ اعتراف</span>' : ''}
-            </div>
-            <div class="text">${data.text}</div>
-        `;  
+
+        // بناء العناصر يدوياً لحماية XSS
+        const senderDiv = document.createElement('div');
+        senderDiv.className = 'sender';
+        senderDiv.innerHTML = `<span>${isMe ? 'أنت' : data.sender}</span>`;
+        if(data.isConfession) senderDiv.innerHTML += `<span style="font-size:8px;">🕯️ اعتراف</span>`;
+
+        const textDiv = document.createElement('div');
+        textDiv.className = 'text';
+        textDiv.textContent = data.text; // حماية XSS حقيقية
+
+        div.appendChild(senderDiv);
+        div.appendChild(textDiv);
+        
         chatBox.appendChild(div);  
         chatBox.scrollTop = chatBox.scrollHeight;  
     }
