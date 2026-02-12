@@ -123,7 +123,7 @@
         return localStorage.getItem('ghost_name');
     };
 
-    // --- تعديل جزء الـ Auth لتثبيت الهوية ومنع تكرار العداد ---
+    // تثبيت الهوية لمنع تكرار العداد
     setPersistence(auth, browserLocalPersistence)
         .then(() => {
             return signInAnonymously(auth);
@@ -179,18 +179,23 @@
     }  
   
     function initChat() {
-        // تتبع الحضور (Presence) الفعلي بـ UID ثابت
+        // تتبع الحضور (Presence) الفعلي بـ UID ثابت ومنع التكرار
         const presenceRef = ref(db, `online_users/${currentUser.uid}`);
-        onValue(ref(db, '.info/connected'), (snap) => {
+        const connectedRef = ref(db, '.info/connected');
+
+        onValue(connectedRef, (snap) => {
             if (snap.val()) {
-                // عند إغلاق التابة يتم مسح الـ UID فوراً
+                // التأكد من مسح القديم وكتابة الجديد فوراً
+                set(presenceRef, { 
+                    name: myGhostName, 
+                    last_seen: serverTimestamp(),
+                    uid: currentUser.uid 
+                });
                 onDisconnect(presenceRef).remove();
-                // عند الاتصال يتم تسجيل الـ UID
-                set(presenceRef, { name: myGhostName, last_seen: serverTimestamp() });
             }
         });
 
-        // عداد المتصلين (يعد الـ Unique Keys فقط)
+        // عداد المتصلين الذكي (يعد المفاتيح الفريدة فقط)
         onValue(ref(db, 'online_users'), (snap) => {
             const count = snap.exists() ? Object.keys(snap.val()).length : 0;
             document.getElementById('onlineCounter').innerText = `👁️ أشباح حاضرة الآن: ${count}`;
