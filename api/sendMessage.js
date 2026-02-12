@@ -53,11 +53,13 @@ export default async function handler(req, res) {
 
     // 4. كتابة الرسالة في Realtime Database
     const msgRef = db.ref('messages/global').push();
+    
+    // التعديل هنا: استخدام ServerValue لضمان توقيت موحد للكل (بيساعد في استقرار العداد والترتيب)
     await msgRef.set({
       uid,
       sender,
       text: cleanText,
-      timestamp: Date.now(), // أو استخدم ServerValue.TIMESTAMP
+      timestamp: admin.database.ServerValue.TIMESTAMP, 
       isConfession: text.startsWith('#'),
       isSecret: text.includes('سر')
     });
