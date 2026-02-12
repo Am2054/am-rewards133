@@ -1,71 +1,74 @@
-import admin from 'firebase-admin';
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getDatabase } from "firebase-admin/database";
+import { getAuth } from "firebase-admin/auth";
 
-if (!admin.apps.length) {
-    admin.initializeApp({
-        credential: admin.credential.cert({
-            projectId: "am--rewards",
-            clientEmail: "firebase-adminsdk-xxxxx@am--rewards.iam.gserviceaccount.com", // ضع ايميلك هنا
-            privateKey: "-----BEGIN PRIVATE KEY-----\nإنسخ مفتاحك هنا بالكامل\n-----END PRIVATE KEY-----\n".replace(/\\n/g, '\n')
-        }),
+// تهيئة Firebase Admin بنفس طريقتك الناجحة
+if (!getApps().length) {
+  try {
+    let rawKey = process.env.FIREBASE_ADMIN_KEY; // بنقرأ المفتاح من إعدادات فيرسل
+    if (rawKey) {
+      const serviceAccount = JSON.parse(rawKey.trim());
+      if (serviceAccount.private_key) {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      }
+      initializeApp({
+        credential: cert(serviceAccount),
         databaseURL: "https://am--rewards-default-rtdb.firebaseio.com"
-    });
+      });
+    }
+  } catch (error) {
+    console.error("Firebase Init Error:", error.message);
+  }
 }
 
-const db = admin.database();
+const db = getDatabase();
+const auth = getAuth();
 
 export default async function handler(req, res) {
-    // إعدادات CORS للسماح بالطلبات الخارجية
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  // إعدادات الـ CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+
+  try {
+    const { text, sender, uid, token } = req.body;
+
+    // 1. التحقق من التوكين (الأمان)
+    const decodedToken = await auth.verifyIdToken(token);
+    if (decodedToken.uid !== uid) throw new Error("Unauthorized");
+
+    // 2. نظام الـ Rate Limit (3 ثواني)
+    const now = Date.now();
+    const lastMsgRef = db.ref(`lastMessage/${uid}`);
+    const lastSnap = await lastMsgRef.once("value");
+    if (lastSnap.exists() && (now - lastSnap.val() < 3000)) {
+      return res.status(429).json({ error: "اهدأ قليلاً يا شبح.." });
     }
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
-    }
+    // 3. تنظيف النص (الأرقام والروابط)
+    const cleanText = text.replace(/(010|011|012|015|019|٠١٠|٠١١|٠١٢|٠١٥|٠١٩)[\s-]*\d{8}/g, "[محجوب]");
 
-    try {
-        const { text, sender, uid, token } = req.body;
+    // 4. كتابة الرسالة في Realtime Database
+    const msgRef = db.ref('messages/global').push();
+    await msgRef.set({
+      uid,
+      sender,
+      text: cleanText,
+      timestamp: Date.now(), // أو استخدم ServerValue.TIMESTAMP
+      isConfession: text.startsWith('#'),
+      isSecret: text.includes('سر')
+    });
 
-        // التحقق من التوكين للأمان
-        const decodedToken = await admin.auth().verifyIdToken(token);
-        if (decodedToken.uid !== uid) {
-            throw new Error("Unauthorized access");
-        }
+    // تحديث وقت آخر رسالة
+    await lastMsgRef.set(now);
 
-        // نظام الحماية من السبام (3 ثواني)
-        const now = Date.now();
-        const lastMsgRef = db.ref(`lastMessage/${uid}`);
-        const lastSnap = await lastMsgRef.once("value");
-        
-        if (lastSnap.exists() && (now - lastSnap.val() < 3000)) {
-            return res.status(429).json({ error: 'اهدأ قليلاً يا شبح.. الهمسات تحتاج وقتاً.' });
-        }
+    return res.status(200).json({ success: true });
 
-        // تنظيف النص من الأرقام والروابط
-        const cleanText = text.replace(/(010|011|012|015|019|٠١٠|٠١١|٠١٢|٠١٥|٠١٩)[\s-]*\d{8}/g, "[محجوب]");
-
-        // كتابة الرسالة في قاعدة البيانات
-        const msgRef = db.ref('messages/global').push();
-        await msgRef.set({
-            uid: uid,
-            sender: sender,
-            text: cleanText,
-            timestamp: admin.database.ServerValue.TIMESTAMP,
-            isConfession: text.startsWith('#'),
-            isSecret: text.includes('سر')
-        });
-
-        // تحديث وقت آخر رسالة للمستخدم
-        await lastMsgRef.set(now);
-
-        return res.status(200).json({ success: true });
-
-    } catch (error) {
-        console.error("Server Error:", error.message);
-        return res.status(500).json({ error: error.message });
-    }
+  } catch (error) {
+    console.error("API Error:", error.message);
+    return res.status(500).json({ error: error.message });
+  }
 }
