@@ -109,7 +109,7 @@
 
     let currentUser = null;
     let myGhostName = "";
-    const renderedMsgIds = new Set(); // الذاكرة لمنع تكرار عرض الرسائل
+    const renderedMsgIds = new Set(); 
 
     const getDailyIdentity = () => {
         const today = new Date().toDateString();
@@ -124,9 +124,10 @@
         return localStorage.getItem('ghost_name');
     };
 
+    // تثبيت الهوية لضمان بقاء الرسائل على اليسار (مهم جداً)
     setPersistence(auth, browserLocalPersistence).then(() => {
         return signInAnonymously(auth);
-    });
+    }).catch(e => console.error("Auth Error", e));
 
     onAuthStateChanged(auth, (user) => {
         if (user) {
@@ -172,7 +173,7 @@
     }  
   
     function initChat() {
-        // --- الحضور (Presence) والعداد ---
+        // --- الحضور والعداد (حل مشكلة الزيادة) ---
         const presenceRef = ref(db, `online_users/${currentUser.uid}`);
         onValue(ref(db, '.info/connected'), (snap) => {
             if (snap.val()) {
@@ -195,17 +196,15 @@
             }
         });
 
-        // --- استلام الرسائل (مع منع التكرار) ---
+        // --- استلام الرسائل (حل مشكلة التكرار والاتجاه) ---
         const q = query(ref(db, "messages/global"), limitToLast(40));
         onChildAdded(q, (snap) => {
             if (renderedMsgIds.has(snap.key)) return;
             renderedMsgIds.add(snap.key);
 
             const data = snap.val();
-            // فلترة الـ 24 ساعة (اختياري، يمكنك حذف الشرط لو تريد كل الرسائل)
-            if ((Date.now() - (data.timestamp || Date.now())) < 86400000) {
-                renderMsg(data, data.uid === currentUser.uid);
-            }
+            // مقارنة الـ UID بدقة لضمان بقاء رسائلك على اليسار
+            renderMsg(data, data.uid === currentUser.uid);
         });
     }
 
