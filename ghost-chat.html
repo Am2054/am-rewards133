@@ -90,7 +90,7 @@
 
 <script type="module">  
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";  
-    import { getDatabase, ref, onChildAdded, onValue, query, limitToLast, set, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";  
+    import { getDatabase, ref, onChildAdded, onValue, query, limitToLast, set, onDisconnect, serverTimestamp, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";  
     import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {  
@@ -124,10 +124,9 @@
         return localStorage.getItem('ghost_name');
     };
 
-    // تثبيت الهوية لضمان بقاء الرسائل على اليسار (مهم جداً)
     setPersistence(auth, browserLocalPersistence).then(() => {
         return signInAnonymously(auth);
-    }).catch(e => console.error("Auth Error", e));
+    });
 
     onAuthStateChanged(auth, (user) => {
         if (user) {
@@ -173,12 +172,21 @@
     }  
   
     function initChat() {
-        // --- الحضور والعداد (حل مشكلة الزيادة) ---
+        // --- حل العداد (التأكد من الوجود قبل الـ set) ---
         const presenceRef = ref(db, `online_users/${currentUser.uid}`);
         onValue(ref(db, '.info/connected'), (snap) => {
             if (snap.val()) {
                 onDisconnect(presenceRef).remove();
-                set(presenceRef, { name: myGhostName, last_seen: serverTimestamp() });
+                
+                // تحقق إذا كان المستخدم مسجل فعلاً لتجنب تكرار العداد
+                get(presenceRef).then(existing => {
+                    if (!existing.exists()) {
+                        set(presenceRef, {
+                            name: myGhostName,
+                            last_seen: serverTimestamp()
+                        });
+                    }
+                });
             }
         });
 
@@ -196,15 +204,15 @@
             }
         });
 
-        // --- استلام الرسائل (حل مشكلة التكرار والاتجاه) ---
+        // --- استلام الرسائل (حل مشكلة الاتجاه بالاعتماد على الاسم اليومي) ---
         const q = query(ref(db, "messages/global"), limitToLast(40));
         onChildAdded(q, (snap) => {
             if (renderedMsgIds.has(snap.key)) return;
             renderedMsgIds.add(snap.key);
 
             const data = snap.val();
-            // مقارنة الـ UID بدقة لضمان بقاء رسائلك على اليسار
-            renderMsg(data, data.uid === currentUser.uid);
+            // المقارنة بالاسم اليومي الثابت لضمان بقاء الرسائل على الشمال
+            renderMsg(data, data.sender === myGhostName);
         });
     }
 
