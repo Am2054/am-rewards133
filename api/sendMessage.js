@@ -1,12 +1,11 @@
-const admin = require('firebase-admin');
+import admin from 'firebase-admin';
 
 if (!admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.cert({
             projectId: "am--rewards",
-            // ملاحظة: يفضل وضع هذه البيانات في Vercel Environment Variables
-            clientEmail: "firebase-adminsdk-xxxxx@am--rewards.iam.gserviceaccount.com",
-            privateKey: "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n".replace(/\\n/g, '\n')
+            clientEmail: "firebase-adminsdk-xxxxx@am--rewards.iam.gserviceaccount.com", // ضع ايميلك هنا
+            privateKey: "-----BEGIN PRIVATE KEY-----\nإنسخ مفتاحك هنا بالكامل\n-----END PRIVATE KEY-----\n".replace(/\\n/g, '\n')
         }),
         databaseURL: "https://am--rewards-default-rtdb.firebaseio.com"
     });
@@ -15,50 +14,58 @@ if (!admin.apps.length) {
 const db = admin.database();
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+    // إعدادات CORS للسماح بالطلبات الخارجية
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-    const { text, sender, uid, token } = req.body;
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method Not Allowed' });
+    }
 
     try {
-        // التحقق من هوية المرسل (Security Check)
-        const decodedToken = await admin.auth().verifyIdToken(token);
-        if (decodedToken.uid !== uid) throw new Error("Unauthenticated");
+        const { text, sender, uid, token } = req.body;
 
-        // 1. نظام الـ Rate Limit الحقيقي (3 ثواني)
+        // التحقق من التوكين للأمان
+        const decodedToken = await admin.auth().verifyIdToken(token);
+        if (decodedToken.uid !== uid) {
+            throw new Error("Unauthorized access");
+        }
+
+        // نظام الحماية من السبام (3 ثواني)
         const now = Date.now();
         const lastMsgRef = db.ref(`lastMessage/${uid}`);
         const lastSnap = await lastMsgRef.once("value");
+        
         if (lastSnap.exists() && (now - lastSnap.val() < 3000)) {
-            return res.status(429).json({ error: 'اهدأ يا شبح.. الهمسات تحتاج وقتاً.' });
+            return res.status(429).json({ error: 'اهدأ قليلاً يا شبح.. الهمسات تحتاج وقتاً.' });
         }
 
-        // 2. التحقق من الحظر
-        const banSnap = await db.ref(`banned_users/${uid}`).once('value');
-        if (banSnap.exists()) return res.status(403).json({ error: 'أنت منفي من هذا العالم.' });
+        // تنظيف النص من الأرقام والروابط
+        const cleanText = text.replace(/(010|011|012|015|019|٠١٠|٠١١|٠١٢|٠١٥|٠١٩)[\s-]*\d{8}/g, "[محجوب]");
 
-        // 3. فلترة النص (الروابط والأرقام)
-        const phonePattern = /(010|011|012|015|019|٠١٠|٠١١|٠١٢|٠١٥|٠١٩)[\s-]*\d[\s-]*\d[\s-]*\d[\s-]*\d[\s-]*\d[\s-]*\d[\s-]*\d[\s-]*\d/g;
-        const linkPattern = /(http|https|www|\.com|\.net|\.org|dot|[\s]com)/gi;
-        const cleanText = text.replace(phonePattern, "[محجوب]").replace(linkPattern, "[محجوب]");
-
-        // 4. الكتابة في المسار العالمي
-        const globalMsgRef = db.ref('messages/global').push();
-        await globalMsgRef.set({
-            uid,
-            sender,
+        // كتابة الرسالة في قاعدة البيانات
+        const msgRef = db.ref('messages/global').push();
+        await msgRef.set({
+            uid: uid,
+            sender: sender,
             text: cleanText,
             timestamp: admin.database.ServerValue.TIMESTAMP,
             isConfession: text.startsWith('#'),
             isSecret: text.includes('سر')
         });
 
-        // تحديث وقت آخر رسالة
+        // تحديث وقت آخر رسالة للمستخدم
         await lastMsgRef.set(now);
-        
+
         return res.status(200).json({ success: true });
 
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: "Internal Server Error" });
+        console.error("Server Error:", error.message);
+        return res.status(500).json({ error: error.message });
     }
 }
