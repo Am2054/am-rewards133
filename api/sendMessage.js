@@ -1,5 +1,5 @@
 import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getDatabase, ServerValue } from "firebase-admin/database"; // أضفنا ServerValue هنا
+import { getDatabase, ServerValue } from "firebase-admin/database";
 import { getAuth } from "firebase-admin/auth";
 
 if (!getApps().length) {
@@ -33,31 +33,42 @@ export default async function handler(req, res) {
 
   try {
     const { text, sender, uid, token } = req.body;
+    
+    // التحقق من التوكن (للأمان فقط)
     const decodedToken = await auth.verifyIdToken(token);
     if (decodedToken.uid !== uid) throw new Error("Unauthorized");
 
     const now = Date.now();
-    const lastMsgRef = db.ref(`lastMessage/${uid}`);
+
+    // --- التعديل الجوهري هنا ---
+    // نستخدم sender (الاسم) كمرجع للحماية بدلاً من الـ uid
+    // لأن الاسم ثابت طول اليوم حتى لو الـ uid اتغير
+    const lastMsgRef = db.ref(`lastMessage/${sender.replace(/[.#$[\]]/g, "_")}`); 
     const lastSnap = await lastMsgRef.once("value");
+
     if (lastSnap.exists() && (now - lastSnap.val() < 3000)) {
-      return res.status(429).json({ error: "اهدأ قليلاً يا شبح.." });
+      return res.status(429).json({ error: "اهدأ قليلاً يا شبح.. انتظر 3 ثوانٍ" });
     }
 
     const cleanText = text.replace(/(010|011|012|015|019|٠١٠|٠١١|٠١٢|٠١٥|٠١٩)[\s-]*\d{8}/g, "[محجوب]");
 
+    const isConfession = text.includes('#اعتراف');
+    const isSecret = text.includes('#سر');
+
     const msgRef = db.ref('messages/global').push();
     
-    // التعديل هنا: استخدمنا ServerValue مباشرة بدل admin.database
     await msgRef.set({
-      uid,
-      sender,
+      uid,       // نحتفظ به فقط للـ Admin إذا احتجنا حظر الـ UID
+      sender,    // الاسم الذي يظهر للناس
       text: cleanText,
       timestamp: ServerValue.TIMESTAMP, 
-      isConfession: text.startsWith('#'),
-      isSecret: text.includes('سر')
+      isConfession: isConfession,
+      isSecret: isSecret
     });
 
+    // تحديث وقت آخر رسالة بناءً على "الاسم"
     await lastMsgRef.set(now);
+    
     return res.status(200).json({ success: true });
 
   } catch (error) {
