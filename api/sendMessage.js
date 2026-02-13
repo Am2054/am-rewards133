@@ -1,6 +1,8 @@
 import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getDatabase } from "firebase-admin/database"; // حذفنا ServerValue
+import { getDatabase } from "firebase-admin/database";
 import { getAuth } from "firebase-admin/auth";
+// 1. إضافة مكتبة الإشعارات للسيرفر ✅
+import { getMessaging } from "firebase-admin/messaging";
 
 if (!getApps().length) {
   try {
@@ -22,6 +24,7 @@ if (!getApps().length) {
 
 const db = getDatabase();
 const auth = getAuth();
+const messaging = getMessaging(); // تعريف خدمة الإشعارات
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -34,14 +37,12 @@ export default async function handler(req, res) {
   try {
     const { text, sender, uid, token } = req.body;
     
-    // التحقق من التوكن
     const decodedToken = await auth.verifyIdToken(token);
     if (decodedToken.uid !== uid) throw new Error("Unauthorized");
 
     const now = Date.now();
     const safeSenderName = sender.replace(/[.#$[\]]/g, "_");
     
-    // حماية من السبام
     const lastMsgRef = db.ref(`lastMessage/${safeSenderName}`);
     const lastSnap = await lastMsgRef.once("value");
     if (lastSnap.exists() && (now - lastSnap.val() < 3000)) {
@@ -54,17 +55,51 @@ export default async function handler(req, res) {
 
     const msgRef = db.ref('messages/global').push();
     
-    // التعديل السحري هنا ✅
     await msgRef.set({
       uid,
       sender,
       text: cleanText,
-      timestamp: now, // استخدام رقم مباشر بدلاً من ServerValue
+      timestamp: now,
       isConfession,
       isSecret
     });
 
     await lastMsgRef.set(now);
+
+    // 2. الجزء الخاص بإرسال الإشعارات للجميع ✅
+    try {
+      const tokensSnap = await db.ref('users_tokens').once('value');
+      if (tokensSnap.exists()) {
+        const tokensData = tokensSnap.val();
+        const registrationTokens = Object.values(tokensData).map(u => u.token);
+
+        // إعداد محتوى الإشعار
+        const payload = {
+          notification: {
+            title: isConfession ? `🕯️ اعتراف جديد من ${sender}` : `👻 رسالة جديدة في عالم الأشباح`,
+            body: isSecret ? "همس بشيء غامض..." : (cleanText.length > 50 ? cleanText.substring(0, 47) + "..." : cleanText),
+          },
+          // بيانات إضافية لفتح الشات عند الضغط
+          data: {
+            click_action: "FLUTTER_NOTIFICATION_CLICK",
+            sender: sender
+          }
+        };
+
+        // إرسال الإشعار لكل التوكنز المسجلة (بحد أقصى 500 في المرة الواحدة)
+        if (registrationTokens.length > 0) {
+          await messaging.sendEachForMulticast({
+            tokens: registrationTokens,
+            notification: payload.notification,
+            data: payload.data
+          });
+        }
+      }
+    } catch (pushError) {
+      console.error("Push Notification Error:", pushError);
+      // لا نعطل إرسال الرسالة إذا فشل الإشعار
+    }
+
     return res.status(200).json({ success: true });
 
   } catch (error) {
