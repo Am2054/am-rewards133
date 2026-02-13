@@ -116,13 +116,11 @@
     let myGhostName = "";
     const renderedMsgIds = new Set(); 
 
-    // --- نظام الهوية المتغيرة يومياً ---
     const getDailyIdentity = () => {
-        const today = new Date().toDateString(); // يحصل على تاريخ اليوم كـ String
+        const today = new Date().toDateString(); 
         const savedDate = localStorage.getItem('ghost_id_date');
         let name = localStorage.getItem('ghost_name_v5');
 
-        // إذا كان التاريخ المحفوظ مختلف عن اليوم أو لا يوجد اسم، نولد اسماً جديداً
         if (savedDate !== today || !name) {
             const adjs = ["الغامض", "الثائر", "الهادئ", "المحارب", "العابر", "الصامت", "التائه", "المراقب", "المنسي", "الخفي"];  
             const names = ["طيف", "كيان", "سراب", "ظل", "نور", "صدى", "برق", "نجم", "وهم", "شبح"];  
@@ -197,7 +195,9 @@
             if (renderedMsgIds.has(snap.key)) return;
             renderedMsgIds.add(snap.key);
             const data = snap.val();
-            renderMsg(data, data.uid === currentUser.uid);
+            // تعديل: مقارنة الرسائل بالاسم المخزن في المتصفح لضمان بقائها على اليمين
+            const isMe = data.sender === myGhostName;
+            renderMsg(data, isMe);
         });
     }
 
