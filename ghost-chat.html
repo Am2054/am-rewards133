@@ -38,7 +38,6 @@
         /* الهيدر */
         header { padding: env(safe-area-inset-top, 15px) 15px 15px; text-align: center; background: var(--glass); backdrop-filter: blur(15px); border-bottom: 1px solid rgba(0, 242, 255, 0.1); z-index: 100; }  
         #status { font-size: 11px; color: var(--cyan); display: block; margin-top: 5px; font-weight: 900; letter-spacing: 0.5px; }  
-        #onlineCounter { font-size: 11px; color: var(--success); font-weight: bold; margin-top: 6px; background: rgba(16, 185, 129, 0.15); display: inline-block; padding: 4px 12px; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.2); }
 
         /* منطقة الشات */
         #chatBox { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth; }  
@@ -70,11 +69,11 @@
 
 <div id="rulesOverlay">  
     <div class="rules-card">  
-        <h3>📜 ميثاق الأشباح v5.0</h3>  
+        <h3>📜 ميثاق الأشباح v5.1</h3>  
         <ul class="rules-list">  
-            <li><b>التثبيت:</b> هويتك ثابتة لهذا الجهاز ما لم يتدخل التطهير الرقمي.</li>  
-            <li><b>الاعتراف:</b> استخدم <b>#اعتراف</b> ليتوهج النص باللون القرمزي.</li>  
             <li><b>التطهير:</b> تُحذف كافة الأسرار تلقائياً كل 24 ساعة.</li>  
+            <li><b>الهوية:</b> تتغير روحك الرقمية تلقائياً مع بزوغ فجر يوم جديد.</li>  
+            <li><b>الاعتراف:</b> استخدم <b>#اعتراف</b> ليتوهج النص باللون القرمزي.</li>  
         </ul>  
         <button class="agree-btn" onclick="acceptRules()">أوافق وأدخل العالم الآخر 🕯️</button>  
     </div>  
@@ -82,8 +81,7 @@
 
 <header>  
     <h2 style="margin:0; font-weight:900; font-size:18px; letter-spacing: 1.5px;">GHOST CHAT <span style="color:var(--cyan)">PRO</span></h2>  
-    <span id="status">جاري استدعاء كيانك...</span>  
-    <div id="onlineCounter">👁️ أشباح حاضرة الآن: 0</div>
+    <span id="status">جاري استحضار هويتك اليومية...</span>  
 </header>  
 
 <div id="chatBox"></div>  
@@ -97,7 +95,7 @@
 
 <script type="module">  
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";  
-    import { getDatabase, ref, onChildAdded, onValue, query, limitToLast, set, onDisconnect, serverTimestamp, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";  
+    import { getDatabase, ref, onChildAdded, onValue, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";  
     import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {  
@@ -118,25 +116,22 @@
     let myGhostName = "";
     const renderedMsgIds = new Set(); 
 
-    // --- نظام الهوية الثابتة للجهاز ---
-    function getOrCreateGuestId() {
-        let gid = localStorage.getItem("ghost_guest_id");
-        if (!gid) {
-            gid = "ghost_" + Math.random().toString(36).substring(2, 12);
-            localStorage.setItem("ghost_guest_id", gid);
-        }
-        return gid;
-    }
-
+    // --- نظام الهوية المتغيرة يومياً ---
     const getDailyIdentity = () => {
-        if (!localStorage.getItem('ghost_name_v5')) {
-            const adjs = ["الغامض", "الثائر", "الهادئ", "المحارب", "العابر", "الصامت", "التائه", "المراقب"];  
-            const names = ["طيف", "كيان", "سراب", "ظل", "نور", "صدى", "برق", "نجم"];  
-            const newName = `${names[Math.floor(Math.random()*names.length)]} ${adjs[Math.floor(Math.random()*adjs.length)]} #${Math.floor(1000+Math.random()*9000)}`;
-            localStorage.setItem('ghost_name_v5', newName);
-            return newName;
+        const today = new Date().toDateString(); // يحصل على تاريخ اليوم كـ String
+        const savedDate = localStorage.getItem('ghost_id_date');
+        let name = localStorage.getItem('ghost_name_v5');
+
+        // إذا كان التاريخ المحفوظ مختلف عن اليوم أو لا يوجد اسم، نولد اسماً جديداً
+        if (savedDate !== today || !name) {
+            const adjs = ["الغامض", "الثائر", "الهادئ", "المحارب", "العابر", "الصامت", "التائه", "المراقب", "المنسي", "الخفي"];  
+            const names = ["طيف", "كيان", "سراب", "ظل", "نور", "صدى", "برق", "نجم", "وهم", "شبح"];  
+            name = `${names[Math.floor(Math.random()*names.length)]} ${adjs[Math.floor(Math.random()*adjs.length)]} #${Math.floor(1000+Math.random()*9000)}`;
+            
+            localStorage.setItem('ghost_name_v5', name);
+            localStorage.setItem('ghost_id_date', today);
         }
-        return localStorage.getItem('ghost_name_v5');
+        return name;
     };
 
     setPersistence(auth, browserLocalPersistence).then(() => signInAnonymously(auth));
@@ -145,20 +140,12 @@
         if (user) {
             currentUser = user;
             myGhostName = getDailyIdentity();
-            document.getElementById('status').innerText = "كيانك الثابت: " + myGhostName;
+            document.getElementById('status').innerText = "هويتك الحالية: " + myGhostName;
             document.getElementById('msgInput').disabled = false;
             document.getElementById('sendBtn').disabled = false;
             
-            initPresence();
             initMessages();
             initBans();
-        }
-    });
-
-    window.addEventListener("beforeunload", () => {
-        if (currentUser) {
-            const guestId = getOrCreateGuestId();
-            remove(ref(db, `online_users/${guestId}`)); 
         }
     });
 
@@ -193,28 +180,6 @@
         setTimeout(() => { btn.disabled = false; }, 2000);  
     }  
 
-    // --- تعديل نظام الحضور ليصبح أكثر استقراراً ---
-    function initPresence() {
-        const guestId = getOrCreateGuestId();
-        const presenceRef = ref(db, `online_users/${guestId}`);
-        
-        onValue(ref(db, '.info/connected'), (snap) => {
-            if (snap.val() === true) {
-                set(presenceRef, { 
-                    name: myGhostName, 
-                    uid: currentUser.uid, // نحتفظ بالـ UID الحقيقي للمطابقة عند الحاجة
-                    joined_at: serverTimestamp() 
-                });
-                onDisconnect(presenceRef).remove();
-            }
-        });
-
-        onValue(ref(db, 'online_users'), (snap) => {
-            const count = snap.exists() ? Object.keys(snap.val()).length : 0;
-            document.getElementById('onlineCounter').innerText = `👁️ أشباح حاضرة الآن: ${count}`;
-        });
-    }
-
     function initBans() {
         onValue(ref(db, `banned_users/${currentUser.uid}`), (snap) => {
             if (snap.exists()) {
@@ -232,7 +197,6 @@
             if (renderedMsgIds.has(snap.key)) return;
             renderedMsgIds.add(snap.key);
             const data = snap.val();
-            // مقارنة الـ UID لتمييز رسائلي الخاصة
             renderMsg(data, data.uid === currentUser.uid);
         });
     }
