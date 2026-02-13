@@ -72,7 +72,7 @@
     <div class="rules-card">  
         <h3>📜 ميثاق الأشباح v5.0</h3>  
         <ul class="rules-list">  
-            <li><b>التشفير:</b> كيانك محمي بطبقات من السرية الرقمية.</li>  
+            <li><b>التثبيت:</b> هويتك ثابتة لهذا الجهاز ما لم يتدخل التطهير الرقمي.</li>  
             <li><b>الاعتراف:</b> استخدم <b>#اعتراف</b> ليتوهج النص باللون القرمزي.</li>  
             <li><b>التطهير:</b> تُحذف كافة الأسرار تلقائياً كل 24 ساعة.</li>  
         </ul>  
@@ -82,7 +82,7 @@
 
 <header>  
     <h2 style="margin:0; font-weight:900; font-size:18px; letter-spacing: 1.5px;">GHOST CHAT <span style="color:var(--cyan)">PRO</span></h2>  
-    <span id="status">جاري تحضير هويتك السرية...</span>  
+    <span id="status">جاري استدعاء كيانك...</span>  
     <div id="onlineCounter">👁️ أشباح حاضرة الآن: 0</div>
 </header>  
 
@@ -118,17 +118,25 @@
     let myGhostName = "";
     const renderedMsgIds = new Set(); 
 
+    // --- نظام الهوية الثابتة للجهاز ---
+    function getOrCreateGuestId() {
+        let gid = localStorage.getItem("ghost_guest_id");
+        if (!gid) {
+            gid = "ghost_" + Math.random().toString(36).substring(2, 12);
+            localStorage.setItem("ghost_guest_id", gid);
+        }
+        return gid;
+    }
+
     const getDailyIdentity = () => {
-        const today = new Date().toDateString();
-        if (localStorage.getItem('ghost_id_date') !== today) {
+        if (!localStorage.getItem('ghost_name_v5')) {
             const adjs = ["الغامض", "الثائر", "الهادئ", "المحارب", "العابر", "الصامت", "التائه", "المراقب"];  
             const names = ["طيف", "كيان", "سراب", "ظل", "نور", "صدى", "برق", "نجم"];  
             const newName = `${names[Math.floor(Math.random()*names.length)]} ${adjs[Math.floor(Math.random()*adjs.length)]} #${Math.floor(1000+Math.random()*9000)}`;
-            localStorage.setItem('ghost_name', newName);
-            localStorage.setItem('ghost_id_date', today);
+            localStorage.setItem('ghost_name_v5', newName);
             return newName;
         }
-        return localStorage.getItem('ghost_name');
+        return localStorage.getItem('ghost_name_v5');
     };
 
     setPersistence(auth, browserLocalPersistence).then(() => signInAnonymously(auth));
@@ -137,7 +145,7 @@
         if (user) {
             currentUser = user;
             myGhostName = getDailyIdentity();
-            document.getElementById('status').innerText = "كيانك اليوم: " + myGhostName;
+            document.getElementById('status').innerText = "كيانك الثابت: " + myGhostName;
             document.getElementById('msgInput').disabled = false;
             document.getElementById('sendBtn').disabled = false;
             
@@ -148,8 +156,9 @@
     });
 
     window.addEventListener("beforeunload", () => {
-        if (currentUser && currentUser.uid) {
-            remove(ref(db, `online_users/${currentUser.uid}`)); 
+        if (currentUser) {
+            const guestId = getOrCreateGuestId();
+            remove(ref(db, `online_users/${guestId}`)); 
         }
     });
 
@@ -184,15 +193,17 @@
         setTimeout(() => { btn.disabled = false; }, 2000);  
     }  
 
+    // --- تعديل نظام الحضور ليصبح أكثر استقراراً ---
     function initPresence() {
-        const presenceRef = ref(db, `online_users/${currentUser.uid}`);
+        const guestId = getOrCreateGuestId();
+        const presenceRef = ref(db, `online_users/${guestId}`);
         
         onValue(ref(db, '.info/connected'), (snap) => {
             if (snap.val() === true) {
                 set(presenceRef, { 
                     name: myGhostName, 
-                    uid: currentUser.uid, 
-                    last_seen: serverTimestamp() 
+                    uid: currentUser.uid, // نحتفظ بالـ UID الحقيقي للمطابقة عند الحاجة
+                    joined_at: serverTimestamp() 
                 });
                 onDisconnect(presenceRef).remove();
             }
@@ -221,6 +232,7 @@
             if (renderedMsgIds.has(snap.key)) return;
             renderedMsgIds.add(snap.key);
             const data = snap.val();
+            // مقارنة الـ UID لتمييز رسائلي الخاصة
             renderMsg(data, data.uid === currentUser.uid);
         });
     }
