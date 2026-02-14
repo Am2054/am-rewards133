@@ -128,8 +128,10 @@
     const getDailyIdentity = () => {
         const today = new Date().toDateString(); 
         const savedDate = localStorage.getItem('ghost_id_date');
-        let name = localStorage.getItem('ghost_name_v5');
+        const oldName = localStorage.getItem('ghost_name_v5');
+        let name = oldName;
 
+        // إذا تغير اليوم، يتم توليد اسم جديد ومسح الشات محلياً
         if (savedDate !== today || !name) {
             const adjs = ["الغامض", "الثائر", "الهادئ", "المحارب", "العابر", "الصامت", "التائه", "المراقب", "المنسي", "الخفي"];  
             const names = ["طيف", "كيان", "سراب", "ظل", "نور", "صدى", "برق", "نجم", "وهم", "شبح"];  
@@ -137,6 +139,12 @@
             
             localStorage.setItem('ghost_name_v5', name);
             localStorage.setItem('ghost_id_date', today);
+
+            // مسح الشات محلياً فور تغير الاسم
+            if (oldName && oldName !== name) {
+                document.getElementById('chatBox').innerHTML = "";
+                renderedMsgIds.clear();
+            }
         }
         return name;
     };
@@ -227,11 +235,18 @@
     }
 
     function initMessages() {
-        const q = query(ref(db, "messages/global"), limitToLast(40));
+        const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+        // جلب الرسائل الأخيرة مع تصفية زمنية (تطهير تلقائي كل 24 ساعة)
+        const q = query(ref(db, "messages/global"), limitToLast(50));
+        
         onChildAdded(q, (snap) => {
+            const data = snap.val();
+            // تجاهل الرسائل التي تتجاوز الـ 24 ساعة
+            if (data.timestamp < oneDayAgo) return;
+
             if (renderedMsgIds.has(snap.key)) return;
             renderedMsgIds.add(snap.key);
-            const data = snap.val();
+            
             const isMe = data.sender === myGhostName;
             renderMsg(data, isMe);
         });
