@@ -104,7 +104,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";  
     import { getDatabase, ref, onChildAdded, onValue, query, limitToLast, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";  
     import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
+    import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
     const firebaseConfig = {  
         apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",  
@@ -125,13 +125,22 @@
     let myGhostName = "";
     const renderedMsgIds = new Set(); 
 
+    // --- تعديل: معالجة الإشعارات والصفحة مفتوحة (Foreground) ---
+    onMessage(messaging, (payload) => {
+        if (Notification.permission === "granted") {
+            new Notification(payload.notification.title, {
+                body: payload.notification.body,
+                icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png'
+            });
+        }
+    });
+
     const getDailyIdentity = () => {
         const today = new Date().toDateString(); 
         const savedDate = localStorage.getItem('ghost_id_date');
         const oldName = localStorage.getItem('ghost_name_v5');
         let name = oldName;
 
-        // إذا تغير اليوم، يتم توليد اسم جديد ومسح الشات محلياً
         if (savedDate !== today || !name) {
             const adjs = ["الغامض", "الثائر", "الهادئ", "المحارب", "العابر", "الصامت", "التائه", "المراقب", "المنسي", "الخفي"];  
             const names = ["طيف", "كيان", "سراب", "ظل", "نور", "صدى", "برق", "نجم", "وهم", "شبح"];  
@@ -140,7 +149,6 @@
             localStorage.setItem('ghost_name_v5', name);
             localStorage.setItem('ghost_id_date', today);
 
-            // مسح الشات محلياً فور تغير الاسم
             if (oldName && oldName !== name) {
                 document.getElementById('chatBox').innerHTML = "";
                 renderedMsgIds.clear();
@@ -149,12 +157,19 @@
         return name;
     };
 
+    // --- تعديل: طلب الإذن وتسجيل الـ Service Worker بشكل صحيح ---
     async function requestNotificationPermission() {
+        if (!('serviceWorker' in navigator)) return;
         try {
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
+                // تسجيل الـ SW أولاً
+                const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                
+                // طلب التوكن باستخدام الـ registration
                 const token = await getToken(messaging, { 
-                    vapidKey: 'BMWqkR2kvqo82g9YHUATcYO4c2yNJObecNFktpC91DZLTyl2xlWXlfTRqxLkSzvUJOQjZkwqOutZhTKzlj-shws' 
+                    vapidKey: 'BMWqkR2kvqo82g9YHUATcYO4c2yNJObecNFktpC91DZLTyl2xlWXlfTRqxLkSzvUJOQjZkwqOutZhTKzlj-shws',
+                    serviceWorkerRegistration: registration 
                 });
                 
                 if (token && currentUser) {
@@ -236,18 +251,16 @@
 
     function initMessages() {
         const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
-        // جلب الرسائل الأخيرة مع تصفية زمنية (تطهير تلقائي كل 24 ساعة)
         const q = query(ref(db, "messages/global"), limitToLast(50));
         
         onChildAdded(q, (snap) => {
             const data = snap.val();
-            // تجاهل الرسائل التي تتجاوز الـ 24 ساعة
             if (data.timestamp < oneDayAgo) return;
 
             if (renderedMsgIds.has(snap.key)) return;
             renderedMsgIds.add(snap.key);
             
-            const isMe = data.sender === myGhostName;
+            const isMe = data.uid === currentUser?.uid; // استخدام الـ UID أدق للتحقق
             renderMsg(data, isMe);
         });
     }
