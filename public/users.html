@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AM REWARDS | USERS MANAGEMENT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #030712; 
+      --card: rgba(17, 24, 39, 0.7);
+      --gold: #f5c542; 
+      --border: rgba(245, 197, 66, 0.1);
+      --text: #eef2f7;
+      --accent: #00fa9a;
+      --red: #ef4444; 
+      --blue: #3b82f6;
+    }
+
+    body {
+      font-family: "Cairo", sans-serif;
+      background: var(--bg); color: var(--text); margin: 0; padding: 20px;
+      background-image: radial-gradient(circle at top right, #1e293b, #030712);
+      min-height: 100vh;
+    }
+
+    .wrap { max-width: 1400px; margin: 0 auto; }
+    
+    /* --- الهيدر --- */
+    header { 
+      display: flex; align-items: center; justify-content: space-between; 
+      margin-bottom: 30px; padding: 25px; background: var(--card); 
+      border-radius: 24px; border: 1px solid var(--border);
+      backdrop-filter: blur(15px);
+    }
+    header h1 { margin: 0; font-family: 'Syncopate'; color: var(--gold); font-size: 1.3rem; letter-spacing: 2px; }
+
+    /* --- الإحصائيات --- */
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .stat-item { 
+      background: var(--card); padding: 25px; border-radius: 24px; 
+      border: 1px solid var(--border); border-bottom: 3px solid var(--gold);
+      transition: 0.3s;
+    }
+    .stat-item:hover { transform: translateY(-5px); border-color: var(--gold); }
+    .stat-item strong { display: block; font-size: 1.8rem; font-family: 'Syncopate'; color: #fff; margin-bottom: 5px; }
+    .stat-item span { color: var(--gold); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; opacity: 0.7; }
+
+    /* --- صندوق الجدول --- */
+    .table-card { 
+      background: var(--card); border-radius: 28px; padding: 10px; 
+      border: 1px solid var(--border); backdrop-filter: blur(15px);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    }
+    
+    .controls { display: flex; gap: 15px; padding: 20px; flex-wrap: wrap; align-items: center; }
+    .controls input { 
+      background: rgba(0,0,0,0.3); border: 1px solid var(--border); 
+      color: #fff; padding: 14px 25px; border-radius: 16px; 
+      outline: none; flex: 1; min-width: 250px; font-family: 'Cairo';
+    }
+
+    /* --- تصميم الجدول الجديد --- */
+    .table-container { overflow-x: auto; border-radius: 20px; }
+    table { width: 100%; border-collapse: separate; border-spacing: 0 8px; padding: 0 15px; }
+    
+    th { 
+      padding: 15px 20px; color: var(--gold); font-size: 0.75rem; 
+      text-transform: uppercase; letter-spacing: 1px; font-weight: 900;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td { padding: 15px 20px; background: rgba(255,255,255,0.02); vertical-align: middle; transition: 0.3s; }
+    
+    /* تقويس أطراف الصفوف */
+    td:first-child { border-radius: 0 15px 15px 0; }
+    td:last-child { border-radius: 15px 0 0 15px; }
+
+    tr:hover td { background: rgba(245, 197, 66, 0.08); transform: scale(1.002); }
+
+    /* --- مكونات داخل الجدول --- */
+    .user-info { display: flex; align-items: center; gap: 12px; }
+    .avatar { 
+      width: 40px; height: 40px; background: linear-gradient(45deg, var(--gold), #b48a1d); 
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      color: #000; font-weight: 900; font-family: 'Syncopate'; font-size: 1.1rem;
+    }
+    
+    .uid-tag { 
+        font-family: monospace; font-size: 0.7rem; color: #64748b; 
+        background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; 
+    }
+
+    .points-badge { 
+      color: var(--gold); font-weight: 900; font-size: 1rem; 
+      display: flex; align-items: center; gap: 5px;
+    }
+    .points-badge::before { content: '🪙'; font-size: 0.8rem; }
+
+    .action-btn { 
+      padding: 10px 18px; border-radius: 12px; border: none; 
+      font-weight: 800; cursor: pointer; transition: 0.3s; font-size: 0.75rem;
+    }
+    .btn-edit { background: var(--gold); color: #000; box-shadow: 0 4px 15px rgba(245, 197, 66, 0.2); }
+    .btn-edit:hover { background: #fff; transform: translateY(-2px); }
+
+    /* --- حالات خاصة --- */
+    .hidden { display: none !important; }
+    #loginBox { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 10000; }
+    .auth-box { width: 350px; padding: 40px; background: var(--card); border: 1px solid var(--gold); border-radius: 30px; text-align: center; }
+    .auth-box input { width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 15px; border: 1px solid var(--border); background: #000; color: #fff; text-align: center; }
+    .auth-box button { width: 100%; padding: 15px; border-radius: 15px; background: var(--gold); font-weight: 900; cursor: pointer; border: none; }
+
+  </style>
+</head>
+<body>
+
+  <div id="loginBox">
+    <div class="auth-box">
+      <h2 style="font-family:'Syncopate'; color:var(--gold);">ADMIN LOGIN</h2>
+      <input id="adminEmail" type="email" placeholder="EMAIL" value="amirfg992005@gmail.com" />
+      <input id="adminPass" type="password" placeholder="PASSWORD" />
+      <button id="loginBtn">AUTHORIZE</button>
+    </div>
+  </div>
+
+  <div id="main-ui" class="wrap hidden">
+    <header>
+      <div>
+        <h1>USERS <span style="color:#64748b; font-size:0.9rem;">MANAGEMENT</span></h1>
+      </div>
+      <div style="display:flex; gap:12px;">
+        <button id="refreshBtn" class="action-btn" style="background:rgba(255,255,255,0.05); color:#fff; border:1px solid var(--border);">🔄 تحديث</button>
+        <button id="logoutBtn" class="action-btn" style="background:var(--red); color:#fff;">LOGOUT</button>
+      </div>
+    </header>
+
+    <div class="metrics">
+      <div class="stat-item">
+        <strong id="metricAllUsersVal">0</strong> <span>Total Members</span>
+      </div>
+      <div class="stat-item">
+        <strong id="metricActiveUsersVal">0</strong> <span>Active (24h)</span>
+      </div>
+      <div class="stat-item">
+        <strong id="metricPointsTodayVal">0</strong> <span>Points Generated</span>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="controls">
+        <input id="searchInput" type="search" placeholder="Search by name, email or UID...">
+        <div style="display:flex; gap:10px;">
+            <button id="btnShowAll" class="action-btn btn-edit">ALL</button>
+            <button id="btnShowTop20" class="action-btn" style="background:var(--blue); color:#fff;">TOP 20 🏆</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>المستخدم</th>
+              <th>البريد الإلكتروني</th>
+              <th>عدد الإحالات</th>
+              <th>الرصيد الحالي</th>
+              <th>آخر ظهور</th>
+              <th>التحكم</th>
+            </tr>
+          </thead>
+          <tbody id="usersTbody">
+            </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, collection, getDocs, query, where, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const ADMIN_EMAIL = "amirfg992005@gmail.com";
+    let allUsers = []; 
+
+    async function loadData() {
+      const usersSnap = await getDocs(collection(db, 'users'));
+      allUsers = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      
+      document.getElementById('metricAllUsersVal').textContent = allUsers.length;
+      
+      const threshold = Date.now() - 24*60*60*1000;
+      document.getElementById('metricActiveUsersVal').textContent = allUsers.filter(u => (u.lastLogin?.toDate ? u.lastLogin.toDate() : new Date(u.lastLogin)).getTime() >= threshold).length;
+
+      const today = new Date().setHours(0,0,0,0);
+      const tasksSnap = await getDocs(query(collection(db, 'tasksCompleted'), where('date', '>=', new Date(today))));
+      let sum = 0; tasksSnap.forEach(d => sum += Number(d.data().pointsEarned || 0));
+      document.getElementById('metricPointsTodayVal').textContent = sum.toLocaleString();
+
+      renderTable(allUsers);
+    }
+
+    function renderTable(data) {
+      const tbody = document.getElementById('usersTbody');
+      tbody.innerHTML = '';
+      data.forEach((u) => {
+        const tr = document.createElement('tr');
+        const lastLogin = u.lastLogin?.toDate ? u.lastLogin.toDate() : new Date(u.lastLogin);
+        const initial = (u.name || 'U').charAt(0).toUpperCase();
+
+        tr.innerHTML = `
+          <td>
+            <div class="user-info">
+              <div class="avatar">${initial}</div>
+              <div>
+                <div style="font-weight:900; color:#fff;">${u.name || 'No Name'}</div>
+                <div class="uid-tag">${u.id.slice(0,10)}...</div>
+              </div>
+            </div>
+          </td>
+          <td><span style="font-size:0.85rem; opacity:0.8;">${u.email || '-'}</span></td>
+          <td><b style="color:var(--accent); font-family:'Syncopate';">${u.referralCount || 0}</b></td>
+          <td><div class="points-badge">${Number(u.points || 0).toLocaleString()}</div></td>
+          <td style="font-size:0.75rem; color:#64748b;">${lastLogin.toLocaleString('ar-EG', {dateStyle:'short', timeStyle:'short'})}</td>
+          <td>
+            <button class="action-btn btn-edit" onclick="editPoints('${u.id}')">تعديل الرصيد</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    window.editPoints = async (id) => {
+        const u = allUsers.find(x => x.id === id);
+        const newPts = prompt(`تعديل نقاط ${u.name}:`, u.points);
+        if (newPts !== null && !isNaN(newPts)) {
+            await updateDoc(doc(db, 'users', id), { points: Number(newPts) });
+            alert("تم التحديث ✅"); loadData();
+        }
+    };
+
+    document.getElementById('searchInput').oninput = (e) => {
+        const val = e.target.value.toLowerCase();
+        renderTable(allUsers.filter(u => (u.name||'').toLowerCase().includes(val) || (u.email||'').toLowerCase().includes(val) || u.id.toLowerCase().includes(val)));
+    };
+
+    document.getElementById('btnShowAll').onclick = () => renderTable(allUsers);
+    document.getElementById('btnShowTop20').onclick = () => renderTable([...allUsers].sort((a,b)=>b.points-a.points).slice(0,20));
+    document.getElementById('refreshBtn').onclick = loadData;
+
+    document.getElementById('loginBtn').onclick = async () => {
+      try { await signInWithEmailAndPassword(auth, document.getElementById('adminEmail').value, document.getElementById('adminPass').value); }
+      catch (e) { alert("خطأ في بيانات الدخول"); }
+    };
+    document.getElementById('logoutBtn').onclick = () => signOut(auth);
+
+    onAuthStateChanged(auth, user => {
+      if (user && user.email === ADMIN_EMAIL) {
+        document.getElementById('loginBox').classList.add('hidden');
+        document.getElementById('main-ui').classList.remove('hidden');
+        loadData();
+      } else {
+        document.getElementById('loginBox').classList.remove('hidden');
+        document.getElementById('main-ui').classList.add('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

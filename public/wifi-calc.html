@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Router Guardian Ultra Pro | v7.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00f2ff;
+            --accent: #7d33ff;
+            --bg: #050811;
+            --card: rgba(16, 22, 36, 0.8);
+            --danger: #ff0055;
+            --success: #00ffaa;
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif; margin: 0; color: white;
+            background: var(--bg); overflow-x: hidden;
+            background-image: radial-gradient(circle at 10% 20%, rgba(0, 242, 255, 0.05) 0%, transparent 40%),
+                              radial-gradient(circle at 90% 80%, rgba(125, 51, 255, 0.05) 0%, transparent 40%);
+        }
+
+        .container { width: 92%; max-width: 450px; margin: 20px auto; }
+
+        /* Header Logo */
+        .header { text-align: center; padding: 30px 0; position: relative; }
+        .header h1 { 
+            font-size: 26px; font-weight: 900; margin: 0; 
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.3));
+        }
+
+        /* Glass Cards */
+        .card {
+            background: var(--card); backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px; padding: 20px; margin-bottom: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        }
+
+        .section-title { 
+            font-size: 14px; color: var(--primary); margin-bottom: 15px; 
+            display: flex; align-items: center; gap: 8px; font-weight: bold;
+        }
+
+        /* Input Styles */
+        .input-group { background: rgba(255,255,255,0.03); border-radius: 16px; padding: 12px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.05); }
+        select, input { 
+            width: 100%; background: transparent; border: none; color: white; 
+            font-family: 'Tajawal'; font-size: 14px; outline: none; padding: 5px;
+        }
+
+        /* Device Slider/Grid */
+        .device-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .device-info { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+        .counter { display: flex; align-items: center; gap: 15px; background: rgba(0,0,0,0.3); padding: 5px 15px; border-radius: 50px; }
+        .counter button { background: none; border: none; color: var(--primary); font-size: 20px; cursor: pointer; }
+        .counter span { font-weight: 900; min-width: 20px; text-align: center; }
+
+        /* Action Button */
+        .btn-glow {
+            width: 100%; padding: 18px; border-radius: 18px; border: none;
+            background: linear-gradient(45deg, var(--accent), var(--primary));
+            color: white; font-weight: 900; font-size: 16px; cursor: pointer;
+            box-shadow: 0 0 20px rgba(125, 51, 255, 0.4); transition: 0.3s;
+        }
+        .btn-glow:active { transform: scale(0.95); }
+
+        /* Results Display */
+        #resultsPanel { display: none; animation: fadeIn 0.8s ease; }
+        .score-circle { 
+            width: 120px; height: 120px; border-radius: 50%; border: 8px solid var(--primary);
+            margin: 0 auto 20px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            box-shadow: 0 0 20px var(--primary);
+        }
+
+        .usage-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; margin-top: 8px; }
+        .usage-fill { height: 100%; background: var(--primary); width: 0; transition: 1s ease-in-out; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>ROUTER GUARDIAN PRO</h1>
+        <p style="font-size: 10px; opacity: 0.5;">Smart Network Monitoring System</p>
+    </div>
+
+    <div class="card">
+        <div class="section-title">📡 بوابة التحكم بالراوتر</div>
+        <div class="input-group">
+            <select id="isp">
+                <option value="we">WE Telecom - Huawei</option>
+                <option value="vodafone">Vodafone Red</option>
+                <option value="orange">Orange DSL</option>
+                <option value="etisalat">Etisalat E-Life</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <input type="text" id="ip" value="192.168.1.1" placeholder="IP Address">
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="section-title">📊 إدارة الأجهزة المتصلة</div>
+        <div class="device-row">
+            <div class="device-info">📱 الموبايلات</div>
+            <div class="counter">
+                <button onclick="change('mobs', -1)">-</button>
+                <span id="mobs">3</span>
+                <button onclick="change('mobs', 1)">+</button>
+            </div>
+        </div>
+        <div class="device-row">
+            <div class="device-info">💻 أجهزة الكمبيوتر</div>
+            <div class="counter">
+                <button onclick="change('laps', -1)">-</button>
+                <span id="laps">1</span>
+                <button onclick="change('laps', 1)">+</button>
+            </div>
+        </div>
+        <div class="device-row">
+            <div class="device-info">📺 الشاشات الذكية</div>
+            <div class="counter">
+                <button onclick="change('tvs', -1)">-</button>
+                <span id="tvs">1</span>
+                <button onclick="change('tvs', 1)">+</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="section-title">📦 خطة البيانات</div>
+        <div class="input-group">
+            <select id="quota">
+                <option value="140">140 GB - الباقة الأساسية</option>
+                <option value="200">200 GB - الباقة المتوسطة</option>
+                <option value="250">250 GB - الباقة العالية</option>
+            </select>
+        </div>
+        <button class="btn-glow" onclick="analyze()">بدأ الفحص الشامل ⚡</button>
+    </div>
+
+    <div id="resultsPanel">
+        <div class="card" style="text-align: center;">
+            <div class="score-circle">
+                <span style="font-size: 30px; font-weight: 900;" id="daysVal">0</span>
+                <small style="font-size: 10px;">يوم متبقي</small>
+            </div>
+            <div id="statusText" style="font-weight: bold; margin-bottom: 20px;"></div>
+            
+            <div style="text-align: right;">
+                <div style="display:flex; justify-content:space-between; font-size:12px;">
+                    <span>سحب الشاشات</span>
+                    <span id="tvPercent">0%</span>
+                </div>
+                <div class="usage-bar"><div id="tvFill" class="usage-fill" style="background:var(--danger)"></div></div>
+                
+                <div style="display:flex; justify-content:space-between; font-size:12px; margin-top:15px;">
+                    <span>سحب الموبايلات</span>
+                    <span id="mobPercent">0%</span>
+                </div>
+                <div class="usage-bar"><div id="mobFill" class="usage-fill"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function change(id, val) {
+        const el = document.getElementById(id);
+        let curr = parseInt(el.innerText);
+        if (curr + val >= 0) el.innerText = curr + val;
+    }
+
+    function analyze() {
+        // Logic
+        const q = parseInt(document.getElementById('quota').value);
+        const m = parseInt(document.getElementById('mobs').innerText) * 0.9;
+        const l = parseInt(document.getElementById('laps').innerText) * 1.5;
+        const t = parseInt(document.getElementById('tvs').innerText) * 4.5;
+        
+        const total = m + l + t;
+        const days = Math.floor(q / total);
+        
+        // UI
+        document.getElementById('resultsPanel').style.display = 'block';
+        document.getElementById('daysVal').innerText = days;
+        
+        // Bars
+        const tvP = ((t / total) * 100).toFixed(0);
+        const mobP = ((m / total) * 100).toFixed(0);
+        
+        setTimeout(() => {
+            document.getElementById('tvFill').style.width = tvP + '%';
+            document.getElementById('mobFill').style.width = mobP + '%';
+            document.getElementById('tvPercent').innerText = tvP + '%';
+            document.getElementById('mobPercent').innerText = mobP + '%';
+        }, 100);
+
+        const status = document.getElementById('statusText');
+        if (days < 10) {
+            status.innerText = "وضع الخطر: الباقة ستنتهي سريعاً! ⚠️";
+            status.style.color = 'var(--danger)';
+        } else {
+            status.innerText = "وضع الأمان: استهلاكك متزن حالياً ✅";
+            status.style.color = 'var(--success)';
+        }
+
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+</script>
+</body>
+</html>

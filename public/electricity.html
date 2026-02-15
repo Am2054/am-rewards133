@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>رادار الكهرباء الذكي | AM Rewards PRO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root { --neon-yellow: #facc15; --neon-purple: #7000ff; --neon-red: #ff4444; --bg-deep: #020617; --glass: rgba(255, 255, 255, 0.05); --cyan: #00f2ff; }
+        body { font-family: 'Tajawal', sans-serif; background: var(--bg-deep); color: #fff; margin: 0; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; background: var(--glass); padding: 25px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(15px); box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        h1 { text-align: center; color: var(--neon-yellow); font-weight: 900; margin-bottom: 5px; text-shadow: 0 0 15px rgba(250, 204, 21, 0.3); }
+        .sub-title { text-align: center; font-size: 12px; color: #94a3b8; margin-bottom: 25px; }
+        
+        /* ميزة المقارنة الجديدة */
+        #compareBadge { display: none; text-align: center; margin-bottom: 15px; padding: 8px; border-radius: 12px; font-size: 11px; font-weight: 700; animation: slideUp 0.5s ease; }
+        .badge-up { background: rgba(255, 68, 68, 0.1); color: var(--neon-red); border: 1px solid var(--neon-red); }
+        .badge-down { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid #10b981; }
+
+        .input-row { display: flex; gap: 10px; margin-bottom: 20px; }
+        .input-group { flex: 1; }
+        label { display: block; margin-bottom: 8px; color: #94a3b8; font-size: 12px; font-weight: 700; }
+        input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.4); color: #fff; font-size: 18px; text-align: center; outline: none; box-sizing: border-box; transition: 0.3s; }
+        input:focus { border-color: var(--neon-yellow); }
+        
+        #errorMsg { display: none; background: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 10px; border-radius: 10px; border: 1px solid #ef4444; font-size: 12px; text-align: center; margin-bottom: 15px; }
+        .calc-btn { width: 100%; padding: 16px; border-radius: 12px; border: none; background: linear-gradient(90deg, var(--neon-purple), #4f46e5); color: #fff; font-weight: 900; cursor: pointer; font-size: 18px; box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3); }
+        .reset-btn { width: 100%; padding: 10px; background: transparent; color: #64748b; border: none; cursor: pointer; font-size: 11px; text-decoration: underline; margin-top: 5px; opacity: 0.7; }
+        
+        .result-box { display: none; margin-top: 25px; padding: 20px; border-radius: 18px; background: rgba(255,255,255,0.03); border: 1px solid rgba(0, 242, 255, 0.2); animation: slideUp 0.5s ease; }
+        .radar-status { text-align: center; font-size: 11px; margin-bottom: 15px; color: var(--cyan); background: rgba(0, 242, 255, 0.05); padding: 8px; border-radius: 50px; border: 1px solid rgba(0, 242, 255, 0.1); }
+        .total-price { font-size: 36px; color: var(--neon-yellow); text-align: center; margin: 5px 0; display: block; font-weight: 900; }
+        
+        .unit-money-box { background: rgba(250, 204, 21, 0.1); border: 1px solid var(--neon-yellow); padding: 12px; border-radius: 15px; margin: 15px 0; text-align: center; display: none; }
+        .smart-warning { margin-top: 15px; padding: 12px; border-radius: 10px; font-size: 13px; line-height: 1.6; border-right: 4px solid; }
+        .warn-danger { background: rgba(255, 68, 68, 0.1); color: var(--neon-red); border-color: var(--neon-red); }
+        .warn-safe { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: #10b981; }
+
+        .tips-btn { width: 100%; margin-top: 15px; padding: 12px; background: none; border: 1px solid var(--neon-yellow); color: var(--neon-yellow); border-radius: 12px; font-weight: 700; cursor: pointer; }
+        #tipsContent { display: none; margin-top: 15px; background: rgba(250, 204, 21, 0.05); padding: 15px; border-radius: 15px; border: 1px dotted var(--neon-yellow); font-size: 12px; color: #cbd5e1; }
+        .disclaimer { text-align: center; font-size: 10px; color: #64748b; margin-top: 20px; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>⚡ رادار الكهرباء</h1>
+    <p class="sub-title">تحليل ذكي ودقيق (تحديث 2026)</p>
+    
+    <div id="compareBadge"></div>
+
+    <div id="errorMsg">⚠️ خطأ: القراءة الحالية يجب أن تكون أكبر من السابقة.</div>
+    
+    <div class="input-row">
+        <div class="input-group">
+            <label>القراءة الحالية</label>
+            <input type="number" id="currentRead" placeholder="0000" inputmode="numeric">
+        </div>
+        <div class="input-group">
+            <label>القراءة السابقة</label>
+            <input type="number" id="prevRead" placeholder="0000" inputmode="numeric">
+        </div>
+    </div>
+
+    <div class="input-group" style="margin-bottom: 20px;">
+        <label>عدد الوحدات (لتقسيم الفاتورة والرسوم)</label>
+        <input type="number" id="unitsCount" value="1" min="1" inputmode="numeric">
+    </div>
+
+    <button class="calc-btn" onclick="calculateSmartBill()">تحليل الاستهلاك 🔍</button>
+    <button class="reset-btn" onclick="resetApp()">🔄 حساب جديد / مسح الذاكرة</button>
+
+    <div id="resultBox" class="result-box">
+        <div class="radar-status" id="radarStatus">📡 جاري تحليل الشرائح...</div>
+        <div style="text-align: center; font-size: 13px; color: #94a3b8;">إجمالي فاتورة العداد</div>
+        <span class="total-price" id="totalVal">0.00 ج.م</span>
+        
+        <div class="unit-money-box" id="unitBox">
+            <span style="font-size: 11px; color: #cbd5e1; display: block; margin-bottom: 5px;">نصيب الوحدة (شامل الرسوم المقسمة)</span>
+            <span id="unitMoneyVal" style="font-size: 24px; color: var(--neon-yellow); font-weight: 900;">0.00 ج.م</span>
+        </div>
+
+        <div id="smartWarning" class="smart-warning"></div>
+        
+        <button class="tips-btn" onclick="toggleTips()">💡 نصائح التوفير الذكية</button>
+        <div id="tipsContent">
+            • <b>السخان:</b> اضبط الحرارة على 50.<br>
+            • <b>التكييف:</b> 24 درجة هي المثالية للتوفير.<br>
+            • <b>الأجهزة:</b> افصل الفيش تماماً للأجهزة غير المستخدمة.
+        </div>
+
+        <div style="margin-top: 20px; font-size: 13px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>إجمالي كمية الاستهلاك:</span> <span id="totalKwh" style="color:var(--cyan)">0</span></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>نصيب الوحدة (كمية):</span> <span id="unitKwh" style="color:var(--cyan)">0</span></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>الشريحة الحالية:</span> <span id="shText"> - </span></div>
+            <div style="display:flex; justify-content:space-between; color: var(--neon-yellow); padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <span>الرسوم (نظافة + خدمة):</span> <span id="feesText">0</span>
+            </div>
+        </div>
+    </div>
+
+    <p class="disclaimer">
+        * يتم تقسيم رسوم الخدمات بالتساوي على عدد الوحدات.<br>
+        * الحساب يعتمد على اللائحة الجديدة لعام 2026.
+    </p>
+</div>
+
+<script>
+    window.onload = function() {
+        const savedRead = localStorage.getItem('lastCurrentRead');
+        if (savedRead) { document.getElementById('prevRead').value = savedRead; }
+    };
+
+    function calculateSmartBill() {
+        const current = parseFloat(document.getElementById('currentRead').value);
+        const previous = parseFloat(document.getElementById('prevRead').value);
+        const units = parseInt(document.getElementById('unitsCount').value) || 1;
+        
+        if (isNaN(current) || isNaN(previous) || current < previous) {
+            document.getElementById('errorMsg').style.display = 'block'; return;
+        }
+
+        document.getElementById('errorMsg').style.display = 'none';
+        const totalKwh = current - previous;
+        
+        // --- المحرك الرياضي التراكمي الجديد ---
+        let totalCost = 0;
+        let sh = "";
+        let serviceFee = 0;
+        const cleanFee = 15;
+
+        if (totalKwh <= 100) {
+            // نظام الشريحة الأولى والثانية
+            if (totalKwh <= 50) {
+                totalCost = totalKwh * 0.68;
+                serviceFee = 1;
+                sh = "الأولى (تراكمي)";
+            } else {
+                totalCost = (50 * 0.68) + ((totalKwh - 50) * 0.78);
+                serviceFee = 2;
+                sh = "الثانية (تراكمي)";
+            }
+        } else if (totalKwh <= 650) {
+            // نظام الشريحة 3 و 4 و 5
+            if (totalKwh <= 200) {
+                totalCost = totalKwh * 0.95; // ملاحظة: من 0 لـ 200 بـ 95 قرش مباشرة حسب القانون
+                serviceFee = 6;
+                sh = "الثالثة";
+            } else if (totalKwh <= 350) {
+                totalCost = (200 * 0.95) + ((totalKwh - 200) * 1.55);
+                serviceFee = 11;
+                sh = "الرابعة";
+            } else {
+                totalCost = (200 * 0.95) + (150 * 1.55) + ((totalKwh - 350) * 1.65);
+                serviceFee = 15;
+                sh = "الخامسة";
+            }
+        } else if (totalKwh <= 1000) {
+            // منطق "الصدمة" - إلغاء الدعم التراكمي
+            totalCost = totalKwh * 2.10;
+            serviceFee = 25;
+            sh = "السادسة (سعر موحد)";
+        } else {
+            // منطق "الرفاهية"
+            totalCost = totalKwh * 3.00;
+            serviceFee = 40;
+            sh = "السابعة (سعر موحد)";
+        }
+
+        const finalTotal = totalCost + serviceFee + cleanFee;
+        const moneyPerUnit = finalTotal / units;
+
+        // --- ميزة المقارنة بالشهور السابقة ---
+        const lastMonthKwh = localStorage.getItem('lastMonthKwh');
+        const badge = document.getElementById('compareBadge');
+        if (lastMonthKwh) {
+            const diff = totalKwh - lastMonthKwh;
+            const percent = ((Math.abs(diff) / lastMonthKwh) * 100).toFixed(1);
+            badge.style.display = 'block';
+            if (diff > 0) {
+                badge.className = 'badge-up';
+                badge.innerHTML = `📈 استهلاكك زاد بنسبة ${percent}% عن المرة السابقة`;
+            } else if (diff < 0) {
+                badge.className = 'badge-down';
+                badge.innerHTML = `📉 استهلاكك قل بنسبة ${percent}% عن المرة السابقة`;
+            } else {
+                badge.innerHTML = `➖ استهلاكك مساوٍ تماماً للمرة السابقة`;
+                badge.className = 'badge-down';
+            }
+        }
+
+        // حفظ البيانات للمرة القادمة
+        localStorage.setItem('lastCurrentRead', current);
+        localStorage.setItem('lastMonthKwh', totalKwh);
+
+        // تحديث الواجهة
+        document.getElementById('resultBox').style.display = 'block';
+        document.getElementById('totalVal').innerText = finalTotal.toFixed(2) + " ج.م";
+        document.getElementById('totalKwh').innerText = totalKwh + " ك.و.س";
+        document.getElementById('unitKwh').innerText = (totalKwh / units).toFixed(1) + " ك.و.س";
+        document.getElementById('shText').innerText = sh;
+        document.getElementById('feesText').innerText = (serviceFee + cleanFee).toFixed(2) + " ج.م";
+        
+        if (units > 1) {
+            document.getElementById('unitBox').style.display = 'block';
+            document.getElementById('unitMoneyVal').innerText = moneyPerUnit.toFixed(2) + " ج.م";
+        } else {
+            document.getElementById('unitBox').style.display = 'none';
+        }
+
+        const warnBox = document.getElementById('smartWarning');
+        warnBox.className = totalKwh > 650 ? "smart-warning warn-danger" : "smart-warning warn-safe";
+        warnBox.innerHTML = totalKwh > 650 ? "⚠️ <b>خطر:</b> العداد فقد الدعم التراكمي وأصبح السعر موحد." : "✅ <b>وضع آمن:</b> العداد مازال يتمتع بالدعم التراكمي.";
+        
+        document.getElementById('radarStatus').innerText = totalKwh > 1000 ? "☢️ إنذار: شريحة الرفاهية" : "📡 تحليل الشرائح مكتمل";
+    }
+
+    function resetApp() {
+        localStorage.clear();
+        location.reload();
+    }
+
+    function toggleTips() {
+        const content = document.getElementById('tipsContent');
+        content.style.display = content.style.display === 'block' ? 'none' : 'block';
+    }
+</script>
+</body>
+</html>

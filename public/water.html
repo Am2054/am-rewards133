@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>رادار المياه الذكي | AM Rewards PRO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00f2ff;
+            --neon-purple: #7000ff;
+            --neon-red: #ff4444;
+            --neon-orange: #f97316;
+            --bg-deep: #020617;
+            --glass: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: var(--bg-deep);
+            color: #fff;
+            margin: 0; padding: 20px;
+        }
+
+        .container {
+            max-width: 500px; margin: 0 auto;
+            background: var(--glass);
+            padding: 25px; border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(15px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        h1 { text-align: center; color: var(--neon-blue); font-weight: 900; margin-bottom: 5px; text-shadow: 0 0 10px var(--neon-blue); }
+        .sub-title { text-align: center; font-size: 12px; color: #94a3b8; margin-bottom: 25px; }
+
+        .input-row { display: flex; gap: 10px; margin-bottom: 20px; }
+        .input-group { flex: 1; }
+        label { display: block; margin-bottom: 8px; color: #94a3b8; font-size: 12px; font-weight: 700; }
+        
+        input {
+            width: 100%; padding: 12px; border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.4); color: #fff;
+            font-size: 18px; text-align: center; outline: none; box-sizing: border-box;
+            transition: 0.3s;
+        }
+        input:focus { border-color: var(--neon-blue); box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
+
+        #errorMsg { 
+            display: none; background: rgba(239, 68, 68, 0.1); color: #ef4444; 
+            padding: 10px; border-radius: 10px; border: 1px solid #ef4444; 
+            font-size: 12px; text-align: center; margin-bottom: 15px;
+            animation: shake 0.5s ease;
+        }
+
+        .calc-btn {
+            width: 100%; padding: 16px; border-radius: 12px;
+            border: none; background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            color: #fff; font-weight: 900; cursor: pointer; font-size: 18px;
+            box-shadow: 0 10px 20px rgba(0, 242, 255, 0.2); transition: 0.3s;
+        }
+
+        .reset-link {
+            display: block; text-align: center; margin-top: 10px;
+            color: #64748b; font-size: 11px; text-decoration: underline; cursor: pointer;
+        }
+
+        .result-box {
+            display: none; margin-top: 25px; padding: 20px;
+            border-radius: 18px; background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            animation: slideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* تنبيه التسريب الذكي */
+        #leakAlert { 
+            display: none; background: rgba(249, 115, 22, 0.15); color: var(--neon-orange); 
+            padding: 15px; border-radius: 15px; border: 1px solid var(--neon-orange); 
+            margin-bottom: 15px; font-size: 13px; line-height: 1.5; border-right: 4px solid var(--neon-orange);
+        }
+
+        .radar-status {
+            text-align: center; font-size: 11px; margin-bottom: 15px; color: var(--neon-blue);
+            background: rgba(0, 242, 255, 0.05); padding: 8px; border-radius: 50px;
+            border: 1px solid rgba(0, 242, 255, 0.1);
+        }
+
+        .total-price { 
+            font-size: 36px; color: var(--neon-blue); text-align: center; 
+            margin: 5px 0; display: block; font-weight: 900;
+        }
+
+        .unit-money-box {
+            background: rgba(112, 0, 255, 0.1);
+            border: 1px solid var(--neon-purple);
+            padding: 12px; border-radius: 15px;
+            margin: 15px 0; text-align: center;
+        }
+
+        .family-fact {
+            background: rgba(0, 242, 255, 0.1); color: var(--neon-blue);
+            padding: 10px; border-radius: 10px; font-size: 11px;
+            text-align: center; margin-top: 15px; border: 1px dashed var(--neon-blue);
+        }
+
+        .details-item { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px; align-items: center;}
+        .sh-label { font-size: 10px; color: #94a3b8; display: block; }
+
+        .smart-alert {
+            margin-top: 15px; padding: 12px; border-radius: 10px;
+            font-size: 12px; line-height: 1.5; border-right: 4px solid;
+        }
+        .alert-danger { background: rgba(255, 68, 68, 0.1); color: var(--neon-red); border-color: var(--neon-red); }
+        .alert-safe { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: #10b981; }
+
+        .tips-btn {
+            width: 100%; margin-top: 15px; padding: 12px; background: none;
+            border: 1px solid var(--neon-blue); color: var(--neon-blue);
+            border-radius: 12px; font-weight: 700; cursor: pointer; font-family: 'Tajawal';
+        }
+        #tipsContent {
+            display: none; margin-top: 15px; background: rgba(0, 242, 255, 0.03);
+            padding: 15px; border-radius: 15px; border: 1px dotted var(--neon-blue);
+            font-size: 12px; line-height: 1.8; color: #cbd5e1;
+        }
+
+        .cross-link {
+            margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+        .link-btn {
+            display: inline-block; padding: 8px 18px; border-radius: 20px;
+            background: rgba(255,255,255,0.05); color: #94a3b8;
+            font-size: 12px; text-decoration: none; border: 1px solid rgba(255,255,255,0.1);
+            transition: 0.3s;
+        }
+        .link-btn:hover { border-color: #facc15; color: #facc15; }
+
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>💧 رادار المياه</h1>
+        <p class="sub-title">تحليل ذكي لاستهلاكك (إصدار 2026)</p>
+
+        <div id="errorMsg">⚠️ خطأ: القراءة الحالية يجب أن تكون أكبر من السابقة.</div>
+
+        <div class="input-row">
+            <div class="input-group">
+                <label>القراءة الحالية</label>
+                <input type="number" id="currentRead" placeholder="0000" inputmode="numeric">
+            </div>
+            <div class="input-group">
+                <label>القراءة السابقة</label>
+                <input type="number" id="prevRead" placeholder="0000" inputmode="numeric">
+            </div>
+        </div>
+
+        <div class="input-group" style="margin-bottom: 20px;">
+            <label>عدد الوحدات (الشقق) بالعداد</label>
+            <input type="number" id="unitsCount" value="1" min="1" inputmode="numeric">
+        </div>
+
+        <button class="calc-btn" onclick="calculateWaterBill()">تحليل الفاتورة والبحث عن تسريب 🔍</button>
+        <span class="reset-link" onclick="resetApp()">🔄 مسح البيانات والبدء من جديد</span>
+
+        <div id="resultBox" class="result-box">
+            <div id="leakAlert">
+                ⚠️ <b>احتمالية تسريب خفي:</b> إجمالي الاستهلاك عالٍ جداً رغم انخفاض نصيب الوحدة. يرجى فحص الخطوط الرئيسية والعوامات الأرضية فوراً.
+            </div>
+
+            <div class="radar-status" id="radarStatus">📡 الرادار يرصد تدفق المياه...</div>
+            
+            <div style="text-align: center; font-size: 13px; color: #94a3b8;">إجمالي فاتورة العمارة/المبنى</div>
+            <span class="total-price" id="totalVal">0.00 ج.م</span>
+            
+            <div class="unit-money-box">
+                <span style="font-size: 12px; color: #cbd5e1; display: block; margin-bottom: 5px;">نصيب الوحدة الواحدة من الفاتورة</span>
+                <span id="unitMoneyVal" style="font-size: 24px; color: var(--neon-purple); font-weight: 900;">0.00 ج.م</span>
+            </div>
+
+            <div id="familyFact" class="family-fact"></div>
+
+            <div class="details-item" style="margin-top: 15px;">
+                <span>الشريحة المحسوبة:</span>
+                <div style="text-align: left;">
+                    <span id="shText" style="color:var(--neon-blue); font-weight:bold;">-</span>
+                    <span id="shRange" class="sh-label"></span>
+                </div>
+            </div>
+
+            <div class="details-item"><span>إجمالي الاستهلاك:</span> <span id="totalM3" style="font-weight:bold;">0</span> م³</div>
+            <div class="details-item"><span>نصيب الوحدة من المياه:</span> <span id="unitM3" style="color:var(--neon-blue)">0</span> م³</div>
+            
+            <div id="smartAlert" class="smart-alert"></div>
+
+            <button class="tips-btn" onclick="toggleTips()">💡 ازاي أوفر في فاتورة المياه؟</button>
+            <div id="tipsContent">
+                • <b>كشف التسريب:</b> اقفل كل المحابس وبص على العداد، لو بيلف يبقى عندك تسريب.<br>
+                • <b>سيفون الحمام:</b> تأكد من سلامة "الجلدة" الداخلية، هو أكبر مهدر للمياه.<br>
+                • <b>الفلاتر:</b> ركب قطع توفير المياه على الحنفيات لتوفير 40% من الاستهلاك.
+            </div>
+        </div>
+
+        <div class="cross-link">
+            <a href="electricity.html" class="link-btn">🔌 رادار الكهرباء</a>
+        </div>
+        
+        <p style="text-align: center; font-size: 9px; color: #475569; margin-top: 15px;">
+            * الرسوم والشرائح تقديرية لعام 2026 وتشمل الصرف الصحي (75%).
+        </p>
+    </div>
+
+    <script>
+        window.onload = function() {
+            const savedWater = localStorage.getItem('lastWaterRead');
+            if (savedWater) { document.getElementById('prevRead').value = savedWater; }
+        };
+
+        function animateValue(obj, start, end, duration, suffix = " ج.م") {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const currentVal = (progress * (end - start) + start).toFixed(2);
+                obj.innerHTML = currentVal + suffix;
+                if (progress < 1) window.requestAnimationFrame(step);
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        function calculateWaterBill() {
+            const current = parseFloat(document.getElementById('currentRead').value);
+            const previous = parseFloat(document.getElementById('prevRead').value);
+            const units = parseInt(document.getElementById('unitsCount').value) || 1;
+            const errorDiv = document.getElementById('errorMsg');
+            const resultBox = document.getElementById('resultBox');
+
+            if (isNaN(current) || isNaN(previous) || current < previous) {
+                errorDiv.style.display = 'block'; resultBox.style.display = 'none'; return;
+            }
+            errorDiv.style.display = 'none';
+
+            const totalM3 = current - previous;
+            const m3PerUnit = totalM3 / units;
+
+            // --- خوارزمية كشف التسريب الذكي ---
+            const leakAlert = document.getElementById('leakAlert');
+            if (totalM3 > 50 && m3PerUnit < 7) {
+                leakAlert.style.display = 'block';
+            } else {
+                leakAlert.style.display = 'none';
+            }
+            
+            let unitWaterPrice = 0, serviceFeePerUnit = 0, shName = "", shRange = "", radarMsg = "";
+
+            // الحساب التراكمي الدقيق للشرائح
+            if (m3PerUnit <= 10) { 
+                unitWaterPrice = m3PerUnit * 1.25; serviceFeePerUnit = 5; 
+                shName = "الأولى"; shRange = "(0 - 10 م³)";
+                radarMsg = "📡 استهلاك مثالي للوحدات.";
+            } else if (m3PerUnit <= 20) { 
+                unitWaterPrice = (10 * 1.25) + ((m3PerUnit - 10) * 2.50); serviceFeePerUnit = 10; 
+                shName = "الثانية"; shRange = "(11 - 20 م³)";
+                radarMsg = "📡 استهلاك طبيعي ضمن الحدود.";
+            } else if (m3PerUnit <= 30) { 
+                unitWaterPrice = (10 * 1.25) + (10 * 2.50) + ((m3PerUnit - 20) * 3.50); serviceFeePerUnit = 20; 
+                shName = "الثالثة"; shRange = "(21 - 30 م³)";
+                radarMsg = "📡 رصد زيادة في الاستهلاك.. يرجى الحذر.";
+            } else { 
+                unitWaterPrice = (10 * 1.25) + (10 * 2.50) + (10 * 3.50) + ((m3PerUnit - 30) * 5.00); 
+                serviceFeePerUnit = 40; 
+                shName = "الرابعة فأعلى"; shRange = "(أكثر من 30 م³)";
+                radarMsg = "🚨 إنذار! استهلاك خارج النطاق المدعوم.";
+            }
+
+            const totalWaterPrice = unitWaterPrice * units;
+            const totalSewage = totalWaterPrice * 0.75; 
+            const totalServiceFees = serviceFeePerUnit * units;
+            const finalTotal = totalWaterPrice + totalSewage + totalServiceFees;
+            const moneyPerUnit = finalTotal / units;
+
+            localStorage.setItem('lastWaterRead', current);
+            resultBox.style.display = 'block';
+
+            animateValue(document.getElementById('totalVal'), 0, finalTotal, 1000);
+            animateValue(document.getElementById('unitMoneyVal'), 0, moneyPerUnit, 1000);
+
+            document.getElementById('totalM3').innerText = totalM3;
+            document.getElementById('unitM3').innerText = m3PerUnit.toFixed(1);
+            document.getElementById('shText').innerText = shName;
+            document.getElementById('shRange').innerText = shRange;
+            document.getElementById('radarStatus').innerText = radarMsg;
+            
+            const familyDays = Math.floor(totalM3 / 0.6);
+            document.getElementById('familyFact').innerHTML = `💡 هذا الاستهلاك يكفي أسرة من 4 أفراد لمدة <b>${familyDays}</b> يوم تقريباً.`;
+
+            const alertBox = document.getElementById('smartAlert');
+            if (m3PerUnit > 20) {
+                alertBox.className = "smart-alert alert-danger";
+                alertBox.innerHTML = "⚠️ <b>تحذير:</b> تخطيتم حاجز 20 م³ للوحدة. التكلفة أصبحت مرتفعة جداً.";
+            } else {
+                alertBox.className = "smart-alert alert-safe";
+                alertBox.innerHTML = "✅ <b>وضع آمن:</b> الاستهلاك ضمن الشرائح الاجتماعية المدعومة.";
+            }
+        }
+
+        function resetApp() {
+            localStorage.removeItem('lastWaterRead');
+            location.reload();
+        }
+
+        function toggleTips() {
+            const content = document.getElementById('tipsContent');
+            content.style.display = content.style.display === 'block' ? 'none' : 'block';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>AM REWARDS | EXECUTIVE CONTROL v2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+          --bg: #030712; --card: rgba(17, 24, 39, 0.85); --gold: #f5c542;   
+          --border: rgba(245, 197, 66, 0.15); --text: #eef2f7; --accent: #00fa9a;  
+          --red: #ef4444; --orange: #f97316;  
+        }
+        body { font-family: "Cairo", sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; min-height: 100vh; }
+        #auth-gate { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+        .auth-box { width: 100%; max-width: 400px; padding: 40px; background: var(--card); border: 1px solid var(--gold); border-radius: 30px; text-align: center; backdrop-filter: blur(20px); }
+        .auth-box input { width: 100%; padding: 15px; margin-bottom: 12px; border-radius: 12px; border: 1px solid #1e293b; background: #000; color: #fff; text-align: center; outline: none; }
+        .auth-box button { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--gold); color: #000; font-weight: 900; cursor: pointer; font-family: 'Syncopate'; }
+        .wrap { max-width: 1400px; margin: 0 auto; }
+        header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; padding: 20px; background: var(--card); border-radius: 20px; border: 1px solid var(--border); }
+        header h1 { margin: 0; font-family: 'Syncopate'; color: var(--gold); font-size: 1.2rem; }
+        .stats-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-item { background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid var(--border); border-right: 4px solid var(--gold); }
+        .stat-item strong { display: block; font-size: 1.8rem; font-family: 'Syncopate'; color: #fff; margin-bottom: 5px; }
+        .stat-item span { color: var(--gold); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; }
+        .table-card { background: var(--card); border-radius: 25px; padding: 25px; border: 1px solid var(--border); backdrop-filter: blur(10px); }
+        .controls { display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap; }
+        .controls input, .controls select { background: #000; border: 1px solid var(--border); color: #fff; padding: 12px 20px; border-radius: 12px; outline: none; flex: 1; min-width: 200px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: right; padding: 15px; color: var(--gold); font-size: 0.8rem; border-bottom: 1px solid var(--border); }
+        td { padding: 18px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.95rem; }
+        .status-badge { padding: 5px 12px; border-radius: 8px; font-weight: 900; font-size: 0.7rem; }
+        .status-pending { background: rgba(249, 115, 22, 0.2); color: var(--orange); }
+        .status-completed { background: rgba(0, 250, 154, 0.2); color: var(--accent); }
+        .status-rejected { background: rgba(239, 68, 68, 0.2); color: var(--red); }
+        .action-btn { background: var(--gold); color: #000; border: none; padding: 8px 18px; border-radius: 10px; font-weight: 900; cursor: pointer; }
+        .hidden { display: none !important; }
+    </style>    
+</head>    
+<body>
+
+<div id="auth-gate">    
+  <div class="auth-box">    
+    <h2>COMMAND CENTER</h2>    
+    <input type="email" id="adm-email" placeholder="ADMIN EMAIL" value="amirfg992005@gmail.com">    
+    <input type="password" id="adm-pass" placeholder="PASSWORD">    
+    <input type="password" id="adm-token" placeholder="ACCESS TOKEN">    
+    <button id="btn-login">AUTHORIZE</button>    
+    <p id="auth-err" style="color: var(--red); font-size: 0.8rem; margin-top: 15px; font-weight: 700;"></p>    
+  </div>    
+</div>
+
+<div id="main-ui" class="wrap hidden">    
+  <header>    
+    <h1>AM REWARDS | EXECUTIVE</h1>    
+    <div>    
+      <button onclick="location.reload()" class="action-btn" style="background:none; border:1px solid var(--gold); color:var(--gold); margin-left:10px;">🔄 تحديث</button>    
+      <button id="btnLogout" class="action-btn" style="background:var(--red); color:#fff;">LOGOUT</button>    
+    </div>    
+  </header>
+
+  <div class="stats-container">    
+    <div class="stat-item" style="border-right-color: var(--accent);">    
+      <strong id="totalCompletedCount">0</strong> <span>طلبات ناجحة ✅</span>    
+    </div>    
+    <div class="stat-item">    
+      <strong id="totalPaid">0.00</strong> <span>إجمالي المدفوع (EGP)</span>    
+    </div>    
+    <div class="stat-item" style="border-right-color: var(--orange);">    
+      <strong id="pendingCount">0</strong> <span>طلبات معلقة ⏳</span>    
+    </div>    
+    <div class="stat-item">    
+      <strong id="pendingAmount">0.00</strong> <span>سيولة قيد الانتظار</span>    
+    </div>    
+  </div>
+
+  <div class="table-card">    
+    <div class="controls">    
+      <input type="text" id="searchInput" placeholder="بحث بالاسم، UID، أو رقم المحفظة...">    
+      <select id="statusFilter">    
+        <option value="All">عرض كل الحالات</option>    
+        <option value="pending">المعلقة فقط</option>    
+        <option value="completed">المكتملة</option>    
+        <option value="rejected">المرفوضة</option>    
+      </select>    
+    </div>    
+    <div style="overflow-x: auto;">    
+      <table>    
+        <thead>    
+          <tr>    
+            <th>المستخدم</th><th>UID</th><th>التاريخ</th><th>النقاط</th><th>الصافي (EGP)</th><th>المحفظة</th><th>الحالة</th><th>الإجراء</th>    
+          </tr>    
+        </thead>    
+        <tbody id="withdrawalsTbody"></tbody>    
+      </table>    
+    </div>    
+  </div>    
+</div>
+
+<div id="modal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:10000; display:flex; align-items:center; justify-content:center; backdrop-filter: blur(5px);">    
+    <div style="background:var(--card); width:95%; max-width:550px; padding:35px; border-radius:30px; border:1px solid var(--gold);">    
+        <h3 style="color:var(--gold); font-family:'Syncopate'; margin-top:0;">REVIEW REQUEST</h3>    
+        <div id="modalContent" style="margin:20px 0; line-height: 1.8; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;"></div>        
+        
+        <div id="action-buttons" style="display:flex; gap:12px; margin-top:25px;">    
+            <button id="confirmAccept" class="action-btn" style="background:var(--accent); flex:1;">✅ اعتماد الدفع</button>    
+            <button id="showRejectBox" class="action-btn" style="background:var(--red); color:#fff; flex:1;">❌ رفض الطلب</button>    
+        </div>
+
+        <div id="modal-reject-box" class="hidden" style="margin-top:15px; padding:15px; border-radius:15px; border:1px dashed var(--red);">    
+            <textarea id="rejectReason" style="width:100%; background:#000; border:1px solid var(--border); color:#fff; border-radius:12px; padding:12px; font-family:'Cairo';" rows="3" placeholder="اكتب سبب الرفض للمستخدم..."></textarea>    
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin: 15px 0;">
+                <input type="checkbox" id="refundPointsCheck" checked>
+                <label for="refundPointsCheck">إرجاع النقاط للمستخدم؟</label>
+            </div>
+            <button id="confirmReject" class="action-btn" style="background:var(--red); color:#fff; width:100%;">تأكيد الرفض النهائي</button>    
+        </div>    
+        <button onclick="closeModal()" class="action-btn" style="background:#1e293b; color:#fff; width:100%; margin-top:15px; opacity:0.7;">إغلاق</button>
+    </div>
+</div>
+
+<script type="module">    
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";    
+    import { getFirestore, collection, query, getDocs, orderBy, doc, writeBatch, increment, Timestamp, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";    
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };    
+    const app = initializeApp(firebaseConfig);    
+    const db = getFirestore(app);    
+    const auth = getAuth(app);    
+    const SECRET_ACCESS_TOKEN = "AM-VIP-2025";     
+
+    let allWithdrawals = []; let usersMap = {}; let currentWithdrawal = null; 
+
+    document.getElementById('btn-login').onclick = async () => {    
+        const email = document.getElementById('adm-email').value;    
+        const pass = document.getElementById('adm-pass').value;    
+        const token = document.getElementById('adm-token').value;    
+        if(token !== SECRET_ACCESS_TOKEN) return alert("TOKEN INVALID");    
+        try { await signInWithEmailAndPassword(auth, email, pass); } catch(e) { alert(e.message); }    
+    };    
+
+    async function loadData() {    
+        const q = query(collection(db, 'withdrawals'), orderBy('date', 'desc'));    
+        const snap = await getDocs(q);    
+        allWithdrawals = snap.docs.map(d => ({ id: d.id, ...d.data() }));    
+        for(let w of allWithdrawals) {    
+            if(!usersMap[w.userId]) {
+                const uSnap = await getDoc(doc(db, 'users', w.userId));    
+                usersMap[w.userId] = uSnap.exists() ? uSnap.data().name : "Unknown User";    
+            }
+        }    
+        applyFilters();    
+    }
+
+    function applyFilters() {    
+        const status = document.getElementById('statusFilter').value;    
+        const search = document.getElementById('searchInput').value.toLowerCase();    
+        const filtered = allWithdrawals.filter(w => (status === 'All' || w.status === status) && (usersMap[w.userId].toLowerCase().includes(search) || w.wallet.includes(search)));
+        renderTable(filtered); updateStats(allWithdrawals);    
+    }    
+
+    function renderTable(data) {    
+        const tbody = document.getElementById('withdrawalsTbody'); tbody.innerHTML = '';    
+        data.forEach(w => {    
+            tbody.innerHTML += `<tr><td><b>${usersMap[w.userId]}</b></td><td><small>${w.userId.slice(0,5)}</small></td><td><small>${w.date?.toDate().toLocaleDateString('ar-EG')}</small></td><td>${w.pointsUsed || w.pts}</td><td style="color:var(--gold)">${w.net}</td><td><code>${w.wallet}</code></td><td><span class="status-badge status-${w.status}">${w.status}</span></td><td>${w.status === 'pending' ? `<button class="action-btn" onclick="reviewRequest('${w.id}')">مراجعة</button>` : '---'}</td></tr>`;
+        });    
+    }    
+
+    function updateStats(data) {
+        const comp = data.filter(x => x.status === 'completed');
+        const pend = data.filter(x => x.status === 'pending');
+        document.getElementById('totalCompletedCount').textContent = comp.length;
+        document.getElementById('totalPaid').textContent = comp.reduce((a,b)=>a+Number(b.amount || 0),0).toFixed(2);
+        document.getElementById('pendingCount').textContent = pend.length;
+        document.getElementById('pendingAmount').textContent = pend.reduce((a,b)=>a+Number(b.amount || 0),0).toFixed(2);
+    }
+
+    window.reviewRequest = (id) => {    
+        currentWithdrawal = allWithdrawals.find(x => x.id === id); 
+        document.getElementById('modal').classList.remove('hidden');    
+        document.getElementById('modalContent').innerHTML = `طلب للمستخدم: <b>${usersMap[currentWithdrawal.userId]}</b><br>المبلغ: <b>${currentWithdrawal.amount} EGP</b> | الصافي: <b>${currentWithdrawal.net}</b><br>المحفظة: <b>${currentWithdrawal.wallet}</b>`;
+    };    
+
+    // --- الوظيفة المعدلة لحساب العمولات مسبقاً ---
+    document.getElementById('confirmAccept').onclick = async () => {    
+        const w = currentWithdrawal;
+        if(!confirm("تأكيد الدفع؟ سيتم تحديث رصيد المسحوبات للمستخدم ومكافأة الداعي.")) return;
+        try {
+            const batch = writeBatch(db);
+            batch.update(doc(db, 'withdrawals', w.id), { status: 'completed', processedAt: Timestamp.now() });
+            batch.update(doc(db, 'users', w.userId), { withdrawn: increment(Number(w.amount)) });
+            
+            if(w.bonusPendingFor) {
+                const comm = Number(w.amount) * 0.10;
+                const referrerRef = doc(db, 'users', w.bonusPendingFor);
+                batch.update(referrerRef, {
+                    totalReferralEarnings: increment(comm), // إضافة الربح الجاهز
+                    completedReferralsCount: increment(1)  // إضافة عداد السحبات الجاهز
+                });
+                if(w.bonusPointsAmount) batch.update(referrerRef, { points: increment(Number(w.bonusPointsAmount)) });
+                batch.update(doc(db, 'users', w.userId), { referralBonusesCount: increment(1) });
+            }
+            await batch.commit();
+            alert("تم الاعتماد وتحديث البيانات!"); closeModal(); loadData();
+        } catch(e) { alert(e.message); }
+    };    
+
+    document.getElementById('showRejectBox').onclick = () => {
+        document.getElementById('action-buttons').classList.add('hidden');
+        document.getElementById('modal-reject-box').classList.remove('hidden');
+    };
+
+    document.getElementById('confirmReject').onclick = async () => {    
+        const w = currentWithdrawal;
+        const reason = document.getElementById('rejectReason').value;
+        const shouldRefund = document.getElementById('refundPointsCheck').checked;
+        if(reason.length < 3) return alert("اكتب سبب الرفض");
+        try {
+            const batch = writeBatch(db);
+            batch.update(doc(db, 'withdrawals', w.id), { status: 'rejected', rejectionReason: reason, processedAt: Timestamp.now() });
+            if(shouldRefund) batch.update(doc(db, 'users', w.userId), { points: increment(Number(w.pointsUsed || w.pts)) });
+            await batch.commit();
+            alert("تم الرفض."); closeModal(); loadData();
+        } catch(e) { alert(e.message); }
+    };    
+
+    window.closeModal = () => { document.getElementById('modal').classList.add('hidden'); document.getElementById('modal-reject-box').classList.add('hidden'); document.getElementById('action-buttons').classList.remove('hidden'); };
+    document.getElementById('statusFilter').onchange = applyFilters;    
+    document.getElementById('searchInput').oninput = applyFilters;    
+    document.getElementById('btnLogout').onclick = () => signOut(auth);    
+
+    onAuthStateChanged(auth, user => {    
+        if(user && user.email === "amirfg992005@gmail.com") {    
+            document.getElementById('auth-gate').classList.add('hidden');    
+            document.getElementById('main-ui').classList.remove('hidden');    
+            loadData();    
+        } else { document.getElementById('auth-gate').classList.remove('hidden'); document.getElementById('main-ui').classList.add('hidden'); }    
+    });
+</script>
+</body>
+</html>

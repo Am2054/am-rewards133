@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AM REWARDS | EXECUTIVE PANEL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700;900&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #FFD700; /* Gold */
+            --secondary: #00FFC3; /* Cyan Neon */
+            --bg: #030712;
+            --card: rgba(17, 24, 39, 0.7);
+            --border: rgba(255, 215, 0, 0.15);
+            --danger: #FF4D4D;
+        }
+
+        body {
+            margin: 0; font-family: 'Cairo', sans-serif;
+            background: var(--bg); color: #E5E7EB;
+            min-height: 100vh; overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(255, 215, 0, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(0, 255, 195, 0.05) 0%, transparent 40%);
+        }
+
+        /* واجهة الدخول */
+        #auth-overlay {
+            position: fixed; inset: 0; background: var(--bg);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+        }
+
+        .auth-card {
+            width: 100%; max-width: 420px; padding: 50px 40px;
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 40px; backdrop-filter: blur(20px);
+            text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+
+        .auth-card h2 {
+            font-family: 'Syncopate', sans-serif; font-size: 1.2rem;
+            letter-spacing: 4px; color: var(--primary); margin-bottom: 30px;
+        }
+
+        .input-group { margin-bottom: 20px; }
+        .input-group input {
+            width: 100%; padding: 16px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.3); color: white; outline: none; font-family: 'Cairo';
+            text-align: center; transition: 0.3s;
+        }
+        .input-group input:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(255,215,0,0.1); }
+
+        .btn-prime {
+            width: 100%; padding: 16px; border-radius: 15px; border: none;
+            background: linear-gradient(135deg, #FFD700, #B8860B);
+            color: #000; font-weight: 900; cursor: pointer; transition: 0.3s;
+            font-family: 'Syncopate'; font-size: 0.8rem;
+        }
+        .btn-prime:hover { transform: scale(1.02); filter: brightness(1.1); }
+
+        /* لوحة التحكم */
+        .dashboard-content { max-width: 1300px; margin: 0 auto; padding: 40px 20px; }
+        .header-main { display: flex; justify-content: space-between; align-items: center; margin-bottom: 50px; }
+        .header-main h1 { font-family: 'Syncopate'; font-weight: 700; color: var(--primary); font-size: 1.5rem; }
+
+        /* الكروت الشبكية */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .stats-card {
+            background: var(--card); border: 1px solid var(--border);
+            padding: 25px; border-radius: 25px; position: relative;
+            overflow: hidden; transition: 0.4s ease;
+        }
+        .stats-card:hover { transform: translateY(-8px); background: rgba(17, 24, 39, 0.9); border-color: var(--primary); }
+
+        .label { font-size: 0.75rem; color: #9CA3AF; letter-spacing: 1px; margin-bottom: 8px; display: block; }
+        .number { font-family: 'Syncopate'; font-size: 1.8rem; font-weight: 700; display: block; margin-bottom: 5px; color: #fff; }
+        .sub-text { font-size: 0.85rem; color: var(--secondary); font-weight: 700; }
+
+        /* الأزرار */
+        .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 40px; }
+        .action-card {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+            padding: 20px; border-radius: 20px; text-align: center; cursor: pointer;
+            transition: 0.3s; text-decoration: none; color: inherit;
+        }
+        .action-card:hover { background: var(--primary); color: #000; }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="auth-overlay">
+    <div class="auth-card">
+        <h2>SECURE GATEWAY</h2>
+        <div class="input-group"><input type="email" id="email" placeholder="ADMIN IDENTIFIER" value="amirfg992005@gmail.com"></div>
+        <div class="input-group"><input type="password" id="pass" placeholder="SECRET KEY"></div>
+        <div class="input-group"><input type="password" id="token" placeholder="ACCESS TOKEN"></div>
+        <button class="btn-prime" id="unlock-btn">AUTHORIZE ACCESS</button>
+        <p id="error-msg" style="color: var(--danger); font-size: 0.8rem; margin-top: 20px; font-weight: 700;"></p>
+    </div>
+</div>
+
+<div id="main-panel" class="dashboard-content hidden">
+    <div class="header-main">
+        <h1>EXECUTIVE PANEL</h1>
+        <button onclick="logout()" style="background:none; border:1px solid var(--danger); color:var(--danger); padding:8px 20px; border-radius:10px; cursor:pointer; font-family:'Cairo'; font-weight:700;">خروج آمن</button>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stats-card">
+            <span class="label">USERS BASE</span>
+            <span class="number" id="stat-users">0</span>
+            <span class="sub-text">إجمالي المسجلين</span>
+        </div>
+        <div class="stats-card">
+            <span class="label">TOTAL POINTS</span>
+            <span class="number" id="stat-points">0</span>
+            <span class="sub-text" id="stat-egp">0.00 EGP</span>
+        </div>
+        <div class="stats-card" style="border-right: 4px solid var(--danger);">
+            <span class="label">PENDING REQUESTS</span>
+            <span class="number" id="stat-pending">0</span>
+            <span class="sub-text">سحوبات قيد الانتظار</span>
+        </div>
+        <div class="stats-card" style="border-bottom: 3px solid var(--secondary);">
+            <span class="label">TOTAL REFERRALS</span>
+            <span class="number" id="stat-ref-count">0</span>
+            <span class="sub-text">عدد المسجلين عبر إحالة</span>
+        </div>
+        <div class="stats-card">
+            <span class="label">REFERRAL REWARDS</span>
+            <span class="number" id="stat-ref">0.00</span>
+            <span class="sub-text" id="stat-ref-egp">EGP (إجمالي العمولات)</span>
+        </div>
+    </div>
+
+    <div class="action-grid">
+        <a href="users.html" class="action-card">👥 الأعضاء</a>
+        <a href="withdrawalsAdmin.html" class="action-card">💳 السحوبات</a>
+        <a href="tasksDone.html" class="action-card">🎯 المهام</a>
+        <a href="referralsAdmin.html" class="action-card">🔗 الإحالات</a>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+        authDomain: "am--rewards.firebaseapp.com",
+        projectId: "am--rewards",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const MASTER_TOKEN = "AM-VIP-2025"; 
+
+    async function getFingerprint() {
+        const platform = navigator.userAgent + screen.colorDepth + navigator.language;
+        const msgUint8 = new TextEncoder().encode(platform);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+        return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    document.getElementById('unlock-btn').onclick = async () => {
+        const email = document.getElementById('email').value;
+        const pass = document.getElementById('pass').value;
+        const token = document.getElementById('token').value;
+        const errMsg = document.getElementById('error-msg');
+        const fingerprint = await getFingerprint();
+
+        if (token !== MASTER_TOKEN) {
+            errMsg.textContent = "AUTH_TOKEN_INVALID: الوصول مرفوض";
+            return;
+        }
+
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
+            const lockRef = doc(db, "system", "admin_lock");
+            const snap = await getDoc(lockRef);
+
+            if (!snap.exists()) {
+                await setDoc(lockRef, { device_id: fingerprint, registered_by: email });
+            } else if (snap.data().device_id !== fingerprint) {
+                await signOut(auth);
+                errMsg.textContent = "SECURITY_VIOLATION: جهاز غير مصرح له";
+                return;
+            }
+        } catch (e) {
+            errMsg.textContent = "IDENTITY_ERROR: " + e.message;
+        }
+    };
+
+    async function updateDashboard() {
+        try {
+            const usersSnap = await getDocs(collection(db, "users"));
+            const pendingQuery = query(collection(db, "withdrawals"), where("status", "==", "pending"));
+            const pendingSnap = await getDocs(pendingQuery);
+            
+            let totalPoints = 0;
+            let totalRefEarnings = 0;
+            let totalRefCount = 0;
+
+            usersSnap.forEach(u => {
+                const data = u.data();
+                // جمع النقاط
+                totalPoints += (Number(data.points) || 0);
+                // جمع أرباح الإحالات المالية
+                totalRefEarnings += (Number(data.totalReferralEarnings) || 0);
+                // حساب عدد الإحالات (أي شخص سجل بكود)
+                if (data.referredBy) {
+                    totalRefCount++;
+                }
+            });
+
+            // تحديث الأرقام في الصفحة
+            document.getElementById('stat-users').textContent = usersSnap.size;
+            document.getElementById('stat-points').textContent = totalPoints.toLocaleString();
+            document.getElementById('stat-egp').textContent = (totalPoints * 0.07).toFixed(2) + " EGP";
+            document.getElementById('stat-pending').textContent = pendingSnap.size;
+            
+            // تحديث الإحالات الجديد
+            document.getElementById('stat-ref-count').textContent = totalRefCount.toLocaleString();
+            document.getElementById('stat-ref').textContent = totalRefEarnings.toFixed(2);
+            
+        } catch (err) {
+            console.error("Dashboard Error:", err);
+        }
+    }
+
+    onAuthStateChanged(auth, (user) => {
+        if (user && user.email === "amirfg992005@gmail.com") {
+            document.getElementById('auth-overlay').classList.add('hidden');
+            document.getElementById('main-panel').classList.remove('hidden');
+            updateDashboard();
+        } else {
+            document.getElementById('auth-overlay').classList.remove('hidden');
+            document.getElementById('main-panel').classList.add('hidden');
+        }
+    });
+
+    window.logout = () => signOut(auth);
+</script>
+</body>
+</html>
