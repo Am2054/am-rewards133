@@ -152,35 +152,20 @@
     };
 
     async function requestNotificationPermission() {
-        if (!('serviceWorker' in navigator)) {
-            console.log("المتصفح لا يدعم Service Worker");
-            return;
-        }
-        
-        if (!currentUser) {
-            console.log("في انتظار الهوية لحفظ التوكن...");
-            return;
-        }
+        if (!('serviceWorker' in navigator) || !currentUser) return;
 
         try {
             const permission = await Notification.requestPermission();
-            if (permission !== 'granted') {
-                console.log("الإذن مرفوض في المتصفح");
-                return;
-            }
+            if (permission !== 'granted') return;
 
             const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
-            
-            // إضافة حلقة انتظار للتأكد من تفعيل السيرفس وركر قبل طلب التوكن
             while (registration.active === null || registration.active.state !== 'activated') {
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
 
             const token = await getToken(messaging, { 
-               vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
+                vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJObecNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
                 serviceWorkerRegistration: registration 
-            }).catch(err => {
-                alert("فشل جلب التوكن: " + err.message);
             });
             
             if (token) {
@@ -188,15 +173,10 @@
                     token: token,
                     ghostName: myGhostName,
                     lastUpdated: Date.now()
-                }).then(() => {
-                    alert("✅ نجح الأمر! المجلد تم إنشاؤه في Firebase");
-                }).catch(err => {
-                    alert("خطأ في القواعد (Rules): " + err.message);
                 });
+                // تمت إزالة التنبيه (alert) هنا ليعمل في صمت
             }
-        } catch (err) {
-            console.error("خطأ إشعارات:", err);
-        }
+        } catch (err) { }
     }
 
     setPersistence(auth, browserLocalPersistence).then(() => signInAnonymously(auth));
@@ -245,13 +225,8 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text, sender: myGhostName, uid: currentUser.uid, token })
             });
-            if (res.ok) {
-                input.value = "";
-            } else {
-                const err = await res.json();
-                alert(err.error || "فشل الإرسال");
-            }
-        } catch(e) { alert("حدث خطأ في الاتصال"); }  
+            if (res.ok) { input.value = ""; }
+        } catch(e) { }  
         setTimeout(() => { btn.disabled = false; }, 2000);  
     }  
 
@@ -269,13 +244,12 @@
     function initMessages() {
         const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
         const q = query(ref(db, "messages/global"), limitToLast(50));
-        
         onChildAdded(q, (snap) => {
             const data = snap.val();
             if (data.timestamp < oneDayAgo) return;
             if (renderedMsgIds.has(snap.key)) return;
             renderedMsgIds.add(snap.key);
-            const isMe = data.uid === currentUser?.uid;
+            const isMe = data.sender === myGhostName;
             renderMsg(data, isMe);
         });
     }
@@ -283,25 +257,20 @@
     function renderMsg(data, isMe) {
         const chatBox = document.getElementById('chatBox');  
         const div = document.createElement('div');  
-        
         let msgClass = isMe ? 'msg-me' : 'msg-remote';
         if(data.isSecret) msgClass += ' msg-secret';
         if(data.isConfession) msgClass += ' msg-confession';
         div.className = `msg ${msgClass}`;  
-
         const senderDiv = document.createElement('div');
         senderDiv.className = 'sender';
         senderDiv.innerHTML = `<span>${isMe ? 'أنت' : data.sender}</span>`;
         if(data.isConfession) senderDiv.innerHTML += `<span style="font-size:9px; color: #ff8888; background: rgba(255,0,0,0.2); padding: 2px 6px; border-radius: 5px;">🕯️ اعتراف</span>`;
         if(data.isSecret) senderDiv.innerHTML += `<span style="font-size:9px; color: #cc88ff; background: rgba(112,0,255,0.2); padding: 2px 6px; border-radius: 5px;">🔑 سر</span>`;
-
         const textDiv = document.createElement('div');
         textDiv.className = 'text';
         textDiv.textContent = data.text; 
-
         div.appendChild(senderDiv);
         div.appendChild(textDiv);
-        
         chatBox.appendChild(div);  
         chatBox.scrollTop = chatBox.scrollHeight;  
     }
