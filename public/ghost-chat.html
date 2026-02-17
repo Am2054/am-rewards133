@@ -171,6 +171,7 @@
 
             const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
             
+            // إضافة حلقة انتظار للتأكد من تفعيل السيرفس وركر قبل طلب التوكن
             while (registration.active === null || registration.active.state !== 'activated') {
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
@@ -274,8 +275,7 @@
             if (data.timestamp < oneDayAgo) return;
             if (renderedMsgIds.has(snap.key)) return;
             renderedMsgIds.add(snap.key);
-            // التعديل هنا: المقارنة بالاسم لضمان بقاء رسائلك على اليسار حتى بعد إعادة الدخول
-            const isMe = data.sender === myGhostName;
+            const isMe = data.uid === currentUser?.uid;
             renderMsg(data, isMe);
         });
     }
