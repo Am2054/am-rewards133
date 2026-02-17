@@ -125,7 +125,7 @@
     let myGhostName = "";
     const renderedMsgIds = new Set(); 
 
-    // --- تعديل: معالجة الإشعارات والصفحة مفتوحة (Foreground) ---
+    // معالجة الإشعارات والصفحة مفتوحة
     onMessage(messaging, (payload) => {
         if (Notification.permission === "granted") {
             new Notification(payload.notification.title, {
@@ -157,16 +157,12 @@
         return name;
     };
 
-    // --- تعديل: طلب الإذن وتسجيل الـ Service Worker بشكل صحيح ---
     async function requestNotificationPermission() {
         if (!('serviceWorker' in navigator)) return;
         try {
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
-                // تسجيل الـ SW أولاً
                 const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-                
-                // طلب التوكن باستخدام الـ registration
                 const token = await getToken(messaging, { 
                     vapidKey: 'BMWqkR2kvqo82g9YHUATcYO4c2yNJObecNFktpC91DZLTyl2xlWXlfTRqxLkSzvUJOQjZkwqOutZhTKzlj-shws',
                     serviceWorkerRegistration: registration 
@@ -256,12 +252,9 @@
         onChildAdded(q, (snap) => {
             const data = snap.val();
             if (data.timestamp < oneDayAgo) return;
-
             if (renderedMsgIds.has(snap.key)) return;
             renderedMsgIds.add(snap.key);
-            
-            const isMe = data.uid === currentUser?.uid; // استخدام الـ UID أدق للتحقق
-            renderMsg(data, isMe);
+            renderMsg(data, data.uid === currentUser?.uid);
         });
     }
 
