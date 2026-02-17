@@ -25,7 +25,6 @@
         }  
         body::before { content: ""; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: -1; }  
 
-        /* نافذة الميثاق v6 */
         #rulesOverlay { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.98); backdrop-filter: blur(20px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1); }  
         .rules-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(0, 242, 255, 0.3); border-radius: 30px; padding: 30px; max-width: 480px; width: 100%; text-align: center; box-shadow: 0 0 50px rgba(0, 242, 255, 0.1); max-height: 90vh; overflow-y: auto; }  
         .intro-line { color: var(--cyan); font-weight: 900; font-size: 18px; margin-bottom: 20px; display: block; }
@@ -37,14 +36,11 @@
         .agree-btn { width: 100%; background: linear-gradient(135deg, var(--cyan), var(--purple)); color: #fff; border: none; padding: 18px; border-radius: 50px; font-weight: 900; cursor: pointer; transition: 0.3s; font-size: 16px; }  
         .agree-btn:hover { box-shadow: 0 0 20px var(--cyan); transform: translateY(-2px); }
 
-        /* الهيدر */
         header { padding: env(safe-area-inset-top, 15px) 15px 15px; text-align: center; background: var(--glass); backdrop-filter: blur(15px); border-bottom: 1px solid rgba(0, 242, 255, 0.1); z-index: 100; }  
         #status { font-size: 11px; color: var(--cyan); display: block; margin-top: 5px; font-weight: 900; letter-spacing: 0.5px; }  
 
-        /* منطقة الشات */
         #chatBox { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth; }  
 
-        /* تصميم الرسائل */
         .msg { max-width: 85%; padding: 14px 18px; border-radius: 24px; font-size: 15px; backdrop-filter: blur(10px); animation: msgIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; line-height: 1.5; }  
         @keyframes msgIn { from { opacity: 0; transform: translateY(20px) scale(0.9); } to { opacity: 1; transform: translateY(0) scale(1); } }  
 
@@ -57,7 +53,6 @@
         .sender { font-size: 10px; font-weight: 900; color: var(--cyan); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; opacity: 0.9; }  
         .text { word-wrap: break-word; }
 
-        /* منطقة الإدخال */
         .input-area { padding: 15px; background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.08); padding-bottom: calc(15px + env(safe-area-inset-bottom)); }  
         .input-wrapper { display: flex; gap: 12px; align-items: center; max-width: 700px; margin: 0 auto; }  
         input { flex: 1; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 16px 22px; border-radius: 35px; color: #fff; outline: none; font-size: 16px; transition: 0.3s; }    
@@ -158,27 +153,35 @@
 
     async function requestNotificationPermission() {
         if (!('serviceWorker' in navigator)) return;
+        
+        // تعديل: التأكد من تسجيل الدخول أولاً لأن القواعد تمنع الكتابة بدون Auth
+        if (!currentUser) {
+            console.log("في انتظار الهوية لحفظ التوكن...");
+            return;
+        }
+
         try {
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
                 const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
                 
-                // تم تعديل المفتاح ليطابق مفتاح مشروعك المرسل
                 const token = await getToken(messaging, { 
                     vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJObecNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
                     serviceWorkerRegistration: registration 
                 });
                 
-                if (token && currentUser) {
+                if (token) {
+                    // تم التأكد أن currentUser موجود هنا
                     await set(ref(db, `users_tokens/${currentUser.uid}`), {
                         token: token,
                         ghostName: myGhostName,
                         lastUpdated: Date.now()
                     });
+                    console.log("✅ تم ربط الروح بالإشعارات بنجاح");
                 }
             }
         } catch (err) {
-            console.error("خطأ في الإشعارات:", err);
+            console.error("خطأ إشعارات:", err);
         }
     }
 
@@ -195,6 +198,7 @@
             initMessages();
             initBans();
 
+            // تعديل: لا نطلب الإذن إلا إذا وافق على الميثاق وكان مسجل الدخول
             if(localStorage.getItem('ghost_rules_v5')) {
                 requestNotificationPermission();
             }
@@ -206,10 +210,13 @@
         document.getElementById('rulesOverlay').style.opacity = '0';  
         setTimeout(() => {
             document.getElementById('rulesOverlay').style.display = 'none';
+            // نطلب الإذن هنا فور قبول الميثاق
             requestNotificationPermission();
         }, 800);  
     };  
-    if(localStorage.getItem('ghost_rules_v5')) acceptRules();  
+    if(localStorage.getItem('ghost_rules_v5')) {
+        document.getElementById('rulesOverlay').style.display = 'none';
+    }
 
     async function send() {  
         const input = document.getElementById('msgInput');  
