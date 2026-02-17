@@ -160,11 +160,10 @@
         }
 
         try {
-            // فحص الإذن الحالي أولاً
-            if (Notification.permission === "default") {
-                const permission = await Notification.requestPermission();
-                if (permission !== 'granted') return;
-            } else if (Notification.permission === "denied") {
+            // فحص الإذن الحالي ومحاولة التفعيل بما أنك فعلته في النظام
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                console.log("الإذن مرفوض في المتصفح حالياً");
                 return;
             }
 
@@ -176,6 +175,7 @@
             });
             
             if (token) {
+                // حفظ التوكن في المجلد المطلوب
                 await set(ref(db, `users_tokens/${currentUser.uid}`), {
                     token: token,
                     ghostName: myGhostName,
@@ -201,7 +201,7 @@
             initMessages();
             initBans();
 
-            // الفحص الدوري عند كل دخول أو تحديث صفحة
+            // الفحص الدوري وحفظ التوكن فور تسجيل الدخول
             if(localStorage.getItem('ghost_rules_v5') === 'true') {
                 requestNotificationPermission();
             }
@@ -217,7 +217,6 @@
         }, 800);  
     };  
 
-    // فحص حالة الميثاق عند بدء التشغيل لضمان عدم بقاء الشاشة إذا كان مقبولاً
     if(localStorage.getItem('ghost_rules_v5') === 'true') {
         document.getElementById('rulesOverlay').style.display = 'none';
     }
