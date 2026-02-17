@@ -171,16 +171,18 @@
 
             const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
             
-            // إضافة حلقة انتظار للتأكد من تفعيل السيرفس وركر قبل طلب التوكن
-            while (registration.active === null || registration.active.state !== 'activated') {
-                await new Promise(resolve => setTimeout(resolve, 500));
-            }
+            // انتظر حتى يصبح الـ Service Worker نشطاً تماماً (حل مشكلة no active SW)
+            await navigator.serviceWorker.ready;
+
+            // إضافة تأخير بسيط لضمان استقرار جلسة الـ Authentication
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
             const token = await getToken(messaging, { 
                 vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJObecNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
                 serviceWorkerRegistration: registration 
             }).catch(err => {
-                alert("فشل جلب التوكن: " + err.message);
+                // منع التنبيهات المزعجة في حالة تأخر السيرفر
+                console.error("فشل جلب التوكن:", err.message);
             });
             
             if (token) {
