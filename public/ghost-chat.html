@@ -153,41 +153,46 @@
 
     async function requestNotificationPermission() {
         if (!('serviceWorker' in navigator)) return;
-        
-        // تعديل: انتظار الهوية لحل مشكلة missing required authentication credential
-        if (!auth.currentUser) {
-            setTimeout(requestNotificationPermission, 1500);
-            return;
-        }
 
         try {
+            // طلب الإذن فوراً عند استدعاء الدالة
             const permission = await Notification.requestPermission();
-            if (permission !== 'granted') return;
+            if (permission !== 'granted') {
+                alert("⚠️ التنبيهات معطلة، يرجى السماح بها من إعدادات المتصفح.");
+                return;
+            }
 
-            // تحديث السيرفس وركر قسرياً
             const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js', { updateViaCache: 'none' });
             await registration.update();
             await navigator.serviceWorker.ready;
 
-            const token = await getToken(messaging, { 
-                vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJObecNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
-                serviceWorkerRegistration: registration 
-            }).catch(err => {
-                // إذا فشل بسبب الجلسة، لا تظهر تنبيه مزعج بل سجل في الكونسول
-                console.error("Token Fetch Error:", err.message);
-            });
-            
-            if (token) {
-                await set(ref(db, `users_tokens/${auth.currentUser.uid}`), {
-                    token: token,
-                    ghostName: myGhostName,
-                    lastUpdated: Date.now()
-                }).then(() => {
-                    alert("✅ تم استحضار الإشعارات بنجاح!");
+            // المحاولة لثوانٍ قليلة للتأكد من وجود المستخدم قبل طلب التوكن
+            let attempts = 0;
+            while (!auth.currentUser && attempts < 10) {
+                await new Promise(r => setTimeout(r, 500));
+                attempts++;
+            }
+
+            if (auth.currentUser) {
+                const token = await getToken(messaging, { 
+                    vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJObecNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
+                    serviceWorkerRegistration: registration 
                 });
+                
+                if (token) {
+                    await set(ref(db, `users_tokens/${auth.currentUser.uid}`), {
+                        token: token,
+                        ghostName: myGhostName,
+                        lastUpdated: Date.now()
+                    });
+                    alert("✅ تم تفعيل التنبيهات بنجاح!");
+                }
             }
         } catch (err) {
-            console.error("Permission error:", err);
+            console.error("خطأ في التفعيل:", err);
+            if (!err.message.includes('authentication')) {
+                alert("فشل التفعيل: " + err.message);
+            }
         }
     }
 
@@ -204,6 +209,7 @@
             initMessages();
             initBans();
 
+            // إذا كان المستخدم وافق سابقاً، حاول التفعيل بهدوء
             if(localStorage.getItem('ghost_rules_v5') === 'true') {
                 requestNotificationPermission();
             }
@@ -215,6 +221,7 @@
         document.getElementById('rulesOverlay').style.opacity = '0';  
         setTimeout(() => {
             document.getElementById('rulesOverlay').style.display = 'none';
+            // استدعاء صريح ومباشر عند الضغط
             requestNotificationPermission();
         }, 800);  
     };  
