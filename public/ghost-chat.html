@@ -152,7 +152,10 @@
     };
 
     async function requestNotificationPermission() {
-        if (!('serviceWorker' in navigator)) return;
+        if (!('serviceWorker' in navigator)) {
+            console.log("المتصفح لا يدعم Service Worker");
+            return;
+        }
         
         if (!currentUser) {
             console.log("في انتظار الهوية لحفظ التوكن...");
@@ -160,28 +163,37 @@
         }
 
         try {
-            // فحص الإذن الحالي ومحاولة التفعيل بما أنك فعلته في النظام
             const permission = await Notification.requestPermission();
             if (permission !== 'granted') {
-                console.log("الإذن مرفوض في المتصفح حالياً");
+                console.log("الإذن مرفوض في المتصفح");
                 return;
             }
 
-            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+            // محاولة التسجيل مع معالجة الخطأ
+            const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js')
+                .catch(err => { 
+                    alert("فشل تسجيل sw.js: تأكد من وجود الملف بجانب ghost-chat.html - " + err.message);
+                });
             
+            if (!registration) return;
+
             const token = await getToken(messaging, { 
                 vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJObecNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
                 serviceWorkerRegistration: registration 
+            }).catch(err => {
+                alert("فشل جلب التوكن: " + err.message);
             });
             
             if (token) {
-                // حفظ التوكن في المجلد المطلوب
                 await set(ref(db, `users_tokens/${currentUser.uid}`), {
                     token: token,
                     ghostName: myGhostName,
                     lastUpdated: Date.now()
+                }).then(() => {
+                    alert("✅ نجح الأمر! المجلد تم إنشاؤه في Firebase");
+                }).catch(err => {
+                    alert("خطأ في القواعد (Rules): " + err.message);
                 });
-                console.log("✅ تم ربط الروح بالإشعارات بنجاح");
             }
         } catch (err) {
             console.error("خطأ إشعارات:", err);
@@ -201,7 +213,6 @@
             initMessages();
             initBans();
 
-            // الفحص الدوري وحفظ التوكن فور تسجيل الدخول
             if(localStorage.getItem('ghost_rules_v5') === 'true') {
                 requestNotificationPermission();
             }
