@@ -154,31 +154,34 @@
     async function requestNotificationPermission() {
         if (!('serviceWorker' in navigator)) return;
         
-        // تعديل: التأكد من تسجيل الدخول أولاً لأن القواعد تمنع الكتابة بدون Auth
         if (!currentUser) {
             console.log("في انتظار الهوية لحفظ التوكن...");
             return;
         }
 
         try {
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
-                const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-                
-                const token = await getToken(messaging, { 
-                    vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJObecNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
-                    serviceWorkerRegistration: registration 
+            // فحص الإذن الحالي أولاً
+            if (Notification.permission === "default") {
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') return;
+            } else if (Notification.permission === "denied") {
+                return;
+            }
+
+            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+            
+            const token = await getToken(messaging, { 
+                vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJObecNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
+                serviceWorkerRegistration: registration 
+            });
+            
+            if (token) {
+                await set(ref(db, `users_tokens/${currentUser.uid}`), {
+                    token: token,
+                    ghostName: myGhostName,
+                    lastUpdated: Date.now()
                 });
-                
-                if (token) {
-                    // تم التأكد أن currentUser موجود هنا
-                    await set(ref(db, `users_tokens/${currentUser.uid}`), {
-                        token: token,
-                        ghostName: myGhostName,
-                        lastUpdated: Date.now()
-                    });
-                    console.log("✅ تم ربط الروح بالإشعارات بنجاح");
-                }
+                console.log("✅ تم ربط الروح بالإشعارات بنجاح");
             }
         } catch (err) {
             console.error("خطأ إشعارات:", err);
@@ -198,8 +201,8 @@
             initMessages();
             initBans();
 
-            // تعديل: لا نطلب الإذن إلا إذا وافق على الميثاق وكان مسجل الدخول
-            if(localStorage.getItem('ghost_rules_v5')) {
+            // الفحص الدوري عند كل دخول أو تحديث صفحة
+            if(localStorage.getItem('ghost_rules_v5') === 'true') {
                 requestNotificationPermission();
             }
         }
@@ -210,11 +213,12 @@
         document.getElementById('rulesOverlay').style.opacity = '0';  
         setTimeout(() => {
             document.getElementById('rulesOverlay').style.display = 'none';
-            // نطلب الإذن هنا فور قبول الميثاق
             requestNotificationPermission();
         }, 800);  
     };  
-    if(localStorage.getItem('ghost_rules_v5')) {
+
+    // فحص حالة الميثاق عند بدء التشغيل لضمان عدم بقاء الشاشة إذا كان مقبولاً
+    if(localStorage.getItem('ghost_rules_v5') === 'true') {
         document.getElementById('rulesOverlay').style.display = 'none';
     }
 
