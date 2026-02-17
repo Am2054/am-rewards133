@@ -169,13 +169,12 @@
                 return;
             }
 
-            // محاولة التسجيل مع معالجة الخطأ
-            const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js')
-                .catch(err => { 
-                    alert("فشل تسجيل sw.js: تأكد من وجود الملف بجانب ghost-chat.html - " + err.message);
-                });
+            const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
             
-            if (!registration) return;
+            // إضافة حلقة انتظار للتأكد من تفعيل السيرفس وركر قبل طلب التوكن
+            while (registration.active === null || registration.active.state !== 'activated') {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
 
             const token = await getToken(messaging, { 
                 vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJObecNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
