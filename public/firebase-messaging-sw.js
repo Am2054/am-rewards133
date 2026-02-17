@@ -1,3 +1,4 @@
+// تصحيح الحرف الأول ليكون صغير
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
@@ -13,7 +14,9 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// التحقق من وصول الرسائل في الخلفية
 messaging.onBackgroundMessage((payload) => {
+    console.log('[firebase-messaging-sw.js] Received background message ', payload);
     const notificationTitle = payload.notification.title;
     const notificationOptions = {
         body: payload.notification.body,
@@ -22,3 +25,4 @@ messaging.onBackgroundMessage((payload) => {
     };
     self.registration.showNotification(notificationTitle, notificationOptions);
 });
+
