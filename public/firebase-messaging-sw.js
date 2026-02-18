@@ -25,9 +25,9 @@ messaging.onBackgroundMessage((payload) => {
         // التعديل لضمان التوافق ومنع التكرار:
         tag: 'ghost-chat-msg', 
         renotify: true,
-        // إضافة بيانات إضافية لاستخدامها عند الضغط
+        // إضافة بيانات إضافية لاستخدامها عند الضغط (استلام الرابط من السيرفر)
         data: {
-            url: '/' // يمكنك وضع رابط الموقع الكامل هنا إذا أردت
+            url: payload.data && payload.data.url ? payload.data.url : '/' 
         }
     };
     self.registration.showNotification(notificationTitle, notificationOptions);
@@ -39,19 +39,21 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener('notificationclick', function(event) {
     event.notification.close(); // إغلاق الإشعار فور الضغط
 
-    // الرابط الذي سيتم فتحه (جذر الموقع)
-    const urlToOpen = new URL('/', self.location.origin).href;
+    // الرابط الذي سيتم فتحه (استخراج الرابط المرسل من السيرفر أو الافتراضي)
+    const targetUrl = event.notification.data.url;
+    const urlToOpen = new URL(targetUrl, self.location.origin).href;
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(windowClients) {
             // التحقق إذا كان الموقع مفتوحاً في أي تبويب حالياً
             for (var i = 0; i < windowClients.length; i++) {
                 var client = windowClients[i];
+                // إذا كان الرابط مفتوحاً، نركز عليه فقط
                 if (client.url === urlToOpen && 'focus' in client) {
-                    return client.focus(); // نكتفي بالتركيز على التبويب المفتوح
+                    return client.focus(); 
                 }
             }
-            // إذا كان مغلقاً، نفتح نافذة جديدة
+            // إذا كان مغلقاً، نفتح نافذة جديدة بالرابط المحدد
             if (clients.openWindow) {
                 return clients.openWindow(urlToOpen);
             }
