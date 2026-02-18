@@ -167,28 +167,37 @@
     };
     window.addEventListener('focus', clearGhostNotifications);
 
-    const getDailyIdentity = () => {
-        const today = new Date().toDateString(); 
-        const savedDate = localStorage.getItem('ghost_id_date');
-        const oldName = localStorage.getItem('ghost_name_v5');
-        let name = oldName;
+    // دالة جلب الهوية اليومية من الباك إند
+    const getDailyIdentity = async () => {
+        try {
+            const token = await auth.currentUser.getIdToken();
+            const res = await fetch('/api/sendMessage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: "GET_IDENTITY", uid: currentUser.uid, token })
+            });
+            const data = await res.json();
+            if (data.ghostName) {
+                const today = new Date().toDateString();
+                const lastSavedDate = localStorage.getItem('ghost_id_date');
 
-        if (savedDate !== today || !name) {
-            const adjs = ["الغامض", "الثائر", "الهادئ", "المحارب", "العابر", "الصامت", "التائه", "المراقب", "المنسي", "الخفي"];  
-            const names = ["طيف", "كيان", "سراب", "ظل", "نور", "صدى", "برق", "نجم", "وهم", "شبح"];  
-            name = `${names[Math.floor(Math.random()*names.length)]} ${adjs[Math.floor(Math.random()*adjs.length)]} #${Math.floor(1000+Math.random()*9000)}`;
-            
-            localStorage.setItem('ghost_name_v5', name);
-            localStorage.setItem('ghost_id_date', today);
+                // إذا تغير اليوم، امسح الشات تماماً من الشاشة ليتوافق مع حذف الباك إند
+                if (lastSavedDate && lastSavedDate !== today) {
+                    document.getElementById('chatBox').innerHTML = "";
+                    renderedMsgIds.clear();
+                }
 
-            const chatBox = document.getElementById('chatBox');
-            if(chatBox) chatBox.innerHTML = "";
-            renderedMsgIds.clear();
-        }
-        return name;
+                myGhostName = data.ghostName;
+                document.getElementById('status').innerHTML = `<span class="online-dot"></span> هويتك: ${myGhostName}`;
+                localStorage.setItem('ghost_id_date', today);
+                
+                initPresence(); 
+            }
+        } catch (e) { console.error("Identity Fetch Failed", e); }
     };
 
     const initPresence = () => {
+        if (!currentUser || !myGhostName) return;
         const onlineRef = ref(db, `users_online/${currentUser.uid}`);
         const typingRef = ref(db, `typing/global/${currentUser.uid}`);
         set(onlineRef, { name: myGhostName, status: 'online' });
@@ -233,13 +242,11 @@
     onAuthStateChanged(auth, (user) => {
         if (user) {
             currentUser = user;
-            myGhostName = getDailyIdentity();
-            document.getElementById('status').innerHTML = `<span class="online-dot"></span> هويتك: ${myGhostName}`;
+            getDailyIdentity(); // جلب الهوية فور تسجيل الدخول
             document.getElementById('msgInput').disabled = false;
             document.getElementById('sendBtn').disabled = false;
             initMessages();
             initBans();
-            initPresence();
             clearGhostNotifications();
             if(localStorage.getItem('ghost_rules_v5') === 'true') { requestNotificationPermission(); }
         }
@@ -266,7 +273,7 @@
             const token = await auth.currentUser.getIdToken();
             const payload = editingMsgId 
                 ? { action: "EDIT", msgId: editingMsgId, text, uid: currentUser.uid, token }
-                : { text, sender: myGhostName, uid: currentUser.uid, token };
+                : { text, uid: currentUser.uid, token };
 
             const res = await fetch('/api/sendMessage', {
                 method: 'POST',
@@ -297,8 +304,6 @@
     }
 
     function initMessages() {
-        const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
-        // تم تحديث الـ Query لتحسين الأداء
         const q = query(
             ref(db, "messages/global"), 
             orderByChild("timestamp"), 
@@ -308,7 +313,6 @@
         onChildAdded(q, (snap) => {
             if (renderedMsgIds.has(snap.key)) return;
             const data = snap.val();
-            if (data.timestamp < oneDayAgo) return;
             renderMsg(snap.key, data);
         });
         
@@ -333,6 +337,14 @@
                         senderDiv.appendChild(tag);
                     }
                 }
+            }
+        });
+        
+        // مسح الشاشة إذا تم حذف النود بالكامل من السيرفر (عند تغير اليوم)
+        onValue(ref(db, "messages/global"), (snap) => {
+            if (!snap.exists()) {
+                document.getElementById('chatBox').innerHTML = "";
+                renderedMsgIds.clear();
             }
         });
     }
@@ -388,7 +400,6 @@
         const modal = document.getElementById('actionModal');
         modal.style.display = 'flex';
         
-        // الحذف الآمن عبر السيرفر
         document.getElementById('deleteBtn').onclick = async () => {
             const token = await auth.currentUser.getIdToken();
             await fetch('/api/sendMessage', {
