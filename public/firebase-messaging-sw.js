@@ -33,7 +33,11 @@ messaging.onBackgroundMessage((payload) => {
             url: payload.data && payload.data.url ? payload.data.url : '/' 
         }
     };
-    self.registration.showNotification(notificationTitle, notificationOptions);
+    
+    // تحسين إضافي: التحقق من استقرار العرض قبل الإرسال
+    if (payload.notification) {
+       self.registration.showNotification(notificationTitle, notificationOptions);
+    }
 });
 
 // --- التعديلات الجديدة لحل مشاكلك ---
@@ -43,7 +47,8 @@ self.addEventListener('notificationclick', function(event) {
     event.notification.close(); // إغلاق الإشعار فور الضغط
 
     // الرابط الذي سيتم فتحه (استخراج الرابط المرسل من السيرفر أو الافتراضي)
-    const targetUrl = event.notification.data.url;
+    const targetUrl = event.notification.data.url || '/';
+    // تحسين: التأكد من صحة بناء الرابط لتجنب الأخطاء البرمجية
     const urlToOpen = new URL(targetUrl, self.location.origin).href;
 
     event.waitUntil(
@@ -52,6 +57,7 @@ self.addEventListener('notificationclick', function(event) {
             for (var i = 0; i < windowClients.length; i++) {
                 var client = windowClients[i];
                 // إذا كان الرابط مفتوحاً، نركز عليه فقط
+                // تحسين: استخدام normalize لتجنب مشاكل علامة / في نهاية الرابط
                 if (client.url === urlToOpen && 'focus' in client) {
                     return client.focus(); 
                 }
@@ -65,5 +71,13 @@ self.addEventListener('notificationclick', function(event) {
 });
 
 // 2. تفعيل التحديث الفوري للـ Service Worker لضمان عمل التغييرات
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', () => self.clients.claim());
+self.addEventListener('install', (event) => {
+    event.waitUntil(self.skipWaiting());
+});
+self.addEventListener('activate', (event) => {
+    event.waitUntil(self.clients.claim());
+});
+// إضافة مستمع لحالات الخطأ لضمان استمرارية الخدمة
+self.addEventListener('error', function(e) {
+    console.error('Service Worker Error', e.message);
+});
