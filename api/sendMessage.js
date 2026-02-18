@@ -52,20 +52,19 @@ export default async function handler(req, res) {
         const isConfession = text.includes('#اعتراف');
         const isSecret = text.includes('#سر') || text.includes('سر');
 
-        // التعديل الجديد: تنظيف المحتوى من الكلمات المفتاحية ليظهر المحتوى الصافي فقط
-        let finalContent = cleanText
+        // تعديل: تنظيف النص من الكلمات المفتاحية ليظهر المحتوى فقط
+        let finalDisplayContent = cleanText
             .replace(/#اعتراف/g, '')
             .replace(/#سر/g, '')
             .replace(/سر/g, '')
             .trim();
 
         // منطق الرد (Reply Logic)
-        const replyMatch = finalContent.match(/^رد على @(.+?):/);
+        const replyMatch = finalDisplayContent.match(/^رد على @(.+?):/);
         const replyToName = replyMatch ? replyMatch[1].trim() : null;
 
         const msgRef = db.ref('messages/global').push();
-        // حفظ النص "النظيف" في قاعدة البيانات
-        await msgRef.set({ uid, sender, text: finalContent, timestamp: now, isConfession, isSecret });
+        await msgRef.set({ uid, sender, text: finalDisplayContent, timestamp: now, isConfession, isSecret });
         await lastMsgRef.set(now);
 
         try {
@@ -91,18 +90,18 @@ export default async function handler(req, res) {
                     const payload = {
                         notification: {
                             title: replyToName ? `💬 رد جديد من ${sender}` : (isConfession ? `🕯️ اعتراف من ${sender}` : `👻 رسالة جديدة`),
-                            body: isSecret ? "همس بشيء غامض..." : (finalContent.length > 50 ? finalContent.substring(0, 47) + "..." : finalContent),
+                            body: isSecret ? "همس بشيء غامض..." : (finalDisplayContent.length > 50 ? finalDisplayContent.substring(0, 47) + "..." : finalDisplayContent),
                         },
                         data: { 
                             click_action: "FLUTTER_NOTIFICATION_CLICK", 
                             sender: sender,
-                            // التعديل الجديد: تمرير رابط الموقع ليفتحه الـ Service Worker
-                            url: "/" 
+                            // التعديل الجديد: رابط الشات المباشر لفتحه عند الضغط
+                            url: "https://am-rewards.vercel.app/ghost-chat.html" 
                         },
                         android: { notification: { tag: 'ghost-chat-msg' } },
                         webpush: { 
                             notification: { tag: 'ghost-chat-msg', renotify: true },
-                            fcm_options: { link: "https://am--rewards.firebaseapp.com" }
+                            fcm_options: { link: "https://am-rewards.vercel.app/ghost-chat.html" }
                         }
                     };
 
