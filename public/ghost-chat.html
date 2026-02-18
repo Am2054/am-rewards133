@@ -55,7 +55,7 @@
         .online-dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; display: inline-block; margin-left: 5px; box-shadow: 0 0 5px var(--success); }
         .text { word-wrap: break-word; }
         .msg-deleted { font-style: italic; opacity: 0.6; font-size: 13px; }
-        .edited-tag { font-size: 9px; opacity: 0.5; margin-right: 5px; }
+        .edited-tag { font-size: 9px; opacity: 0.5; margin-right: 5px; color: var(--cyan); }
 
         .input-area { padding: 15px; background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.08); padding-bottom: calc(15px + env(safe-area-inset-bottom)); }  
         .input-wrapper { display: flex; gap: 12px; align-items: center; max-width: 700px; margin: 0 auto; }  
@@ -65,7 +65,6 @@
         .send-btn:hover { transform: rotate(-15deg) scale(1.1); box-shadow: 0 0 20px var(--cyan); }
         .send-btn:disabled { background: #334155; color: #64748b; transform: none; box-shadow: none; cursor: not-allowed; }
         
-        /* Modal for actions */
         #actionModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
         .modal-content { background: var(--dark); border: 1px solid var(--cyan); padding: 20px; border-radius: 20px; width: 80%; max-width: 300px; }
         .modal-btn { width: 100%; padding: 12px; margin: 5px 0; border: none; border-radius: 10px; font-family: 'Tajawal'; font-weight: bold; cursor: pointer; }
@@ -258,14 +257,15 @@
         const input = document.getElementById('msgInput');  
         const btn = document.getElementById('sendBtn');
         const text = input.value.trim();  
-        if(!text || btn.disabled) return;  
+        if(!text) return;  
 
-        // إذا كنا في وضع التعديل
         if (editingMsgId) {
+            btn.disabled = true;
             await update(ref(db, `messages/global/${editingMsgId}`), { text: text, edited: true });
             editingMsgId = null;
             input.value = "";
             btn.innerText = "✦";
+            btn.disabled = false;
             return;
         }
 
@@ -280,7 +280,7 @@
             });
             if (res.ok) { input.value = ""; }
         } catch(e) { console.error("Send Error"); }  
-        setTimeout(() => { btn.disabled = false; }, 2000);  
+        setTimeout(() => { btn.disabled = false; }, 1000);  
     }  
 
     function initBans() {
@@ -303,22 +303,23 @@
             if (data.timestamp < oneDayAgo) return;
             renderMsg(snap.key, data);
         });
-        // مراقبة التعديلات أو الحذف لحظياً
+        
         onChildChanged(ref(db, "messages/global"), (snap) => {
+            const data = snap.val();
             const msgEl = document.getElementById(`msg-${snap.key}`);
             if (msgEl) {
-                const data = snap.val();
                 const textDiv = msgEl.querySelector('.text');
+                const senderDiv = msgEl.querySelector('.sender');
                 if (data.deleted) {
                     textDiv.innerHTML = "هذه الهمسة تلاشت في العدم... (محذوفة)";
                     textDiv.classList.add('msg-deleted');
                 } else {
                     textDiv.textContent = data.text;
-                    if (data.edited && !msgEl.querySelector('.edited-tag')) {
+                    if (data.edited && !senderDiv.querySelector('.edited-tag')) {
                         const tag = document.createElement('span');
                         tag.className = 'edited-tag';
                         tag.innerText = "(معدلة)";
-                        msgEl.querySelector('.sender').appendChild(tag);
+                        senderDiv.appendChild(tag);
                     }
                 }
             }
