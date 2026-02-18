@@ -38,10 +38,11 @@
 
         header { padding: env(safe-area-inset-top, 15px) 15px 15px; text-align: center; background: var(--glass); backdrop-filter: blur(15px); border-bottom: 1px solid rgba(0, 242, 255, 0.1); z-index: 100; }  
         #status { font-size: 11px; color: var(--cyan); display: block; margin-top: 5px; font-weight: 900; letter-spacing: 0.5px; }  
+        #typingIndicator { font-size: 10px; color: var(--success); height: 15px; margin-top: 2px; font-style: italic; }
 
         #chatBox { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth; }  
 
-        .msg { max-width: 85%; padding: 14px 18px; border-radius: 24px; font-size: 15px; backdrop-filter: blur(10px); animation: msgIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; line-height: 1.5; cursor: pointer; }  
+        .msg { max-width: 85%; padding: 14px 18px; border-radius: 24px; font-size: 15px; backdrop-filter: blur(10px); animation: msgIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; line-height: 1.5; cursor: pointer; transition: 0.2s; }  
         @keyframes msgIn { from { opacity: 0; transform: translateY(20px) scale(0.9); } to { opacity: 1; transform: translateY(0) scale(1); } }  
 
         .msg-remote { align-self: flex-start; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.08); border-bottom-right-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }  
@@ -51,7 +52,10 @@
         .msg-confession { background: linear-gradient(135deg, rgba(153, 27, 27, 0.9), rgba(69, 10, 10, 0.9)) !important; border: 1px solid var(--danger) !important; box-shadow: 0 0 25px rgba(255, 68, 68, 0.3) !important; }
 
         .sender { font-size: 10px; font-weight: 900; color: var(--cyan); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; opacity: 0.9; }  
+        .online-dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; display: inline-block; margin-left: 5px; box-shadow: 0 0 5px var(--success); }
         .text { word-wrap: break-word; }
+        .msg-deleted { font-style: italic; opacity: 0.6; font-size: 13px; }
+        .edited-tag { font-size: 9px; opacity: 0.5; margin-right: 5px; }
 
         .input-area { padding: 15px; background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.08); padding-bottom: calc(15px + env(safe-area-inset-bottom)); }  
         .input-wrapper { display: flex; gap: 12px; align-items: center; max-width: 700px; margin: 0 auto; }  
@@ -60,6 +64,11 @@
         .send-btn { background: var(--cyan); border: none; width: 54px; height: 54px; border-radius: 50%; cursor: pointer; font-size: 22px; color: #000; font-weight: bold; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }  
         .send-btn:hover { transform: rotate(-15deg) scale(1.1); box-shadow: 0 0 20px var(--cyan); }
         .send-btn:disabled { background: #334155; color: #64748b; transform: none; box-shadow: none; cursor: not-allowed; }
+        
+        /* Modal for actions */
+        #actionModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
+        .modal-content { background: var(--dark); border: 1px solid var(--cyan); padding: 20px; border-radius: 20px; width: 80%; max-width: 300px; }
+        .modal-btn { width: 100%; padding: 12px; margin: 5px 0; border: none; border-radius: 10px; font-family: 'Tajawal'; font-weight: bold; cursor: pointer; }
     </style>
 </head>  
 <body>  
@@ -81,9 +90,17 @@
     </div>  
 </div>  
 
+<div id="actionModal" onclick="this.style.display='none'">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <button class="modal-btn" style="background:var(--cyan); color:#000" id="editBtn">تعديل الهمسة</button>
+        <button class="modal-btn" style="background:var(--danger); color:#fff" id="deleteBtn">نفي الرسالة (حذف)</button>
+    </div>
+</div>
+
 <header id="appHeader">  
     <h2 style="margin:0; font-weight:900; font-size:18px; letter-spacing: 1.5px;">GHOST CHAT <span style="color:var(--cyan)">PRO</span></h2>  
-    <span id="status">جاري استحضار هويتك اليومية...</span>  
+    <span id="status">جاري استحضار هويتك اليومية...</span> 
+    <div id="typingIndicator"></div>
 </header>  
 
 <div id="chatBox"></div>  
@@ -97,7 +114,7 @@
 
 <script type="module">  
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";  
-    import { getDatabase, ref, onChildAdded, onValue, query, limitToLast, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";  
+    import { getDatabase, ref, onChildAdded, onValue, query, limitToLast, set, onDisconnect, remove, update, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";  
     import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
@@ -118,6 +135,7 @@
 
     let currentUser = null;
     let myGhostName = "";
+    let editingMsgId = null;
     const renderedMsgIds = new Set(); 
 
     const applyTimeTheme = () => {
@@ -130,7 +148,6 @@
 
     onMessage(messaging, (payload) => {
         if (Notification.permission === "granted") {
-            // إضافة Tag لمنع تكرار الإشعارات كما ظهر في صورتك
             new Notification(payload.notification.title, {
                 body: payload.notification.body,
                 icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
@@ -140,7 +157,6 @@
         }
     });
 
-    // إضافة وظيفة لمسح الإشعارات عند فتح التبويب أو التركيز عليه
     const clearGhostNotifications = () => {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.ready.then(reg => {
@@ -173,6 +189,29 @@
         return name;
     };
 
+    const initPresence = () => {
+        const onlineRef = ref(db, `users_online/${currentUser.uid}`);
+        const typingRef = ref(db, `typing/global/${currentUser.uid}`);
+        set(onlineRef, { name: myGhostName, status: 'online' });
+        onDisconnect(onlineRef).remove();
+        onDisconnect(typingRef).remove();
+        onValue(ref(db, 'typing/global'), (snap) => {
+            const typers = snap.val();
+            const indicator = document.getElementById('typingIndicator');
+            if (typers) {
+                const names = Object.values(typers).filter(t => t.uid !== currentUser.uid).map(t => t.name);
+                indicator.innerText = names.length > 0 ? `${names.join(', ')} يهمس الآن...` : "";
+            } else { indicator.innerText = ""; }
+        });
+        document.getElementById('msgInput').oninput = (e) => {
+            if (e.target.value.length > 0) {
+                set(typingRef, { name: myGhostName, uid: currentUser.uid });
+                clearTimeout(window.typingTimer);
+                window.typingTimer = setTimeout(() => remove(typingRef), 2000);
+            } else { remove(typingRef); }
+        };
+    };
+
     async function requestNotificationPermission() {
         if (!('serviceWorker' in navigator) || !currentUser) return;
         try {
@@ -185,12 +224,7 @@
                 serviceWorkerRegistration: registration 
             });
             if (token) {
-                await set(ref(db, `users_tokens/${currentUser.uid}`), {
-                    token: token,
-                    ghostName: myGhostName,
-                    lastUpdated: Date.now()
-                });
-                console.log("Token Updated");
+                await set(ref(db, `users_tokens/${currentUser.uid}`), { token: token, ghostName: myGhostName, lastUpdated: Date.now() });
             }
         } catch (err) { console.warn("FCM Error", err); }
     }
@@ -201,30 +235,24 @@
         if (user) {
             currentUser = user;
             myGhostName = getDailyIdentity();
-            document.getElementById('status').innerText = "هويتك الحالية: " + myGhostName;
+            document.getElementById('status').innerHTML = `<span class="online-dot"></span> هويتك: ${myGhostName}`;
             document.getElementById('msgInput').disabled = false;
             document.getElementById('sendBtn').disabled = false;
             initMessages();
             initBans();
-            clearGhostNotifications(); // مسح الإشعارات عند تسجيل الدخول
-            if(localStorage.getItem('ghost_rules_v5') === 'true') {
-                requestNotificationPermission();
-            }
+            initPresence();
+            clearGhostNotifications();
+            if(localStorage.getItem('ghost_rules_v5') === 'true') { requestNotificationPermission(); }
         }
     });
 
     window.acceptRules = () => {  
         localStorage.setItem('ghost_rules_v5', 'true');  
         document.getElementById('rulesOverlay').style.opacity = '0';  
-        setTimeout(() => {
-            document.getElementById('rulesOverlay').style.display = 'none';
-            requestNotificationPermission();
-        }, 800);  
+        setTimeout(() => { document.getElementById('rulesOverlay').style.display = 'none'; requestNotificationPermission(); }, 800);  
     };  
 
-    if(localStorage.getItem('ghost_rules_v5') === 'true') {
-        document.getElementById('rulesOverlay').style.display = 'none';
-    }
+    if(localStorage.getItem('ghost_rules_v5') === 'true') { document.getElementById('rulesOverlay').style.display = 'none'; }
 
     async function send() {  
         const input = document.getElementById('msgInput');  
@@ -232,7 +260,17 @@
         const text = input.value.trim();  
         if(!text || btn.disabled) return;  
 
+        // إذا كنا في وضع التعديل
+        if (editingMsgId) {
+            await update(ref(db, `messages/global/${editingMsgId}`), { text: text, edited: true });
+            editingMsgId = null;
+            input.value = "";
+            btn.innerText = "✦";
+            return;
+        }
+
         btn.disabled = true;  
+        remove(ref(db, `typing/global/${currentUser.uid}`));
         try {  
             const token = await auth.currentUser.getIdToken();
             const res = await fetch('/api/sendMessage', {
@@ -260,43 +298,91 @@
         const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
         const q = query(ref(db, "messages/global"), limitToLast(50));
         onChildAdded(q, (snap) => {
+            if (renderedMsgIds.has(snap.key)) return;
             const data = snap.val();
             if (data.timestamp < oneDayAgo) return;
-            if (renderedMsgIds.has(snap.key)) return;
-            renderedMsgIds.add(snap.key);
-            const isMe = data.sender === myGhostName;
-            renderMsg(data, isMe);
+            renderMsg(snap.key, data);
+        });
+        // مراقبة التعديلات أو الحذف لحظياً
+        onChildChanged(ref(db, "messages/global"), (snap) => {
+            const msgEl = document.getElementById(`msg-${snap.key}`);
+            if (msgEl) {
+                const data = snap.val();
+                const textDiv = msgEl.querySelector('.text');
+                if (data.deleted) {
+                    textDiv.innerHTML = "هذه الهمسة تلاشت في العدم... (محذوفة)";
+                    textDiv.classList.add('msg-deleted');
+                } else {
+                    textDiv.textContent = data.text;
+                    if (data.edited && !msgEl.querySelector('.edited-tag')) {
+                        const tag = document.createElement('span');
+                        tag.className = 'edited-tag';
+                        tag.innerText = "(معدلة)";
+                        msgEl.querySelector('.sender').appendChild(tag);
+                    }
+                }
+            }
         });
     }
 
-    function renderMsg(data, isMe) {
+    function renderMsg(id, data) {
         const chatBox = document.getElementById('chatBox');  
-        const div = document.createElement('div');  
+        const div = document.createElement('div');
+        div.id = `msg-${id}`;
+        const isMe = data.uid === currentUser.uid;
         let msgClass = isMe ? 'msg-me' : 'msg-remote';
         if(data.isSecret) msgClass += ' msg-secret';
         if(data.isConfession) msgClass += ' msg-confession';
         div.className = `msg ${msgClass}`;  
 
         div.onclick = () => {
-            const input = document.getElementById('msgInput');
-            input.value = `رد على @${data.sender}: ` + input.value;
-            input.focus();
+            if (isMe && !data.deleted) {
+                showMsgActions(id, data.text);
+            } else {
+                const input = document.getElementById('msgInput');
+                input.value = `رد على @${data.sender}: ` + input.value;
+                input.focus();
+            }
         };
 
         const senderDiv = document.createElement('div');
         senderDiv.className = 'sender';
         senderDiv.innerHTML = `<span>${isMe ? 'أنت' : data.sender}</span>`;
+        if (data.edited) senderDiv.innerHTML += `<span class="edited-tag">(معدلة)</span>`;
         if(data.isConfession) senderDiv.innerHTML += `<span style="font-size:9px; color: #ff8888; background: rgba(255,0,0,0.2); padding: 2px 6px; border-radius: 5px;">🕯️ اعتراف</span>`;
         if(data.isSecret) senderDiv.innerHTML += `<span style="font-size:9px; color: #cc88ff; background: rgba(112,0,255,0.2); padding: 2px 6px; border-radius: 5px;">🔑 سر</span>`;
 
         const textDiv = document.createElement('div');
         textDiv.className = 'text';
-        textDiv.textContent = data.text; 
+        if (data.deleted) {
+            textDiv.textContent = "هذه الهمسة تلاشت في العدم... (محذوفة)";
+            textDiv.classList.add('msg-deleted');
+        } else {
+            textDiv.textContent = data.text; 
+        }
 
         div.appendChild(senderDiv);
         div.appendChild(textDiv);
         chatBox.appendChild(div);  
-        chatBox.scrollTop = chatBox.scrollHeight;  
+        chatBox.scrollTop = chatBox.scrollHeight;
+        renderedMsgIds.add(id);
+    }
+
+    function showMsgActions(id, currentText) {
+        const modal = document.getElementById('actionModal');
+        modal.style.display = 'flex';
+        document.getElementById('deleteBtn').onclick = () => {
+            update(ref(db, `messages/global/${id}`), { deleted: true, text: "تم نفي هذه الرسالة" });
+            modal.style.display = 'none';
+        };
+        document.getElementById('editBtn').onclick = () => {
+            const input = document.getElementById('msgInput');
+            input.value = currentText;
+            editingMsgId = id;
+            document.getElementById('sendBtn').innerText = "تعديل";
+            input.focus();
+            modal.style.display = 'none';
+        };
     }
   
     document.getElementById('sendBtn').onclick = send;  
