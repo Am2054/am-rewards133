@@ -24,7 +24,41 @@ messaging.onBackgroundMessage((payload) => {
         badge: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
         // التعديل لضمان التوافق ومنع التكرار:
         tag: 'ghost-chat-msg', 
-        renotify: true
+        renotify: true,
+        // إضافة بيانات إضافية لاستخدامها عند الضغط
+        data: {
+            url: '/' // يمكنك وضع رابط الموقع الكامل هنا إذا أردت
+        }
     };
     self.registration.showNotification(notificationTitle, notificationOptions);
 });
+
+// --- التعديلات الجديدة لحل مشاكلك ---
+
+// 1. جعل الإشعار يفتح الموقع عند الضغط عليه
+self.addEventListener('notificationclick', function(event) {
+    event.notification.close(); // إغلاق الإشعار فور الضغط
+
+    // الرابط الذي سيتم فتحه (جذر الموقع)
+    const urlToOpen = new URL('/', self.location.origin).href;
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(windowClients) {
+            // التحقق إذا كان الموقع مفتوحاً في أي تبويب حالياً
+            for (var i = 0; i < windowClients.length; i++) {
+                var client = windowClients[i];
+                if (client.url === urlToOpen && 'focus' in client) {
+                    return client.focus(); // نكتفي بالتركيز على التبويب المفتوح
+                }
+            }
+            // إذا كان مغلقاً، نفتح نافذة جديدة
+            if (clients.openWindow) {
+                return clients.openWindow(urlToOpen);
+            }
+        })
+    );
+});
+
+// 2. تفعيل التحديث الفوري للـ Service Worker لضمان عمل التغييرات
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', () => self.clients.claim());
