@@ -21,8 +21,10 @@ messaging.onBackgroundMessage((payload) => {
     const notificationOptions = {
         body: payload.notification.body,
         icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
-        badge: 'https://cdn-icons-png.flaticon.com/512/633/633600.png'
+        badge: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
+        // التعديل لضمان التوافق ومنع التكرار:
+        tag: 'ghost-chat-msg', 
+        renotify: true
     };
     self.registration.showNotification(notificationTitle, notificationOptions);
 });
-
