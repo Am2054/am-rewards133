@@ -140,6 +140,18 @@
         }
     });
 
+    // إضافة وظيفة لمسح الإشعارات عند فتح التبويب أو التركيز عليه
+    const clearGhostNotifications = () => {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(reg => {
+                reg.getNotifications({ tag: 'ghost-chat-msg' }).then(notifications => {
+                    notifications.forEach(n => n.close());
+                });
+            });
+        }
+    };
+    window.addEventListener('focus', clearGhostNotifications);
+
     const getDailyIdentity = () => {
         const today = new Date().toDateString(); 
         const savedDate = localStorage.getItem('ghost_id_date');
@@ -194,6 +206,7 @@
             document.getElementById('sendBtn').disabled = false;
             initMessages();
             initBans();
+            clearGhostNotifications(); // مسح الإشعارات عند تسجيل الدخول
             if(localStorage.getItem('ghost_rules_v5') === 'true') {
                 requestNotificationPermission();
             }
