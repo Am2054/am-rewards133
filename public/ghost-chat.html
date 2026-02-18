@@ -113,7 +113,7 @@
 
 <script type="module">  
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";  
-    import { getDatabase, ref, onChildAdded, onValue, query, limitToLast, set, onDisconnect, remove, update, onChildChanged, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";  
+    import { getDatabase, ref, onChildAdded, onValue, query, limitToLast, set, onDisconnect, remove, update, onChildChanged, get, orderByChild } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";  
     import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
@@ -259,30 +259,29 @@
         const text = input.value.trim();  
         if(!text) return;  
 
-        if (editingMsgId) {
-            btn.disabled = true;
-            await update(ref(db, `messages/global/${editingMsgId}`), { 
-                text: text, 
-                edited: true 
-            });
-            editingMsgId = null;
-            input.value = "";
-            btn.innerText = "✦";
-            btn.disabled = false;
-            return;
-        }
-
         btn.disabled = true;  
         remove(ref(db, `typing/global/${currentUser.uid}`));
+        
         try {  
             const token = await auth.currentUser.getIdToken();
+            const payload = editingMsgId 
+                ? { action: "EDIT", msgId: editingMsgId, text, uid: currentUser.uid, token }
+                : { text, sender: myGhostName, uid: currentUser.uid, token };
+
             const res = await fetch('/api/sendMessage', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text, sender: myGhostName, uid: currentUser.uid, token })
+                body: JSON.stringify(payload)
             });
-            if (res.ok) { input.value = ""; }
-        } catch(e) { console.error("Send Error"); }  
+            
+            if (res.ok) { 
+                input.value = ""; 
+                if (editingMsgId) {
+                    editingMsgId = null;
+                    btn.innerText = "✦";
+                }
+            }
+        } catch(e) { console.error("API Error"); }  
         setTimeout(() => { btn.disabled = false; }, 1000);  
     }  
 
@@ -299,7 +298,12 @@
 
     function initMessages() {
         const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
-        const q = query(ref(db, "messages/global"), limitToLast(50));
+        // تم تحديث الـ Query لتحسين الأداء
+        const q = query(
+            ref(db, "messages/global"), 
+            orderByChild("timestamp"), 
+            limitToLast(50)
+        );
         
         onChildAdded(q, (snap) => {
             if (renderedMsgIds.has(snap.key)) return;
@@ -308,7 +312,6 @@
             renderMsg(snap.key, data);
         });
         
-        // الحل للمشكلة 1: ربط التعديل بنفس الـ query
         onChildChanged(q, (snap) => {
             const data = snap.val();
             const msgEl = document.getElementById(`msg-${snap.key}`);
@@ -316,7 +319,6 @@
                 const textDiv = msgEl.querySelector('.text');
                 const senderDiv = msgEl.querySelector('.sender');
                 
-                // الحل للمشكلة 2: الـ UI هو المسؤول عن نص الحذف
                 if (data.deleted) {
                     textDiv.innerHTML = "هذه الهمسة تلاشت في العدم... (محذوفة)";
                     textDiv.classList.add('msg-deleted');
@@ -346,7 +348,6 @@
         div.className = `msg ${msgClass}`;  
 
         div.onclick = () => {
-            // الحل للمشكلة 3: جلب النص الحقيقي لحظة الضغط
             if (isMe) {
                 showMsgActions(id);
             } else {
@@ -380,17 +381,21 @@
     }
 
     async function showMsgActions(id) {
-        // جلب أحدث بيانات للرسالة قبل فتح المودال
         const snap = await get(ref(db, `messages/global/${id}`));
         const data = snap.val();
-        
         if (!data || data.deleted) return;
 
         const modal = document.getElementById('actionModal');
         modal.style.display = 'flex';
         
+        // الحذف الآمن عبر السيرفر
         document.getElementById('deleteBtn').onclick = async () => {
-            await update(ref(db, `messages/global/${id}`), { deleted: true });
+            const token = await auth.currentUser.getIdToken();
+            await fetch('/api/sendMessage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: "DELETE", msgId: id, uid: currentUser.uid, token })
+            });
             modal.style.display = 'none';
         };
         
