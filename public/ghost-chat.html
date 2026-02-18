@@ -113,7 +113,7 @@
 
 <script type="module">  
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";  
-    import { getDatabase, ref, onChildAdded, onValue, query, limitToLast, set, onDisconnect, remove, update, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";  
+    import { getDatabase, ref, onChildAdded, onValue, query, limitToLast, set, onDisconnect, remove, update, onChildChanged, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";  
     import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
@@ -261,7 +261,10 @@
 
         if (editingMsgId) {
             btn.disabled = true;
-            await update(ref(db, `messages/global/${editingMsgId}`), { text: text, edited: true });
+            await update(ref(db, `messages/global/${editingMsgId}`), { 
+                text: text, 
+                edited: true 
+            });
             editingMsgId = null;
             input.value = "";
             btn.innerText = "✦";
@@ -297,6 +300,7 @@
     function initMessages() {
         const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
         const q = query(ref(db, "messages/global"), limitToLast(50));
+        
         onChildAdded(q, (snap) => {
             if (renderedMsgIds.has(snap.key)) return;
             const data = snap.val();
@@ -304,17 +308,22 @@
             renderMsg(snap.key, data);
         });
         
-        onChildChanged(ref(db, "messages/global"), (snap) => {
+        // الحل للمشكلة 1: ربط التعديل بنفس الـ query
+        onChildChanged(q, (snap) => {
             const data = snap.val();
             const msgEl = document.getElementById(`msg-${snap.key}`);
             if (msgEl) {
                 const textDiv = msgEl.querySelector('.text');
                 const senderDiv = msgEl.querySelector('.sender');
+                
+                // الحل للمشكلة 2: الـ UI هو المسؤول عن نص الحذف
                 if (data.deleted) {
                     textDiv.innerHTML = "هذه الهمسة تلاشت في العدم... (محذوفة)";
                     textDiv.classList.add('msg-deleted');
+                    msgEl.style.cursor = 'default';
                 } else {
                     textDiv.textContent = data.text;
+                    textDiv.classList.remove('msg-deleted');
                     if (data.edited && !senderDiv.querySelector('.edited-tag')) {
                         const tag = document.createElement('span');
                         tag.className = 'edited-tag';
@@ -337,8 +346,9 @@
         div.className = `msg ${msgClass}`;  
 
         div.onclick = () => {
-            if (isMe && !data.deleted) {
-                showMsgActions(id, data.text);
+            // الحل للمشكلة 3: جلب النص الحقيقي لحظة الضغط
+            if (isMe) {
+                showMsgActions(id);
             } else {
                 const input = document.getElementById('msgInput');
                 input.value = `رد على @${data.sender}: ` + input.value;
@@ -369,16 +379,24 @@
         renderedMsgIds.add(id);
     }
 
-    function showMsgActions(id, currentText) {
+    async function showMsgActions(id) {
+        // جلب أحدث بيانات للرسالة قبل فتح المودال
+        const snap = await get(ref(db, `messages/global/${id}`));
+        const data = snap.val();
+        
+        if (!data || data.deleted) return;
+
         const modal = document.getElementById('actionModal');
         modal.style.display = 'flex';
-        document.getElementById('deleteBtn').onclick = () => {
-            update(ref(db, `messages/global/${id}`), { deleted: true, text: "تم نفي هذه الرسالة" });
+        
+        document.getElementById('deleteBtn').onclick = async () => {
+            await update(ref(db, `messages/global/${id}`), { deleted: true });
             modal.style.display = 'none';
         };
+        
         document.getElementById('editBtn').onclick = () => {
             const input = document.getElementById('msgInput');
-            input.value = currentText;
+            input.value = data.text;
             editingMsgId = id;
             document.getElementById('sendBtn').innerText = "تعديل";
             input.focus();
