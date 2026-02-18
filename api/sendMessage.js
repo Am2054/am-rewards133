@@ -52,14 +52,12 @@ export default async function handler(req, res) {
         const isConfession = text.includes('#اعتراف');
         const isSecret = text.includes('#سر') || text.includes('سر');
 
-        // تعديل: تنظيف النص من الكلمات المفتاحية ليظهر المحتوى فقط
         let finalDisplayContent = cleanText
             .replace(/#اعتراف/g, '')
             .replace(/#سر/g, '')
             .replace(/سر/g, '')
             .trim();
 
-        // منطق الرد (Reply Logic)
         const replyMatch = finalDisplayContent.match(/^رد على @(.+?):/);
         const replyToName = replyMatch ? replyMatch[1].trim() : null;
 
@@ -95,11 +93,17 @@ export default async function handler(req, res) {
                         data: { 
                             click_action: "FLUTTER_NOTIFICATION_CLICK", 
                             sender: sender,
-                            // التعديل الجديد: رابط الشات المباشر لفتحه عند الضغط
                             url: "https://am-rewards.vercel.app/ghost-chat.html" 
                         },
-                        android: { notification: { tag: 'ghost-chat-msg' } },
+                        // إعدادات السرعة القصوى (High Priority)
+                        android: { 
+                            priority: 'high', // لتوصيل الرسالة فورًا على أندرويد
+                            notification: { tag: 'ghost-chat-msg' } 
+                        },
                         webpush: { 
+                            headers: {
+                                Urgency: 'high' // لطلب سرعة الاستجابة من المتصفح
+                            },
                             notification: { tag: 'ghost-chat-msg', renotify: true },
                             fcm_options: { link: "https://am-rewards.vercel.app/ghost-chat.html" }
                         }
