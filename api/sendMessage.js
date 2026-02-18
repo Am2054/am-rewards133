@@ -52,32 +52,55 @@ export default async function handler(req, res) {
         const isConfession = text.includes('#اعتراف');
         const isSecret = text.includes('#سر') || text.includes('سر');
 
+        // منطق الرد (Reply Logic)
+        const replyMatch = cleanText.match(/^رد على @(.+?):/);
+        const replyToName = replyMatch ? replyMatch[1].trim() : null;
+
         const msgRef = db.ref('messages/global').push();
         await msgRef.set({ uid, sender, text: cleanText, timestamp: now, isConfession, isSecret });
         await lastMsgRef.set(now);
 
-        // إرسال الإشعارات للجميع مع فلترة التوكنات الفارغة
         try {
             const tokensSnap = await db.ref('users_tokens').once('value');
             if (tokensSnap.exists()) {
                 const tokensData = tokensSnap.val();
-                const registrationTokens = Object.values(tokensData)
-                    .map(u => u.token)
-                    .filter(t => typeof t === 'string' && t.length > 10);
+                let targetTokens = [];
 
-                if (registrationTokens.length > 0) {
+                if (replyToName) {
+                    // الحالة الأولى: إرسال الإشعار للشخص الذي تم الرد عليه فقط
+                    const targetUser = Object.values(tokensData).find(u => u.ghostName === replyToName);
+                    if (targetUser && targetUser.token) {
+                        targetTokens = [targetUser.token];
+                    }
+                } else {
+                    // الحالة الثانية: إرسال للجميع (مع استبعاد صاحب الرسالة)
+                    const myTokenSnap = await db.ref(`users_tokens/${uid}/token`).once('value');
+                    const myToken = myTokenSnap.val();
+                    targetTokens = Object.values(tokensData)
+                        .map(u => u.token)
+                        .filter(t => typeof t === 'string' && t.length > 10 && t !== myToken);
+                }
+
+                if (targetTokens.length > 0) {
                     const payload = {
                         notification: {
-                            title: isConfession ? `🕯️ اعتراف جديد من ${sender}` : `👻 رسالة جديدة في عالم الأشباح`,
+                            title: replyToName ? `💬 رد جديد من ${sender}` : (isConfession ? `🕯️ اعتراف من ${sender}` : `👻 رسالة جديدة`),
                             body: isSecret ? "همس بشيء غامض..." : (cleanText.length > 50 ? cleanText.substring(0, 47) + "..." : cleanText),
                         },
-                        data: { click_action: "FLUTTER_NOTIFICATION_CLICK", sender: sender }
+                        data: { click_action: "FLUTTER_NOTIFICATION_CLICK", sender: sender },
+                        android: { notification: { tag: 'ghost-chat-msg' } },
+                        webpush: { 
+                            notification: { tag: 'ghost-chat-msg', renotify: true },
+                            fcm_options: { link: "https://am--rewards.firebaseapp.com" }
+                        }
                     };
 
                     await messaging.sendEachForMulticast({ 
-                        tokens: registrationTokens, 
+                        tokens: targetTokens, 
                         notification: payload.notification, 
-                        data: payload.data 
+                        data: payload.data,
+                        android: payload.android,
+                        webpush: payload.webpush
                     });
                 }
             }
