@@ -272,8 +272,8 @@
         try {  
             const token = await auth.currentUser.getIdToken();
             const payload = editingMsgId 
-                ? { action: "EDIT", msgId: editingMsgId, text, uid: currentUser.uid, token }
-                : { text, uid: currentUser.uid, token };
+                ? { action: "EDIT", msgId: editingMsgId, text, uid: currentUser.uid, token, sender: myGhostName }
+                : { text, uid: currentUser.uid, token, sender: myGhostName };
 
             const res = await fetch('/api/sendMessage', {
                 method: 'POST',
@@ -340,7 +340,6 @@
             }
         });
         
-        // مسح الشاشة إذا تم حذف النود بالكامل من السيرفر (عند تغير اليوم)
         onValue(ref(db, "messages/global"), (snap) => {
             if (!snap.exists()) {
                 document.getElementById('chatBox').innerHTML = "";
@@ -405,7 +404,7 @@
             await fetch('/api/sendMessage', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: "DELETE", msgId: id, uid: currentUser.uid, token })
+                body: JSON.stringify({ action: "DELETE", msgId: id, uid: currentUser.uid, token, sender: myGhostName })
             });
             modal.style.display = 'none';
         };
