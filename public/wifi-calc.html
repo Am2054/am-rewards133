@@ -178,6 +178,26 @@
         if (curr + val >= 0) el.innerText = curr + val;
     }
 
+    function animateValue(id, start, end, duration) {
+        let obj = document.getElementById(id);
+        if (end === 0) { obj.innerText = 0; return; }
+        let range = end - start;
+        let minTimer = 50;
+        let stepTime = Math.abs(Math.floor(duration / range));
+        stepTime = Math.max(stepTime, minTimer);
+        let startTime = new Date().getTime();
+        let endTime = startTime + duration;
+        let timer;
+        function run() {
+            let now = new Date().getTime();
+            let remaining = Math.max((endTime - now) / duration, 0);
+            let value = Math.round(end - (remaining * range));
+            obj.innerText = value;
+            if (value == end) clearInterval(timer);
+        }
+        timer = setInterval(run, stepTime);
+    }
+
     function analyze() {
         // Logic
         const q = parseInt(document.getElementById('quota').value);
@@ -186,15 +206,17 @@
         const t = parseInt(document.getElementById('tvs').innerText) * 4.5;
         
         const total = m + l + t;
-        const days = Math.floor(q / total);
+        const days = total > 0 ? Math.floor(q / total) : 30;
         
         // UI
         document.getElementById('resultsPanel').style.display = 'block';
-        document.getElementById('daysVal').innerText = days;
         
-        // Bars
-        const tvP = ((t / total) * 100).toFixed(0);
-        const mobP = ((m / total) * 100).toFixed(0);
+        // عداد متحرك للرقم الرئيسي
+        animateValue("daysVal", 0, days, 1000);
+        
+        // Bars calculations
+        const tvP = total > 0 ? ((t / total) * 100).toFixed(0) : 0;
+        const mobP = total > 0 ? ((m / total) * 100).toFixed(0) : 0;
         
         setTimeout(() => {
             document.getElementById('tvFill').style.width = tvP + '%';
@@ -205,8 +227,11 @@
 
         const status = document.getElementById('statusText');
         if (days < 10) {
-            status.innerText = "وضع الخطر: الباقة ستنتهي سريعاً! ⚠️";
+            status.innerHTML = "وضع الخطر: الباقة ستنتهي سريعاً! ⚠️<br><small style='font-weight:normal; font-size:11px;'>نصيحة: قلل جودة فيديو اليوتيوب لـ 480p</small>";
             status.style.color = 'var(--danger)';
+        } else if (days < 20) {
+            status.innerText = "وضع متوسط: استهلاكك يحتاج مراقبة ⚠️";
+            status.style.color = '#ffb300';
         } else {
             status.innerText = "وضع الأمان: استهلاكك متزن حالياً ✅";
             status.style.color = 'var(--success)';
