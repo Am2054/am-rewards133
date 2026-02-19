@@ -75,7 +75,6 @@ export default async function handler(req, res) {
             }
             if (action === "EDIT") {
                 const cleanText = text.replace(/(010|011|012|015|019|٠١٠|٠١١|٠١٢|٠١٥|٠١٩)[\s-]*\d{8}/g, "[محجوب]");
-                // دعم التعديل ليشمل تنظيف العلامات الجديدة
                 await msgRef.update({ 
                     text: cleanText.replace(/#اعتراف|#سر|سر|^#|^\*/g, '').trim(), 
                     edited: true,
@@ -97,11 +96,9 @@ export default async function handler(req, res) {
         const rawInput = (text || "").trim();
         const cleanText = rawInput.replace(/(010|011|012|015|019|٠١٠|٠١١|٠١٢|٠١٥|٠١٩)[\s-]*\d{8}/g, "[محجوب]");  
         
-        // المنطق الجديد: التحقق من بداية الرسالة أو وجود الكلمات المفتاحية
         const isConfession = rawInput.startsWith('#') || rawInput.includes('#اعتراف');  
         const isSecret = rawInput.startsWith('*') || rawInput.includes('#سر') || rawInput.includes('سر');  
         
-        // تنظيف النص النهائي من كافة الرموز (القديمة والجديدة)
         let finalDisplayContent = cleanText
             .replace(/^#|^\*/g, '') 
             .replace(/#اعتراف/g, '')
@@ -138,8 +135,9 @@ export default async function handler(req, res) {
                         .map(u => u.token)
                         .filter(t => typeof t === 'string' && t.length > 10 && t !== myToken);  
                 }  
+
                 if (targetTokens.length > 0) {  
-                    const payload = {  
+                    const payloadBase = {  
                         notification: {  
                             title: replyToName ? `💬 رد جديد من ${activeGhostName}` : (isConfession ? `🕯️ اعتراف من ${activeGhostName}` : `👻 رسالة جديدة`),  
                             body: isSecret ? "همس بشيء غامض..." : (finalDisplayContent.length > 50 ? finalDisplayContent.substring(0, 47) + "..." : finalDisplayContent),  
@@ -148,7 +146,12 @@ export default async function handler(req, res) {
                         android: { priority: 'high', notification: { tag: 'ghost-chat-msg' } },  
                         webpush: { headers: { Urgency: 'high' }, notification: { tag: 'ghost-chat-msg', renotify: true }, fcm_options: { link: "https://am-rewards.vercel.app/ghost-chat.html" } }  
                     };  
-                    await messaging.sendEachForMulticast({ tokens: targetTokens, ...payload });  
+
+                    // --- التحسين الجديد: تقسيم التوكنز لمجموعات (Chunks) من 500 كحد أقصى ---
+                    for (let i = 0; i < targetTokens.length; i += 500) {
+                        const chunk = targetTokens.slice(i, i + 500);
+                        await messaging.sendEachForMulticast({ tokens: chunk, ...payloadBase });
+                    }
                 }  
             }  
         } catch (pushError) { console.error("Push Error", pushError); }  
