@@ -95,6 +95,7 @@
 
         <div style="margin-top: 20px; font-size: 13px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px;">
             <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>إجمالي كمية الاستهلاك:</span> <span id="totalKwh" style="color:var(--cyan); font-weight:bold;">0</span></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>متوسط الاستهلاك اليومي:</span> <span id="dailyAvg" style="color:var(--cyan)">0</span></div>
             <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>نصيب الوحدة (كمية):</span> <span id="unitKwh" style="color:var(--cyan)">0</span></div>
             <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>الشريحة الحالية:</span> <span id="shText" style="color:var(--neon-yellow)"> - </span></div>
             <div style="display:flex; justify-content:space-between; color: var(--neon-yellow); padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
@@ -118,6 +119,13 @@
     function animateValue(id, start, end, duration) {
         const obj = document.getElementById(id);
         const range = end - start;
+        
+        // --- تحسين 2: حماية من القسمة على صفر في الأنيميشن ---
+        if (range === 0) {
+            obj.innerHTML = end.toFixed(2) + " ج.م";
+            return;
+        }
+
         const minTimer = 50;
         let stepTime = Math.abs(Math.floor(duration / range));
         stepTime = Math.max(stepTime, minTimer);
@@ -138,8 +146,13 @@
     function calculateSmartBill() {
         const current = parseFloat(document.getElementById('currentRead').value);
         const previous = parseFloat(document.getElementById('prevRead').value);
-        const units = parseInt(document.getElementById('unitsCount').value) || 1;
+        let units = parseInt(document.getElementById('unitsCount').value) || 1;
         
+        // --- تحسين 3: تأمين مدخلات عدد الوحدات ---
+        if (units < 1) units = 1;
+        if (units > 999) units = 999; 
+        document.getElementById('unitsCount').value = units;
+
         if (isNaN(current) || isNaN(previous) || current < previous) {
             document.getElementById('errorMsg').style.display = 'block'; 
             window.scrollTo({top: 0, behavior: 'smooth'});
@@ -154,7 +167,7 @@
         let serviceFee = 0;
         const cleanFee = 15;
 
-        // خوارزمية الشرائح المحدثة
+        // خوارزمية الشرائح 2026
         if (totalKwh <= 100) {
             if (totalKwh <= 50) {
                 totalCost = totalKwh * 0.68;
@@ -192,10 +205,14 @@
         const finalTotal = totalCost + serviceFee + cleanFee;
         const moneyPerUnit = finalTotal / units;
 
-        // المقارنة الذكية
-        const lastMonthKwh = localStorage.getItem('lastMonthKwh');
+        // --- تحسين 4: إضافة متوسط الاستهلاك اليومي ---
+        const dailyAvg = (totalKwh / 30).toFixed(1);
+        document.getElementById('dailyAvg').innerText = dailyAvg + " ك.و / يوم";
+
+        // --- تحسين 1: حماية المقارنة من القسمة على صفر أو القيم الفارغة ---
+        const lastMonthKwh = parseFloat(localStorage.getItem('lastMonthKwh'));
         const badge = document.getElementById('compareBadge');
-        if (lastMonthKwh) {
+        if (!isNaN(lastMonthKwh) && lastMonthKwh > 0) {
             const diff = totalKwh - lastMonthKwh;
             const percent = ((Math.abs(diff) / lastMonthKwh) * 100).toFixed(1);
             badge.style.display = 'block';
@@ -203,17 +220,23 @@
                 badge.className = 'badge-up';
                 badge.innerHTML = `📈 استهلاكك زاد بنسبة ${percent}%`;
                 document.body.style.background = "#0f0505";
-            } else {
+            } else if (diff < 0) {
                 badge.className = 'badge-down';
                 badge.innerHTML = `📉 استهلاكك قل بنسبة ${percent}%`;
                 document.body.style.background = "#020617";
+            } else {
+                badge.className = 'badge-down';
+                badge.innerHTML = `➖ استهلاكك مساوٍ تماماً للشهر السابق`;
+                document.body.style.background = "#020617";
             }
+        } else {
+            badge.style.display = 'none';
         }
 
         localStorage.setItem('lastCurrentRead', current);
         localStorage.setItem('lastMonthKwh', totalKwh);
 
-        // العرض
+        // العرض النهائي
         document.getElementById('resultBox').style.display = 'block';
         animateValue("totalVal", 0, finalTotal, 1000);
         
@@ -243,7 +266,7 @@
     }
 
     function resetApp() {
-        if(confirm("هل تريد مسح جميع البيانات المسجلة؟")) {
+        if(confirm("هل تريد مسح سجل القراءات السابق والبدء من جديد؟")) {
             localStorage.clear();
             location.reload();
         }
