@@ -45,17 +45,14 @@ export default async function handler(req, res) {
     if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });  
 
     try {  
-        // تم إضافة sender هنا لاستقبال الاسم المرسل من الفرونت إند
         const { action, text, uid, token, msgId, sender } = req.body;  
         const decodedToken = await auth.verifyIdToken(token);  
         if (decodedToken.uid !== uid) throw new Error("Unauthorized");  
 
         const serverGhostName = generateDailyGhostName(uid);
-        // نستخدم الاسم القادم من العميل إذا وجد، وإلا نستخدم المولد من السيرفر كاحتياط
         const activeGhostName = sender || serverGhostName; 
         const now = Date.now();
 
-        // --- منطق الحذف الكامل عند تغير التاريخ (12 بالليل) ---
         const lastResetRef = db.ref('system/last_reset_date');
         const resetSnap = await lastResetRef.once('value');
         const todayDate = new Date().toDateString();
@@ -78,10 +75,11 @@ export default async function handler(req, res) {
             }
             if (action === "EDIT") {
                 const cleanText = text.replace(/(010|011|012|015|019|٠١٠|٠١١|٠١٢|٠١٥|٠١٩)[\s-]*\d{8}/g, "[محجوب]");
+                // دعم التعديل ليشمل تنظيف العلامات الجديدة
                 await msgRef.update({ 
-                    text: cleanText.replace(/#اعتراف|#سر|سر/g, '').trim(), 
+                    text: cleanText.replace(/#اعتراف|#سر|سر|^#|^\*/g, '').trim(), 
                     edited: true,
-                    timestamp: now // تحديث الوقت عند التعديل لضمان الترتيب
+                    timestamp: now 
                 });
                 return res.status(200).json({ success: true });
             }
@@ -96,10 +94,20 @@ export default async function handler(req, res) {
         const lastSnap = await lastMsgRef.once("value");  
         if (lastSnap.exists() && (now - lastSnap.val() < 3000)) return res.status(429).json({ error: "اهدأ قليلاً يا شبح.." });  
 
-        const cleanText = (text || "").replace(/(010|011|012|015|019|٠١٠|٠١١|٠١٢|٠١٥|٠١٩)[\s-]*\d{8}/g, "[محجوب]");  
-        const isConfession = (text || "").includes('#اعتراف');  
-        const isSecret = (text || "").includes('#سر') || (text || "").includes('سر');  
-        let finalDisplayContent = cleanText.replace(/#اعتراف/g, '').replace(/#سر/g, '').replace(/سر/g, '').trim();  
+        const rawInput = (text || "").trim();
+        const cleanText = rawInput.replace(/(010|011|012|015|019|٠١٠|٠١١|٠١٢|٠١٥|٠١٩)[\s-]*\d{8}/g, "[محجوب]");  
+        
+        // المنطق الجديد: التحقق من بداية الرسالة أو وجود الكلمات المفتاحية
+        const isConfession = rawInput.startsWith('#') || rawInput.includes('#اعتراف');  
+        const isSecret = rawInput.startsWith('*') || rawInput.includes('#سر') || rawInput.includes('سر');  
+        
+        // تنظيف النص النهائي من كافة الرموز (القديمة والجديدة)
+        let finalDisplayContent = cleanText
+            .replace(/^#|^\*/g, '') 
+            .replace(/#اعتراف/g, '')
+            .replace(/#سر/g, '')
+            .replace(/سر/g, '')
+            .trim();  
 
         const replyMatch = finalDisplayContent.match(/^رد على @(.+?):/);  
         const replyToName = replyMatch ? replyMatch[1].trim() : null;  
@@ -115,7 +123,6 @@ export default async function handler(req, res) {
         });  
         await lastMsgRef.set(now);  
 
-        // --- نظام الإشعارات ---
         try {  
             const tokensSnap = await db.ref('users_tokens').once('value');  
             if (tokensSnap.exists()) {  
