@@ -57,8 +57,35 @@
         .msg-deleted { font-style: italic; opacity: 0.6; font-size: 13px; }
         .edited-tag { font-size: 9px; opacity: 0.5; margin-right: 5px; color: var(--cyan); }
 
-        .input-area { padding: 15px; background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.08); padding-bottom: calc(15px + env(safe-area-inset-bottom)); }  
-        .input-wrapper { display: flex; gap: 12px; align-items: center; max-width: 700px; margin: 0 auto; }  
+        /* ستايل الرد الجديد */
+        .reply-quote { 
+            background: rgba(255, 255, 255, 0.1); 
+            border-right: 3px solid var(--cyan); 
+            padding: 6px 12px; 
+            margin-bottom: 8px; 
+            border-radius: 8px; 
+            font-size: 12px; 
+            color: #cbd5e1; 
+            display: block; 
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .reply-preview {
+            display: none;
+            background: rgba(15, 23, 42, 0.95);
+            border-top: 1px solid var(--cyan);
+            padding: 10px 20px;
+            animation: slideUp 0.3s ease;
+            position: relative;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .reply-preview .target-name { color: var(--cyan); font-weight: 900; font-size: 12px; }
+        .reply-close { position: absolute; left: 20px; top: 10px; color: var(--danger); font-size: 18px; cursor: pointer; }
+
+        .input-area { padding: 0; background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.08); padding-bottom: calc(15px + env(safe-area-inset-bottom)); }  
+        .input-wrapper { display: flex; gap: 12px; align-items: center; max-width: 700px; margin: 0 auto; padding: 15px; }  
         input { flex: 1; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 16px 22px; border-radius: 35px; color: #fff; outline: none; font-size: 16px; transition: 0.3s; }    
         input:focus { border-color: var(--cyan); background: rgba(255, 255, 255, 0.07); box-shadow: 0 0 15px rgba(0, 242, 255, 0.1); }
         .send-btn { background: var(--cyan); border: none; width: 54px; height: 54px; border-radius: 50%; cursor: pointer; font-size: 22px; color: #000; font-weight: bold; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }  
@@ -105,6 +132,11 @@
 <div id="chatBox"></div>  
 
 <div class="input-area">  
+    <div id="replyContainer" class="reply-preview">
+        <span class="reply-close" onclick="cancelReply()">✕</span>
+        <div class="target-name" id="replyTargetName"></div>
+        <div style="font-size: 11px; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="replyTargetText"></div>
+    </div>
     <div class="input-wrapper">  
         <input type="text" id="msgInput" placeholder="اهمس أو اعترف بـ #..." maxlength="200" autocomplete="off" disabled>  
         <button class="send-btn" id="sendBtn" disabled>✦</button>  
@@ -135,6 +167,7 @@
     let currentUser = null;
     let myGhostName = "";
     let editingMsgId = null;
+    let currentReplyTo = null; // متغير لحفظ بيانات الرد
     const renderedMsgIds = new Set(); 
 
     const applyTimeTheme = () => {
@@ -144,6 +177,13 @@
         document.querySelector('body').style.backgroundColor = isNight ? "#010409" : "#020617";
     };
     applyTimeTheme();
+
+    // دوال نظام الرد الجديدة
+    window.cancelReply = () => {
+        currentReplyTo = null;
+        document.getElementById('replyContainer').style.display = 'none';
+        document.getElementById('msgInput').placeholder = "اهمس أو اعترف بـ #...";
+    };
 
     onMessage(messaging, (payload) => {
         if (Notification.permission === "granted") {
@@ -263,7 +303,7 @@
     async function send() {  
         const input = document.getElementById('msgInput');  
         const btn = document.getElementById('sendBtn');
-        const text = input.value.trim();  
+        let text = input.value.trim();  
         if(!text) return;  
 
         btn.disabled = true;  
@@ -271,6 +311,12 @@
         
         try {  
             const token = await auth.currentUser.getIdToken();
+            
+            // دمج نص الرد إذا كان موجوداً بطريقة نظيفة
+            if (currentReplyTo) {
+                text = `رد على @${currentReplyTo.sender}: ${text}`;
+            }
+
             const payload = editingMsgId 
                 ? { action: "EDIT", msgId: editingMsgId, text, uid: currentUser.uid, token, sender: myGhostName }
                 : { text, uid: currentUser.uid, token, sender: myGhostName };
@@ -283,6 +329,7 @@
             
             if (res.ok) { 
                 input.value = ""; 
+                cancelReply(); // إلغاء الرد بعد الإرسال
                 if (editingMsgId) {
                     editingMsgId = null;
                     btn.innerText = "✦";
@@ -328,7 +375,13 @@
                     textDiv.classList.add('msg-deleted');
                     msgEl.style.cursor = 'default';
                 } else {
-                    textDiv.textContent = data.text;
+                    // معالجة عرض الرد عند التعديل
+                    const parts = data.text.match(/^رد على @(.+?): (.*)/);
+                    if (parts) {
+                        textDiv.innerHTML = `<span class="reply-quote">رد على @${parts[1]}</span>` + parts[2];
+                    } else {
+                        textDiv.textContent = data.text;
+                    }
                     textDiv.classList.remove('msg-deleted');
                     if (data.edited && !senderDiv.querySelector('.edited-tag')) {
                         const tag = document.createElement('span');
@@ -362,9 +415,13 @@
             if (isMe) {
                 showMsgActions(id);
             } else {
-                const input = document.getElementById('msgInput');
-                input.value = `رد على @${data.sender}: ` + input.value;
-                input.focus();
+                // تفعيل نظام الرد الجميل
+                currentReplyTo = data;
+                document.getElementById('replyTargetName').innerText = data.sender;
+                document.getElementById('replyTargetText').innerText = data.text;
+                document.getElementById('replyContainer').style.display = 'block';
+                document.getElementById('msgInput').placeholder = "اكتب ردك هنا...";
+                document.getElementById('msgInput').focus();
             }
         };
 
@@ -381,7 +438,13 @@
             textDiv.textContent = "هذه الهمسة تلاشت في العدم... (محذوفة)";
             textDiv.classList.add('msg-deleted');
         } else {
-            textDiv.textContent = data.text; 
+            // كشف إذا كانت الرسالة رداً لعرضها بشكل جميل
+            const replyMatch = data.text.match(/^رد على @(.+?): (.*)/);
+            if (replyMatch) {
+                textDiv.innerHTML = `<span class="reply-quote">رد على @${replyMatch[1]}</span>` + replyMatch[2];
+            } else {
+                textDiv.textContent = data.text; 
+            }
         }
 
         div.appendChild(senderDiv);
@@ -411,7 +474,9 @@
         
         document.getElementById('editBtn').onclick = () => {
             const input = document.getElementById('msgInput');
-            input.value = data.text;
+            // تنظيف النص من بادئة الرد عند التعديل
+            const cleanText = data.text.replace(/^رد على @.+?: /, "");
+            input.value = cleanText;
             editingMsgId = id;
             document.getElementById('sendBtn').innerText = "تعديل";
             input.focus();
