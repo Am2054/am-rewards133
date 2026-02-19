@@ -45,11 +45,14 @@ export default async function handler(req, res) {
     if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });  
 
     try {  
-        const { action, text, uid, token, msgId } = req.body;  
+        // تم إضافة sender هنا لاستقبال الاسم المرسل من الفرونت إند
+        const { action, text, uid, token, msgId, sender } = req.body;  
         const decodedToken = await auth.verifyIdToken(token);  
         if (decodedToken.uid !== uid) throw new Error("Unauthorized");  
 
         const serverGhostName = generateDailyGhostName(uid);
+        // نستخدم الاسم القادم من العميل إذا وجد، وإلا نستخدم المولد من السيرفر كاحتياط
+        const activeGhostName = sender || serverGhostName; 
         const now = Date.now();
 
         // --- منطق الحذف الكامل عند تغير التاريخ (12 بالليل) ---
@@ -58,7 +61,6 @@ export default async function handler(req, res) {
         const todayDate = new Date().toDateString();
 
         if (!resetSnap.exists() || resetSnap.val() !== todayDate) {
-            // إذا كان التاريخ المخزن مختلف عن تاريخ اليوم، احذف الشات بالكامل
             await db.ref('messages/global').remove();
             await lastResetRef.set(todayDate);
             console.log("Chat purged for the new day: " + todayDate);
@@ -76,7 +78,11 @@ export default async function handler(req, res) {
             }
             if (action === "EDIT") {
                 const cleanText = text.replace(/(010|011|012|015|019|٠١٠|٠١١|٠١٢|٠١٥|٠١٩)[\s-]*\d{8}/g, "[محجوب]");
-                await msgRef.update({ text: cleanText.replace(/#اعتراف|#سر|سر/g, '').trim(), edited: true });
+                await msgRef.update({ 
+                    text: cleanText.replace(/#اعتراف|#سر|سر/g, '').trim(), 
+                    edited: true,
+                    timestamp: now // تحديث الوقت عند التعديل لضمان الترتيب
+                });
                 return res.status(200).json({ success: true });
             }
         }
@@ -85,21 +91,28 @@ export default async function handler(req, res) {
             return res.status(200).json({ ghostName: serverGhostName });
         }
 
-        const safeSenderName = serverGhostName.replace(/[.#$[\]]/g, "_");  
+        const safeSenderName = activeGhostName.replace(/[.#$[\]]/g, "_");  
         const lastMsgRef = db.ref(`lastMessage/${safeSenderName}`);  
         const lastSnap = await lastMsgRef.once("value");  
         if (lastSnap.exists() && (now - lastSnap.val() < 3000)) return res.status(429).json({ error: "اهدأ قليلاً يا شبح.." });  
 
-        const cleanText = text.replace(/(010|011|012|015|019|٠١٠|٠١١|٠١٢|٠١٥|٠١٩)[\s-]*\d{8}/g, "[محجوب]");  
-        const isConfession = text.includes('#اعتراف');  
-        const isSecret = text.includes('#سر') || text.includes('سر');  
+        const cleanText = (text || "").replace(/(010|011|012|015|019|٠١٠|٠١١|٠١٢|٠١٥|٠١٩)[\s-]*\d{8}/g, "[محجوب]");  
+        const isConfession = (text || "").includes('#اعتراف');  
+        const isSecret = (text || "").includes('#سر') || (text || "").includes('سر');  
         let finalDisplayContent = cleanText.replace(/#اعتراف/g, '').replace(/#سر/g, '').replace(/سر/g, '').trim();  
 
         const replyMatch = finalDisplayContent.match(/^رد على @(.+?):/);  
         const replyToName = replyMatch ? replyMatch[1].trim() : null;  
 
         const msgRef = db.ref('messages/global').push();  
-        await msgRef.set({ uid, sender: serverGhostName, text: finalDisplayContent, timestamp: now, isConfession, isSecret });  
+        await msgRef.set({ 
+            uid, 
+            sender: activeGhostName, 
+            text: finalDisplayContent, 
+            timestamp: now, 
+            isConfession, 
+            isSecret 
+        });  
         await lastMsgRef.set(now);  
 
         // --- نظام الإشعارات ---
@@ -114,12 +127,14 @@ export default async function handler(req, res) {
                 } else {  
                     const myTokenSnap = await db.ref(`users_tokens/${uid}/token`).once('value');  
                     const myToken = myTokenSnap.val();  
-                    targetTokens = Object.values(tokensData).map(u => u.token).filter(t => typeof t === 'string' && t.length > 10 && t !== myToken);  
+                    targetTokens = Object.values(tokensData)
+                        .map(u => u.token)
+                        .filter(t => typeof t === 'string' && t.length > 10 && t !== myToken);  
                 }  
                 if (targetTokens.length > 0) {  
                     const payload = {  
                         notification: {  
-                            title: replyToName ? `💬 رد جديد من ${serverGhostName}` : (isConfession ? `🕯️ اعتراف من ${serverGhostName}` : `👻 رسالة جديدة`),  
+                            title: replyToName ? `💬 رد جديد من ${activeGhostName}` : (isConfession ? `🕯️ اعتراف من ${activeGhostName}` : `👻 رسالة جديدة`),  
                             body: isSecret ? "همس بشيء غامض..." : (finalDisplayContent.length > 50 ? finalDisplayContent.substring(0, 47) + "..." : finalDisplayContent),  
                         },  
                         data: { url: "https://am-rewards.vercel.app/ghost-chat.html" },  
@@ -129,8 +144,8 @@ export default async function handler(req, res) {
                     await messaging.sendEachForMulticast({ tokens: targetTokens, ...payload });  
                 }  
             }  
-        } catch (pushError) { console.error("Push Error"); }  
+        } catch (pushError) { console.error("Push Error", pushError); }  
 
-        return res.status(200).json({ success: true, ghostName: serverGhostName });  
+        return res.status(200).json({ success: true, ghostName: activeGhostName });  
     } catch (error) { return res.status(500).json({ error: error.message }); }
 }
