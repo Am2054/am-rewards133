@@ -184,7 +184,7 @@
         if (end <= 0) { obj.innerText = 0; return; }
         let range = end - start;
         let minTimer = 50;
-        let stepTime = Math.abs(Math.floor(duration / range));
+        let stepTime = Math.abs(Math.floor(duration / Math.max(range, 1)));
         stepTime = Math.max(stepTime, minTimer);
         let startTime = new Date().getTime();
         let endTime = startTime + duration;
@@ -200,7 +200,7 @@
     }
 
     function analyze() {
-        // المدخلات
+        const quotaTotal = parseFloat(document.getElementById('quota').value);
         const currentLeft = parseFloat(document.getElementById('current_left').value) || 0;
         const resetDay = parseInt(document.getElementById('reset_day').value) || 1;
         const qualityMult = parseFloat(document.getElementById('quality').value);
@@ -209,12 +209,10 @@
         const mCount = parseInt(document.getElementById('mobs').innerText);
         const tCount = parseInt(document.getElementById('tvs').innerText);
 
-        // حساب الاستهلاك اليومي المتوقع (جيجا)
-        const mUsage = mCount * 0.8; // الموبايل يستهلك 0.8 جيجا وسطيا
-        const tUsage = tCount * (4 * qualityMult); // الشاشة تتأثر بالجودة
+        const mUsage = mCount * 0.8; 
+        const tUsage = tCount * (4 * qualityMult); 
         const totalDaily = mUsage + tUsage + heavyUse;
 
-        // حساب الأيام المتبقية في الشهر الفعلي
         const now = new Date();
         const today = now.getDate();
         let daysUntilReset;
@@ -224,10 +222,14 @@
             daysUntilReset = (30 - today) + resetDay;
         }
 
-        // كم يوم ستصمد الباقة بناء على المتبقي الحالي؟
-        const capacityDays = totalDaily > 0 ? Math.floor(currentLeft / totalDaily) : 30;
+        // تصحيح 1: الباقة لا تزيد عن 30 يوم
+        let capacityDays = totalDaily > 0 ? Math.floor(currentLeft / totalDaily) : 30;
+        capacityDays = Math.min(capacityDays, 30);
 
-        // العرض
+        // تصحيح 2: الفائض لا يمكن أن يتجاوز المتبقي الحالي من الباقة
+        let surplus = totalDaily > 0 ? Math.max(0, Math.floor(currentLeft - (totalDaily * daysUntilReset))) : currentLeft;
+        surplus = Math.min(surplus, currentLeft);
+
         document.getElementById('resultsPanel').style.display = 'block';
         animateValue("daysVal", 0, capacityDays, 800);
         
@@ -248,7 +250,7 @@
             status.innerHTML = `⚠️ عجز في الباقة!<br><small style='font-weight:normal;'>الباقة ستنتهي قبل موعد التجديد بـ ${Math.abs(diff)} أيام. قلل الجودة فوراً!</small>`;
             status.style.color = 'var(--danger)';
         } else {
-            status.innerHTML = `✅ وضع آمن<br><small style='font-weight:normal;'>الباقة ستكفيك حتى موعد التجديد وسيفيض معك ${diff} جيجا تقريباً.</small>`;
+            status.innerHTML = `✅ وضع آمن<br><small style='font-weight:normal;'>الباقة ستكفيك حتى موعد التجديد وسيفيض معك ${surplus} جيجا تقريباً.</small>`;
             status.style.color = 'var(--success)';
         }
 
