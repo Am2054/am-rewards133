@@ -63,7 +63,7 @@ export default async function handler(req, res) {
         const activeGhostName = serverGhostName;   
         const now = Date.now();  
         
-        // تحديد اليوم النشط: إما المرسل من الفرونت أو المولد حالياً
+        // تحديد اليوم النشط: إما المرسل من الفرونت أو المولد حالياً بصيغة موحدة
         const activeDay = day || getFormattedDate();
 
         const lastResetRef = db.ref('system/last_reset_date');  
@@ -73,14 +73,16 @@ export default async function handler(req, res) {
         // 🛡️ فحص اليوم الجديد لمسح الشات وتوليد الهويات الجديدة
         let isNewSession = false;
         if (!resetSnap.exists() || resetSnap.val() !== todayDate) {  
-            // في نظام المسارات اليومية، لا نحتاج لحذف global، بل نكتفي بتحديث تاريخ الريسيت
+            // تنفيذ فكرتك: المسح هنا سيطلق حدث (Event) لحظي عند كل المستخدمين
+            // نقوم بمسح المسار العام بالكامل لتبدأ النسخة الجديدة نظيفة تماماً
+            await db.ref('messages/global').remove();  
             await lastResetRef.set(todayDate);  
             isNewSession = true; 
-            console.log("New ghost cycle started: " + todayDate);  
+            console.log("Chat purged for the new day: " + todayDate);  
         }  
 
         if (action === "EDIT" || action === "DELETE") {  
-            // التعديل والحذف يتم الآن داخل مسار اليوم المحدد
+            // التعديل والحذف يتم الآن داخل مسار اليوم المحدد لضمان الدقة
             const msgRef = db.ref(`messages/global/${activeDay}/${msgId}`);  
             const snap = await msgRef.once("value");  
             if (!snap.exists()) return res.status(404).json({ error: "NotFound" });  
@@ -101,11 +103,11 @@ export default async function handler(req, res) {
             }  
         }  
 
-        // 🌕 استجابة الهوية مع إرسال activeDay لضمان مزامنة الفرونت
+        // 🌕 استجابة الهوية مع إرسال activeDay لضمان مزامنة الفرونت 100%
         if (action === "GET_IDENTITY") {  
             return res.status(200).json({ 
                 ghostName: serverGhostName,
-                activeDay: getFormattedDate(), // إرجاع الصيغة الصحيحة للفرونت
+                activeDay: getFormattedDate(), // إرجاع الصيغة الصحيحة التي يتوقعها الفرونت
                 welcomeCard: {
                     show: isNewSession,
                     title: "تجلّي جديد.. روح جديدة 🕯️",
@@ -141,7 +143,7 @@ export default async function handler(req, res) {
         const replyMatch = finalDisplayContent.match(/^رد على @(.+?):/);    
         const replyToName = replyMatch ? replyMatch[1].trim() : null;    
 
-        // إرسال الرسالة إلى مسار اليوم النشط
+        // إرسال الرسالة إلى مسار اليوم النشط (التوافق التام مع الفرونت)
         const msgRef = db.ref(`messages/global/${activeDay}`).push();    
         await msgRef.set({   
             uid,   
