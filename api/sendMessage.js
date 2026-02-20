@@ -45,11 +45,10 @@ export default async function handler(req, res) {
     if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });    
 
     try {    
-        const { action, text, uid, token, msgId } = req.body; // تم إهمال sender من Body لضمان الأمان
+        const { action, text, uid, token, msgId } = req.body; 
         const decodedToken = await auth.verifyIdToken(token);    
         if (decodedToken.uid !== uid) throw new Error("Unauthorized");    
 
-        // 🛡️ الحماية القصوى: الهوية تُحدد حصراً من السيرفر
         const serverGhostName = generateDailyGhostName(uid);  
         const activeGhostName = serverGhostName;   
         const now = Date.now();  
@@ -58,9 +57,13 @@ export default async function handler(req, res) {
         const resetSnap = await lastResetRef.once('value');  
         const todayDate = new Date().toDateString();  
 
+        // 🛡️ فحص اليوم الجديد لمسح الشات وتوليد الهويات الجديدة
+        let isNewSession = false;
         if (!resetSnap.exists() || resetSnap.val() !== todayDate) {  
+            // تنفيذ فكرتك: المسح هنا سيطلق حدث (Event) لحظي عند كل المستخدمين
             await db.ref('messages/global').remove();  
             await lastResetRef.set(todayDate);  
+            isNewSession = true; 
             console.log("Chat purged for the new day: " + todayDate);  
         }  
 
@@ -75,7 +78,6 @@ export default async function handler(req, res) {
                 return res.status(200).json({ success: true });  
             }  
             if (action === "EDIT") {
-                // فلترة النصوص عند التعديل أيضاً
                 const cleanText = text.replace(/(010|011|012|015|019|٠١٠|٠١١|٠١٢|٠١٥|٠١٩)[\s-]*\d{8}/g, "[محجوب]");  
                 await msgRef.update({   
                     text: cleanText.replace(/#اعتراف|#سر|سر|^#|^\*/g, '').trim(),   
@@ -86,26 +88,31 @@ export default async function handler(req, res) {
             }  
         }  
 
+        // 🌕 استجابة الهوية لإرسال "كارت الترحيب"
         if (action === "GET_IDENTITY") {  
-            return res.status(200).json({ ghostName: serverGhostName });  
+            return res.status(200).json({ 
+                ghostName: serverGhostName,
+                welcomeCard: {
+                    show: isNewSession,
+                    title: "تجلّي جديد.. روح جديدة 🕯️",
+                    message: `لقد عبرت الساعة منتصف الليل، وتلاشت أرواح الأمس في العدم. شُقّ طريقك اليوم بهوية مخفية جديدة:`,
+                    nameTag: serverGhostName,
+                    footer: "كل شيء هنا عابر.. إلا الأثر."
+                }
+            });  
         }  
 
-        // ⚠️ تحسين الـ Rate Limit: الحماية بناءً على UID لمنع الـ Flood من عدة تبويبات
         const userLimitRef = db.ref(`userLimits/${uid}`);    
         const limitSnap = await userLimitRef.once("value");    
-        if (limitSnap.exists() && (now - limitSnap.val() < 6000)) { // تم رفع المهلة لـ 6 ثوانٍ
+        if (limitSnap.exists() && (now - limitSnap.val() < 6000)) { 
             return res.status(429).json({ error: "السرعة قتلت الشبح.. انتظر قليلاً." });
         }
 
         const rawInput = (text || "").trim();
-        
-        // 🚫 منع الـ Spam والرسائل الطويلة جداً
         if (rawInput.length > 300) return res.status(400).json({ error: "الهمسة طويلة جداً" });
         if (/(.)\1{7,}/.test(rawInput)) return res.status(400).json({ error: "كفى ضجيجاً (تكرار حروف)!" });
 
-        // 🛡️ فلترة أرقام الموبايل المتطورة (حتى لو بمسافات)
         const cleanText = rawInput.replace(/((\d[\s-]?){11})/g, "[محجوب]");    
-          
         const isConfession = rawInput.startsWith('#') || rawInput.includes('#اعتراف');    
         const isSecret = rawInput.startsWith('*') || rawInput.includes('#سر') || rawInput.includes('سر');    
           
@@ -116,6 +123,7 @@ export default async function handler(req, res) {
             .replace(/سر/g, '')  
             .trim();    
 
+        // منطق الردود
         const replyMatch = finalDisplayContent.match(/^رد على @(.+?):/);    
         const replyToName = replyMatch ? replyMatch[1].trim() : null;    
 
@@ -128,8 +136,9 @@ export default async function handler(req, res) {
             isConfession,   
             isSecret   
         });    
-        await userLimitRef.set(now); // تحديث وقت آخر رسالة للـ UID   
+        await userLimitRef.set(now);   
 
+        // منطق الإشعارات
         try {    
             const tokensSnap = await db.ref('users_tokens').once('value');    
             if (tokensSnap.exists()) {    
@@ -157,7 +166,6 @@ export default async function handler(req, res) {
                         webpush: { headers: { Urgency: 'high' }, notification: { tag: 'ghost-chat-msg', renotify: true }, fcm_options: { link: "https://am-rewards.vercel.app/ghost-chat.html" } }    
                     };    
                     
-                    // إرسال الإشعارات بنظام الـ Chunking (كل 500 توكن)
                     for (let i = 0; i < targetTokens.length; i += 500) {
                         const chunk = targetTokens.slice(i, i + 500);
                         await messaging.sendEachForMulticast({ tokens: chunk, ...payloadBase });
