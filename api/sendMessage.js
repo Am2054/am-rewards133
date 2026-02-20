@@ -24,6 +24,15 @@ const db = getDatabase();
 const auth = getAuth();
 const messaging = getMessaging();
 
+// دالة لتوليد صيغة اليوم الموحدة (مثل: 20260220) لضمان توافق السيرفر مع الفرونت
+function getFormattedDate() {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}${month}${day}`;
+}
+
 function generateDailyGhostName(uid) {
     const today = new Date().toDateString();
     const hash = crypto.createHash('md5').update(uid + today).digest('hex');
@@ -45,13 +54,17 @@ export default async function handler(req, res) {
     if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });    
 
     try {    
-        const { action, text, uid, token, msgId } = req.body; 
+        // استلام day من الفرونت آند لضمان الكتابة في المسار الصحيح
+        const { action, text, uid, token, msgId, day } = req.body; 
         const decodedToken = await auth.verifyIdToken(token);    
         if (decodedToken.uid !== uid) throw new Error("Unauthorized");    
 
         const serverGhostName = generateDailyGhostName(uid);  
         const activeGhostName = serverGhostName;   
         const now = Date.now();  
+        
+        // تحديد اليوم النشط: إما المرسل من الفرونت أو المولد حالياً
+        const activeDay = day || getFormattedDate();
 
         const lastResetRef = db.ref('system/last_reset_date');  
         const resetSnap = await lastResetRef.once('value');  
@@ -60,15 +73,15 @@ export default async function handler(req, res) {
         // 🛡️ فحص اليوم الجديد لمسح الشات وتوليد الهويات الجديدة
         let isNewSession = false;
         if (!resetSnap.exists() || resetSnap.val() !== todayDate) {  
-            // تنفيذ فكرتك: المسح هنا سيطلق حدث (Event) لحظي عند كل المستخدمين
-            await db.ref('messages/global').remove();  
+            // في نظام المسارات اليومية، لا نحتاج لحذف global، بل نكتفي بتحديث تاريخ الريسيت
             await lastResetRef.set(todayDate);  
             isNewSession = true; 
-            console.log("Chat purged for the new day: " + todayDate);  
+            console.log("New ghost cycle started: " + todayDate);  
         }  
 
         if (action === "EDIT" || action === "DELETE") {  
-            const msgRef = db.ref(`messages/global/${msgId}`);  
+            // التعديل والحذف يتم الآن داخل مسار اليوم المحدد
+            const msgRef = db.ref(`messages/global/${activeDay}/${msgId}`);  
             const snap = await msgRef.once("value");  
             if (!snap.exists()) return res.status(404).json({ error: "NotFound" });  
             if (snap.val().uid !== uid) return res.status(403).json({ error: "Forbidden" });  
@@ -88,10 +101,11 @@ export default async function handler(req, res) {
             }  
         }  
 
-        // 🌕 استجابة الهوية لإرسال "كارت الترحيب"
+        // 🌕 استجابة الهوية مع إرسال activeDay لضمان مزامنة الفرونت
         if (action === "GET_IDENTITY") {  
             return res.status(200).json({ 
                 ghostName: serverGhostName,
+                activeDay: getFormattedDate(), // إرجاع الصيغة الصحيحة للفرونت
                 welcomeCard: {
                     show: isNewSession,
                     title: "تجلّي جديد.. روح جديدة 🕯️",
@@ -127,7 +141,8 @@ export default async function handler(req, res) {
         const replyMatch = finalDisplayContent.match(/^رد على @(.+?):/);    
         const replyToName = replyMatch ? replyMatch[1].trim() : null;    
 
-        const msgRef = db.ref('messages/global').push();    
+        // إرسال الرسالة إلى مسار اليوم النشط
+        const msgRef = db.ref(`messages/global/${activeDay}`).push();    
         await msgRef.set({   
             uid,   
             sender: activeGhostName,   
@@ -174,6 +189,6 @@ export default async function handler(req, res) {
             }    
         } catch (pushError) { console.error("Push Error", pushError); }    
 
-        return res.status(200).json({ success: true, ghostName: activeGhostName });    
+        return res.status(200).json({ success: true, ghostName: activeGhostName, activeDay });    
     } catch (error) { return res.status(500).json({ error: error.message }); }
 }
