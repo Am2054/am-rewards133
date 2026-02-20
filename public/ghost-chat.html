@@ -13,7 +13,6 @@
         html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; color: #fff; transition: 0.5s; } 
         body { font-family: 'Tajawal', sans-serif; display: flex; flex-direction: column; background: #020617 url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1500') no-repeat center center fixed; background-size: cover; user-select: none; position: relative; } 
         body::before { content: ""; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: -1; transition: 0.5s; } 
-        /* --- تحسين 1: تأثير الـ Blur العشوائي المستقبلي --- */
         #chatBox::before { content: ""; position: fixed; top: 50%; left: 50%; width: 200%; height: 200%; background: radial-gradient(circle, var(--purple) 0%, transparent 70%); opacity: 0.05; z-index: -1; animation: ghostFloat 20s infinite linear; pointer-events: none; } 
         @keyframes ghostFloat { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } } 
         #rulesOverlay { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.98); backdrop-filter: blur(20px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1); } 
@@ -41,7 +40,6 @@
         .text { word-wrap: break-word; } 
         .msg-deleted { font-style: italic; opacity: 0.6; font-size: 13px; } 
         .edited-tag { font-size: 9px; opacity: 0.5; margin-right: 5px; color: var(--cyan); } 
-        /* ستايل الرد الجميل */ 
         .reply-quote { background: rgba(255, 255, 255, 0.1); border-right: 3px solid var(--cyan); padding: 6px 12px; margin-bottom: 8px; border-radius: 8px; font-size: 12px; color: #cbd5e1; display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } 
         .reply-preview { display: none; background: rgba(15, 23, 42, 0.95); border-top: 1px solid var(--cyan); padding: 10px 20px; animation: slideUp 0.3s ease; position: relative; } 
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } } 
@@ -57,6 +55,8 @@
         #actionModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; } 
         .modal-content { background: var(--dark); border: 1px solid var(--cyan); padding: 20px; border-radius: 20px; width: 80%; max-width: 300px; } 
         .modal-btn { width: 100%; padding: 12px; margin: 5px 0; border: none; border-radius: 10px; font-family: 'Tajawal'; font-weight: bold; cursor: pointer; } 
+        .system-msg { text-align: center; color: var(--cyan); font-weight: 900; font-size: 13px; padding: 10px; background: rgba(0, 242, 255, 0.05); border-radius: 10px; margin: 10px 0; border: 1px dashed rgba(0, 242, 255, 0.2); animation: fadeIn 1s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -106,7 +106,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onChildAdded, onValue, query, limitToLast, set, onDisconnect, remove, update, onChildChanged, get, orderByChild } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, onChildAdded, onValue, query, limitToLast, set, onDisconnect, remove, update, onChildChanged, get, orderByChild, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
@@ -120,8 +120,11 @@
         let myGhostName = "";
         let editingMsgId = null;
         let currentReplyTo = null;
-        let lastSend = 0; // متغير منع السبام
+        let lastSend = 0; 
         const renderedMsgIds = new Set();
+        let resetListenerAttached = false;
+        let activeDay = ""; // سيتم تعيينه من السيرفر أو الهوية
+        let messagesRef = null;
 
         const applyTimeTheme = () => {
             const hour = new Date().getHours();
@@ -136,6 +139,24 @@
             document.getElementById('replyContainer').style.display = 'none';
             document.getElementById('msgInput').placeholder = "اهمس أو اعترف بـ #...";
         };
+
+        function listenForChatReset() {
+            if (resetListenerAttached) return;
+            resetListenerAttached = true;
+            const lastResetRef = ref(db, 'system/last_reset_date');
+            onValue(lastResetRef, (snap) => {
+                const serverResetDate = snap.val();
+                const localResetDate = localStorage.getItem('ghost_id_date');
+                if (serverResetDate && localResetDate && serverResetDate !== localResetDate) {
+                    activeDay = serverResetDate;
+                    document.getElementById('chatBox').innerHTML = "<div class='system-msg'>🌅 يوم جديد بدأ! تم عزل رسائل الأمس..</div>";
+                    renderedMsgIds.clear();
+                    localStorage.setItem('ghost_id_date', serverResetDate);
+                    initMessages(); 
+                    getDailyIdentity(); 
+                }
+            });
+        }
 
         onMessage(messaging, (payload) => {
             if (Notification.permission === "granted" && document.hidden) {
@@ -171,15 +192,19 @@
                 if (data.ghostName) {
                     const today = new Date().toDateString();
                     const lastSavedDate = localStorage.getItem('ghost_id_date');
+                    
+                    // استرجاع activeDay من السيرفر إذا وُجد، وإلا استخدام التاريخ الحالي بصيغة مفتاح
+                    activeDay = data.activeDay || new Date().toISOString().split('T')[0].replace(/-/g, '');
+
                     if (lastSavedDate && lastSavedDate !== today) {
                         document.getElementById('chatBox').innerHTML = "";
                         renderedMsgIds.clear();
                     }
+                    
                     myGhostName = data.ghostName;
                     document.getElementById('status').innerHTML = `<span class="online-dot"></span> هويتك: ${myGhostName}`;
                     localStorage.setItem('ghost_id_date', today);
 
-                    // إظهار كارت الهوية الجديد بتنسيق رائع
                     if (data.welcomeCard && data.welcomeCard.show) {
                         Swal.fire({
                             title: data.welcomeCard.title,
@@ -198,6 +223,7 @@
                         });
                     }
                     initPresence();
+                    initMessages(); // التأكد من التحميل بعد الحصول على activeDay
                 }
             } catch (e) { console.error("Identity Fetch Failed", e); }
         };
@@ -254,8 +280,8 @@
                 getDailyIdentity();
                 document.getElementById('msgInput').disabled = false;
                 document.getElementById('sendBtn').disabled = false;
-                initMessages();
                 initBans();
+                listenForChatReset(); 
                 clearGhostNotifications();
                 if(localStorage.getItem('ghost_rules_v5') === 'true') { requestNotificationPermission(); }
             }
@@ -272,33 +298,25 @@
         if(localStorage.getItem('ghost_rules_v5') === 'true') { document.getElementById('rulesOverlay').style.display = 'none'; }
 
         async function send() {
-            // منع السبام
             if (Date.now() - lastSend < 3000) return;
-
             const input = document.getElementById('msgInput');
             const btn = document.getElementById('sendBtn');
             let text = input.value.trim();
-            if(!text || text.length > 200) return; // حماية الرسائل الطويلة
-
+            if(!text || text.length > 200) return; 
             lastSend = Date.now();
             btn.disabled = true;
             remove(ref(db, `typing/global/${currentUser.uid}`));
-
             try {
                 const token = await auth.currentUser.getIdToken();
                 if (currentReplyTo) { text = `رد على @${currentReplyTo.sender}: ${text}`; }
-
-                // تعديل أمني: لا نرسل sender من الفرونت
                 const payload = editingMsgId ? 
-                    { action: "EDIT", msgId: editingMsgId, text, uid: currentUser.uid, token } : 
-                    { text, uid: currentUser.uid, token };
-
+                    { action: "EDIT", msgId: editingMsgId, text, uid: currentUser.uid, token, day: activeDay } : 
+                    { text, uid: currentUser.uid, token, day: activeDay };
                 const res = await fetch('/api/sendMessage', { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'application/json' }, 
                     body: JSON.stringify(payload) 
                 });
-
                 if (res.ok) {
                     input.value = "";
                     cancelReply();
@@ -320,11 +338,18 @@
         }
 
         function initMessages() {
-            const q = query( ref(db, "messages/global"), orderByChild("timestamp"), limitToLast(50) );
+            if (!activeDay) return;
+            const path = `messages/global/${activeDay}`;
+            const msgRef = ref(db, path);
+            if (messagesRef) off(messagesRef);
+            messagesRef = msgRef;
+            const q = query(msgRef, orderByChild("timestamp"), limitToLast(100));
             onChildAdded(q, (snap) => {
                 if (renderedMsgIds.has(snap.key)) return;
-                // تنظيف الـ Set للأداء
-                if(renderedMsgIds.size > 500) renderedMsgIds.clear();
+                if (renderedMsgIds.size > 500) {
+                    const firstKey = renderedMsgIds.values().next().value;
+                    renderedMsgIds.delete(firstKey);
+                }
                 renderMsg(snap.key, snap.val());
             });
             onChildChanged(q, (snap) => {
@@ -339,7 +364,6 @@
                     } else {
                         const parts = data.text.match(/^رد على @(.+?): (.*)/);
                         if (parts) {
-                            // حماية XSS عند التعديل
                             textDiv.innerHTML = "";
                             const quote = document.createElement('span');
                             quote.className = 'reply-quote';
@@ -347,7 +371,6 @@
                             textDiv.appendChild(quote);
                             textDiv.appendChild(document.createTextNode(parts[2]));
                         } else { textDiv.textContent = data.text; }
-                        
                         if (data.edited && !senderDiv.querySelector('.edited-tag')) {
                             const tag = document.createElement('span');
                             tag.className = 'edited-tag'; tag.innerText = "(معدلة)";
@@ -367,11 +390,10 @@
             if(data.isSecret) msgClass += ' msg-secret';
             if(data.isConfession) msgClass += ' msg-confession';
             div.className = `msg ${msgClass}`;
-            
             div.onclick = () => {
                 if (isMe) { showMsgActions(id); } 
                 else {
-                    if(data.deleted) return; // منع الرد على المحذوف
+                    if(data.deleted) return;
                     currentReplyTo = data;
                     document.getElementById('replyTargetName').innerText = data.sender;
                     document.getElementById('replyTargetText').innerText = data.text;
@@ -380,14 +402,12 @@
                     document.getElementById('msgInput').focus();
                 }
             };
-
             const senderDiv = document.createElement('div');
             senderDiv.className = 'sender';
             senderDiv.innerHTML = `<span>${isMe ? 'أنت' : data.sender}</span>`;
             if (data.edited) senderDiv.innerHTML += `<span class="edited-tag">(معدلة)</span>`;
             if(data.isConfession) senderDiv.innerHTML += `<span style="font-size:9px; color: #ff8888; background: rgba(255,0,0,0.2); padding: 2px 6px; border-radius: 5px;">🕯️ اعتراف</span>`;
             if(data.isSecret) senderDiv.innerHTML += `<span style="font-size:9px; color: #cc88ff; background: rgba(112,0,255,0.2); padding: 2px 6px; border-radius: 5px;">🔑 سر</span>`;
-
             const textDiv = document.createElement('div');
             textDiv.className = 'text';
             if (data.deleted) {
@@ -396,7 +416,6 @@
             } else {
                 const replyMatch = data.text.match(/^رد على @(.+?): (.*)/);
                 if (replyMatch) {
-                    // حماية XSS في عرض الرسالة
                     const quote = document.createElement('span');
                     quote.className = 'reply-quote';
                     quote.textContent = `رد على @${replyMatch[1]}`;
@@ -404,7 +423,6 @@
                     textDiv.appendChild(document.createTextNode(replyMatch[2]));
                 } else { textDiv.textContent = data.text; }
             }
-
             div.appendChild(senderDiv);
             div.appendChild(textDiv);
             chatBox.appendChild(div);
@@ -413,18 +431,16 @@
         }
 
         async function showMsgActions(id) {
-            const snap = await get(ref(db, `messages/global/${id}`));
+            const snap = await get(ref(db, `messages/global/${activeDay}/${id}`));
             const data = snap.val();
             if (!data || data.deleted) return;
             const modal = document.getElementById('actionModal');
             modal.style.display = 'flex';
-            
             document.getElementById('deleteBtn').onclick = async () => {
                 const token = await auth.currentUser.getIdToken();
                 await fetch('/api/sendMessage', { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ action: "DELETE", msgId: id, uid: currentUser.uid, token }) 
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ action: "DELETE", msgId: id, uid: currentUser.uid, token, day: activeDay }) 
                 });
                 modal.style.display = 'none';
             };
