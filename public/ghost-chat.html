@@ -123,7 +123,7 @@
         let lastSend = 0; 
         const renderedMsgIds = new Set();
         let resetListenerAttached = false;
-        let activeDay = ""; // سيتم تعيينه من السيرفر أو الهوية
+        let activeDay = ""; 
         let messagesRef = null;
 
         const applyTimeTheme = () => {
@@ -146,14 +146,12 @@
             const lastResetRef = ref(db, 'system/last_reset_date');
             onValue(lastResetRef, (snap) => {
                 const serverResetDate = snap.val();
-                const localResetDate = localStorage.getItem('ghost_id_date');
-                if (serverResetDate && localResetDate && serverResetDate !== localResetDate) {
+                if (serverResetDate && activeDay && serverResetDate !== activeDay) {
                     activeDay = serverResetDate;
                     document.getElementById('chatBox').innerHTML = "<div class='system-msg'>🌅 يوم جديد بدأ! تم عزل رسائل الأمس..</div>";
                     renderedMsgIds.clear();
-                    localStorage.setItem('ghost_id_date', serverResetDate);
+                    localStorage.setItem('ghost_id_date', new Date().toDateString());
                     initMessages(); 
-                    getDailyIdentity(); 
                 }
             });
         }
@@ -193,7 +191,7 @@
                     const today = new Date().toDateString();
                     const lastSavedDate = localStorage.getItem('ghost_id_date');
                     
-                    // استرجاع activeDay من السيرفر إذا وُجد، وإلا استخدام التاريخ الحالي بصيغة مفتاح
+                    // الإصلاح الجوهري: استلام اليوم النشط أولاً قبل تهيئة الرسائل
                     activeDay = data.activeDay || new Date().toISOString().split('T')[0].replace(/-/g, '');
 
                     if (lastSavedDate && lastSavedDate !== today) {
@@ -208,22 +206,12 @@
                     if (data.welcomeCard && data.welcomeCard.show) {
                         Swal.fire({
                             title: data.welcomeCard.title,
-                            html: `
-                                <div style="text-align:center; font-family:'Tajawal'">
-                                    <p>${data.welcomeCard.message}</p>
-                                    <h2 style="color:var(--cyan); background:rgba(0,242,255,0.1); padding:15px; border-radius:20px; border:1px solid var(--cyan); margin:20px 0;">
-                                        ${data.welcomeCard.nameTag}
-                                    </h2>
-                                    <p style="font-size:12px; opacity:0.7">${data.welcomeCard.footer}</p>
-                                </div>`,
-                            background: '#020617',
-                            color: '#fff',
-                            confirmButtonText: 'أتعهد بالميثاق 🕯️',
-                            confirmButtonColor: '#7000ff'
+                            html: `<div style="text-align:center; font-family:'Tajawal'"><p>${data.welcomeCard.message}</p><h2 style="color:var(--cyan); background:rgba(0,242,255,0.1); padding:15px; border-radius:20px; border:1px solid var(--cyan); margin:20px 0;">${data.welcomeCard.nameTag}</h2><p style="font-size:12px; opacity:0.7">${data.welcomeCard.footer}</p></div>`,
+                            background: '#020617', color: '#fff', confirmButtonText: 'أتعهد بالميثاق 🕯️', confirmButtonColor: '#7000ff'
                         });
                     }
                     initPresence();
-                    initMessages(); // التأكد من التحميل بعد الحصول على activeDay
+                    initMessages(); // الآن سيقرأ من المسار الصحيح بعد تأكيده
                 }
             } catch (e) { console.error("Identity Fetch Failed", e); }
         };
@@ -264,11 +252,7 @@
                     serviceWorkerRegistration: registration 
                 });
                 if (token) {
-                    await set(ref(db, `users_tokens/${currentUser.uid}`), { 
-                        token: token, 
-                        ghostName: myGhostName, 
-                        lastUpdated: Date.now() 
-                    });
+                    await set(ref(db, `users_tokens/${currentUser.uid}`), { token: token, ghostName: myGhostName, lastUpdated: Date.now() });
                 }
             } catch (err) { console.warn("FCM Error", err); }
         }
@@ -302,10 +286,9 @@
             const input = document.getElementById('msgInput');
             const btn = document.getElementById('sendBtn');
             let text = input.value.trim();
-            if(!text || text.length > 200) return; 
+            if(!text || text.length > 200 || !activeDay) return; 
             lastSend = Date.now();
             btn.disabled = true;
-            remove(ref(db, `typing/global/${currentUser.uid}`));
             try {
                 const token = await auth.currentUser.getIdToken();
                 if (currentReplyTo) { text = `رد على @${currentReplyTo.sender}: ${text}`; }
@@ -338,7 +321,7 @@
         }
 
         function initMessages() {
-            if (!activeDay) return;
+            if (!activeDay) return; // حماية ضد القراءة من مسار فارغ
             const path = `messages/global/${activeDay}`;
             const msgRef = ref(db, path);
             if (messagesRef) off(messagesRef);
