@@ -27,14 +27,14 @@ const messaging = getMessaging();
 // دالة لتوليد صيغة اليوم الموحدة (مثل: 20260220) لضمان توافق السيرفر مع الفرونت
 function getFormattedDate() {
     const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}${month}${day}`;
+    // استخدام توقيت مصر لضمان التزامن
+    const egyptTime = d.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }).replace(/-/g, '');
+    return egyptTime;
 }
 
 function generateDailyGhostName(uid) {
-    const today = new Date().toDateString();
+    // توحيد توقيت الهوية أيضاً مع توقيت مصر
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
     const hash = crypto.createHash('md5').update(uid + today).digest('hex');
     const index = parseInt(hash.substring(0, 8), 16);
     const adjs = ["الغامض", "الثائر", "الهادئ", "المحارب", "العابر", "الصامت", "التائه", "المراقب", "المنسي", "الخفي"];
@@ -46,7 +46,8 @@ function generateDailyGhostName(uid) {
 }
 
 export default async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // تقييد النطاق لزيادة الأمان
+    res.setHeader('Access-Control-Allow-Origin', 'https://am-rewards.vercel.app');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
@@ -63,26 +64,28 @@ export default async function handler(req, res) {
         const activeGhostName = serverGhostName;   
         const now = Date.now();  
         
-        // تحديد اليوم النشط: إما المرسل من الفرونت أو المولد حالياً بصيغة موحدة
+        // تحديد اليوم النشط: إما المرسل من الفرونت أو المولد حالياً
         const activeDay = day || getFormattedDate();
 
         const lastResetRef = db.ref('system/last_reset_date');  
-        const resetSnap = await lastResetRef.once('value');  
-        const todayDate = new Date().toDateString();  
+        const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });  
 
-        // 🛡️ فحص اليوم الجديد لمسح الشات وتوليد الهويات الجديدة
+        // 🛡️ فحص اليوم الجديد لمسح الشات وتوليد الهويات الجديدة باستخدام Transaction لمنع التكرار
         let isNewSession = false;
-        if (!resetSnap.exists() || resetSnap.val() !== todayDate) {  
-            // تنفيذ فكرتك: المسح هنا سيطلق حدث (Event) لحظي عند كل المستخدمين
-            // نقوم بمسح المسار العام بالكامل لتبدأ النسخة الجديدة نظيفة تماماً
-            await db.ref('messages/global').remove();  
-            await lastResetRef.set(todayDate);  
+        const { committed, snapshot } = await lastResetRef.transaction(current => {
+            if (current !== todayDate) return todayDate;
+            return; // إلغاء الترانزكشن لو التاريخ هو نفسه
+        });
+
+        if (committed) {  
+            // المسح يحدث فقط إذا نجحت الترانزكشن في تغيير التاريخ
+            await db.ref('messages/global').remove();
             isNewSession = true; 
-            console.log("Chat purged for the new day: " + todayDate);  
+            console.log("New ghost cycle started: " + todayDate);  
         }  
 
         if (action === "EDIT" || action === "DELETE") {  
-            // التعديل والحذف يتم الآن داخل مسار اليوم المحدد لضمان الدقة
+            // التعديل والحذف يتم الآن داخل مسار اليوم المحدد
             const msgRef = db.ref(`messages/global/${activeDay}/${msgId}`);  
             const snap = await msgRef.once("value");  
             if (!snap.exists()) return res.status(404).json({ error: "NotFound" });  
@@ -103,11 +106,11 @@ export default async function handler(req, res) {
             }  
         }  
 
-        // 🌕 استجابة الهوية مع إرسال activeDay لضمان مزامنة الفرونت 100%
+        // 🌕 استجابة الهوية مع إرسال activeDay لضمان مزامنة الفرونت
         if (action === "GET_IDENTITY") {  
             return res.status(200).json({ 
                 ghostName: serverGhostName,
-                activeDay: getFormattedDate(), // إرجاع الصيغة الصحيحة التي يتوقعها الفرونت
+                activeDay: getFormattedDate(), // إرجاع الصيغة الصحيحة للفرونت
                 welcomeCard: {
                     show: isNewSession,
                     title: "تجلّي جديد.. روح جديدة 🕯️",
@@ -118,10 +121,18 @@ export default async function handler(req, res) {
             });  
         }  
 
+        // حماية من السبام: حد زمني + حد عددي يومي
         const userLimitRef = db.ref(`userLimits/${uid}`);    
         const limitSnap = await userLimitRef.once("value");    
         if (limitSnap.exists() && (now - limitSnap.val() < 6000)) { 
             return res.status(429).json({ error: "السرعة قتلت الشبح.. انتظر قليلاً." });
+        }
+
+        const dailyCountRef = db.ref(`dailyCount/${uid}/${todayDate.replace(/-/g, '')}`);
+        const dailySnap = await dailyCountRef.once('value');
+        const count = dailySnap.exists() ? dailySnap.val() : 0;
+        if (count >= 100) {
+            return res.status(429).json({ error: "لقد بلغت الحد اليومي للهمسات (100)." });
         }
 
         const rawInput = (text || "").trim();
@@ -143,7 +154,7 @@ export default async function handler(req, res) {
         const replyMatch = finalDisplayContent.match(/^رد على @(.+?):/);    
         const replyToName = replyMatch ? replyMatch[1].trim() : null;    
 
-        // إرسال الرسالة إلى مسار اليوم النشط (التوافق التام مع الفرونت)
+        // إرسال الرسالة إلى مسار اليوم النشط
         const msgRef = db.ref(`messages/global/${activeDay}`).push();    
         await msgRef.set({   
             uid,   
@@ -153,7 +164,10 @@ export default async function handler(req, res) {
             isConfession,   
             isSecret   
         });    
+        
+        // تحديث الحدود
         await userLimitRef.set(now);   
+        await dailyCountRef.set(count + 1);
 
         // منطق الإشعارات
         try {    
