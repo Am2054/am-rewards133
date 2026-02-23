@@ -41,7 +41,7 @@
     .history-item { display: flex; justify-content: space-between; font-size: 11px; padding: 6px 0; border-bottom: 1px dashed rgba(255,255,255,0.1); }
     #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--neon-cyan); color: #000; padding: 12px 30px; border-radius: 50px; font-weight: 900; visibility: hidden; opacity: 0; z-index: 1000; }
     #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
-    /* إضافة ستايل الواتساب */
+    /* ستايل زر الواتساب */
     .wa-btn { background: #25D366; border: none; border-radius: 12px; color: #fff; padding: 10px 15px; font-weight: 900; cursor: pointer; margin-right: 5px; }
   </style>
 </head>
@@ -109,51 +109,63 @@
 
     const q = query(collection(db, "users"), where("referredBy", "==", user.uid));
     
-    // تعديل ذكي: نستخدم منطق الحساب الفوري لضمان ظهور البيانات الآن
     onSnapshot(q, async snap => {
-        const tbody = document.getElementById('refTable');
-        let rowsHtml = "";
-        let totalCalculatedEarnings = 0;
+      const tbody = document.getElementById('refTable');
+      let totalCalculatedEarnings = 0;
+
+      if (snap.empty) {
+        tbody.innerHTML = "<tr><td colspan='2' style='text-align:center;padding:40px;'>لا يوجد أصدقاء بعد.</td></tr>";
+        document.getElementById('refEarnings').innerHTML = `0.00 <small>EGP</small>`;
+        return;
+      }
+
+      let rowsHtml = "";
+      const friendDocs = snap.docs;
+      for (const docSnap of friendDocs) {
+        const u = docSnap.data();
+        const uId = docSnap.id;
+
+        const wQ = query(collection(db, "withdrawals"), where("userId", "==", uId), where("status", "==", "completed"));
+        const wSnap = await getDocs(wQ);
         
-        if (snap.empty) {
-            tbody.innerHTML = "<tr><td colspan='2' style='text-align:center;padding:40px;'>لا يوجد أصدقاء بعد.</td></tr>";
-            document.getElementById('refEarnings').innerHTML = `0.00 <small>EGP</small>`;
-            return;
-        }
+        let friendComm = 0;
+        let historyHtml = "";
+        
+        wSnap.docs.forEach((wDoc, i) => {
+          if(i < 10) {
+            const amt = (Number(wDoc.data().amount || 0) * 0.10);
+            friendComm += amt;
+            historyHtml += `<div class="history-item"><span>سحب #${i+1}</span><span style="color:var(--neon-cyan)">+${amt.toFixed(2)} ج</span></div>`;
+          }
+        });
 
-        // تحويل الوثائق لمصفوفة للمعالجة
-        const friendDocs = snap.docs;
-        for (const docSnap of friendDocs) {
-            const u = docSnap.data();
-            const uId = docSnap.id;
+        totalCalculatedEarnings += friendComm;
+        const count = wSnap.size > 10 ? 10 : wSnap.size;
+        const progress = (count / 10) * 100;
 
-            // جلب السحبات المكتملة فعلياً لضمان ظهور أرقام
-            const wQ = query(collection(db, "withdrawals"), where("userId", "==", uId), where("status", "==", "completed"));
-            const wSnap = await getDocs(wQ);
-            
-            let friendComm = 0;
-            wSnap.docs.forEach((wDoc, i) => {
-                if(i < 10) friendComm += (Number(wDoc.data().amount || 0) * 0.10);
-            });
-
-            totalCalculatedEarnings += friendComm;
-            const count = wSnap.size > 10 ? 10 : wSnap.size;
-            const progress = (count / 10) * 100;
-
-            rowsHtml += `
-              <tr>
-                <td>
-                  <div style="font-weight:700">${u.name || 'مستخدم'}</div>
-                  <div style="font-size:10px; color:var(--muted); margin-top:4px;">سحبات الربح: ${count}/10</div>
-                  <div class="progress-container"><div class="progress-bar" style="width:${progress}%"></div></div>
-                </td>
-                <td style="text-align:center"><span class="commission-tag">+${friendComm.toFixed(2)}</span></td>
-              </tr>`;
-        }
-        tbody.innerHTML = rowsHtml;
-        document.getElementById('refEarnings').innerHTML = `${totalCalculatedEarnings.toFixed(2)} <small>EGP</small>`;
+        rowsHtml += `
+          <tr>
+            <td>
+              <div style="font-weight:700">${u.name || 'مستخدم'}</div>
+              <div style="font-size:10px; color:var(--muted); margin-top:4px;">سحبات الربح: ${count}/10</div>
+              <div class="progress-container"><div class="progress-bar" style="width:${progress}%"></div></div>
+              <span class="view-log-link" onclick="toggleHistory('${uId}')">تفاصيل السحبات 👇</span>
+              <div id="hist-${uId}" class="history-box">${historyHtml || 'لا يوجد سحبات مكتملة بعد.'}</div>
+            </td>
+            <td style="text-align:center"><span class="commission-tag">+${friendComm.toFixed(2)}</span></td>
+          </tr>`;
+      }
+      
+      tbody.innerHTML = rowsHtml;
+      document.getElementById('refEarnings').innerHTML = `${totalCalculatedEarnings.toFixed(2)} <small>EGP</small>`;
     });
   });
+
+  // دوال الـ Window للوصول إليها من الـ HTML
+  window.toggleHistory = id => {
+    const el = document.getElementById('hist-' + id);
+    if(el) el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+  };
 
   window.copyRef = () => {
     const txt = document.getElementById('refLink').innerText;
