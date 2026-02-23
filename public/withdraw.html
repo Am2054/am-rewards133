@@ -166,20 +166,31 @@
     });  
 
     function updateCalc() {  
-        const amt = parseFloat(document.getElementById('amountInp').value);  
+        const amtInput = document.getElementById('amountInp');
+        const amt = parseFloat(amtInput.value);  
         const wallet = document.getElementById('walletVod').value.trim();  
         const ptsNeeded = Math.ceil(amt / POINT_VALUE);  
         const warning = document.getElementById('limitWarning');  
         warning.style.display = 'none';  
+
+        // تحسين منطق التأكد من صحة الرقم (Regex) ليتناسب مع الباك آند
+        const isWalletValid = /^010\d{8}$/.test(wallet);
 
         if (amt >= LIMITS.min) {  
             document.getElementById('feeVal').textContent = (amt * 0.1).toFixed(2);  
             document.getElementById('netVal').textContent = (amt * 0.9).toFixed(2);  
             document.getElementById('needPts').textContent = ptsNeeded.toLocaleString();  
             
-            const canSubmit = ptsNeeded <= currentPoints && wallet.length === 11 && (todayAmt + amt) <= LIMITS.maxDaily && todayOps < LIMITS.maxOps;  
+            const canSubmit = ptsNeeded <= currentPoints && isWalletValid && (todayAmt + amt) <= LIMITS.maxDaily && todayOps < LIMITS.maxOps;  
             document.getElementById('confirmBtn').disabled = !canSubmit;  
-            if (ptsNeeded > currentPoints) { warning.textContent = "⚠️ نقاطك لا تكفي"; warning.style.display = "block"; }  
+            
+            if (ptsNeeded > currentPoints) { 
+                warning.textContent = "⚠️ نقاطك لا تكفي"; 
+                warning.style.display = "block"; 
+            } else if (wallet.length === 11 && !isWalletValid) {
+                warning.textContent = "⚠️ عذراً، متاح فقط فودافون كاش حالياً (010)";
+                warning.style.display = "block";
+            }
         } else { document.getElementById('confirmBtn').disabled = true; }  
     }  
 
@@ -220,6 +231,7 @@
             document.getElementById('msg').textContent = "✅ " + data.message;  
             document.getElementById('msg').className = "status-msg show success";  
             document.getElementById('amountInp').value = ""; 
+            document.getElementById('walletVod').value = ""; // تفريغ الرقم بعد النجاح
             checkLimits();  
         } catch (err) {  
             document.getElementById('msg').textContent = "❌ " + err.message;  
