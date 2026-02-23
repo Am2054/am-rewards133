@@ -16,14 +16,17 @@
       --text-main: #f1f5f9;
     }      
 
-    /* تحسين الأداء: استبدال all بخصائص محددة */
+    /* تحسين الأداء: استبدال all بخصائص محددة كما طلبت */
     * { 
       box-sizing: border-box; 
+    }      
+    
+    .action-item, .point-box, .progress-fill, .btn-logout, .profile-card {
       transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
                   box-shadow 0.4s ease, 
                   opacity 0.4s ease, 
                   background-color 0.4s ease; 
-    }      
+    }
     
     body { 
       margin: 0; padding: 0; font-family: "Cairo", sans-serif; 
@@ -131,7 +134,6 @@
     .btn-logout {
       background: rgba(255, 95, 95, 0.1); color: #ff5f5f; border: 1px solid #ff5f5f;
       padding: 8px 18px; border-radius: 12px; cursor: pointer; font-weight: 800;
-      transition: all 0.3s ease;
     }
     .btn-logout:hover { background: #ff5f5f; color: #fff; box-shadow: 0 0 20px #ff5f5f; }
     
@@ -211,7 +213,7 @@
         </div>
         <div style="background:rgba(255,255,255,0.02); padding:12px; border-radius:18px; text-align:center; border:1px solid var(--glass-border);">
             <div id="referralPoints" style="font-weight:900; color:var(--neon-purple); font-family:'Montserrat';">0</div>
-            <div style="font-size:10px; opacity:0.5;">إحالات</div>
+            <div style="font-size:10px; opacity:0.5;">أرباح إحالات</div>
         </div>
     </div>
 
@@ -221,7 +223,7 @@
   <script type="module">      
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";      
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";      
-    import { getFirestore, doc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";      
+    import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";      
 
     const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };      
     const app = initializeApp(firebaseConfig);      
@@ -267,7 +269,10 @@
         document.getElementById('pointsToday').textContent = ptsToday;
         document.getElementById('totalWithdrawn').textContent = (d.withdrawn || 0) + ' ج';
 
-        // تحديث شريط التقدم النيون مع تأثير الـ Glow
+        // الحل الموفر للبيانات: استخدام الحقل الجاهز مباشرة
+        const refEarnings = d.totalReferralEarnings || 0;
+        document.getElementById('referralPoints').textContent = refEarnings.toFixed(2);
+
         const pct = Math.min(Math.round((ptsToday / 1000) * 100), 100);
         const fill = document.getElementById('progressFill');
         const percentText = document.getElementById('progressPercent');
@@ -286,19 +291,6 @@
 
         document.getElementById('progressLbl').textContent = `${ptsToday} / 1000`;
       });
-
-      // منطق تحديث أرباح الإحالات حركياً
-      const qRef = query(collection(db, "users"), where("referredBy", "==", user.uid));
-      onSnapshot(qRef, async (friendsSnap) => {
-        let totalRefPoints = 0;
-        for (const friendDoc of friendsSnap.docs) {
-          const wQ = query(collection(db, "withdrawals"), where("userId", "==", friendDoc.id), where("status", "==", "completed"));
-          const wS = await getDocs(wQ);
-          wS.docs.forEach((wD, i) => { if(i < 10) totalRefPoints += Math.ceil((wD.data().pointsUsed || 0) * 0.10); });
-        }
-        document.getElementById('referralPoints').textContent = totalRefPoints.toLocaleString();
-      });
-
     });
 
     document.getElementById('logoutBtn').onclick = () => signOut(auth).then(() => location.href = 'index.html');
