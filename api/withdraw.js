@@ -75,6 +75,7 @@ export default async function handler(req, res) {
       const withdrawalRef = db.collection("withdrawals").doc();
       const withdrawalData = {
         userId,
+        userName: userData.name || "مستخدم", // أضفنا اسم المستخدم للسهولة في لوحة الأدمن
         amount,
         wallet,
         net: amount * (1 - NET_FEE),
@@ -89,6 +90,7 @@ export default async function handler(req, res) {
       if (userData.referredBy && (userData.referralBonusesCount || 0) < 10) {
         withdrawalData.bonusPendingFor = userData.referredBy;
         withdrawalData.bonusPointsAmount = Math.ceil(pointsNeeded * REFERRAL_PERCENT);
+        withdrawalData.bonusEgpAmount = Number((amount * REFERRAL_PERCENT).toFixed(2)); // حساب العمولة كاش مسبقاً
       }
 
       tr.update(userRef, { points: FieldValue.increment(-pointsNeeded) });
