@@ -41,6 +41,8 @@
     .history-item { display: flex; justify-content: space-between; font-size: 11px; padding: 6px 0; border-bottom: 1px dashed rgba(255,255,255,0.1); }
     #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--neon-cyan); color: #000; padding: 12px 30px; border-radius: 50px; font-weight: 900; visibility: hidden; opacity: 0; z-index: 1000; }
     #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
+    /* إضافة ستايل الواتساب */
+    .wa-btn { background: #25D366; border: none; border-radius: 12px; color: #fff; padding: 10px 15px; font-weight: 900; cursor: pointer; margin-right: 5px; }
   </style>
 </head>
 <body>
@@ -68,6 +70,7 @@
     <div class="link-box">
       <div class="link-text" id="refLink">جارِ التحميل...</div>
       <button class="copy-btn" onclick="copyRef()">نسخ</button>
+      <button class="wa-btn" onclick="shareWhatsapp()">واتساب</button>
     </div>
   </div>
 
@@ -96,7 +99,6 @@
   onAuthStateChanged(auth, user => {
     if (!user) return;
 
-    // 1. مراقبة البيانات الأساسية (الكود والعدد)
     onSnapshot(doc(db, "users", user.uid), s => {
       if(!s.exists()) return;
       const d = s.data();
@@ -105,72 +107,53 @@
       document.getElementById('refLink').innerText = `https://am-rewards.vercel.app/signup.html?ref=${d.referralCode}`;
     });
 
-    // 2. جلب الأصدقاء وعمل الحسبة الموحدة
     const q = query(collection(db, "users"), where("referredBy", "==", user.uid));
     
+    // تعديل ذكي: نستخدم منطق الحساب الفوري لضمان ظهور البيانات الآن
     onSnapshot(q, async snap => {
-      const tbody = document.getElementById('refTable');
-      let totalCalculatedEarnings = 0; // هذا المتغير سيجمع كل العمولات بدقة
-
-      if (snap.empty) {
-        tbody.innerHTML = "<tr><td colspan='2' style='text-align:center;padding:40px;'>لا يوجد أصدقاء بعد.</td></tr>";
-        document.getElementById('refEarnings').innerHTML = `0.00 <small>EGP</small>`;
-        return;
-      }
-
-      let rowsHtml = "";
-      
-      // نستخدم For loop عادية لضمان الترتيب والحساب
-      const friendDocs = snap.docs;
-      for (const docSnap of friendDocs) {
-        const u = docSnap.data();
-        const uId = docSnap.id;
-
-        // جلب سحبات الصديق المكتملة
-        const wQ = query(collection(db, "withdrawals"), where("userId", "==", uId), where("status", "==", "completed"));
-        const wSnap = await getDocs(wQ);
+        const tbody = document.getElementById('refTable');
+        let rowsHtml = "";
+        let totalCalculatedEarnings = 0;
         
-        let friendComm = 0;
-        let historyHtml = "";
-        
-        wSnap.docs.forEach((wDoc, i) => {
-          if(i < 10) { // عمولة على أول 10 سحبات فقط
-            const amt = (Number(wDoc.data().amount || 0) * 0.10);
-            friendComm += amt;
-            historyHtml += `<div class="history-item"><span>سحب #${i+1}</span><span style="color:var(--neon-cyan)">+${amt.toFixed(2)} ج</span></div>`;
-          }
-        });
+        if (snap.empty) {
+            tbody.innerHTML = "<tr><td colspan='2' style='text-align:center;padding:40px;'>لا يوجد أصدقاء بعد.</td></tr>";
+            document.getElementById('refEarnings').innerHTML = `0.00 <small>EGP</small>`;
+            return;
+        }
 
-        // إضافة عمولة هذا الصديق للمجموع الكلي العلوي
-        totalCalculatedEarnings += friendComm;
+        // تحويل الوثائق لمصفوفة للمعالجة
+        const friendDocs = snap.docs;
+        for (const docSnap of friendDocs) {
+            const u = docSnap.data();
+            const uId = docSnap.id;
 
-        const count = wSnap.size > 10 ? 10 : wSnap.size;
-        const progress = (count / 10) * 100;
+            // جلب السحبات المكتملة فعلياً لضمان ظهور أرقام
+            const wQ = query(collection(db, "withdrawals"), where("userId", "==", uId), where("status", "==", "completed"));
+            const wSnap = await getDocs(wQ);
+            
+            let friendComm = 0;
+            wSnap.docs.forEach((wDoc, i) => {
+                if(i < 10) friendComm += (Number(wDoc.data().amount || 0) * 0.10);
+            });
 
-        rowsHtml += `
-          <tr>
-            <td>
-              <div style="font-weight:700">${u.name || 'مستخدم'}</div>
-              <div style="font-size:10px; color:var(--muted); margin-top:4px;">سحبات الربح: ${count}/10</div>
-              <div class="progress-container"><div class="progress-bar" style="width:${progress}%"></div></div>
-              <span class="view-log-link" onclick="toggleHistory('${uId}')">تفاصيل السحبات 👇</span>
-              <div id="hist-${uId}" class="history-box">${historyHtml || 'لا يوجد سحبات مكتملة بعد.'}</div>
-            </td>
-            <td style="text-align:center"><span class="commission-tag">+${friendComm.toFixed(2)}</span></td>
-          </tr>`;
-      }
-      
-      // تحديث الجدول
-      tbody.innerHTML = rowsHtml;
-      // تحديث الرقم العلوي (أرباحك المحققة) ليتطابق مع مجموع الجدول
-      document.getElementById('refEarnings').innerHTML = `${totalCalculatedEarnings.toFixed(2)} <small>EGP</small>`;
+            totalCalculatedEarnings += friendComm;
+            const count = wSnap.size > 10 ? 10 : wSnap.size;
+            const progress = (count / 10) * 100;
+
+            rowsHtml += `
+              <tr>
+                <td>
+                  <div style="font-weight:700">${u.name || 'مستخدم'}</div>
+                  <div style="font-size:10px; color:var(--muted); margin-top:4px;">سحبات الربح: ${count}/10</div>
+                  <div class="progress-container"><div class="progress-bar" style="width:${progress}%"></div></div>
+                </td>
+                <td style="text-align:center"><span class="commission-tag">+${friendComm.toFixed(2)}</span></td>
+              </tr>`;
+        }
+        tbody.innerHTML = rowsHtml;
+        document.getElementById('refEarnings').innerHTML = `${totalCalculatedEarnings.toFixed(2)} <small>EGP</small>`;
     });
   });
-
-  window.toggleHistory = id => {
-    const el = document.getElementById('hist-' + id);
-    if(el) el.style.display = (el.style.display === 'block') ? 'none' : 'block';
-  };
 
   window.copyRef = () => {
     const txt = document.getElementById('refLink').innerText;
@@ -179,6 +162,12 @@
       t.classList.add('show');
       setTimeout(() => t.classList.remove('show'), 2000);
     });
+  };
+
+  window.shareWhatsapp = () => {
+      const link = document.getElementById('refLink').innerText;
+      const text = `سجل في AM Rewards وابدأ جمع نقاط وحولها لفلوس! ده رابط التسجيل بتاعي: ${link}`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 </script>
 </body>
