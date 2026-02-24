@@ -72,7 +72,7 @@ export default async function handler(req, res) {
 
         // 🛡️ فحص اليوم الجديد لمسح الشات وتوليد الهويات الجديدة باستخدام Transaction لمنع التكرار
         let isNewSession = false;
-        const { committed, snapshot } = await lastResetRef.transaction(current => {
+        const { committed } = await lastResetRef.transaction(current => {
             if (current !== todayDate) return todayDate;
             return; // إلغاء الترانزكشن لو التاريخ هو نفسه
         });
@@ -106,16 +106,17 @@ export default async function handler(req, res) {
             }  
         }  
 
-        // 🌕 استجابة الهوية مع إرسال activeDay لضمان مزامنة الفرونت
+        // 🌕 استجابة الهوية المحسنة بالكارت الاحترافي
         if (action === "GET_IDENTITY") {  
             return res.status(200).json({ 
                 ghostName: serverGhostName,
-                activeDay: getFormattedDate(), // إرجاع الصيغة الصحيحة للفرونت
+                activeDay: getFormattedDate(), 
                 welcomeCard: {
                     show: isNewSession,
                     title: "تجلّي جديد.. روح جديدة 🕯️",
-                    message: `لقد عبرت الساعة منتصف الليل، وتلاشت أرواح الأمس في العدم. شُقّ طريقك اليوم بهوية مخفية جديدة:`,
+                    message: "لقد عبرت الساعة منتصف الليل، وتلاشت أرواح الأمس في العدم. شُقّ طريقك اليوم بهوية مخفية جديدة:",
                     nameTag: serverGhostName,
+                    accentColor: "#7000ff", // لون البنفسجي الخاص بالهوية
                     footer: "كل شيء هنا عابر.. إلا الأثر."
                 }
             });  
