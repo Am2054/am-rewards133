@@ -29,6 +29,11 @@
         table { width: 100%; border-collapse: collapse; }
         th { text-align: right; padding: 15px; color: var(--gold); font-size: 0.8rem; border-bottom: 1px solid var(--border); }
         td { padding: 18px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.95rem; }
+        
+        /* حركة "الصياعة" المضافة */
+        tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
+        tr:hover { background: rgba(245, 197, 66, 0.05); transition: 0.3s; }
+
         .status-badge { padding: 5px 12px; border-radius: 8px; font-weight: 900; font-size: 0.7rem; }
         .status-pending { background: rgba(249, 115, 22, 0.2); color: var(--orange); }
         .status-completed { background: rgba(0, 250, 154, 0.2); color: var(--accent); }
@@ -182,7 +187,6 @@
         document.getElementById('modalContent').innerHTML = `طلب للمستخدم: <b>${usersMap[currentWithdrawal.userId]}</b><br>المبلغ: <b>${currentWithdrawal.amount} EGP</b> | الصافي: <b>${currentWithdrawal.net}</b><br>المحفظة: <b>${currentWithdrawal.wallet}</b>`;
     };    
 
-    // --- الوظيفة المعدلة لحساب العمولات مسبقاً ---
     document.getElementById('confirmAccept').onclick = async () => {    
         const w = currentWithdrawal;
         if(!confirm("تأكيد الدفع؟ سيتم تحديث رصيد المسحوبات للمستخدم ومكافأة الداعي.")) return;
@@ -195,8 +199,8 @@
                 const comm = Number(w.amount) * 0.10;
                 const referrerRef = doc(db, 'users', w.bonusPendingFor);
                 batch.update(referrerRef, {
-                    totalReferralEarnings: increment(comm), // إضافة الربح الجاهز
-                    completedReferralsCount: increment(1)  // إضافة عداد السحبات الجاهز
+                    totalReferralEarnings: increment(comm), 
+                    completedReferralsCount: increment(1)  
                 });
                 if(w.bonusPointsAmount) batch.update(referrerRef, { points: increment(Number(w.bonusPointsAmount)) });
                 batch.update(doc(db, 'users', w.userId), { referralBonusesCount: increment(1) });
