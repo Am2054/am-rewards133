@@ -92,7 +92,6 @@
         }
         .action-card:hover { background: var(--primary); color: #000; transform: scale(1.05); }
         
-        /* ألوان خاصة للأزرار */
         .btn-chat { border-bottom: 4px solid var(--secondary) !important; }
         .btn-ghost { border-bottom: 4px solid var(--purple) !important; }
         .btn-audit { border-bottom: 4px solid var(--danger) !important; }
@@ -125,14 +124,14 @@
             <span class="sub-text">إجمالي الأعضاء</span>
         </div>
         <div class="stats-card">
-            <span class="label">ECONOMY (POINTS)</span>
+            <span class="label">CURRENT POINTS</span>
             <span class="number" id="stat-points">0</span>
             <span class="sub-text" id="stat-egp">0.00 EGP</span>
         </div>
         <div class="stats-card" style="border-right: 5px solid var(--danger);">
-            <span class="label">WITHDRAWALS</span>
+            <span class="label">PENDING WITHDRAWALS</span>
             <span class="number" id="stat-pending">0</span>
-            <span class="sub-text">طلبات سحب معلقة</span>
+            <span class="sub-text">طلبات قيد الانتظار</span>
         </div>
         <div class="stats-card" style="border-right: 5px solid var(--purple);">
             <span class="label">SUPPORT TICKETS</span>
@@ -143,24 +142,24 @@
 
     <div class="stats-grid" style="margin-top: 20px;">
         <div class="stats-card" style="border-bottom: 4px solid var(--secondary);">
-            <span class="label">TOTAL WITHDRAWN TODAY</span>
+            <span class="label">WITHDRAWALS TODAY</span>
             <span class="number" id="stat-today-paid">0</span>
-            <span class="sub-text">إجمالي سحوبات اليوم</span>
+            <span class="sub-text">عدد سحوبات اليوم (مكتملة)</span>
         </div>
         <div class="stats-card" style="border-bottom: 4px solid #10b981;">
-            <span class="label">totalPaid EGP</span>
+            <span class="label">TOTAL PAID EGP</span>
             <span class="number" id="stat-total-paid-egp">0.00</span>
-            <span class="sub-text">إجمالي المدفوع فعلياً</span>
+            <span class="sub-text">إجمالي المبالغ المدفوعة</span>
         </div>
         <div class="stats-card">
             <span class="label">REFERRAL NET</span>
             <span class="number" id="stat-ref-count">0</span>
-            <span class="sub-text">أعضاء من إحالات</span>
+            <span class="sub-text">إجمالي الإحالات</span>
         </div>
         <div class="stats-card">
-            <span class="label">REF COMMISSIONS</span>
+            <span class="label">REF EARNINGS</span>
             <span class="number" id="stat-ref">0.00</span>
-            <span class="sub-text" id="stat-ref-egp">EGP إجمالي العمولات</span>
+            <span class="sub-text" id="stat-ref-egp">EGP عمولات موزعة</span>
         </div>
     </div>
 
@@ -188,7 +187,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -200,7 +199,7 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    const MASTER_TOKEN = "AM-VIP-2025"; // تم إخفاؤه من الواجهة
+    const MASTER_TOKEN = "AM-VIP-2025"; 
 
     async function getFingerprint() {
         const platform = navigator.userAgent + screen.colorDepth + navigator.language;
@@ -215,7 +214,6 @@
         const errMsg = document.getElementById('error-msg');
         const fingerprint = await getFingerprint();
 
-        // التحقق البرمجي بدلاً من الحقل المرئي
         try {
             await signInWithEmailAndPassword(auth, email, pass);
             const lockRef = doc(db, "system", "admin_lock");
@@ -234,7 +232,7 @@
     };
 
     function startRealTimeStats() {
-        // مراقبة المستخدمين والإحالات
+        // 1. مراقبة المستخدمين والإحالات
         onSnapshot(collection(db, "users"), (snap) => {
             let totalPoints = 0;
             let totalRefEarnings = 0;
@@ -252,31 +250,46 @@
             document.getElementById('stat-ref').textContent = totalRefEarnings.toFixed(2);
         });
 
-        // مراقبة السحوبات والمدفوعات
+        // 2. مراقبة السحوبات والمدفوعات (تم التعديل لمطابقة كود سحب الأدمن)
         onSnapshot(collection(db, "withdrawals"), (snap) => {
-            let pending = 0;
-            let paidEGP = 0;
-            let todayPaid = 0;
-            const today = new Date().toDateString();
+            let pendingCount = 0;
+            let totalPaid = 0;
+            let todayPaidCount = 0;
+            
+            // تحديد بداية يومنا هذا للمقارنة
+            const todayDateString = new Date().toDateString();
 
-            snap.forEach(doc => {
-                const d = doc.data();
-                if (d.status === "pending") pending++;
+            snap.forEach(docSnap => {
+                const d = docSnap.data();
+                
+                // حساب الحالات المعلقة
+                if (d.status === "pending") {
+                    pendingCount++;
+                }
+
+                // حساب المدفوعات المكتملة
                 if (d.status === "completed") {
-                    paidEGP += (Number(d.amountEGP) || 0);
-                    // حساب سحوبات اليوم فقط
-                    if (d.completedAt && new Date(d.completedAt.seconds * 1000).toDateString() === today) {
-                        todayPaid++;
+                    // استخدام حقل amount كما هو موجود في كود السحب
+                    totalPaid += (Number(d.amount) || 0);
+
+                    // حساب سحوبات اليوم
+                    // نفحص حقل processedAt (تاريخ الاعتماد) أو حقل date (تاريخ الطلب)
+                    // الأفضل فحص processedAt لأنه يمثل وقت الدفع الفعلي
+                    if (d.processedAt) {
+                        const processDate = new Date(d.processedAt.seconds * 1000).toDateString();
+                        if (processDate === todayDateString) {
+                            todayPaidCount++;
+                        }
                     }
                 }
             });
 
-            document.getElementById('stat-pending').textContent = pending;
-            document.getElementById('stat-total-paid-egp').textContent = paidEGP.toFixed(2);
-            document.getElementById('stat-today-paid').textContent = todayPaid;
+            document.getElementById('stat-pending').textContent = pendingCount;
+            document.getElementById('stat-total-paid-egp').textContent = totalPaid.toFixed(2);
+            document.getElementById('stat-today-paid').textContent = todayPaidCount;
         });
 
-        // مراقبة تذاكر الدعم
+        // 3. مراقبة تذاكر الدعم
         const qSupport = query(collection(db, "support_tickets"), where("status", "==", "pending"));
         onSnapshot(qSupport, (snap) => {
             document.getElementById('stat-support-count').textContent = snap.size;
