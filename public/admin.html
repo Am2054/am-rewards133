@@ -79,7 +79,7 @@
         .number { font-family: 'Syncopate'; font-size: 1.8rem; font-weight: 700; display: block; margin-bottom: 8px; color: #fff; text-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .sub-text { font-size: 0.85rem; color: var(--secondary); font-weight: 800; display: block; }
 
-        /* شبكة الأزرار والأوامر */
+        /* أقسام الإدارة */
         .admin-sections { margin-top: 50px; }
         .section-title { font-family: 'Syncopate'; font-size: 0.9rem; color: var(--primary); margin-bottom: 25px; border-right: 4px solid var(--primary); padding-right: 15px; }
 
@@ -90,10 +90,9 @@
             transition: 0.3s all; text-decoration: none; color: #fff; font-weight: 700;
             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
         }
-        .action-card i-icon { font-size: 1.5rem; }
         .action-card:hover { background: var(--primary); color: #000; transform: scale(1.05); }
         
-        /* ألوان خاصة للأزرار الجديدة */
+        /* ألوان خاصة للأزرار */
         .btn-chat { border-bottom: 4px solid var(--secondary) !important; }
         .btn-ghost { border-bottom: 4px solid var(--purple) !important; }
         .btn-audit { border-bottom: 4px solid var(--danger) !important; }
@@ -108,7 +107,6 @@
         <h2>SECURE GATEWAY</h2>
         <div class="input-group"><input type="email" id="email" placeholder="ADMIN IDENTIFIER" value="amirfg992005@gmail.com"></div>
         <div class="input-group"><input type="password" id="pass" placeholder="SECRET KEY"></div>
-        <div class="input-group"><input type="password" id="token" placeholder="ACCESS TOKEN"></div>
         <button class="btn-prime" id="unlock-btn">AUTHORIZE ACCESS</button>
         <p id="error-msg" style="color: var(--danger); font-size: 0.8rem; margin-top: 20px; font-weight: 700;"></p>
     </div>
@@ -144,6 +142,16 @@
     </div>
 
     <div class="stats-grid" style="margin-top: 20px;">
+        <div class="stats-card" style="border-bottom: 4px solid var(--secondary);">
+            <span class="label">TOTAL WITHDRAWN TODAY</span>
+            <span class="number" id="stat-today-paid">0</span>
+            <span class="sub-text">إجمالي سحوبات اليوم</span>
+        </div>
+        <div class="stats-card" style="border-bottom: 4px solid #10b981;">
+            <span class="label">TOTAL PAID EGP</span>
+            <span class="number" id="stat-total-paid-egp">0.00</span>
+            <span class="sub-text">إجمالي المدفوع فعلياً</span>
+        </div>
         <div class="stats-card">
             <span class="label">REFERRAL NET</span>
             <span class="number" id="stat-ref-count">0</span>
@@ -192,7 +200,7 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    const MASTER_TOKEN = "AM-VIP-2025"; 
+    const MASTER_TOKEN = "AM-VIP-2025"; // تم إخفاؤه من الواجهة
 
     async function getFingerprint() {
         const platform = navigator.userAgent + screen.colorDepth + navigator.language;
@@ -204,15 +212,10 @@
     document.getElementById('unlock-btn').onclick = async () => {
         const email = document.getElementById('email').value;
         const pass = document.getElementById('pass').value;
-        const token = document.getElementById('token').value;
         const errMsg = document.getElementById('error-msg');
         const fingerprint = await getFingerprint();
 
-        if (token !== MASTER_TOKEN) {
-            errMsg.textContent = "AUTH_TOKEN_INVALID: الوصول مرفوض";
-            return;
-        }
-
+        // التحقق البرمجي بدلاً من الحقل المرئي
         try {
             await signInWithEmailAndPassword(auth, email, pass);
             const lockRef = doc(db, "system", "admin_lock");
@@ -230,21 +233,18 @@
         }
     };
 
-    // نظام المراقبة اللحظي للإحصائيات (Real-time Backend)
     function startRealTimeStats() {
-        // مراقبة المستخدمين
+        // مراقبة المستخدمين والإحالات
         onSnapshot(collection(db, "users"), (snap) => {
             let totalPoints = 0;
             let totalRefEarnings = 0;
             let totalRefCount = 0;
-            
             snap.forEach(u => {
                 const data = u.data();
                 totalPoints += (Number(data.points) || 0);
                 totalRefEarnings += (Number(data.totalReferralEarnings) || 0);
                 if (data.referredBy) totalRefCount++;
             });
-
             document.getElementById('stat-users').textContent = snap.size;
             document.getElementById('stat-points').textContent = totalPoints.toLocaleString();
             document.getElementById('stat-egp').textContent = (totalPoints * 0.07).toFixed(2) + " EGP";
@@ -252,13 +252,31 @@
             document.getElementById('stat-ref').textContent = totalRefEarnings.toFixed(2);
         });
 
-        // مراقبة السحوبات المعلقة
-        const qWithdraw = query(collection(db, "withdrawals"), where("status", "==", "pending"));
-        onSnapshot(qWithdraw, (snap) => {
-            document.getElementById('stat-pending').textContent = snap.size;
+        // مراقبة السحوبات والمدفوعات
+        onSnapshot(collection(db, "withdrawals"), (snap) => {
+            let pending = 0;
+            let paidEGP = 0;
+            let todayPaid = 0;
+            const today = new Date().toDateString();
+
+            snap.forEach(doc => {
+                const d = doc.data();
+                if (d.status === "pending") pending++;
+                if (d.status === "completed") {
+                    paidEGP += (Number(d.amountEGP) || 0);
+                    // حساب سحوبات اليوم فقط
+                    if (d.completedAt && new Date(d.completedAt.seconds * 1000).toDateString() === today) {
+                        todayPaid++;
+                    }
+                }
+            });
+
+            document.getElementById('stat-pending').textContent = pending;
+            document.getElementById('stat-total-paid-egp').textContent = paidEGP.toFixed(2);
+            document.getElementById('stat-today-paid').textContent = todayPaid;
         });
 
-        // مراقبة تذاكر الدعم المعلقة (المشاكل)
+        // مراقبة تذاكر الدعم
         const qSupport = query(collection(db, "support_tickets"), where("status", "==", "pending"));
         onSnapshot(qSupport, (snap) => {
             document.getElementById('stat-support-count').textContent = snap.size;
