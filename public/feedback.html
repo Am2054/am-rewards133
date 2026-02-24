@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الدعم الفني والمكافآت | Am Rewards</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root { --cyan: #00f2ff; --purple: #7000ff; --dark: #020617; --glass: rgba(15, 23, 42, 0.8); --border: rgba(255, 255, 255, 0.1); }
+        body { font-family: 'Cairo', sans-serif; background: var(--dark); color: #fff; margin: 0; padding: 20px; background-image: radial-gradient(circle at top right, rgba(0, 242, 255, 0.1), transparent 400px); }
+        .container { max-width: 750px; margin: auto; }
+        
+        /* صندوق المكافأة */
+        .reward-banner {
+            background: linear-gradient(90deg, rgba(112, 0, 255, 0.2), rgba(0, 242, 255, 0.2));
+            border: 1px dashed var(--cyan); border-radius: 15px; padding: 15px;
+            text-align: center; margin-bottom: 25px; animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
+
+        .support-card { background: var(--glass); border: 1px solid var(--border); padding: 30px; border-radius: 25px; backdrop-filter: blur(10px); }
+        h1 { color: var(--cyan); text-align: center; font-weight: 900; margin-top: 0; }
+        label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--cyan); font-weight: 700; }
+        input, select, textarea { width: 100%; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 12px; color: #fff; font-family: 'Cairo'; outline: none; margin-bottom: 15px; }
+        input:focus { border-color: var(--cyan); box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
+        
+        .btn-send { width: 100%; padding: 16px; background: linear-gradient(90deg, var(--purple), var(--cyan)); border: none; border-radius: 15px; color: #fff; font-weight: 900; cursor: pointer; font-size: 16px; }
+        
+        .ticket-item { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 18px; border-radius: 18px; margin-top: 15px; position: relative; }
+        .status-tag { float: left; font-size: 11px; padding: 4px 10px; border-radius: 20px; font-weight: 900; }
+        .pending { background: #f59e0b; color: #000; }
+        .resolved { background: #00f2ff; color: #000; box-shadow: 0 0 10px var(--cyan); }
+        .points-badge { color: #22c55e; font-weight: 900; font-size: 13px; margin-top: 10px; display: block; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="reward-banner">
+        💎 <strong>شاركنا واربح!</strong> اكسب من <b>100</b> إلى <b>100,000</b> نقطة مقابل بلاغاتك واقتراحاتك المميزة.
+    </div>
+
+    <div class="support-card">
+        <h1>📩 مركز الدعم والابتكار</h1>
+        <p style="text-align: center; font-size: 13px; opacity: 0.8; margin-bottom: 25px;">
+            تعتمد النقاط الممنوحة على أهمية المشكلة، بينما تعتمد مكافأة الاقتراح على نوع الخدمة المقترحة ومدى تفاعل المستخدمين معها مستقبلاً.
+        </p>
+        
+        <form id="supportForm">
+            <label>نوع الرسالة</label>
+            <select id="requestType" required onchange="toggleFields()">
+                <option value="">-- ماذا تريد أن تخبرنا؟ --</option>
+                <option value="مشكلة في النقاط">🔴 مشكلة في النقاط (مكافأة فورية عند التأكد)</option>
+                <option value="مشكلة في السحب">💸 مشكلة في السحب</option>
+                <option value="مشكلة تقنية">⚙️ عطل فني في الموقع</option>
+                <option value="اقتراح تطوير">💡 اقتراح ميزة جديدة (مكافأة كبرى)</option>
+            </select>
+
+            <div id="extraInputArea" style="display:none">
+                <label id="extraLabel">تفاصيل إضافية</label>
+                <input type="text" id="extraValue" placeholder="">
+            </div>
+
+            <label>اشرح لنا بالتفصيل</label>
+            <textarea id="message" rows="5" minlength="30" required placeholder="اكتب هنا بوضوح لا يقل عن 30 حرف..."></textarea>
+
+            <button type="submit" class="btn-send" id="submitBtn">إرسال وربح النقاط 🚀</button>
+        </form>
+    </div>
+
+    <div id="myTickets" style="margin-top: 40px;">
+        <h3 style="border-right: 4px solid var(--cyan); padding-right: 15px;">🎫 سجل طلباتك ومكافآتك</h3>
+        <div id="ticketsList"></div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, addDoc, query, where, getDocs, serverTimestamp, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+        authDomain: "am--rewards.firebaseapp.com",
+        projectId: "am--rewards",
+        storageBucket: "am--rewards.appspot.com",
+        messagingSenderId: "744783579735",
+        appId: "1:744783579735:web:45e00de9998893bbc9b112",
+        measurementId: "G-CV3GLT2TTJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let user = null;
+
+    onAuthStateChanged(auth, (u) => {
+        if (u) { user = u; listenToTickets(); }
+        else { window.location.href = "login.html"; }
+    });
+
+    window.toggleFields = () => {
+        const type = document.getElementById('requestType').value;
+        const area = document.getElementById('extraInputArea');
+        const label = document.getElementById('extraLabel');
+        const input = document.getElementById('extraValue');
+
+        if(type.includes('النقاط')) { area.style.display='block'; label.innerText='رابط المهمة المفقودة'; input.placeholder='ضع الرابط هنا'; }
+        else if(type.includes('السحب')) { area.style.display='block'; label.innerText='رقم عملية السحب (Transaction ID)'; input.placeholder='مثال: #12345'; }
+        else { area.style.display='none'; }
+    };
+
+    function listenToTickets() {
+        const q = query(collection(db, "support_tickets"), where("uid", "==", user.uid), orderBy("timestamp", "desc"));
+        onSnapshot(q, (snap) => {
+            const list = document.getElementById('ticketsList');
+            list.innerHTML = snap.empty ? '<p style="text-align:center; opacity:0.5">لا توجد طلبات سابقة</p>' : '';
+            snap.forEach(doc => {
+                const d = doc.data();
+                list.innerHTML += `
+                    <div class="ticket-item">
+                        <span class="status-tag ${d.status}">${d.status === 'pending' ? 'جاري الفحص' : 'تم الرد'}</span>
+                        <strong style="color:var(--cyan)">${d.type}</strong>
+                        <p style="font-size:14px; margin: 10px 0;">${d.message}</p>
+                        ${d.adminReply ? `<div style="background:rgba(0,242,255,0.05); padding:10px; border-radius:10px; font-size:13px; border-right:2px solid var(--cyan)">
+                            <b>رد الإدارة:</b> ${d.adminReply}
+                            ${d.rewardPoints ? `<span class="points-badge">💰 تم إضافة +${d.rewardPoints} نقطة لرصيدك</span>` : ''}
+                        </div>` : ''}
+                    </div>`;
+            });
+        });
+    }
+
+    document.getElementById('supportForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerText = "⏳ جاري الإرسال...";
+
+        try {
+            await addDoc(collection(db, "support_tickets"), {
+                uid: user.uid,
+                email: user.email,
+                type: document.getElementById('requestType').value,
+                extraData: document.getElementById('extraValue').value,
+                message: document.getElementById('message').value,
+                status: "pending",
+                rewardPoints: 0, // القيمة الافتراضية
+                timestamp: serverTimestamp()
+            });
+            Swal.fire("تم استلام طلبك", "شكراً لمساهمتك! سيتم مراجعة الطلب وإضافة النقاط إذا كان صحيحاً.", "success");
+            document.getElementById('supportForm').reset();
+            document.getElementById('extraInputArea').style.display = 'none';
+        } catch (e) { Swal.fire("عذراً", "حدث خطأ أثناء الإرسال", "error"); }
+        
+        btn.disabled = false;
+        btn.innerText = "إرسال وربح النقاط 🚀";
+    };
+</script>
+</body>
+</html>
