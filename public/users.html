@@ -26,7 +26,6 @@
 
     .wrap { max-width: 1400px; margin: 0 auto; }
     
-    /* --- الهيدر --- */
     header { 
       display: flex; align-items: center; justify-content: space-between; 
       margin-bottom: 30px; padding: 25px; background: var(--card); 
@@ -35,7 +34,6 @@
     }
     header h1 { margin: 0; font-family: 'Syncopate'; color: var(--gold); font-size: 1.3rem; letter-spacing: 2px; }
 
-    /* --- الإحصائيات --- */
     .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
     .stat-item { 
       background: var(--card); padding: 25px; border-radius: 24px; 
@@ -46,7 +44,6 @@
     .stat-item strong { display: block; font-size: 1.8rem; font-family: 'Syncopate'; color: #fff; margin-bottom: 5px; }
     .stat-item span { color: var(--gold); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; opacity: 0.7; }
 
-    /* --- صندوق الجدول --- */
     .table-card { 
       background: var(--card); border-radius: 28px; padding: 10px; 
       border: 1px solid var(--border); backdrop-filter: blur(15px);
@@ -60,7 +57,6 @@
       outline: none; flex: 1; min-width: 250px; font-family: 'Cairo';
     }
 
-    /* --- تصميم الجدول الجديد --- */
     .table-container { overflow-x: auto; border-radius: 20px; }
     table { width: 100%; border-collapse: separate; border-spacing: 0 8px; padding: 0 15px; }
     
@@ -72,13 +68,11 @@
 
     td { padding: 15px 20px; background: rgba(255,255,255,0.02); vertical-align: middle; transition: 0.3s; }
     
-    /* تقويس أطراف الصفوف */
     td:first-child { border-radius: 0 15px 15px 0; }
     td:last-child { border-radius: 15px 0 0 15px; }
 
     tr:hover td { background: rgba(245, 197, 66, 0.08); transform: scale(1.002); }
 
-    /* --- مكونات داخل الجدول --- */
     .user-info { display: flex; align-items: center; gap: 12px; }
     .avatar { 
       width: 40px; height: 40px; background: linear-gradient(45deg, var(--gold), #b48a1d); 
@@ -100,11 +94,13 @@
     .action-btn { 
       padding: 10px 18px; border-radius: 12px; border: none; 
       font-weight: 800; cursor: pointer; transition: 0.3s; font-size: 0.75rem;
+      display: flex; align-items: center; justify-content: center;
     }
     .btn-edit { background: var(--gold); color: #000; box-shadow: 0 4px 15px rgba(245, 197, 66, 0.2); }
     .btn-edit:hover { background: #fff; transform: translateY(-2px); }
+    .btn-ban { background: rgba(239, 68, 68, 0.1); color: var(--red); border: 1px solid var(--red); }
+    .btn-ban:hover { background: var(--red); color: #fff; }
 
-    /* --- حالات خاصة --- */
     .hidden { display: none !important; }
     #loginBox { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 10000; }
     .auth-box { width: 350px; padding: 40px; background: var(--card); border: 1px solid var(--gold); border-radius: 30px; text-align: center; }
@@ -216,13 +212,14 @@
         const tr = document.createElement('tr');
         const lastLogin = u.lastLogin?.toDate ? u.lastLogin.toDate() : new Date(u.lastLogin);
         const initial = (u.name || 'U').charAt(0).toUpperCase();
+        const isBanned = u.status === 'banned';
 
         tr.innerHTML = `
           <td>
             <div class="user-info">
-              <div class="avatar">${initial}</div>
+              <div class="avatar" style="${isBanned ? 'filter: grayscale(1); opacity: 0.5;' : ''}">${initial}</div>
               <div>
-                <div style="font-weight:900; color:#fff;">${u.name || 'No Name'}</div>
+                <div style="font-weight:900; color:${isBanned ? 'var(--red)' : '#fff'};">${u.name || 'No Name'} ${isBanned ? '(BANNED)' : ''}</div>
                 <div class="uid-tag">${u.id.slice(0,10)}...</div>
               </div>
             </div>
@@ -232,21 +229,43 @@
           <td><div class="points-badge">${Number(u.points || 0).toLocaleString()}</div></td>
           <td style="font-size:0.75rem; color:#64748b;">${lastLogin.toLocaleString('ar-EG', {dateStyle:'short', timeStyle:'short'})}</td>
           <td>
-            <button class="action-btn btn-edit" onclick="editPoints('${u.id}')">تعديل الرصيد</button>
+            <div style="display:flex; gap:5px;">
+                <button class="action-btn btn-edit edit-pts-trigger" data-id="${u.id}">🪙</button>
+                <a href="auditUser.html?uid=${u.id}" class="action-btn" style="background:var(--blue); color:#fff; text-decoration:none;">🔍</a>
+                <button class="action-btn btn-ban ban-trigger" data-id="${u.id}" data-status="${u.status}">${isBanned ? '✅' : '🚫'}</button>
+            </div>
           </td>
         `;
         tbody.appendChild(tr);
       });
+
+      // ربط الأزرار برمجياً بدلاً من onclick (آمان 100%)
+      document.querySelectorAll('.edit-pts-trigger').forEach(btn => {
+          btn.addEventListener('click', () => handleEditPoints(btn.dataset.id));
+      });
+      document.querySelectorAll('.ban-trigger').forEach(btn => {
+          btn.addEventListener('click', () => handleToggleBan(btn.dataset.id, btn.dataset.status));
+      });
     }
 
-    window.editPoints = async (id) => {
+    // وظائف التحكم الخاصة (Private Functions inside Module)
+    async function handleEditPoints(id) {
         const u = allUsers.find(x => x.id === id);
         const newPts = prompt(`تعديل نقاط ${u.name}:`, u.points);
         if (newPts !== null && !isNaN(newPts)) {
             await updateDoc(doc(db, 'users', id), { points: Number(newPts) });
-            alert("تم التحديث ✅"); loadData();
+            loadData();
         }
-    };
+    }
+
+    async function handleToggleBan(id, currentStatus) {
+        const newStatus = currentStatus === 'banned' ? 'active' : 'banned';
+        const msg = newStatus === 'banned' ? "هل تريد حظر هذا المستخدم؟" : "هل تريد فك الحظر؟";
+        if(confirm(msg)) {
+            await updateDoc(doc(db, 'users', id), { status: newStatus });
+            loadData();
+        }
+    }
 
     document.getElementById('searchInput').oninput = (e) => {
         const val = e.target.value.toLowerCase();
