@@ -34,6 +34,26 @@
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .hidden { display: none !important; }
     #auth-gate { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 10000; }
+
+    /* الجزء الجديد المضاف */
+    #autoRefreshNotice {
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { opacity: 0.6; }
+        50% { opacity: 1; }
+        100% { opacity: 0.6; }
+    }
+
+    .task-item:hover {
+        background: rgba(245, 197, 66, 0.08);
+        border-color: rgba(245, 197, 66, 0.2);
+        transform: translateX(-5px);
+    }
+
+    .count-badge {
+        box-shadow: 0 0 10px rgba(0, 250, 154, 0.1);
+    }
   </style>
 </head>
 <body>
@@ -103,19 +123,17 @@
     const ADMIN_EMAIL = "amirfg992005@gmail.com";
     let taskChart = null;
 
-    // --- الحماية الصارمة ---
     onAuthStateChanged(auth, user => {
         if (user && user.email === ADMIN_EMAIL) {
             document.getElementById('auth-gate').classList.add('hidden');
             document.getElementById('main-content').classList.remove('hidden');
             fetchAndAnalyzeTasks();
-            setInterval(fetchAndAnalyzeTasks, 60000); // تحديث تلقائي كل دقيقة
+            setInterval(fetchAndAnalyzeTasks, 60000); 
         } else {
             window.location.href = "index.html";
         }
     });
 
-    // --- منطق الرسم البياني ---
     function updateChart(labels, data) {
         const ctx = document.getElementById('taskDistributionChart').getContext('2d');
         if (taskChart) taskChart.destroy();
@@ -183,14 +201,12 @@
                 if (dDate && dDate.toDateString() === todayStr) todayCount++;
             });
 
-            // تحديث الواجهة
             document.getElementById('totalTasks').textContent = snap.size.toLocaleString();
             document.getElementById('todayTasks').textContent = todayCount.toLocaleString();
             document.getElementById('uniqueTasks').textContent = Object.keys(taskCounts).length;
 
             const sorted = Object.entries(taskCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
             
-            // تحديث القائمة والرسم البياني
             renderList(sorted);
             updateChart(sorted.map(s => s[0]), sorted.map(s => s[1]));
 
@@ -213,7 +229,6 @@
         `).join('') || '<p style="text-align:center; opacity:0.5;">No data found</p>';
     }
 
-    // إدارة الفلترة اليدوية
     document.getElementById('timeFilter').onchange = (e) => {
         document.getElementById('customDateGroup').classList.toggle('hidden', e.target.value !== 'custom');
         fetchAndAnalyzeTasks();
