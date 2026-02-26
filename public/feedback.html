@@ -61,10 +61,23 @@
                 <option value="">-- ماذا تريد أن تخبرنا؟ --</option>
                 <option value="مشكلة في النقاط">🔴 مشكلة في النقاط</option>
                 <option value="مشكلة في السحب">💸 مشكلة في السحب</option>
+                <option value="عطل في خدمة معينة">⚠️ عطل في خدمة معينة</option>
                 <option value="مشكلة تقنية">⚙️ عطل فني في الموقع</option>
                 <option value="اقتراح تطوير">💡 اقتراح ميزة جديدة</option>
                 <option value="ثغرة أمنية">🛡️ الإبلاغ عن ثغرة أمنية</option>
             </select>
+
+            <div id="serviceSelectionArea" style="display:none">
+                <label>اختر الخدمة المتأثرة</label>
+                <select id="serviceName">
+                    <option value="غير محدد">-- اختر الخدمة --</option>
+                    <option value="محلل باقة الانترنت المنزلي">🌐 محلل باقة الانترنت المنزلي</option>
+                    <option value="رادار الكهرباء">⚡ رادار الكهرباء</option>
+                    <option value="رادار المياه">💧 رادار المياه</option>
+                    <option value="اكواد الهاتف">📱 اكواد الهاتف</option>
+                    <option value="شات الاشباح">👻 شات الاشباح</option>
+                </select>
+            </div>
 
             <div id="extraInputArea" style="display:none">
                 <label id="extraLabel">تفاصيل إضافية</label>
@@ -113,16 +126,22 @@
     window.toggleFields = () => {
         const type = document.getElementById('requestType').value;
         const area = document.getElementById('extraInputArea');
+        const serviceArea = document.getElementById('serviceSelectionArea');
         const label = document.getElementById('extraLabel');
         const input = document.getElementById('extraValue');
 
+        // إخفاء الكل أولاً
+        area.style.display='none';
+        serviceArea.style.display='none';
+
         if(type.includes('النقاط')) { area.style.display='block'; label.innerText='رابط المهمة (إن وجد)'; input.placeholder='ضع الرابط هنا'; }
         else if(type.includes('السحب')) { area.style.display='block'; label.innerText='رقم الهاتف المستخدم في السحب'; input.placeholder='مثال: 010xxxxxxxx'; }
-        else { area.style.display='none'; }
+        else if(type === 'عطل في خدمة معينة') { serviceArea.style.display='block'; }
     };
 
     // حماية XSS وتحويل النصوص لآمنة
     function escapeHTML(str) {
+        if(!str) return "";
         const p = document.createElement('p');
         p.textContent = str;
         return p.innerHTML;
@@ -142,9 +161,12 @@
                 // ترجمة الحالات للعربية
                 const statusMap = { 'pending': 'في الانتظار', 'reviewing': 'قيد المراجعة', 'approved': 'تم القبول', 'rejected': 'مرفوض' };
                 
+                // إضافة اسم الخدمة في العرض لو متاح
+                const serviceInfo = d.selectedService ? `<br><small style="color:var(--purple)">الخدمة: ${escapeHTML(d.selectedService)}</small>` : '';
+
                 ticketDiv.innerHTML = `
                     <span class="status-tag ${d.status}">${statusMap[d.status] || d.status}</span>
-                    <strong style="color:var(--cyan)">${escapeHTML(d.type)}</strong>
+                    <strong style="color:var(--cyan)">${escapeHTML(d.type)}</strong>${serviceInfo}
                     <p style="font-size:14px; margin: 10px 0;">${escapeHTML(d.message)}</p>
                 `;
 
@@ -170,7 +192,6 @@
         btn.innerText = "⏳ جاري التحقق...";
 
         try {
-            // 1. نظام Rate Limit: منع أكثر من 3 طلبات في 24 ساعة
             const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
             const rateQuery = query(
                 collection(db, "support_tickets"), 
@@ -186,11 +207,14 @@
                 return;
             }
 
-            // 2. إرسال الطلب بحالة pending
+            const type = document.getElementById('requestType').value;
+
+            // إرسال الطلب بحالة pending مع إضافة حقل الخدمة المختارة
             await addDoc(collection(db, "support_tickets"), {
                 uid: user.uid,
                 email: user.email,
-                type: document.getElementById('requestType').value,
+                type: type,
+                selectedService: type === 'عطل في خدمة معينة' ? document.getElementById('serviceName').value : null,
                 extraData: document.getElementById('extraValue').value,
                 message: document.getElementById('message').value,
                 status: "pending",
@@ -201,6 +225,7 @@
             Swal.fire("تم استلام طلبك", "شكراً لمساهمتك! سيتم مراجعة طلبك وإبلاغك بالرد في أقرب وقت.", "success");
             document.getElementById('supportForm').reset();
             document.getElementById('extraInputArea').style.display = 'none';
+            document.getElementById('serviceSelectionArea').style.display = 'none';
         } catch (e) { 
             console.error(e);
             Swal.fire("عذراً", "حدث خطأ أثناء الإرسال", "error"); 
