@@ -31,7 +31,6 @@
         .ticket-item { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 18px; border-radius: 18px; margin-top: 15px; }
         .status-tag { float: left; font-size: 11px; padding: 4px 10px; border-radius: 20px; font-weight: 900; }
         
-        /* ألوان الحالات الجديدة */
         .pending { background: #64748b; color: #fff; }
         .reviewing { background: #f59e0b; color: #000; }
         .approved { background: #10b981; color: #fff; }
@@ -146,7 +145,6 @@
     }
 
     function listenToTickets() {
-        // الاستعلام يحتاج للفهرس الذي قمت بإنشائه (uid + timestamp)
         const q = query(collection(db, "support_tickets"), where("uid", "==", user.uid), orderBy("timestamp", "desc"));
         onSnapshot(q, (snap) => {
             const list = document.getElementById('ticketsList');
@@ -192,13 +190,16 @@
         btn.innerText = "⏳ جاري التحقق من الطلبات...";
 
         try {
-            // فحص الـ 3 طلبات - يعتمد كلياً على الـ Index المفعل لديك
             const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            
+            // تم إضافة orderBy هنا ليتوافق الاستعلام مع الفهرس المركب (uid + timestamp DESC)
             const rateQuery = query(
                 collection(db, "support_tickets"), 
                 where("uid", "==", user.uid),
-                where("timestamp", ">=", Timestamp.fromDate(twentyFourHoursAgo))
+                where("timestamp", ">=", Timestamp.fromDate(twentyFourHoursAgo)),
+                orderBy("timestamp", "desc")
             );
+            
             const rateSnap = await getDocs(rateQuery);
             
             if (rateSnap.size >= 3) {
@@ -218,7 +219,7 @@
                 extraData: document.getElementById('extraValue').value || "لا يوجد",
                 message: msg,
                 status: "pending",
-                adminReply: "", // إضافة حقل افتراضي لتجنب مشاكل العرض
+                adminReply: "", 
                 rewardPoints: 0, 
                 timestamp: serverTimestamp()
             });
@@ -229,8 +230,7 @@
             document.getElementById('serviceSelectionArea').style.display = 'none';
         } catch (error) { 
             console.error("Submit Error:", error);
-            // إظهار كود الخطأ لمساعدتك في التشخيص
-            Swal.fire("عذراً", "حدث خطأ: " + error.code, "error"); 
+            Swal.fire("عذراً", "حدث خطأ: " + (error.code || error.message), "error"); 
         }
         
         btn.disabled = false;
