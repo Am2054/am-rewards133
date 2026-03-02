@@ -3,61 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>رادار الأشباح | Admin Panel PRO</title>
+    <title>رادار الأشباح PRO | لوحة التحكم</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        :root { --cyan: #00f2ff; --purple: #7000ff; --dark: #020617; --danger: #ff4444; --glass: rgba(15, 23, 42, 0.9); }
-        body { font-family: 'Tajawal', sans-serif; background: var(--dark); color: #fff; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: auto; }
-        .header { text-align: center; border-bottom: 2px solid var(--purple); padding-bottom: 15px; margin-bottom: 20px; position: relative; }
-        .header h1 { color: var(--cyan); margin: 0; font-weight: 900; }
+        :root { --cyan: #00f2ff; --purple: #7000ff; --dark: #010409; --danger: #ff4444; --glass: rgba(13, 17, 23, 0.8); --border: rgba(0, 242, 255, 0.1); }
         
-        /* زر المسح الجماعي */
-        .nuke-all-btn { position: absolute; left: 0; top: 0; background: var(--danger); border: none; color: #fff; padding: 8px 15px; border-radius: 12px; cursor: pointer; font-weight: 900; font-size: 12px; transition: 0.3s; box-shadow: 0 0 15px rgba(255, 68, 68, 0.3); }
-        .nuke-all-btn:hover { transform: scale(1.1) rotate(-2deg); background: #cc0000; }
+        * { box-sizing: border-box; transition: all 0.3s ease; }
+        body { font-family: 'Tajawal', sans-serif; background: var(--dark); color: #fff; margin: 0; padding: 10px; overflow-x: hidden; }
 
-        .monitor-box { background: var(--glass); border-radius: 20px; border: 1px solid rgba(0, 242, 255, 0.1); height: 70vh; overflow-y: auto; padding: 15px; }
-        
-        .msg-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; }
-        .msg-card.deleted { opacity: 0.4; border-color: var(--danger); background: rgba(255,0,0,0.02); }
-        .msg-info { flex: 1; }
-        .ghost-name { color: var(--cyan); font-weight: 900; font-size: 13px; margin-left: 10px; }
-        .uid-tag { font-size: 10px; background: #334155; padding: 2px 6px; border-radius: 4px; color: #94a3b8; margin-right: 5px; }
-        .msg-text { display: block; margin-top: 5px; font-size: 15px; word-break: break-all; }
-        .confession-tag { color: var(--danger); font-size: 11px; font-weight: bold; background: rgba(255,0,0,0.1); padding: 2px 6px; border-radius: 5px; }
-        
-        .actions { display: flex; gap: 10px; }
-        .btn { border: none; padding: 8px 15px; border-radius: 10px; cursor: pointer; font-family: 'Tajawal'; font-weight: bold; font-size: 12px; transition: 0.2s; }
-        .btn-del { background: #475569; color: #fff; }
-        .btn-del:hover { background: #334155; }
+        /* الهيدر المطور */
+        .header {
+            background: linear-gradient(180deg, rgba(0, 242, 255, 0.05) 0%, transparent 100%);
+            padding: 40px 20px;
+            border-radius: 0 0 40px 40px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border);
+            text-align: center;
+            position: relative;
+        }
+        .header h1 { font-size: 26px; font-weight: 900; color: var(--cyan); margin: 0; text-shadow: 0 0 20px rgba(0, 242, 255, 0.3); }
+
+        /* زر النفي الجماعي الأنيق */
+        .nuke-all-btn {
+            position: absolute; top: 15px; left: 15px;
+            background: rgba(255, 68, 68, 0.1); border: 1px solid var(--danger);
+            color: var(--danger); padding: 8px 16px; border-radius: 30px;
+            font-size: 10px; font-weight: 900; cursor: pointer; backdrop-filter: blur(10px);
+        }
+        .nuke-all-btn:hover { background: var(--danger); color: #fff; box-shadow: 0 0 15px rgba(255, 68, 68, 0.4); transform: translateY(-2px); }
+
+        /* منطقة المراقبة */
+        .monitor-box {
+            max-width: 800px; margin: auto; height: 65vh; overflow-y: auto;
+            background: var(--glass); border-radius: 30px; border: 1px solid var(--border);
+            padding: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        /* كارت الرسالة المطور */
+        .msg-card {
+            background: rgba(255, 255, 255, 0.02);
+            border-right: 4px solid var(--purple);
+            padding: 18px; border-radius: 15px; margin-bottom: 12px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .msg-card:hover { background: rgba(255, 255, 255, 0.05); transform: translateX(5px); border-right-color: var(--cyan); }
+        .msg-card.deleted { border-right-color: #334155; opacity: 0.5; }
+
+        .msg-text { display: block; margin-top: 8px; font-size: 15px; color: #cbd5e1; line-height: 1.6; }
+        .ghost-info { font-size: 12px; font-weight: 900; color: var(--cyan); }
+        .uid-tag { font-size: 9px; color: #64748b; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; margin-right: 8px; }
+
+        .actions { display: flex; gap: 8px; }
+        .btn { border: none; padding: 8px 14px; border-radius: 10px; font-family: 'Tajawal'; font-weight: bold; cursor: pointer; font-size: 11px; }
+        .btn-nuke { background: #334155; color: #fff; }
         .btn-ban { background: var(--danger); color: #fff; }
-        .btn-ban:hover { background: #cc0000; box-shadow: 0 0 10px var(--danger); }
-        
-        .stats { margin-top: 15px; display: flex; justify-content: space-around; font-size: 12px; color: var(--cyan); font-weight: 700; }
-        
-        /* Scrollbar Style */
-        ::-webkit-scrollbar { width: 5px; }
+
+        .stats-bar {
+            max-width: 800px; margin: 20px auto; display: flex;
+            justify-content: space-around; font-size: 12px; font-weight: 700; color: var(--cyan);
+        }
+
+        /* ستايل السكرول بار */
+        ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 10px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header">
-        <button class="nuke-all-btn" onclick="nukeAllToday()">🧹 نفي جماعي (NUKE)</button>
-        <h1>🕯️ رادار الأشباح PRO</h1>
-        <div id="dayIndicator" style="font-size: 12px; margin-top: 5px; opacity: 0.7;">بانتظار مزامنة السيرفر...</div>
-    </div>
+<div class="header">
+    <button class="nuke-all-btn" onclick="nukeAllToday()">🧹 NUKE ALL</button>
+    <h1>🕯️ رادار الأشباح PRO</h1>
+    <div id="dayIndicator" style="font-size: 11px; opacity: 0.6; margin-top: 8px;">مزامنة الأرواح...</div>
+</div>
 
-    <div id="monitor" class="monitor-box">
-        <p style="text-align:center; opacity:0.5; padding-top:50px;">جاري استحضار الأرواح والرسائل...</p>
-    </div>
+<div id="monitor" class="monitor-box">
+    <p style="text-align:center; opacity:0.3; padding-top:100px;">استحضار الهمسات من العدم...</p>
+</div>
 
-    <div class="stats">
-        <span id="activeUsers">الأشباح النشطة: --</span>
-        <span id="msgCount">همسات اليوم: --</span>
-    </div>
+<div class="stats-bar">
+    <span id="activeUsers">النشطون: --</span>
+    <span id="msgCount">رسايل اليوم: --</span>
 </div>
 
 <script type="module">
@@ -76,16 +102,14 @@
     const db = getDatabase(app);
     let currentDay = "";
 
-    // 1. تحديد اليوم النشط من السيرفر
     onValue(ref(db, 'system/last_reset_date'), (snap) => {
         currentDay = snap.val();
         if (currentDay) {
-            document.getElementById('dayIndicator').innerText = "تاريخ البث الحالي: " + currentDay;
+            document.getElementById('dayIndicator').innerText = "تاريخ البث: " + currentDay;
             listenToMessages(currentDay);
         }
     });
 
-    // 2. مراقبة الرسائل وعرضها
     function listenToMessages(day) {
         const msgRef = ref(db, `messages/global/${day}`);
         onValue(msgRef, (snap) => {
@@ -94,7 +118,7 @@
             let count = 0;
 
             if(!snap.exists()) {
-                container.innerHTML = '<p style="text-align:center; opacity:0.5; padding-top:50px;">لا توجد همسات في هذا اليوم بعد...</p>';
+                container.innerHTML = '<p style="text-align:center; opacity:0.3; padding-top:100px;">لا توجد أرواح تتحدث حالياً</p>';
                 return;
             }
 
@@ -105,87 +129,70 @@
 
                 const card = document.createElement('div');
                 card.className = `msg-card ${m.deleted ? 'deleted' : ''}`;
-                
                 card.innerHTML = `
-                    <div class="msg-info">
-                        <span class="ghost-name">${m.sender}</span>
-                        <span class="uid-tag">${m.uid ? m.uid.substring(0, 8) : '؟؟'}</span>
-                        ${m.isConfession ? '<span class="confession-tag">🕯️ اعتراف</span>' : ''}
+                    <div style="flex:1">
+                        <div class="ghost-info">
+                            <span>${m.sender}</span>
+                            <span class="uid-tag">${m.uid ? m.uid.substring(0,8) : '??'}</span>
+                            ${m.isConfession ? '<span style="color:var(--danger); font-size:10px;">🕯️ اعتراف</span>' : ''}
+                        </div>
                         <span class="msg-text">${m.text}</span>
                     </div>
                     <div class="actions">
-                        ${!m.deleted ? `<button class="btn btn-del" onclick="nukeMsg('${day}', '${id}')">نفي</button>` : ''}
-                        <button class="btn btn-ban" onclick="banSpirit('${m.uid}', '${m.sender}')">BAN</button>
+                        ${!m.deleted ? `<button class="btn btn-nuke" onclick="nukeMsg('${day}', '${id}')">نفي</button>` : ''}
+                        <button class="btn btn-ban" onclick="banSpirit('${m.uid}', '${m.sender}')">حظر</button>
                     </div>
                 `;
-                container.prepend(card); // الرسائل الجديدة تظهر في الأعلى
+                container.prepend(card);
             });
             document.getElementById('msgCount').innerText = `همسات اليوم: ${count}`;
         });
     }
 
-    // 3. نفي رسالة واحدة
     window.nukeMsg = async (day, id) => {
         await update(ref(db, `messages/global/${day}/${id}`), {
-            deleted: true,
-            text: "هذه الهمسة تلاشت في العدم... (بأمر الإدارة)"
+            deleted: true, text: "هذه الهمسة تلاشت في العدم... (بأمر الإدارة)"
         });
     };
 
-    // 4. النفي الجماعي (مسح كل شات اليوم)
     window.nukeAllToday = async () => {
-        if(!currentDay) return;
-        
-        const confirmNuke = await Swal.fire({
-            title: 'نفي جماعي؟',
-            text: "سيتم مسح محتوى جميع رسائل اليوم فوراً عند كل الأشباح!",
+        const { isConfirmed } = await Swal.fire({
+            title: 'تطهير شامل؟',
+            text: "سيمسح كل كلام اليوم!",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ff4444',
-            confirmButtonText: 'تطهير الشات الآن 🕯️',
-            cancelButtonText: 'إلغاء'
+            confirmButtonText: 'تطهير'
         });
 
-        if (confirmNuke.isConfirmed) {
-            const msgRef = ref(db, `messages/global/${currentDay}`);
-            const snap = await get(msgRef);
-            if (snap.exists()) {
-                const updates = {};
-                snap.forEach(child => {
-                    updates[`${child.key}/deleted`] = true;
-                    updates[`${child.key}/text`] = "تطهير شامل: الهمسة تلاشت في العتمة...";
-                });
-                await update(msgRef, updates);
-                Swal.fire("تم التطهير!", "لقد أصبح العالم صامتاً الآن.", "success");
-            }
+        if (isConfirmed && currentDay) {
+            const snap = await get(ref(db, `messages/global/${currentDay}`));
+            const updates = {};
+            snap.forEach(c => {
+                updates[`${c.key}/deleted`] = true;
+                updates[`${c.key}/text`] = "تطهير شامل: العالم أصبح صامتاً...";
+            });
+            await update(ref(db, `messages/global/${currentDay}`), updates);
         }
     };
 
-    // 5. حظر نهائي
     window.banSpirit = async (uid, name) => {
-        if(!uid) return Swal.fire("خطأ", "هذا الشبح مجهول الهوية بالكامل ولا يمكن حظره", "error");
-        
-        const confirmBan = await Swal.fire({
+        if(!uid) return;
+        const { isConfirmed } = await Swal.fire({
             title: `حظر ${name}؟`,
-            text: "سيتم نفيه من عالم الأشباح للأبد.",
             icon: 'error',
             showCancelButton: true,
-            confirmButtonText: 'نعم، انفهِ!'
+            confirmButtonText: 'نفي الأبد'
         });
 
-        if (confirmBan.isConfirmed) {
-            await set(ref(db, `banned_users/${uid}`), {
-                bannedAt: Date.now(),
-                name: name,
-                admin: "Owner"
-            });
-            Swal.fire("تم النفي", "لن يتمكن هذا الشبح من العودة.", "success");
+        if (isConfirmed) {
+            await set(ref(db, `banned_users/${uid}`), { bannedAt: Date.now(), name: name });
+            Swal.fire("تم نفي الروح");
         }
     };
 
-    // تحديث عدد المتصلين
-    onValue(ref(db, 'users_online'), (snap) => {
-        document.getElementById('activeUsers').innerText = `الأشباح النشطة: ${snap.size || 0}`;
+    onValue(ref(db, 'users_online'), s => {
+        document.getElementById('activeUsers').innerText = `النشطون: ${s.size || 0}`;
     });
 
 </script>
