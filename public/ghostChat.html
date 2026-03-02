@@ -102,15 +102,20 @@
     const db = getDatabase(app);
     let currentDay = "";
 
+    // تصحيح: مراقبة تغيير التاريخ والتأكد من وجود بيانات
     onValue(ref(db, 'system/last_reset_date'), (snap) => {
         currentDay = snap.val();
         if (currentDay) {
             document.getElementById('dayIndicator').innerText = "تاريخ البث: " + currentDay;
             listenToMessages(currentDay);
+        } else {
+            console.error("لم يتم العثور على تاريخ نشط في system/last_reset_date");
+            document.getElementById('dayIndicator').innerText = "خطأ في مزامنة التاريخ";
         }
     });
 
     function listenToMessages(day) {
+        // تصحيح المسار: تأكد أن المسار يطابق الكود الأساسي بدقة
         const msgRef = ref(db, `messages/global/${day}`);
         onValue(msgRef, (snap) => {
             const container = document.getElementById('monitor');
@@ -118,13 +123,18 @@
             let count = 0;
 
             if(!snap.exists()) {
-                container.innerHTML = '<p style="text-align:center; opacity:0.3; padding-top:100px;">لا توجد أرواح تتحدث حالياً</p>';
+                container.innerHTML = `<p style="text-align:center; opacity:0.3; padding-top:100px;">لا توجد أرواح تتحدث حالياً في مسار: <br> ${day}</p>`;
                 return;
             }
 
+            // تحويل الكائن إلى مصفوفة لضمان الترتيب الزمني إذا لزم الأمر
+            const msgs = [];
             snap.forEach(child => {
-                const m = child.val();
-                const id = child.key;
+                msgs.push({ id: child.key, ...child.val() });
+            });
+
+            msgs.reverse().forEach(m => {
+                const id = m.id;
                 count++;
 
                 const card = document.createElement('div');
@@ -132,18 +142,18 @@
                 card.innerHTML = `
                     <div style="flex:1">
                         <div class="ghost-info">
-                            <span>${m.sender}</span>
+                            <span>${m.sender || 'شبح مجهول'}</span>
                             <span class="uid-tag">${m.uid ? m.uid.substring(0,8) : '??'}</span>
                             ${m.isConfession ? '<span style="color:var(--danger); font-size:10px;">🕯️ اعتراف</span>' : ''}
                         </div>
-                        <span class="msg-text">${m.text}</span>
+                        <span class="msg-text">${m.text || ''}</span>
                     </div>
                     <div class="actions">
                         ${!m.deleted ? `<button class="btn btn-nuke" onclick="nukeMsg('${day}', '${id}')">نفي</button>` : ''}
                         <button class="btn btn-ban" onclick="banSpirit('${m.uid}', '${m.sender}')">حظر</button>
                     </div>
                 `;
-                container.prepend(card);
+                container.appendChild(card);
             });
             document.getElementById('msgCount').innerText = `همسات اليوم: ${count}`;
         });
@@ -167,12 +177,14 @@
 
         if (isConfirmed && currentDay) {
             const snap = await get(ref(db, `messages/global/${currentDay}`));
-            const updates = {};
-            snap.forEach(c => {
-                updates[`${c.key}/deleted`] = true;
-                updates[`${c.key}/text`] = "تطهير شامل: العالم أصبح صامتاً...";
-            });
-            await update(ref(db, `messages/global/${currentDay}`), updates);
+            if (snap.exists()) {
+                const updates = {};
+                snap.forEach(c => {
+                    updates[`${c.key}/deleted`] = true;
+                    updates[`${c.key}/text`] = "تطهير شامل: العالم أصبح صامتاً...";
+                });
+                await update(ref(db, `messages/global/${currentDay}`), updates);
+            }
         }
     };
 
