@@ -119,6 +119,9 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
     let currentDay = "";
+    
+    // الـ UID الخاص بالأدمن كما هو محدد في القواعد
+    const ADMIN_UID = '2TbVjtXDHTVWweQRShVpqFasKwA2';
 
     // دالة تسجيل الدخول
     window.adminLogin = () => {
@@ -127,13 +130,19 @@
 
         signInWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
-            // التحقق من الإيميل في الـ Console
-            console.log("تم تسجيل دخول الأدمن:", userCredential.user.email);
-            document.getElementById('loginArea').style.display = 'none';
-            document.getElementById('dayIndicator').innerText = "تم تسجيل الدخول.. جاري المزامنة";
-            
-            // بدء المراقبة بعد الدخول
-            startApplication();
+            // التحقق من أن الـ UID مطابق للأدمن
+            if (userCredential.user.uid === ADMIN_UID) {
+                console.log("تم تسجيل دخول الأدمن بنجاح:", userCredential.user.uid);
+                document.getElementById('loginArea').style.display = 'none';
+                document.getElementById('dayIndicator').innerText = "تم تسجيل الدخول.. جاري المزامنة";
+                
+                // بدء المراقبة بعد الدخول
+                startApplication();
+            } else {
+                console.error("UID غير مصرح له");
+                auth.signOut();
+                Swal.fire("فشل الدخول", "هذا الحساب ليس أدمن", "error");
+            }
         })
         .catch((error) => {
             console.error("خطأ:", error);
