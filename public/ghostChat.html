@@ -91,8 +91,8 @@
 <div id="monitor" class="monitor-box">
     <div id="loginArea" style="text-align:center; padding-top:50px;">
         <h2 style="color:var(--cyan)">تسجيل دخول الأدمن</h2>
-        <input type="email" id="email" class="login-input" placeholder="البريد الإلكتروني" value="amirfg992005@gmail.com">
-        <input type="password" id="password" class="login-input" placeholder="كلمة المرور" value="01113538931">
+        <input type="email" id="email" class="login-input" placeholder="البريد الإلكتروني">
+        <input type="password" id="password" class="login-input" placeholder="كلمة المرور">
         <button class="btn-login" onclick="adminLogin()">دخول</button>
     </div>
 </div>
@@ -127,7 +127,8 @@
 
         signInWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
-            console.log("تم تسجيل دخول الأدمن بنجاح 🕯️");
+            // التحقق من الإيميل في الـ Console
+            console.log("تم تسجيل دخول الأدمن:", userCredential.user.email);
             document.getElementById('loginArea').style.display = 'none';
             document.getElementById('dayIndicator').innerText = "تم تسجيل الدخول.. جاري المزامنة";
             
@@ -146,6 +147,8 @@
             if (currentDay) {
                 document.getElementById('dayIndicator').innerText = "تاريخ البث: " + currentDay;
                 listenToMessages(currentDay);
+            } else {
+                console.warn("المسار system/last_reset_date غير موجود أو فارغ");
             }
         });
 
@@ -162,7 +165,15 @@
             onValue(ref(db, path), (snap) => {
                 const container = document.getElementById('monitor');
                 if(path.includes('lastMessage')) {
-                    if(snap.exists()) renderSingleCard(snap.val(), 'last_msg_id');
+                    if(snap.exists()) {
+                        const data = snap.val();
+                        // التحقق هل lastMessage عبارة عن Object أم String
+                        if (typeof data === 'object') {
+                            renderSingleCard(data, 'last_msg_id');
+                        } else {
+                            renderSingleCard({text: data, sender: "SYSTEM"}, 'last_msg_id');
+                        }
+                    }
                     return;
                 }
 
@@ -237,7 +248,13 @@
                 });
                 await update(ref(db, `messages/global/${currentDay}`), updates);
             }
-            await set(ref(db, 'lastMessage'), "تم التطهير");
+            // تم تعديل هذا الجزء بناءً على تحليلك (تخزين Object)
+            await set(ref(db, 'lastMessage'), {
+                text: "تم التطهير الشامل",
+                sender: "الأدمن",
+                deleted: true,
+                timestamp: Date.now()
+            });
         }
     };
 
