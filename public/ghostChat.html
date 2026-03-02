@@ -3,134 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة الأشباح | Ban & Filter System</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <title>رادار الأشباح | Admin Panel PRO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        :root { --cyan: #00f2ff; --purple: #7000ff; --dark: #020617; --glass: rgba(15, 23, 42, 0.9); --border: rgba(255, 255, 255, 0.1); }
-        body { font-family: 'Cairo', sans-serif; background: var(--dark); color: #fff; margin: 0; padding: 20px; }
-        .admin-box { max-width: 900px; margin: auto; background: var(--glass); border: 1px solid var(--border); border-radius: 25px; padding: 25px; backdrop-filter: blur(15px); }
-        h1 { text-align: center; color: var(--cyan); font-weight: 900; margin-bottom: 20px; }
+        :root { --cyan: #00f2ff; --purple: #7000ff; --dark: #020617; --danger: #ff4444; --glass: rgba(15, 23, 42, 0.9); }
+        body { font-family: 'Tajawal', sans-serif; background: var(--dark); color: #fff; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; }
+        .header { text-align: center; border-bottom: 2px solid var(--purple); padding-bottom: 15px; margin-bottom: 20px; position: relative; }
+        .header h1 { color: var(--cyan); margin: 0; font-weight: 900; }
         
-        .chat-monitor { height: 55vh; overflow-y: auto; background: rgba(0,0,0,0.3); border-radius: 15px; border: 1px solid var(--border); margin-bottom: 15px; }
-        
-        .msg-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .msg-content { flex: 1; }
-        .user-name { color: var(--cyan); font-weight: bold; font-size: 13px; }
-        .text-body { font-size: 15px; display: block; margin-top: 3px; }
-        
-        .actions { display: flex; gap: 8px; }
-        .btn { border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: 'Cairo'; font-size: 12px; transition: 0.2s; }
-        .btn-delete { background: #475569; color: #fff; }
-        .btn-ban { background: #ef4444; color: #fff; }
-        .btn-ban:hover { background: #b91c1c; box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+        /* زر المسح الجماعي */
+        .nuke-all-btn { position: absolute; left: 0; top: 0; background: var(--danger); border: none; color: #fff; padding: 8px 15px; border-radius: 12px; cursor: pointer; font-weight: 900; font-size: 12px; transition: 0.3s; box-shadow: 0 0 15px rgba(255, 68, 68, 0.3); }
+        .nuke-all-btn:hover { transform: scale(1.1) rotate(-2deg); background: #cc0000; }
 
-        /* الكلمات المحظورة */
-        .filter-settings { background: rgba(112, 0, 255, 0.1); padding: 15px; border-radius: 15px; border: 1px solid var(--purple); margin-top: 15px; }
+        .monitor-box { background: var(--glass); border-radius: 20px; border: 1px solid rgba(0, 242, 255, 0.1); height: 70vh; overflow-y: auto; padding: 15px; }
+        
+        .msg-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; }
+        .msg-card.deleted { opacity: 0.4; border-color: var(--danger); background: rgba(255,0,0,0.02); }
+        .msg-info { flex: 1; }
+        .ghost-name { color: var(--cyan); font-weight: 900; font-size: 13px; margin-left: 10px; }
+        .uid-tag { font-size: 10px; background: #334155; padding: 2px 6px; border-radius: 4px; color: #94a3b8; margin-right: 5px; }
+        .msg-text { display: block; margin-top: 5px; font-size: 15px; word-break: break-all; }
+        .confession-tag { color: var(--danger); font-size: 11px; font-weight: bold; background: rgba(255,0,0,0.1); padding: 2px 6px; border-radius: 5px; }
+        
+        .actions { display: flex; gap: 10px; }
+        .btn { border: none; padding: 8px 15px; border-radius: 10px; cursor: pointer; font-family: 'Tajawal'; font-weight: bold; font-size: 12px; transition: 0.2s; }
+        .btn-del { background: #475569; color: #fff; }
+        .btn-del:hover { background: #334155; }
+        .btn-ban { background: var(--danger); color: #fff; }
+        .btn-ban:hover { background: #cc0000; box-shadow: 0 0 10px var(--danger); }
+        
+        .stats { margin-top: 15px; display: flex; justify-content: space-around; font-size: 12px; color: var(--cyan); font-weight: 700; }
+        
+        /* Scrollbar Style */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 10px; }
     </style>
 </head>
 <body>
 
-<div class="admin-box">
-    <h1>🛡️ رادار الأشباح (إدارة وحظر)</h1>
-    
-    <div id="messagesContainer" class="chat-monitor">
-        <p style="text-align:center; opacity:0.5; padding-top:20px;">جاري مراقبة المحادثات...</p>
+<div class="container">
+    <div class="header">
+        <button class="nuke-all-btn" onclick="nukeAllToday()">🧹 نفي جماعي (NUKE)</button>
+        <h1>🕯️ رادار الأشباح PRO</h1>
+        <div id="dayIndicator" style="font-size: 12px; margin-top: 5px; opacity: 0.7;">بانتظار مزامنة السيرفر...</div>
     </div>
 
-    <div class="filter-settings">
-        <h4 style="margin:0 0 10px 0; color:var(--cyan)">🚫 فلتر الكلمات التلقائي</h4>
-        <p style="font-size:12px; opacity:0.7">الرسائل التي تحتوي على هذه الكلمات سيتم حذفها فوراً عند وصولها:</p>
-        <div id="bannedWordsList" style="font-size:13px; color:#ef4444; font-weight:bold;"></div>
+    <div id="monitor" class="monitor-box">
+        <p style="text-align:center; opacity:0.5; padding-top:50px;">جاري استحضار الأرواح والرسائل...</p>
+    </div>
+
+    <div class="stats">
+        <span id="activeUsers">الأشباح النشطة: --</span>
+        <span id="msgCount">همسات اليوم: --</span>
     </div>
 </div>
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, query, orderBy, onSnapshot, doc, deleteDoc, setDoc, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, onValue, update, set, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-        authDomain: "am--rewards.firebaseapp.com",
-        projectId: "am--rewards",
-        storageBucket: "am--rewards.appspot.com",
-        messagingSenderId: "744783579735",
-        appId: "1:744783579735:web:45e00de9998893bbc9b112"
+    const firebaseConfig = { 
+        apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
+        authDomain: "am--rewards.firebaseapp.com", 
+        databaseURL: "https://am--rewards-default-rtdb.firebaseio.com", 
+        projectId: "am--rewards", 
+        storageBucket: "am--rewards.firebasestorage.app"
     };
 
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const db = getDatabase(app);
+    let currentDay = "";
 
-    // قائمة الكلمات المحظورة (يمكنك زيادتها)
-    const badWords = ["شتم1", "شتم2", "رابط خارجي", "إعلان"]; 
-    document.getElementById('bannedWordsList').innerText = badWords.join(" - ");
+    // 1. تحديد اليوم النشط من السيرفر
+    onValue(ref(db, 'system/last_reset_date'), (snap) => {
+        currentDay = snap.val();
+        if (currentDay) {
+            document.getElementById('dayIndicator').innerText = "تاريخ البث الحالي: " + currentDay;
+            listenToMessages(currentDay);
+        }
+    });
 
-    // مراقبة الشات
-    const q = query(collection(db, "messages"), orderBy("timestamp", "desc"), limit(50));
-    
-    onSnapshot(q, (snap) => {
-        const container = document.getElementById('messagesContainer');
-        container.innerHTML = "";
+    // 2. مراقبة الرسائل وعرضها
+    function listenToMessages(day) {
+        const msgRef = ref(db, `messages/global/${day}`);
+        onValue(msgRef, (snap) => {
+            const container = document.getElementById('monitor');
+            container.innerHTML = "";
+            let count = 0;
 
-        snap.forEach(msgDoc => {
-            const m = msgDoc.data();
-            
-            // --- الفلتر التلقائي ---
-            const hasBadWord = badWords.some(word => m.text?.includes(word));
-            if (hasBadWord) {
-                deleteDoc(doc(db, "messages", msgDoc.id)); // حذف فوري من القاعدة
+            if(!snap.exists()) {
+                container.innerHTML = '<p style="text-align:center; opacity:0.5; padding-top:50px;">لا توجد همسات في هذا اليوم بعد...</p>';
                 return;
             }
 
-            const row = document.createElement('div');
-            row.className = 'msg-row';
-            row.innerHTML = `
-                <div class="msg-content">
-                    <span class="user-name">👤 ${m.user || 'شبح'} <small style="opacity:0.4">(${m.uid?.substring(0,6)}...)</small></span>
-                    <span class="text-body">${m.text}</span>
-                </div>
-                <div class="actions">
-                    <button class="btn btn-delete" onclick="deleteMsg('${msgDoc.id}')">حذف</button>
-                    <button class="btn btn-ban" onclick="banUser('${m.uid}', '${m.user}')">BAN حظر</button>
-                </div>
-            `;
-            container.appendChild(row);
-        });
-    });
+            snap.forEach(child => {
+                const m = child.val();
+                const id = child.key;
+                count++;
 
-    // حذف رسالة
-    window.deleteMsg = async (id) => {
-        await deleteDoc(doc(db, "messages", id));
+                const card = document.createElement('div');
+                card.className = `msg-card ${m.deleted ? 'deleted' : ''}`;
+                
+                card.innerHTML = `
+                    <div class="msg-info">
+                        <span class="ghost-name">${m.sender}</span>
+                        <span class="uid-tag">${m.uid ? m.uid.substring(0, 8) : '؟؟'}</span>
+                        ${m.isConfession ? '<span class="confession-tag">🕯️ اعتراف</span>' : ''}
+                        <span class="msg-text">${m.text}</span>
+                    </div>
+                    <div class="actions">
+                        ${!m.deleted ? `<button class="btn btn-del" onclick="nukeMsg('${day}', '${id}')">نفي</button>` : ''}
+                        <button class="btn btn-ban" onclick="banSpirit('${m.uid}', '${m.sender}')">BAN</button>
+                    </div>
+                `;
+                container.prepend(card); // الرسائل الجديدة تظهر في الأعلى
+            });
+            document.getElementById('msgCount').innerText = `همسات اليوم: ${count}`;
+        });
+    }
+
+    // 3. نفي رسالة واحدة
+    window.nukeMsg = async (day, id) => {
+        await update(ref(db, `messages/global/${day}/${id}`), {
+            deleted: true,
+            text: "هذه الهمسة تلاشت في العدم... (بأمر الإدارة)"
+        });
     };
 
-    // حظر مستخدم (إضافة الـ UID لقائمة المحظورين)
-    window.banUser = async (uid, username) => {
-        if(!uid) return Swal.fire("خطأ", "لا يمكن حظر مستخدم مجهول الهوية بالكامل", "error");
-
-        const confirm = await Swal.fire({
-            title: `حظر ${username}؟`,
-            text: "لن يتمكن هذا المستخدم من إرسال أي رسائل في الشات مرة أخرى!",
+    // 4. النفي الجماعي (مسح كل شات اليوم)
+    window.nukeAllToday = async () => {
+        if(!currentDay) return;
+        
+        const confirmNuke = await Swal.fire({
+            title: 'نفي جماعي؟',
+            text: "سيتم مسح محتوى جميع رسائل اليوم فوراً عند كل الأشباح!",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'تأكيد الحظر النهائي',
-            confirmButtonColor: '#ef4444'
+            confirmButtonColor: '#ff4444',
+            confirmButtonText: 'تطهير الشات الآن 🕯️',
+            cancelButtonText: 'إلغاء'
         });
 
-        if (confirm.isConfirmed) {
-            try {
-                // إضافة المستخدم لمجموعة الـ BannedUsers في الـ Firebase
-                await setDoc(doc(db, "banned_users", uid), {
-                    bannedAt: new Date(),
-                    reason: "مخالفة قوانين الشات",
-                    userName: username
+        if (confirmNuke.isConfirmed) {
+            const msgRef = ref(db, `messages/global/${currentDay}`);
+            const snap = await get(msgRef);
+            if (snap.exists()) {
+                const updates = {};
+                snap.forEach(child => {
+                    updates[`${child.key}/deleted`] = true;
+                    updates[`${child.key}/text`] = "تطهير شامل: الهمسة تلاشت في العتمة...";
                 });
-                
-                Swal.fire("تم الحظر!", "تم إدراج المستخدم في القائمة السوداء.", "success");
-            } catch (e) {
-                Swal.fire("خطأ", "حدثت مشكلة أثناء الحظر", "error");
+                await update(msgRef, updates);
+                Swal.fire("تم التطهير!", "لقد أصبح العالم صامتاً الآن.", "success");
             }
         }
     };
+
+    // 5. حظر نهائي
+    window.banSpirit = async (uid, name) => {
+        if(!uid) return Swal.fire("خطأ", "هذا الشبح مجهول الهوية بالكامل ولا يمكن حظره", "error");
+        
+        const confirmBan = await Swal.fire({
+            title: `حظر ${name}؟`,
+            text: "سيتم نفيه من عالم الأشباح للأبد.",
+            icon: 'error',
+            showCancelButton: true,
+            confirmButtonText: 'نعم، انفهِ!'
+        });
+
+        if (confirmBan.isConfirmed) {
+            await set(ref(db, `banned_users/${uid}`), {
+                bannedAt: Date.now(),
+                name: name,
+                admin: "Owner"
+            });
+            Swal.fire("تم النفي", "لن يتمكن هذا الشبح من العودة.", "success");
+        }
+    };
+
+    // تحديث عدد المتصلين
+    onValue(ref(db, 'users_online'), (snap) => {
+        document.getElementById('activeUsers').innerText = `الأشباح النشطة: ${snap.size || 0}`;
+    });
 
 </script>
 </body>
