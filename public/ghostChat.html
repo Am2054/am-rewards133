@@ -102,64 +102,74 @@
     const db = getDatabase(app);
     let currentDay = "";
 
-    // تصحيح: مراقبة تغيير التاريخ والتأكد من وجود بيانات
     onValue(ref(db, 'system/last_reset_date'), (snap) => {
         currentDay = snap.val();
         if (currentDay) {
             document.getElementById('dayIndicator').innerText = "تاريخ البث: " + currentDay;
             listenToMessages(currentDay);
-        } else {
-            console.error("لم يتم العثور على تاريخ نشط في system/last_reset_date");
-            document.getElementById('dayIndicator').innerText = "خطأ في مزامنة التاريخ";
         }
     });
 
     function listenToMessages(day) {
-        // تصحيح المسار: تأكد أن المسار يطابق الكود الأساسي بدقة
-        const msgRef = ref(db, `messages/global/${day}`);
-        onValue(msgRef, (snap) => {
-            const container = document.getElementById('monitor');
-            container.innerHTML = "";
-            let count = 0;
+        // تعديل ذكي: مراقبة "lastMessage" ومجلد الرسائل معاً بناءً على هيكل قاعدة بياناتك
+        const paths = [`messages/global/${day}`, 'lastMessage'];
+        
+        paths.forEach(path => {
+            onValue(ref(db, path), (snap) => {
+                const container = document.getElementById('monitor');
+                if(path.includes('lastMessage')) {
+                    // إذا كان تحديث لرسالة واحدة فقط
+                    if(snap.exists()) renderSingleCard(snap.val(), 'last_msg_id');
+                    return;
+                }
 
-            if(!snap.exists()) {
-                container.innerHTML = `<p style="text-align:center; opacity:0.3; padding-top:100px;">لا توجد أرواح تتحدث حالياً في مسار: <br> ${day}</p>`;
-                return;
-            }
+                container.innerHTML = "";
+                let count = 0;
 
-            // تحويل الكائن إلى مصفوفة لضمان الترتيب الزمني إذا لزم الأمر
-            const msgs = [];
-            snap.forEach(child => {
-                msgs.push({ id: child.key, ...child.val() });
+                if(!snap.exists()) {
+                    container.innerHTML = '<p style="text-align:center; opacity:0.3; padding-top:100px;">لا توجد أرواح تتحدث حالياً</p>';
+                    return;
+                }
+
+                snap.forEach(child => {
+                    renderSingleCard(child.val(), child.key, day);
+                    count++;
+                });
+                document.getElementById('msgCount').innerText = `همسات اليوم: ${count}`;
             });
-
-            msgs.reverse().forEach(m => {
-                const id = m.id;
-                count++;
-
-                const card = document.createElement('div');
-                card.className = `msg-card ${m.deleted ? 'deleted' : ''}`;
-                card.innerHTML = `
-                    <div style="flex:1">
-                        <div class="ghost-info">
-                            <span>${m.sender || 'شبح مجهول'}</span>
-                            <span class="uid-tag">${m.uid ? m.uid.substring(0,8) : '??'}</span>
-                            ${m.isConfession ? '<span style="color:var(--danger); font-size:10px;">🕯️ اعتراف</span>' : ''}
-                        </div>
-                        <span class="msg-text">${m.text || ''}</span>
-                    </div>
-                    <div class="actions">
-                        ${!m.deleted ? `<button class="btn btn-nuke" onclick="nukeMsg('${day}', '${id}')">نفي</button>` : ''}
-                        <button class="btn btn-ban" onclick="banSpirit('${m.uid}', '${m.sender}')">حظر</button>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-            document.getElementById('msgCount').innerText = `همسات اليوم: ${count}`;
         });
     }
 
+    function renderSingleCard(m, id, day = currentDay) {
+        const container = document.getElementById('monitor');
+        // منع التكرار إذا كانت الرسالة موجودة بالفعل
+        if (document.getElementById(`card-${id}`)) return;
+
+        const card = document.createElement('div');
+        card.id = `card-${id}`;
+        card.className = `msg-card ${m.deleted ? 'deleted' : ''}`;
+        card.innerHTML = `
+            <div style="flex:1">
+                <div class="ghost-info">
+                    <span>${m.sender || 'شبح'}</span>
+                    <span class="uid-tag">${m.uid ? m.uid.substring(0,8) : '??'}</span>
+                    ${m.isConfession ? '<span style="color:var(--danger); font-size:10px;">🕯️ اعتراف</span>' : ''}
+                </div>
+                <span class="msg-text">${m.text || (typeof m === 'string' ? m : '')}</span>
+            </div>
+            <div class="actions">
+                ${(!m.deleted && day) ? `<button class="btn btn-nuke" onclick="nukeMsg('${day}', '${id}')">نفي</button>` : ''}
+                <button class="btn btn-ban" onclick="banSpirit('${m.uid}', '${m.sender}')">حظر</button>
+            </div>
+        `;
+        container.prepend(card);
+    }
+
     window.nukeMsg = async (day, id) => {
+        if(id === 'last_msg_id') {
+             await update(ref(db, 'lastMessage'), { deleted: true, text: "تلاشت الهمسة..." });
+             return;
+        }
         await update(ref(db, `messages/global/${day}/${id}`), {
             deleted: true, text: "هذه الهمسة تلاشت في العدم... (بأمر الإدارة)"
         });
@@ -177,14 +187,15 @@
 
         if (isConfirmed && currentDay) {
             const snap = await get(ref(db, `messages/global/${currentDay}`));
-            if (snap.exists()) {
-                const updates = {};
+            const updates = {};
+            if(snap.exists()){
                 snap.forEach(c => {
                     updates[`${c.key}/deleted`] = true;
                     updates[`${c.key}/text`] = "تطهير شامل: العالم أصبح صامتاً...";
                 });
                 await update(ref(db, `messages/global/${currentDay}`), updates);
             }
+            await set(ref(db, 'lastMessage'), "تم التطهير");
         }
     };
 
@@ -204,7 +215,9 @@
     };
 
     onValue(ref(db, 'users_online'), s => {
-        document.getElementById('activeUsers').innerText = `النشطون: ${s.size || 0}`;
+        // حساب عدد العناصر داخل users_online بناءً على هيكل الصورة
+        const count = s.exists() ? (typeof s.val() === 'object' ? Object.keys(s.val()).length : 0) : 0;
+        document.getElementById('activeUsers').innerText = `النشطون: ${count}`;
     });
 
 </script>
