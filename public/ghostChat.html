@@ -89,6 +89,8 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, onValue, update, set, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    // تم إضافة استيراد Auth
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = { 
         apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
@@ -100,14 +102,28 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    // تم تعريف Auth
+    const auth = getAuth(app);
     let currentDay = "";
 
-    onValue(ref(db, 'system/last_reset_date'), (snap) => {
-        currentDay = snap.val();
-        if (currentDay) {
-            document.getElementById('dayIndicator').innerText = "تاريخ البث: " + currentDay;
-            listenToMessages(currentDay);
-        }
+    // جزء التحقق من الأدمن (تسجيل الدخول)
+    signInWithEmailAndPassword(auth, "amirfg992005@gmail.com", "01113538931")
+    .then((userCredential) => {
+        console.log("تم تسجيل دخول الأدمن بنجاح 🕯️");
+        
+        // --- بدء الكود الأصلي بعد التحقق ---
+        onValue(ref(db, 'system/last_reset_date'), (snap) => {
+            currentDay = snap.val();
+            if (currentDay) {
+                document.getElementById('dayIndicator').innerText = "تاريخ البث: " + currentDay;
+                listenToMessages(currentDay);
+            }
+        });
+        // --- نهاية الكود الأصلي ---
+    })
+    .catch((error) => {
+        console.error("خطأ في تسجيل دخول الأدمن:", error);
+        document.getElementById('monitor').innerHTML = '<p style="text-align:center; color:red; padding-top:100px;">فشل التحقق من الأدمن. يرجى مراجعة البيانات.</p>';
     });
 
     function listenToMessages(day) {
