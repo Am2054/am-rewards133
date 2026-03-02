@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الأشباح | Ban & Filter System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root { --cyan: #00f2ff; --purple: #7000ff; --dark: #020617; --glass: rgba(15, 23, 42, 0.9); --border: rgba(255, 255, 255, 0.1); }
+        body { font-family: 'Cairo', sans-serif; background: var(--dark); color: #fff; margin: 0; padding: 20px; }
+        .admin-box { max-width: 900px; margin: auto; background: var(--glass); border: 1px solid var(--border); border-radius: 25px; padding: 25px; backdrop-filter: blur(15px); }
+        h1 { text-align: center; color: var(--cyan); font-weight: 900; margin-bottom: 20px; }
+        
+        .chat-monitor { height: 55vh; overflow-y: auto; background: rgba(0,0,0,0.3); border-radius: 15px; border: 1px solid var(--border); margin-bottom: 15px; }
+        
+        .msg-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .msg-content { flex: 1; }
+        .user-name { color: var(--cyan); font-weight: bold; font-size: 13px; }
+        .text-body { font-size: 15px; display: block; margin-top: 3px; }
+        
+        .actions { display: flex; gap: 8px; }
+        .btn { border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: 'Cairo'; font-size: 12px; transition: 0.2s; }
+        .btn-delete { background: #475569; color: #fff; }
+        .btn-ban { background: #ef4444; color: #fff; }
+        .btn-ban:hover { background: #b91c1c; box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+
+        /* الكلمات المحظورة */
+        .filter-settings { background: rgba(112, 0, 255, 0.1); padding: 15px; border-radius: 15px; border: 1px solid var(--purple); margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="admin-box">
+    <h1>🛡️ رادار الأشباح (إدارة وحظر)</h1>
+    
+    <div id="messagesContainer" class="chat-monitor">
+        <p style="text-align:center; opacity:0.5; padding-top:20px;">جاري مراقبة المحادثات...</p>
+    </div>
+
+    <div class="filter-settings">
+        <h4 style="margin:0 0 10px 0; color:var(--cyan)">🚫 فلتر الكلمات التلقائي</h4>
+        <p style="font-size:12px; opacity:0.7">الرسائل التي تحتوي على هذه الكلمات سيتم حذفها فوراً عند وصولها:</p>
+        <div id="bannedWordsList" style="font-size:13px; color:#ef4444; font-weight:bold;"></div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, query, orderBy, onSnapshot, doc, deleteDoc, setDoc, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+        authDomain: "am--rewards.firebaseapp.com",
+        projectId: "am--rewards",
+        storageBucket: "am--rewards.appspot.com",
+        messagingSenderId: "744783579735",
+        appId: "1:744783579735:web:45e00de9998893bbc9b112"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // قائمة الكلمات المحظورة (يمكنك زيادتها)
+    const badWords = ["شتم1", "شتم2", "رابط خارجي", "إعلان"]; 
+    document.getElementById('bannedWordsList').innerText = badWords.join(" - ");
+
+    // مراقبة الشات
+    const q = query(collection(db, "messages"), orderBy("timestamp", "desc"), limit(50));
+    
+    onSnapshot(q, (snap) => {
+        const container = document.getElementById('messagesContainer');
+        container.innerHTML = "";
+
+        snap.forEach(msgDoc => {
+            const m = msgDoc.data();
+            
+            // --- الفلتر التلقائي ---
+            const hasBadWord = badWords.some(word => m.text?.includes(word));
+            if (hasBadWord) {
+                deleteDoc(doc(db, "messages", msgDoc.id)); // حذف فوري من القاعدة
+                return;
+            }
+
+            const row = document.createElement('div');
+            row.className = 'msg-row';
+            row.innerHTML = `
+                <div class="msg-content">
+                    <span class="user-name">👤 ${m.user || 'شبح'} <small style="opacity:0.4">(${m.uid?.substring(0,6)}...)</small></span>
+                    <span class="text-body">${m.text}</span>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-delete" onclick="deleteMsg('${msgDoc.id}')">حذف</button>
+                    <button class="btn btn-ban" onclick="banUser('${m.uid}', '${m.user}')">BAN حظر</button>
+                </div>
+            `;
+            container.appendChild(row);
+        });
+    });
+
+    // حذف رسالة
+    window.deleteMsg = async (id) => {
+        await deleteDoc(doc(db, "messages", id));
+    };
+
+    // حظر مستخدم (إضافة الـ UID لقائمة المحظورين)
+    window.banUser = async (uid, username) => {
+        if(!uid) return Swal.fire("خطأ", "لا يمكن حظر مستخدم مجهول الهوية بالكامل", "error");
+
+        const confirm = await Swal.fire({
+            title: `حظر ${username}؟`,
+            text: "لن يتمكن هذا المستخدم من إرسال أي رسائل في الشات مرة أخرى!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'تأكيد الحظر النهائي',
+            confirmButtonColor: '#ef4444'
+        });
+
+        if (confirm.isConfirmed) {
+            try {
+                // إضافة المستخدم لمجموعة الـ BannedUsers في الـ Firebase
+                await setDoc(doc(db, "banned_users", uid), {
+                    bannedAt: new Date(),
+                    reason: "مخالفة قوانين الشات",
+                    userName: username
+                });
+                
+                Swal.fire("تم الحظر!", "تم إدراج المستخدم في القائمة السوداء.", "success");
+            } catch (e) {
+                Swal.fire("خطأ", "حدثت مشكلة أثناء الحظر", "error");
+            }
+        }
+    };
+
+</script>
+</body>
+</html>
