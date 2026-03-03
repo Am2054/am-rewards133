@@ -1,40 +1,35 @@
-// api/admin-login.js
 import jwt from "jsonwebtoken";
 
 export default function handler(req, res) {
-  // 1. السماح فقط بطلبات POST
-  if (req.method !== "POST") {
-    return res.status(405).json({ message: "الطريقة غير مسموحة" });
+  // السماح فقط بطلبات POST
+  if (req.method !== "POST") return res.status(405).json({ message: "POST only" });
+
+  // 1. قراءة البيانات المرسلة من الصفحة
+  let data = req.body;
+  if (typeof data === "string") {
+    try { data = JSON.parse(data); } catch (e) { console.error("Parsing error"); }
   }
 
-  // --- التعديل الجوهري هنا لضمان قراءة البيانات ---
-  let body = req.body;
-  if (typeof body === "string") {
-    try {
-      body = JSON.parse(body);
-    } catch (e) {
-      return res.status(400).json({ message: "خطأ في تنسيق البيانات المرسلة" });
-    }
-  }
+  const email = (data.email || "").trim();
+  const password = (data.password || "").trim();
 
-  const { email, password } = body;
+  // 2. البيانات الثابتة (Hardcoded) اللي أنت حددتها
+  const FIXED_EMAIL = "amir992005@gmail.com";
+  const FIXED_PASS = "01113538931992005";
+  const JWT_SECRET = "AM_REWARDS_SUPER_SECRET_2026"; // سر لتشفير التوكن
 
-  // 2. جلب البيانات من البيئة المؤمنة
-  const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
-  const JWT_SECRET = process.env.JWT_SECRET;
-
-  // 3. التحقق من صحة البيانات (مع استخدام trim لإزالة أي مسافات مخفية)
-  if (email && password && email.trim() === ADMIN_EMAIL && password.trim() === ADMIN_PASSWORD) {
+  // 3. التحقق المباشر
+  if (email === FIXED_EMAIL && password === FIXED_PASS) {
+    // إنشاء التوكن
     const token = jwt.sign(
-      { email: ADMIN_EMAIL, role: "admin" },
-      JWT_SECRET,
+      { email: email, role: "admin" }, 
+      JWT_SECRET, 
       { expiresIn: "2h" }
     );
-
+    
     return res.status(200).json({ token });
   }
 
-  // 4. في حالة البيانات خطأ
+  // 4. في حالة الفشل
   return res.status(401).json({ message: "بيانات الدخول غير صحيحة" });
 }
