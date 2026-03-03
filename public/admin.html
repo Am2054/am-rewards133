@@ -122,7 +122,7 @@
 <div id="auth-overlay">
     <div class="auth-card">
         <h2>تحقق الهوية الأمنية</h2>
-        <div class="input-group"><input type="email" id="email" placeholder="بريد الإدارة" value="amirfg992005@gmail.com"></div>
+        <div class="input-group"><input type="email" id="email" placeholder="بريد الإدارة" value="amir992005@gmail.com"></div>
         <div class="input-group"><input type="password" id="pass" placeholder="كود الدخول"></div>
         <button class="btn-prime" id="unlock-btn">منح التصريح</button>
         <p id="error-msg" style="color: var(--danger); font-size: 0.75rem; margin-top: 15px; font-weight: 700;"></p>
@@ -228,11 +228,9 @@
     const errMsg = document.getElementById('error-msg');
     const fingerprint = await getFingerprint();
 
-    // تأكد من مسح أي رسائل خطأ قديمة
     errMsg.textContent = "جاري التحقق من الهوية...";
 
     try {
-        // الخطوة 1: التحقق من الـ API والـ JWT
         const res = await fetch("/api/admin-login", {
             method: "POST",
             headers: { 
@@ -248,19 +246,15 @@
         const apiData = await res.json();
 
         if (!res.ok) {
-            // إضافة تنبيه لمعرفة ما يراه السيرفر فعلياً (للـ Debug فقط)
             console.log("Server Response:", apiData);
             errMsg.textContent = "فشل التحقق: " + (apiData.message || "خطأ في السيرفر");
             return;
         }
 
-        // الخطوة 2: حفظ التوكن
         localStorage.setItem("adminToken", apiData.token);
 
-        // الخطوة 3: تسجيل الدخول في Firebase
         await signInWithEmailAndPassword(auth, emailInput, passInput);
         
-        // التحقق من بصمة الجهاز في Firebase
         const lockRef = doc(db, "system", "admin_lock");
         const snap = await getDoc(lockRef);
 
@@ -272,14 +266,11 @@
             errMsg.textContent = "خطأ أمني: هذا الجهاز غير مسجل للدخول";
             return;
         }
-        
-        // في حالة النجاح، الـ onAuthStateChanged سيتكفل بإظهار اللوحة
     } catch (e) {
         console.error("Full Error:", e);
         errMsg.textContent = "عطل في الاتصال: " + e.message;
     }
 };
-
 
     function startRealTimeStats() {
         onSnapshot(collection(db, "users"), (snap) => {
@@ -331,8 +322,8 @@
     onAuthStateChanged(auth, (user) => {
         const token = localStorage.getItem("adminToken");
         
-        // التحقق المزدوج: لازم يكون فيه مستخدم Firebase + توكن JWT صالح في الـ LocalStorage
-        if (user && user.email === "amirfg992005@gmail.com" && token) {
+        // التعديل هنا ليتوافق مع الإيميل الجديد
+        if (user && user.email === "amir992005@gmail.com" && token) {
             document.getElementById('auth-overlay').classList.add('hidden');
             document.getElementById('main-panel').classList.remove('hidden');
             startRealTimeStats();
