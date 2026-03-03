@@ -1,36 +1,40 @@
+// api/admin-login.js
 import jwt from "jsonwebtoken";
 
 export default function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ message: "POST only" });
+  // 1. السماح فقط بطلبات POST
+  if (req.method !== "POST") {
+    return res.status(405).json({ message: "الطريقة غير مسموحة" });
+  }
 
-  const { email, password } = req.body;
+  // --- التعديل الجوهري هنا لضمان قراءة البيانات ---
+  let body = req.body;
+  if (typeof body === "string") {
+    try {
+      body = JSON.parse(body);
+    } catch (e) {
+      return res.status(400).json({ message: "خطأ في تنسيق البيانات المرسلة" });
+    }
+  }
 
-  // جلب المتغيرات
+  const { email, password } = body;
+
+  // 2. جلب البيانات من البيئة المؤمنة
   const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
   const JWT_SECRET = process.env.JWT_SECRET;
 
-  // --- سطر الكشف السحري (بيظهر في الـ Logs فقط) ---
-  console.log("--- DEBUG INFO ---");
-  console.log("وصلني إيميل:", email);
-  console.log("المسجل في Vercel:", ADMIN_EMAIL);
-  console.log("هل الباسورد متطابق؟:", password === ADMIN_PASSWORD);
-  console.log("هل JWT_SECRET موجود؟:", !!JWT_SECRET);
-  console.log("------------------");
+  // 3. التحقق من صحة البيانات (مع استخدام trim لإزالة أي مسافات مخفية)
+  if (email && password && email.trim() === ADMIN_EMAIL && password.trim() === ADMIN_PASSWORD) {
+    const token = jwt.sign(
+      { email: ADMIN_EMAIL, role: "admin" },
+      JWT_SECRET,
+      { expiresIn: "2h" }
+    );
 
-  if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-    const token = jwt.sign({ email: ADMIN_EMAIL, role: "admin" }, JWT_SECRET, { expiresIn: "2h" });
     return res.status(200).json({ token });
   }
 
-  // رد تفصيلي مؤقت عشان تعرف المشكلة فين
-  return res.status(401).json({ 
-    message: "بيانات خاطئة",
-    debug: {
-      emailReceived: email,
-      isEmailMatch: email === ADMIN_EMAIL,
-      isPassMatch: password === ADMIN_PASSWORD,
-      envLoaded: !!ADMIN_EMAIL
-    }
-  });
+  // 4. في حالة البيانات خطأ
+  return res.status(401).json({ message: "بيانات الدخول غير صحيحة" });
 }
