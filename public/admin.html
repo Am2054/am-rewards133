@@ -223,46 +223,63 @@
     }
 
     document.getElementById('unlock-btn').onclick = async () => {
-        const email = document.getElementById('email').value;
-        const pass = document.getElementById('pass').value;
-        const errMsg = document.getElementById('error-msg');
-        const fingerprint = await getFingerprint();
+    const emailInput = document.getElementById('email').value.trim();
+    const passInput = document.getElementById('pass').value.trim();
+    const errMsg = document.getElementById('error-msg');
+    const fingerprint = await getFingerprint();
 
-        try {
-            // الخطوة 1: التحقق من الـ API والـ JWT أولاً
-            const res = await fetch("/api/admin-login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: email, password: pass })
-            });
+    // تأكد من مسح أي رسائل خطأ قديمة
+    errMsg.textContent = "جاري التحقق من الهوية...";
 
-            const apiData = await res.json();
+    try {
+        // الخطوة 1: التحقق من الـ API والـ JWT
+        const res = await fetch("/api/admin-login", {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify({ 
+                email: emailInput, 
+                password: passInput 
+            })
+        });
 
-            if (!res.ok) {
-                errMsg.textContent = "فشل التحقق من السيرفر: " + (apiData.message || "بيانات غير صحيحة");
-                return;
-            }
+        const apiData = await res.json();
 
-            // الخطوة 2: لو الـ API وافق، بنسجل التوكن في الجهاز
-            localStorage.setItem("adminToken", apiData.token);
-
-            // الخطوة 3: تسجيل الدخول في Firebase لفتح الصلاحيات
-            await signInWithEmailAndPassword(auth, email, pass);
-            const lockRef = doc(db, "system", "admin_lock");
-            const snap = await getDoc(lockRef);
-
-            if (!snap.exists()) {
-                await setDoc(lockRef, { device_id: fingerprint, registered_by: email });
-            } else if (snap.data().device_id !== fingerprint) {
-                await signOut(auth);
-                localStorage.removeItem("adminToken");
-                errMsg.textContent = "خطأ أمني: غير مصرح لهذا الجهاز";
-                return;
-            }
-        } catch (e) {
-            errMsg.textContent = "فشل التحقق الكامل: " + e.message;
+        if (!res.ok) {
+            // إضافة تنبيه لمعرفة ما يراه السيرفر فعلياً (للـ Debug فقط)
+            console.log("Server Response:", apiData);
+            errMsg.textContent = "فشل التحقق: " + (apiData.message || "خطأ في السيرفر");
+            return;
         }
-    };
+
+        // الخطوة 2: حفظ التوكن
+        localStorage.setItem("adminToken", apiData.token);
+
+        // الخطوة 3: تسجيل الدخول في Firebase
+        await signInWithEmailAndPassword(auth, emailInput, passInput);
+        
+        // التحقق من بصمة الجهاز في Firebase
+        const lockRef = doc(db, "system", "admin_lock");
+        const snap = await getDoc(lockRef);
+
+        if (!snap.exists()) {
+            await setDoc(lockRef, { device_id: fingerprint, registered_by: emailInput });
+        } else if (snap.data().device_id !== fingerprint) {
+            await signOut(auth);
+            localStorage.removeItem("adminToken");
+            errMsg.textContent = "خطأ أمني: هذا الجهاز غير مسجل للدخول";
+            return;
+        }
+        
+        // في حالة النجاح، الـ onAuthStateChanged سيتكفل بإظهار اللوحة
+    } catch (e) {
+        console.error("Full Error:", e);
+        errMsg.textContent = "عطل في الاتصال: " + e.message;
+    }
+};
+
 
     function startRealTimeStats() {
         onSnapshot(collection(db, "users"), (snap) => {
