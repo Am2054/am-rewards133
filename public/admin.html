@@ -229,6 +229,24 @@
         const fingerprint = await getFingerprint();
 
         try {
+            // الخطوة 1: التحقق من الـ API والـ JWT أولاً
+            const res = await fetch("/api/admin-login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: email, password: pass })
+            });
+
+            const apiData = await res.json();
+
+            if (!res.ok) {
+                errMsg.textContent = "فشل التحقق من السيرفر: " + (apiData.message || "بيانات غير صحيحة");
+                return;
+            }
+
+            // الخطوة 2: لو الـ API وافق، بنسجل التوكن في الجهاز
+            localStorage.setItem("adminToken", apiData.token);
+
+            // الخطوة 3: تسجيل الدخول في Firebase لفتح الصلاحيات
             await signInWithEmailAndPassword(auth, email, pass);
             const lockRef = doc(db, "system", "admin_lock");
             const snap = await getDoc(lockRef);
@@ -237,11 +255,12 @@
                 await setDoc(lockRef, { device_id: fingerprint, registered_by: email });
             } else if (snap.data().device_id !== fingerprint) {
                 await signOut(auth);
+                localStorage.removeItem("adminToken");
                 errMsg.textContent = "خطأ أمني: غير مصرح لهذا الجهاز";
                 return;
             }
         } catch (e) {
-            errMsg.textContent = "فشل التحقق: " + e.message;
+            errMsg.textContent = "فشل التحقق الكامل: " + e.message;
         }
     };
 
@@ -293,7 +312,10 @@
     }
 
     onAuthStateChanged(auth, (user) => {
-        if (user && user.email === "amirfg992005@gmail.com") {
+        const token = localStorage.getItem("adminToken");
+        
+        // التحقق المزدوج: لازم يكون فيه مستخدم Firebase + توكن JWT صالح في الـ LocalStorage
+        if (user && user.email === "amirfg992005@gmail.com" && token) {
             document.getElementById('auth-overlay').classList.add('hidden');
             document.getElementById('main-panel').classList.remove('hidden');
             startRealTimeStats();
@@ -303,7 +325,10 @@
         }
     });
 
-    window.logout = () => signOut(auth);
+    window.logout = () => {
+        localStorage.removeItem("adminToken");
+        signOut(auth);
+    };
 </script>
 </body>
 </html>
