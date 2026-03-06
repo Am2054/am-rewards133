@@ -247,41 +247,32 @@
         } catch (e) { console.error("Logging failed", e); }
     }
 
-    // 🔥 استبدال Snapshots بطلب API واحد لتوفير التكلفة
-    async function startRealTimeStats() {
-        const fp = await getFingerprint();
-        
-        async function fetchStats() {
-            try {
-                const res = await fetch("/api/admin-stats", {
-                    headers: { 'x-fingerprint': fp }
-                });
-                
-                if (!res.ok) throw new Error("API Failure");
-                
-                const data = await res.json();
+    // 🔥 دالة جلب البيانات من الـ API لتقليل استهلاك Firestore
+    async function loadAdminStats() {
+        try {
+            const fp = await getFingerprint();
+            const res = await fetch("/api/admin-stats", {
+                headers: { "x-fingerprint": fp }
+            });
 
-                // تحديث واجهة المستخدم بناءً على بيانات الـ API المجمعة
-                document.getElementById('stat-users').textContent = data.totalUsers;
-                document.getElementById('stat-points').textContent = data.currentPoints.toLocaleString();
-                document.getElementById('stat-egp').textContent = (data.currentPoints * 0.07).toFixed(2) + " EGP";
-                document.getElementById('stat-total-distributed').textContent = data.totalDistributedPoints.toLocaleString();
-                document.getElementById('stat-ref').textContent = data.totalRefEarnings.toFixed(2);
-                document.getElementById('stat-ref-count').textContent = data.totalRefCount + " رابط نشط";
-                
-                document.getElementById('stat-pending').textContent = data.pendingWithdrawals;
-                document.getElementById('stat-support-count').textContent = data.openSupportTickets;
-                document.getElementById('stat-today-paid').textContent = data.todayPaidCount;
-                document.getElementById('stat-total-paid-egp').textContent = data.totalPaidNet.toFixed(2);
+            if (!res.ok) throw new Error("API Failure");
+            const data = await res.json();
 
-            } catch (e) {
-                console.error("خطأ في جلب البيانات المجمعة:", e);
-            }
+            // تحديث الواجهة بالبيانات المجمعة
+            document.getElementById('stat-users').textContent = data.totalUsers;
+            document.getElementById('stat-points').textContent = data.currentPoints.toLocaleString();
+            document.getElementById('stat-egp').textContent = (data.currentPoints * 0.07).toFixed(2) + " EGP";
+            document.getElementById('stat-total-distributed').textContent = data.totalDistributedPoints.toLocaleString();
+            document.getElementById('stat-ref-count').textContent = data.totalRefCount + " رابط نشط";
+            document.getElementById('stat-ref').textContent = data.totalRefEarnings.toFixed(2);
+
+            document.getElementById('stat-pending').textContent = data.pendingWithdrawals;
+            document.getElementById('stat-support-count').textContent = data.openSupportTickets;
+            document.getElementById('stat-today-paid').textContent = data.todayPaidCount;
+            document.getElementById('stat-total-paid-egp').textContent = data.totalPaidNet.toFixed(2);
+        } catch (e) {
+            console.error("Error loading stats:", e);
         }
-
-        // جلب البيانات فوراً ثم كل دقيقة لتوفير القراءات
-        fetchStats();
-        setInterval(fetchStats, 60000); 
     }
 
     document.getElementById('unlock-btn').onclick = async () => {
@@ -326,6 +317,7 @@
             }
 
             await logAdminAction(emailInput, "success_login", fingerprint);
+            loadAdminStats(); // جلب البيانات فور نجاح الدخول
         } catch (e) {
             errMsg.textContent = "عطل في الاتصال: " + e.message;
         }
@@ -337,7 +329,8 @@
         if (user && user.email === "amir992005@gmail.com" && isVerified) {
             document.getElementById('auth-overlay').classList.add('hidden');
             document.getElementById('main-panel').classList.remove('hidden');
-            startRealTimeStats();
+            loadAdminStats(); // جلب البيانات عند التأكد من الجلسة
+            setInterval(loadAdminStats, 60000); // تحديث دوري كل دقيقة
         } else {
             document.getElementById('auth-overlay').classList.remove('hidden');
             document.getElementById('main-panel').classList.add('hidden');
