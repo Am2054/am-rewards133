@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AM REWARDS | نظام مراجعة المستخدمين</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Syncopate:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #00f2ff; --bg: #020202; --card: rgba(20, 20, 20, 0.9); --border: rgba(0, 242, 255, 0.1); --danger: #ff0055; --success: #00ffc3; }
+        body { background: var(--bg); color: #fff; font-family: 'Cairo'; margin: 0; padding: 20px; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        
+        /* البحث */
+        .search-area { display: flex; gap: 10px; margin-bottom: 30px; }
+        input { flex: 1; padding: 15px; border-radius: 12px; border: 1px solid var(--border); background: #111; color: #fff; outline: none; }
+        .btn-search { background: var(--primary); color: #000; border: none; padding: 0 30px; border-radius: 12px; font-weight: 900; cursor: pointer; }
+
+        /* الهيكل */
+        .audit-grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 20px; backdrop-filter: blur(10px); }
+        
+        /* البروفايل والإجراءات */
+        .profile-info h2 { font-family: 'Syncopate'; font-size: 1rem; color: var(--primary); margin-top: 0; }
+        .data-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .admin-box { margin-top: 25px; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 15px; border: 1px solid var(--danger); }
+        .admin-box h3 { font-size: 0.75rem; color: var(--danger); margin-top: 0; }
+        .input-sm { width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 8px; border: 1px solid var(--border); background: #000; color: #fff; box-sizing: border-box; }
+        .btn-action { width: 100%; padding: 10px; border-radius: 8px; border: none; font-weight: 900; cursor: pointer; margin-bottom: 5px; font-size: 0.75rem; }
+
+        /* الجداول */
+        .logs-area { display: flex; flex-direction: column; gap: 20px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+        th { text-align: right; color: #666; padding: 10px; border-bottom: 2px solid var(--border); }
+        td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .status-tag { padding: 3px 8px; border-radius: 5px; font-weight: 900; font-size: 0.65rem; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="search-area">
+        <input type="text" id="userInput" placeholder="ابحث بـ UID أو Email...">
+        <button class="btn-search" onclick="fetchUser()">فحص المستخدم</button>
+    </div>
+
+    <div id="loader" class="hidden" style="text-align: center; color: var(--primary);">جاري مراجعة الأرشيف...</div>
+
+    <div id="mainUI" class="audit-grid hidden">
+        <div class="card profile-info">
+            <h2 id="view-name">اسم المستخدم</h2>
+            <div class="data-row"><span>ID:</span> <span id="view-uid" style="font-size: 0.6rem;"></span></div>
+            <div class="data-row"><span>الحالة:</span> <b id="view-status"></b></div>
+            <div class="data-row"><span>النقاط:</span> <b id="view-points" style="color: var(--primary);"></b></div>
+            <div class="data-row"><span>أرباح الإحالات:</span> <b id="view-ref-earn" style="color: var(--success);"></b></div>
+            <div class="data-row"><span>إجمالي المسحوبات:</span> <b id="view-paid" style="color: var(--danger);"></b></div>
+
+            <div class="admin-box">
+                <h3>لوحة التحكم الإدارية</h3>
+                <label style="font-size: 0.65rem;">تعديل الرصيد يدوياً:</label>
+                <input type="number" id="editPoints" class="input-sm">
+                <button class="btn-action" style="background: var(--primary);" onclick="adminAction('updatePoints')">حفظ النقاط</button>
+                <div style="margin-top: 10px; display: flex; gap: 5px;">
+                    <button class="btn-action" style="background: var(--danger); color: #fff;" onclick="adminAction('updateStatus', 'banned')">حظر</button>
+                    <button class="btn-action" style="background: var(--success); color: #000;" onclick="adminAction('updateStatus', 'active')">تنشيط</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="logs-area">
+            <div class="card">
+                <h4 style="margin:0 0 15px 0; font-size: 0.8rem; color: var(--primary);">سجل السحوبات</h4>
+                <table id="table-withdrawals">
+                    <thead><tr><th>المبلغ</th><th>الصافي</th><th>الوسيلة</th><th>الحالة</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <h4 style="margin:0 0 15px 0; font-size: 0.8rem; color: var(--primary);">المهام المكتملة</h4>
+                <table id="table-tasks">
+                    <thead><tr><th>المهمة</th><th>النقاط</th><th>التاريخ</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function fetchUser() {
+        const q = document.getElementById('userInput').value.trim();
+        if(!q) return;
+
+        document.getElementById('loader').classList.remove('hidden');
+        document.getElementById('mainUI').classList.add('hidden');
+
+        try {
+            const res = await fetch(`/api/audit-user?query=${encodeURIComponent(q)}`);
+            const data = await res.json();
+            if(!res.ok) throw new Error(data.error);
+
+            // عرض البيانات
+            document.getElementById('view-name').innerText = data.profile.name;
+            document.getElementById('view-uid').innerText = data.profile.uid;
+            document.getElementById('view-points').innerText = data.profile.points.toLocaleString();
+            document.getElementById('view-ref-earn').innerText = data.profile.refEarnings.toFixed(2) + " EGP";
+            document.getElementById('view-paid').innerText = data.stats.totalPaidNet.toFixed(2) + " EGP";
+            document.getElementById('view-status').innerText = data.profile.status === 'active' ? '✅ نشط' : '🚫 محظور';
+            document.getElementById('editPoints').value = data.profile.points;
+
+            // ملء الجداول
+            fillTable('table-withdrawals', data.history.withdrawals, (w) => `
+                <td>${w.amount}</td><td>${w.net}</td><td>${w.method}</td>
+                <td><span class="status-tag" style="background:${w.status === 'completed' ? 'var(--success)' : 'orange'}; color:#000">${w.status}</span></td>
+            `);
+
+            fillTable('table-tasks', data.history.tasks, (t) => `
+                <td>${t.taskName}</td><td>${t.pointsEarned}</td><td>${new Date(t.date).toLocaleDateString('ar-EG')}</td>
+            `);
+
+            document.getElementById('mainUI').classList.remove('hidden');
+        } catch (e) { alert(e.message); }
+        finally { document.getElementById('loader').classList.add('hidden'); }
+    }
+
+    async function adminAction(type, val) {
+        const uid = document.getElementById('view-uid').innerText;
+        let url = `/api/audit-user?query=${uid}&action=${type}`;
+        
+        if(type === 'updatePoints') url += `&amount=${document.getElementById('editPoints').value}`;
+        if(type === 'updateStatus') url += `&status=${val}`;
+
+        if(!confirm("هل أنت متأكد من هذا الإجراء؟")) return;
+
+        const res = await fetch(url);
+        if(res.ok) { alert("تم التنفيذ!"); fetchUser(); }
+    }
+
+    function fillTable(id, data, rowFunc) {
+        const body = document.querySelector(`#${id} tbody`);
+        body.innerHTML = data.length ? data.map(item => `<tr>${rowFunc(item)}</tr>`).join('') : '<tr><td colspan="4" style="text-align:center">لا يوجد سجلات</td></tr>';
+    }
+</script>
+</body>
+</html>
