@@ -78,25 +78,31 @@
 
         <div class="logs-area">
             <div class="card">
-                <h4 style="margin:0 0 15px 0; font-size: 0.8rem; color: var(--primary);">ملخص النشاط (العدد الإجمالي)</h4>
+                <h4 style="margin:0 0 15px 0; font-size: 0.8rem; color: var(--primary);">تحليل المهام المنجزة</h4>
                 <div class="summary-box">
                     <div class="summary-item">
-                        <span>إجمالي المهام المنفذة</span>
-                        <b id="count-tasks">0</b>
+                        <span>روابط مختصرة</span>
+                        <b id="count-shrt">0</b>
                     </div>
                     <div class="summary-item">
-                        <span>إجمالي طلبات السحب</span>
-                        <b id="count-withdrawals">0</b>
+                        <span>عروض (Offerwalls)</span>
+                        <b id="count-offers">0</b>
                     </div>
                     <div class="summary-item">
-                        <span>سحوبات مكتملة</span>
-                        <b id="count-completed-withdrawals" style="color: var(--success);">0</b>
+                        <span>فيديوهات</span>
+                        <b id="count-videos">0</b>
                     </div>
                     <div class="summary-item">
-                        <span>سحوبات معلقة</span>
-                        <b id="count-pending-withdrawals" style="color: var(--danger);">0</b>
+                        <span>أخرى</span>
+                        <b id="count-other-tasks">0</b>
                     </div>
                 </div>
+            </div>
+
+            <div class="card">
+                <h4 style="margin:0 0 15px 0; font-size: 0.8rem; color: var(--primary);">سجل السحوبات المكتملة</h4>
+                <div id="withdrawals-summary" style="font-size: 0.75rem; line-height: 1.8;">
+                    </div>
             </div>
 
             <div class="card hidden">
@@ -127,7 +133,6 @@
         document.getElementById('mainUI').classList.add('hidden');
 
         try {
-            // تم إزالة هيدر Authorization بناءً على تعديل الـ API الأخير
             const res = await fetch(`/api/audit-user?query=${encodeURIComponent(q)}`);
             const data = await res.json();
             
@@ -144,10 +149,38 @@
             document.getElementById('view-status').innerText = data.profile.status === 'active' ? '✅ نشط' : '🚫 محظور';
             document.getElementById('editPoints').value = data.profile.points;
 
-            document.getElementById('count-tasks').innerText = data.history.tasksCount || 0;
-            document.getElementById('count-withdrawals').innerText = data.history.withdrawals.length;
-            document.getElementById('count-completed-withdrawals').innerText = data.history.withdrawals.filter(w => w.status === 'completed').length;
-            document.getElementById('count-pending-withdrawals').innerText = data.history.withdrawals.filter(w => w.status === 'pending').length;
+            // --- تحليل المهام حسب النوع ---
+            let shrt = 0, offer = 0, vid = 0, other = 0;
+            data.history.tasks.forEach(t => {
+                const type = (t.type || "").toLowerCase();
+                const name = (t.taskName || "").toLowerCase();
+                if(type.includes('short') || name.includes('link')) shrt++;
+                else if(type.includes('offer') || type.includes('cpa')) offer++;
+                else if(type.includes('video') || type.includes('ads')) vid++;
+                else other++;
+            });
+            document.getElementById('count-shrt').innerText = shrt;
+            document.getElementById('count-offers').innerText = offer;
+            document.getElementById('count-videos').innerText = vid;
+            document.getElementById('count-other-tasks').innerText = other;
+
+            // --- تحليل السحوبات حسب الرقم ---
+            const wSummary = document.getElementById('withdrawals-summary');
+            wSummary.innerHTML = "";
+            const stats = {};
+            data.history.withdrawals.filter(w => w.status === 'completed').forEach(w => {
+                const key = w.account || w.number || "غير معروف";
+                stats[key] = (stats[key] || 0) + 1;
+            });
+
+            const keys = Object.keys(stats);
+            if(keys.length > 0) {
+                keys.forEach(k => {
+                    wSummary.innerHTML += `<div>💰 تم سحب <b style="color:var(--success)">${stats[k]} مرات</b> على الرقم/الحساب: <b>${k}</b></div>`;
+                });
+            } else {
+                wSummary.innerHTML = "لا يوجد سحوبات مكتملة لهذا المستخدم.";
+            }
 
             document.getElementById('mainUI').classList.remove('hidden');
         } catch (e) { 
