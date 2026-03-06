@@ -1,37 +1,45 @@
-import { db } from "../../lib/firebaseAdmin"; // تأكد من إعداد Firebase Admin SDK
+import { db } from "../../lib/firebaseAdmin";
+
+// تعريف المتغيرات خارج الـ Handler لضمان بقائها في ذاكرة السيرفر (Cold Start Cache)
+let cachedStats = null;
+let lastFetchTime = 0;
+const CACHE_DURATION = 30000; // 30 ثانية
 
 export default async function handler(req, res) {
-  // 1. تأمين الـ API ببصمة الجهاز (إضافي)
-  const clientFingerprint = req.headers['x-fingerprint'];
-  if (!clientFingerprint) {
-    return res.status(401).json({ message: "Unauthorized Access" });
+  // 1. التحقق من الـ Cache أولاً
+  const currentTime = Date.now();
+  if (cachedStats && (currentTime - lastFetchTime < CACHE_DURATION)) {
+    console.log("Serving from Cache 🚀");
+    return res.status(200).json(cachedStats);
   }
 
   try {
-    // جلب كل الكولكشن المطلوبة بالتوازي لسرعة التنفيذ
+    console.log("Fetching fresh data from Firestore... 🔥");
+    
+    // جلب البيانات من Firestore (نفس استعلامات الحقول الدقيقة)
     const [usersSnap, withdrawalsSnap, tasksSnap, supportSnap, transSnap] = await Promise.all([
       db.collection("users").get(),
       db.collection("withdrawals").get(),
-      db.collection("tasksCompleted").get(),
+      db.collection("tasksCompleted").where("status", "==", "done").get(),
       db.collection("support_tickets").where("status", "==", "pending").get(),
       db.collection("points_transactions").where("type", "==", "reward").get()
     ]);
 
     let stats = {
       totalUsers: usersSnap.size,
-      currentPoints: 0,           // مجموع نقاط المستخدمين الحالية
-      totalRefEarnings: 0,        // مجموع أرباح الإحالات
-      totalRefCount: 0,           // عدد المستخدمين الذين جاؤوا عبر إحالة
-      totalDistributedPoints: 0,  // إجمالي النقاط الموزعة (مهام + هدايا)
-      pendingWithdrawals: 0,      // السحوبات المعلقة
-      totalPaidNet: 0,            // صافي المبالغ المدفوعة (حقل net)
-      todayPaidCount: 0,          // عدد عمليات اليوم
+      currentPoints: 0,
+      totalRefEarnings: 0,
+      totalRefCount: 0,
+      totalDistributedPoints: 0,
+      pendingWithdrawals: 0,
+      totalPaidNet: 0,
+      todayPaidCount: 0,
       openSupportTickets: supportSnap.size
     };
 
     const today = new Date().toDateString();
 
-    // 2. معالجة بيانات المستخدمين
+    // حساب بيانات المستخدمين (points, totalReferralEarnings)
     usersSnap.forEach(doc => {
       const data = doc.data();
       stats.currentPoints += (Number(data.points) || 0);
@@ -39,30 +47,20 @@ export default async function handler(req, res) {
       if (data.referredBy) stats.totalRefCount++;
     });
 
-    // 3. حساب النقاط الموزعة من المهام (حقل pointsEarned)
+    // حساب النقاط الموزعة (tasks pointsEarned + reward transactions)
     tasksSnap.forEach(doc => {
-      const data = doc.data();
-      if (data.status === "done") {
-        stats.totalDistributedPoints += (Number(data.pointsEarned) || 0);
-      }
+      stats.totalDistributedPoints += (Number(doc.data().pointsEarned) || 0);
     });
-
-    // 4. إضافة نقاط الهدايا/المكافآت اليدوية (من كولكشن الترانزاكشن)
     transSnap.forEach(doc => {
       stats.totalDistributedPoints += (Number(doc.data().amount) || 0);
     });
 
-    // 5. حساب بيانات السحوبات (حقل net وحقل status)
+    // حساب السحوبات (حقل net كما في الصورة)
     withdrawalsSnap.forEach(doc => {
       const d = doc.data();
-      if (d.status === "pending") {
-        stats.pendingWithdrawals++;
-      }
+      if (d.status === "pending") stats.pendingWithdrawals++;
       if (d.status === "completed") {
-        // نستخدم حقل net كما في الصورة لأنه الصافي الحقيقي
         stats.totalPaidNet += (Number(d.net) || 0);
-        
-        // التحقق مما إذا كانت العملية تمت اليوم
         if (d.processedAt) {
           const processDate = d.processedAt.toDate().toDateString();
           if (processDate === today) stats.todayPaidCount++;
@@ -70,7 +68,10 @@ export default async function handler(req, res) {
       }
     });
 
-    // إرسال البيانات النهائية
+    // 2. تحديث الـ Cache
+    cachedStats = stats;
+    lastFetchTime = currentTime;
+
     res.status(200).json(stats);
 
   } catch (error) {
