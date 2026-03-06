@@ -6,14 +6,16 @@ export default function handler(req, res) {
   const token = cookies.adminToken;
   const clientFingerprint = req.headers['x-fingerprint'];
 
-  if (!token) return res.status(401).json({ valid: false });
+  if (!token || !clientFingerprint) {
+    return res.status(401).json({ valid: false });
+  }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // التحقق من أن الجهاز الذي أرسل الطلب هو نفس الجهاز صاحب التوكن
+    // التحقق من أن الجهاز الحالي هو صاحب التوكن الأصلي
     if (decoded.device !== clientFingerprint) {
-      return res.status(401).json({ valid: false, message: "Security Breach: Device Mismatch" });
+      return res.status(401).json({ valid: false, message: "Security Mismatch" });
     }
 
     return res.status(200).json({ valid: true });
