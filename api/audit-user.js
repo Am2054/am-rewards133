@@ -1,7 +1,6 @@
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
-// تهيئة Firebase Admin
 if (!getApps().length) {
   try {
     let rawKey = process.env.FIREBASE_ADMIN_KEY;
@@ -40,25 +39,45 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    // 3. جلب التقارير (سحوبات، مهام، إحالات)
-    const [withdrawals, tasks, referrals] = await Promise.all([
+    // 3. جلب التقارير الشاملة بالتوازي
+    const [withdrawals, tasks, referrals, devices, rewards] = await Promise.all([
       db.collection("withdrawals").where("userId", "==", uid).get(),
       db.collection("tasksCompleted").where("userId", "==", uid).get(),
-      db.collection("users").where("referredBy", "==", uid).get()
+      db.collection("users").where("referredBy", "==", uid).get(),
+      db.collection("userDevices").where("userId", "==", uid).limit(1).get(),
+      db.collection("points_transactions").where("uid", "==", uid).where("type", "==", "reward").get()
     ]);
 
+    // حساب إجمالي نقاط المهام (بناءً على حقل pointsEarned)
+    let totalTasksPoints = 0;
+    const tasksList = [];
+    tasks.forEach(doc => {
+      const d = doc.data();
+      if (d.status === "done") { // التأكد من حالة المهمة
+        totalTasksPoints += (Number(d.pointsEarned) || 0);
+      }
+      tasksList.push({ ...d, date: d.date?.toDate() || "N/A" });
+    });
+
+    // حساب إجمالي المكافآت (بناءً على حقل amount ونوع reward)
+    let totalRewardsPoints = 0;
+    rewards.forEach(doc => {
+      totalRewardsPoints += (Number(doc.data().amount) || 0);
+    });
+
+    // جلب معرف الجهاز (DeviceId)
+    let deviceId = "غير مسجل";
+    if (!devices.empty) {
+      deviceId = devices.docs[0].id; // أو الحقل المخصص داخل الوثيقة
+    }
+
+    // حساب السحوبات (بناءً على حقل net)
     let totalPaidNet = 0;
     const withdrawalsList = [];
     withdrawals.forEach(doc => {
       const d = doc.data();
       if (d.status === "completed") totalPaidNet += (Number(d.net) || 0);
-      withdrawalsList.push({ ...d, id: doc.id, date: d.timestamp?.toDate() || "N/A" });
-    });
-
-    const tasksList = [];
-    tasks.forEach(doc => {
-      const d = doc.data();
-      tasksList.push({ ...d, date: d.completedAt?.toDate() || "N/A" });
+      withdrawalsList.push({ ...d, id: doc.id, date: d.date?.toDate() || "N/A" });
     });
 
     const referralsList = [];
@@ -74,9 +93,15 @@ export default async function handler(req, res) {
         email: userData.email,
         points: userData.points || 0,
         refEarnings: userData.totalReferralEarnings || 0,
-        status: userData.accountStatus || "active"
+        status: userData.accountStatus || "active",
+        deviceId: deviceId, // معرف الجهاز المطلوب
+        lastIp: userData.lastIp || "N/A"
       },
-      stats: { totalPaidNet },
+      stats: { 
+        totalPaidNet,
+        totalTasksPoints, // مجموع نقاط المهام المطلوب
+        totalRewardsPoints // مجموع المكافآت المطلوب
+      },
       history: {
         withdrawals: withdrawalsList,
         tasks: tasksList,
