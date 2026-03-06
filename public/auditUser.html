@@ -119,28 +119,51 @@
 </div>
 
 <script>
-    // تخزين المفتاح السري محلياً بعد أول مرة لمنع تكرار الـ prompt
-    let MASTER_KEY = "";
+    // نظام إدارة الجلسة (Session Management)
+    let MASTER_KEY = localStorage.getItem('admin_token') || "";
+
+    async function checkSession() {
+        if (!MASTER_KEY) {
+            MASTER_KEY = prompt("أدخل مفتاح الإدارة السري (JWT_SECRET):");
+            if (MASTER_KEY) localStorage.setItem('admin_token', MASTER_KEY);
+        }
+        
+        try {
+            const res = await fetch('/api/verify-admin', {
+                headers: { 'Authorization': MASTER_KEY }
+            });
+            if (!res.ok) throw new Error();
+        } catch (e) {
+            localStorage.removeItem('admin_token');
+            MASTER_KEY = "";
+            alert("جلسة غير صالحة أو منتهية");
+        }
+    }
 
     async function fetchUser() {
         const q = document.getElementById('userInput').value.trim();
         if(!q) return;
         
-        if(!MASTER_KEY) MASTER_KEY = prompt("أدخل مفتاح الإدارة السري (ADMIN_SECRET):");
+        if(!MASTER_KEY) await checkSession();
         if(!MASTER_KEY) return;
 
         document.getElementById('loader').classList.remove('hidden');
         document.getElementById('mainUI').classList.add('hidden');
 
         try {
-            // إضافة الـ Authorization في طلب الـ GET أيضاً للأمان
             const res = await fetch(`/api/audit-user?query=${encodeURIComponent(q)}`, {
                 headers: { 'Authorization': MASTER_KEY }
             });
+            
+            if (res.status === 403) {
+                localStorage.removeItem('admin_token');
+                MASTER_KEY = "";
+                throw new Error("غير مصرح لك بالوصول. يرجى إعادة إدخال المفتاح.");
+            }
+
             const data = await res.json();
             if(!res.ok) throw new Error(data.error);
 
-            // عرض البيانات الأساسية
             document.getElementById('view-name').innerText = data.profile.name;
             document.getElementById('view-uid').innerText = data.profile.uid;
             document.getElementById('view-device').innerText = data.profile.deviceId || 'غير متوفر';
@@ -152,8 +175,6 @@
             document.getElementById('view-status').innerText = data.profile.status === 'active' ? '✅ نشط' : '🚫 محظور';
             document.getElementById('editPoints').value = data.profile.points;
 
-            // تحديث أعداد الملخص (لتقليل الزحام البصري)
-            // ملاحظة: قمنا بتغيير data.history.tasks.length إلى data.history.tasksCount ليتناسب مع تحديث الـ API الموفر للقراءة
             document.getElementById('count-tasks').innerText = data.history.tasksCount || 0;
             document.getElementById('count-withdrawals').innerText = data.history.withdrawals.length;
             document.getElementById('count-completed-withdrawals').innerText = data.history.withdrawals.filter(w => w.status === 'completed').length;
@@ -162,19 +183,17 @@
             document.getElementById('mainUI').classList.remove('hidden');
         } catch (e) { 
             alert(e.message);
-            if(e.message.includes("Unauthorized")) MASTER_KEY = ""; // إعادة تعيين المفتاح إذا كان خاطئاً
         }
         finally { document.getElementById('loader').classList.add('hidden'); }
     }
 
     async function adminAction(type, val) {
         const uid = document.getElementById('view-uid').innerText;
-        if(!MASTER_KEY) MASTER_KEY = prompt("أدخل مفتاح الإدارة السري:");
+        if(!MASTER_KEY) await checkSession();
         
         if(!confirm("هل أنت متأكد من هذا الإجراء؟")) return;
 
         try {
-            // استخدام POST بدلاً من GET للتعديل الحساس
             const res = await fetch(`/api/audit-user?query=${uid}`, {
                 method: 'POST',
                 headers: { 
@@ -204,6 +223,9 @@
         const body = document.querySelector(`#${id} tbody`);
         body.innerHTML = data.length ? data.map(item => `<tr>${rowFunc(item)}</tr>`).join('') : '<tr><td colspan="4" style="text-align:center">لا يوجد سجلات</td></tr>';
     }
+
+    // التحقق من الجلسة عند بدء التشغيل
+    window.onload = checkSession;
 </script>
 </body>
 </html>
