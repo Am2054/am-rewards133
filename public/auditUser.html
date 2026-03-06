@@ -50,8 +50,11 @@
         <div class="card profile-info">
             <h2 id="view-name">اسم المستخدم</h2>
             <div class="data-row"><span>ID:</span> <span id="view-uid" style="font-size: 0.6rem;"></span></div>
+            <div class="data-row"><span>Device ID:</span> <span id="view-device" style="font-size: 0.6rem; color: #888;"></span></div>
             <div class="data-row"><span>الحالة:</span> <b id="view-status"></b></div>
-            <div class="data-row"><span>النقاط:</span> <b id="view-points" style="color: var(--primary);"></b></div>
+            <div class="data-row"><span>النقاط الحالية:</span> <b id="view-points" style="color: var(--primary);"></b></div>
+            <div class="data-row"><span>نقاط المهام:</span> <b id="view-task-points" style="color: #e2e2e2;"></b></div>
+            <div class="data-row"><span>نقاط المكافآت:</span> <b id="view-reward-points" style="color: #e2e2e2;"></b></div>
             <div class="data-row"><span>أرباح الإحالات:</span> <b id="view-ref-earn" style="color: var(--success);"></b></div>
             <div class="data-row"><span>إجمالي المسحوبات:</span> <b id="view-paid" style="color: var(--danger);"></b></div>
 
@@ -103,7 +106,10 @@
             // عرض البيانات
             document.getElementById('view-name').innerText = data.profile.name;
             document.getElementById('view-uid').innerText = data.profile.uid;
+            document.getElementById('view-device').innerText = data.profile.deviceId || 'غير متوفر';
             document.getElementById('view-points').innerText = data.profile.points.toLocaleString();
+            document.getElementById('view-task-points').innerText = data.stats.totalTasksPoints.toLocaleString();
+            document.getElementById('view-reward-points').innerText = data.stats.totalRewardsPoints.toLocaleString();
             document.getElementById('view-ref-earn').innerText = data.profile.refEarnings.toFixed(2) + " EGP";
             document.getElementById('view-paid').innerText = data.stats.totalPaidNet.toFixed(2) + " EGP";
             document.getElementById('view-status').innerText = data.profile.status === 'active' ? '✅ نشط' : '🚫 محظور';
@@ -116,7 +122,7 @@
             `);
 
             fillTable('table-tasks', data.history.tasks, (t) => `
-                <td>${t.taskName}</td><td>${t.pointsEarned}</td><td>${new Date(t.date).toLocaleDateString('ar-EG')}</td>
+                <td>${t.taskName || t.taskId}</td><td>${t.pointsEarned}</td><td>${new Date(t.date).toLocaleDateString('ar-EG')}</td>
             `);
 
             document.getElementById('mainUI').classList.remove('hidden');
