@@ -119,49 +119,18 @@
 </div>
 
 <script>
-    // نظام إدارة الجلسة (Session Management)
-    let MASTER_KEY = localStorage.getItem('admin_token') || "";
-
-    async function checkSession() {
-        if (!MASTER_KEY) {
-            MASTER_KEY = prompt("أدخل مفتاح الإدارة السري (JWT_SECRET):");
-            if (MASTER_KEY) localStorage.setItem('admin_token', MASTER_KEY);
-        }
-        
-        try {
-            const res = await fetch('/api/verify-admin', {
-                headers: { 'Authorization': MASTER_KEY }
-            });
-            if (!res.ok) throw new Error();
-        } catch (e) {
-            localStorage.removeItem('admin_token');
-            MASTER_KEY = "";
-            alert("جلسة غير صالحة أو منتهية");
-        }
-    }
-
     async function fetchUser() {
         const q = document.getElementById('userInput').value.trim();
         if(!q) return;
-        
-        if(!MASTER_KEY) await checkSession();
-        if(!MASTER_KEY) return;
 
         document.getElementById('loader').classList.remove('hidden');
         document.getElementById('mainUI').classList.add('hidden');
 
         try {
-            const res = await fetch(`/api/audit-user?query=${encodeURIComponent(q)}`, {
-                headers: { 'Authorization': MASTER_KEY }
-            });
-            
-            if (res.status === 403) {
-                localStorage.removeItem('admin_token');
-                MASTER_KEY = "";
-                throw new Error("غير مصرح لك بالوصول. يرجى إعادة إدخال المفتاح.");
-            }
-
+            // تم إزالة هيدر Authorization بناءً على تعديل الـ API الأخير
+            const res = await fetch(`/api/audit-user?query=${encodeURIComponent(q)}`);
             const data = await res.json();
+            
             if(!res.ok) throw new Error(data.error);
 
             document.getElementById('view-name').innerText = data.profile.name;
@@ -189,16 +158,13 @@
 
     async function adminAction(type, val) {
         const uid = document.getElementById('view-uid').innerText;
-        if(!MASTER_KEY) await checkSession();
-        
         if(!confirm("هل أنت متأكد من هذا الإجراء؟")) return;
 
         try {
             const res = await fetch(`/api/audit-user?query=${uid}`, {
                 method: 'POST',
                 headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': MASTER_KEY 
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     action: type,
@@ -223,9 +189,6 @@
         const body = document.querySelector(`#${id} tbody`);
         body.innerHTML = data.length ? data.map(item => `<tr>${rowFunc(item)}</tr>`).join('') : '<tr><td colspan="4" style="text-align:center">لا يوجد سجلات</td></tr>';
     }
-
-    // التحقق من الجلسة عند بدء التشغيل
-    window.onload = checkSession;
 </script>
 </body>
 </html>
