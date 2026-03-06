@@ -203,7 +203,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, query, where, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -222,7 +222,7 @@
         return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    // دالة التحقق من صحة التوكن الموجود في الكوكي عبر السيرفر
+    // 🔥 وظيفة التحقق المركزية من السيرفر
     async function verifyServerSession() {
         const fp = await getFingerprint();
         try {
@@ -236,6 +236,19 @@
         }
     }
 
+    // 🚀 تسجيل محاولة الدخول (Logs) في Firestore
+    async function logAdminAction(email, status, fingerprint) {
+        try {
+            await addDoc(collection(db, "admin_logs"), {
+                email,
+                status,
+                fingerprint,
+                timestamp: serverTimestamp(),
+                userAgent: navigator.userAgent
+            });
+        } catch (e) { console.error("Logging failed", e); }
+    }
+
     document.getElementById('unlock-btn').onclick = async () => {
         const emailInput = document.getElementById('email').value.trim();
         const passInput = document.getElementById('pass').value.trim();
@@ -245,27 +258,26 @@
         errMsg.textContent = "جاري التحقق من الهوية...";
 
         try {
+            // ✅ الإصلاح: إرسال البصمة في الـ Body وحذف LocalStorage
             const res = await fetch("/api/admin-login", {
                 method: "POST",
-                headers: { 
-                    "Content-Type": "application/json",
-                    "Accept": "application/json"
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
                     email: emailInput, 
                     password: passInput,
-                    fingerprint: fingerprint // إرسال البصمة لتشفيرها داخل التوكن
+                    fingerprint: fingerprint 
                 })
             });
 
             const apiData = await res.json();
 
             if (!res.ok) {
+                await logAdminAction(emailInput, "failed_login", fingerprint);
                 errMsg.textContent = "فشل التحقق: " + (apiData.message || "خطأ في السيرفر");
                 return;
             }
 
-            // ملاحظة: التوكن الآن يُخزن في HttpOnly Cookie تلقائياً بواسطة السيرفر
+            // ✅ تسجيل دخول Firebase بعد نجاح السيرفر
             await signInWithEmailAndPassword(auth, emailInput, passInput);
             
             const lockRef = doc(db, "system", "admin_lock");
@@ -274,10 +286,13 @@
             if (!snap.exists()) {
                 await setDoc(lockRef, { device_id: fingerprint, registered_by: emailInput });
             } else if (snap.data().device_id !== fingerprint) {
+                await logAdminAction(emailInput, "unauthorized_device", fingerprint);
                 await signOut(auth);
                 errMsg.textContent = "خطأ أمني: هذا الجهاز غير مسجل للدخول";
                 return;
             }
+
+            await logAdminAction(emailInput, "success_login", fingerprint);
         } catch (e) {
             console.error("Full Error:", e);
             errMsg.textContent = "عطل في الاتصال: " + e.message;
@@ -331,8 +346,8 @@
         });
     }
 
+    // 🛡️ مراقب الحالة: يعتمد على التحقق المزدوج (Firebase + Server JWT)
     onAuthStateChanged(auth, async (user) => {
-        // التحقق من أن السيرفر يؤكد صحة التوكن وبصمة الجهاز
         const isVerified = await verifyServerSession();
         
         if (user && user.email === "amir992005@gmail.com" && isVerified) {
@@ -342,14 +357,20 @@
         } else {
             document.getElementById('auth-overlay').classList.remove('hidden');
             document.getElementById('main-panel').classList.add('hidden');
+            // إذا كان هناك جلسة Firebase بدون توكن سيرفر، سجل خروج فوراً
+            if (user) await signOut(auth);
         }
     });
 
     window.logout = async () => {
-        // تسجيل الخروج من Firebase ومسح الجلسة
-        await signOut(auth);
-        // التوكن في الكوكي سينتهي أو يُمسح عند إعادة التحميل أو انتهاء الوقت
-        location.reload();
+        try {
+            // ✅ استدعاء API تسجيل الخروج لمسح الكوكي
+            await fetch("/api/logout", { method: "POST" });
+            await signOut(auth);
+            location.reload();
+        } catch (e) {
+            location.reload();
+        }
     };
 </script>
 </body>
