@@ -15,9 +15,9 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req, res) {
-  // --- إضافة حماية الأمان (Authorization) ---
-  const adminSecret = process.env.ADMIN_SECRET;
-  if (req.headers.authorization !== adminSecret) {
+  // --- تعديل مسمى الحماية إلى JWT_SECRET كما طلبت ---
+  const jwtSecret = process.env.JWT_SECRET;
+  if (req.headers.authorization !== jwtSecret) {
     return res.status(403).json({ error: "Unauthorized Access! ⛔" });
   }
 
@@ -66,7 +66,6 @@ export default async function handler(req, res) {
       if (d.status === "done") { 
         totalTasksPoints += (Number(d.pointsEarned) || 0);
       }
-      // ملاحظة: يمكنك تقليل الداتا هنا بإرجاع آخر 5 مهام فقط لتوفير الأداء
       tasksList.push({ ...d, date: d.date?.toDate() || "N/A" });
     });
 
@@ -80,7 +79,7 @@ export default async function handler(req, res) {
     let deviceId = "غير مسجل";
     if (!devices.empty) {
       const dData = devices.docs[0].data();
-      deviceId = dData.deviceId || devices.docs[0].id; 
+      deviceId = dData.deviceId || devices.docs[0].id;
     }
 
     // حساب السحوبات (بناءً على حقل net)
@@ -89,7 +88,7 @@ export default async function handler(req, res) {
     withdrawals.forEach(doc => {
       const d = doc.data();
       if (d.status === "completed") totalPaidNet += (Number(d.net) || 0);
-      withdrawalsList.push({ ...d, id: doc.id, date: d.date?.toDate() || "N/A" });
+      withdrawalsList.push({ ...d, id: doc.id, date: d.timestamp?.toDate() || "N/A" });
     });
 
     const referralsList = [];
@@ -116,9 +115,9 @@ export default async function handler(req, res) {
         totalRewardsPoints 
       },
       history: {
-        tasksCount: tasks.size, // إرسال العدد الإجمالي لتقليل حمل البيانات
+        tasksCount: tasks.size, 
         withdrawals: withdrawalsList,
-        tasks: tasksList, // قائمة المهام (يمكن فلترتها برمجياً في الواجهة)
+        tasks: tasksList, 
         referrals: referralsList
       }
     });
