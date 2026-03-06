@@ -222,55 +222,67 @@
         return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    document.getElementById('unlock-btn').onclick = async () => {
-    const emailInput = document.getElementById('email').value.trim();
-    const passInput = document.getElementById('pass').value.trim();
-    const errMsg = document.getElementById('error-msg');
-    const fingerprint = await getFingerprint();
-
-    errMsg.textContent = "جاري التحقق من الهوية...";
-
-    try {
-        const res = await fetch("/api/admin-login", {
-            method: "POST",
-            headers: { 
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            body: JSON.stringify({ 
-                email: emailInput, 
-                password: passInput 
-            })
-        });
-
-        const apiData = await res.json();
-
-        if (!res.ok) {
-            console.log("Server Response:", apiData);
-            errMsg.textContent = "فشل التحقق: " + (apiData.message || "خطأ في السيرفر");
-            return;
+    // دالة التحقق من صحة التوكن الموجود في الكوكي عبر السيرفر
+    async function verifyServerSession() {
+        const fp = await getFingerprint();
+        try {
+            const res = await fetch("/api/verify-admin", {
+                headers: { 'x-fingerprint': fp }
+            });
+            const data = await res.json();
+            return res.ok && data.valid;
+        } catch {
+            return false;
         }
-
-        localStorage.setItem("adminToken", apiData.token);
-
-        await signInWithEmailAndPassword(auth, emailInput, passInput);
-        
-        const lockRef = doc(db, "system", "admin_lock");
-        const snap = await getDoc(lockRef);
-
-        if (!snap.exists()) {
-            await setDoc(lockRef, { device_id: fingerprint, registered_by: emailInput });
-        } else if (snap.data().device_id !== fingerprint) {
-            await signOut(auth);
-            localStorage.removeItem("adminToken");
-            errMsg.textContent = "خطأ أمني: هذا الجهاز غير مسجل للدخول";
-            return;
-        }
-    } catch (e) {
-        console.error("Full Error:", e);
-        errMsg.textContent = "عطل في الاتصال: " + e.message;
     }
-};
+
+    document.getElementById('unlock-btn').onclick = async () => {
+        const emailInput = document.getElementById('email').value.trim();
+        const passInput = document.getElementById('pass').value.trim();
+        const errMsg = document.getElementById('error-msg');
+        const fingerprint = await getFingerprint();
+
+        errMsg.textContent = "جاري التحقق من الهوية...";
+
+        try {
+            const res = await fetch("/api/admin-login", {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify({ 
+                    email: emailInput, 
+                    password: passInput,
+                    fingerprint: fingerprint // إرسال البصمة لتشفيرها داخل التوكن
+                })
+            });
+
+            const apiData = await res.json();
+
+            if (!res.ok) {
+                errMsg.textContent = "فشل التحقق: " + (apiData.message || "خطأ في السيرفر");
+                return;
+            }
+
+            // ملاحظة: التوكن الآن يُخزن في HttpOnly Cookie تلقائياً بواسطة السيرفر
+            await signInWithEmailAndPassword(auth, emailInput, passInput);
+            
+            const lockRef = doc(db, "system", "admin_lock");
+            const snap = await getDoc(lockRef);
+
+            if (!snap.exists()) {
+                await setDoc(lockRef, { device_id: fingerprint, registered_by: emailInput });
+            } else if (snap.data().device_id !== fingerprint) {
+                await signOut(auth);
+                errMsg.textContent = "خطأ أمني: هذا الجهاز غير مسجل للدخول";
+                return;
+            }
+        } catch (e) {
+            console.error("Full Error:", e);
+            errMsg.textContent = "عطل في الاتصال: " + e.message;
+        }
+    };
 
     function startRealTimeStats() {
         onSnapshot(collection(db, "users"), (snap) => {
@@ -319,11 +331,11 @@
         });
     }
 
-    onAuthStateChanged(auth, (user) => {
-        const token = localStorage.getItem("adminToken");
+    onAuthStateChanged(auth, async (user) => {
+        // التحقق من أن السيرفر يؤكد صحة التوكن وبصمة الجهاز
+        const isVerified = await verifyServerSession();
         
-        // التحقق المزدوج بناءً على الإيميل المخزن في المتغيرات البيئية
-        if (user && user.email === "amir992005@gmail.com" && token) {
+        if (user && user.email === "amir992005@gmail.com" && isVerified) {
             document.getElementById('auth-overlay').classList.add('hidden');
             document.getElementById('main-panel').classList.remove('hidden');
             startRealTimeStats();
@@ -333,9 +345,11 @@
         }
     });
 
-    window.logout = () => {
-        localStorage.removeItem("adminToken");
-        signOut(auth);
+    window.logout = async () => {
+        // تسجيل الخروج من Firebase ومسح الجلسة
+        await signOut(auth);
+        // التوكن في الكوكي سينتهي أو يُمسح عند إعادة التحميل أو انتهاء الوقت
+        location.reload();
     };
 </script>
 </body>
