@@ -34,6 +34,12 @@
         td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .status-tag { padding: 3px 8px; border-radius: 5px; font-weight: 900; font-size: 0.65rem; }
         .hidden { display: none !important; }
+        
+        /* ستايل الملخص الجديد */
+        .summary-box { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
+        .summary-item { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); }
+        .summary-item span { display: block; font-size: 0.7rem; color: #888; margin-bottom: 5px; }
+        .summary-item b { font-size: 1.2rem; color: var(--primary); }
     </style>
 </head>
 <body>
@@ -72,6 +78,28 @@
 
         <div class="logs-area">
             <div class="card">
+                <h4 style="margin:0 0 15px 0; font-size: 0.8rem; color: var(--primary);">ملخص النشاط (العدد الإجمالي)</h4>
+                <div class="summary-box">
+                    <div class="summary-item">
+                        <span>إجمالي المهام المنفذة</span>
+                        <b id="count-tasks">0</b>
+                    </div>
+                    <div class="summary-item">
+                        <span>إجمالي طلبات السحب</span>
+                        <b id="count-withdrawals">0</b>
+                    </div>
+                    <div class="summary-item">
+                        <span>سحوبات مكتملة</span>
+                        <b id="count-completed-withdrawals" style="color: var(--success);">0</b>
+                    </div>
+                    <div class="summary-item">
+                        <span>سحوبات معلقة</span>
+                        <b id="count-pending-withdrawals" style="color: var(--danger);">0</b>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card hidden">
                 <h4 style="margin:0 0 15px 0; font-size: 0.8rem; color: var(--primary);">سجل السحوبات</h4>
                 <table id="table-withdrawals">
                     <thead><tr><th>المبلغ</th><th>الصافي</th><th>الوسيلة</th><th>الحالة</th></tr></thead>
@@ -79,7 +107,7 @@
                 </table>
             </div>
 
-            <div class="card">
+            <div class="card hidden">
                 <h4 style="margin:0 0 15px 0; font-size: 0.8rem; color: var(--primary);">المهام المكتملة</h4>
                 <table id="table-tasks">
                     <thead><tr><th>المهمة</th><th>النقاط</th><th>التاريخ</th></tr></thead>
@@ -91,19 +119,28 @@
 </div>
 
 <script>
+    // تخزين المفتاح السري محلياً بعد أول مرة لمنع تكرار الـ prompt
+    let MASTER_KEY = "";
+
     async function fetchUser() {
         const q = document.getElementById('userInput').value.trim();
         if(!q) return;
+        
+        if(!MASTER_KEY) MASTER_KEY = prompt("أدخل مفتاح الإدارة السري (ADMIN_SECRET):");
+        if(!MASTER_KEY) return;
 
         document.getElementById('loader').classList.remove('hidden');
         document.getElementById('mainUI').classList.add('hidden');
 
         try {
-            const res = await fetch(`/api/audit-user?query=${encodeURIComponent(q)}`);
+            // إضافة الـ Authorization في طلب الـ GET أيضاً للأمان
+            const res = await fetch(`/api/audit-user?query=${encodeURIComponent(q)}`, {
+                headers: { 'Authorization': MASTER_KEY }
+            });
             const data = await res.json();
             if(!res.ok) throw new Error(data.error);
 
-            // عرض البيانات
+            // عرض البيانات الأساسية
             document.getElementById('view-name').innerText = data.profile.name;
             document.getElementById('view-uid').innerText = data.profile.uid;
             document.getElementById('view-device').innerText = data.profile.deviceId || 'غير متوفر';
@@ -115,32 +152,52 @@
             document.getElementById('view-status').innerText = data.profile.status === 'active' ? '✅ نشط' : '🚫 محظور';
             document.getElementById('editPoints').value = data.profile.points;
 
-            // ملء الجداول
-            fillTable('table-withdrawals', data.history.withdrawals, (w) => `
-                <td>${w.amount}</td><td>${w.net}</td><td>${w.method}</td>
-                <td><span class="status-tag" style="background:${w.status === 'completed' ? 'var(--success)' : 'orange'}; color:#000">${w.status}</span></td>
-            `);
-
-            fillTable('table-tasks', data.history.tasks, (t) => `
-                <td>${t.taskName || t.taskId}</td><td>${t.pointsEarned}</td><td>${new Date(t.date).toLocaleDateString('ar-EG')}</td>
-            `);
+            // تحديث أعداد الملخص (لتقليل الزحام البصري)
+            // ملاحظة: قمنا بتغيير data.history.tasks.length إلى data.history.tasksCount ليتناسب مع تحديث الـ API الموفر للقراءة
+            document.getElementById('count-tasks').innerText = data.history.tasksCount || 0;
+            document.getElementById('count-withdrawals').innerText = data.history.withdrawals.length;
+            document.getElementById('count-completed-withdrawals').innerText = data.history.withdrawals.filter(w => w.status === 'completed').length;
+            document.getElementById('count-pending-withdrawals').innerText = data.history.withdrawals.filter(w => w.status === 'pending').length;
 
             document.getElementById('mainUI').classList.remove('hidden');
-        } catch (e) { alert(e.message); }
+        } catch (e) { 
+            alert(e.message);
+            if(e.message.includes("Unauthorized")) MASTER_KEY = ""; // إعادة تعيين المفتاح إذا كان خاطئاً
+        }
         finally { document.getElementById('loader').classList.add('hidden'); }
     }
 
     async function adminAction(type, val) {
         const uid = document.getElementById('view-uid').innerText;
-        let url = `/api/audit-user?query=${uid}&action=${type}`;
+        if(!MASTER_KEY) MASTER_KEY = prompt("أدخل مفتاح الإدارة السري:");
         
-        if(type === 'updatePoints') url += `&amount=${document.getElementById('editPoints').value}`;
-        if(type === 'updateStatus') url += `&status=${val}`;
-
         if(!confirm("هل أنت متأكد من هذا الإجراء؟")) return;
 
-        const res = await fetch(url);
-        if(res.ok) { alert("تم التنفيذ!"); fetchUser(); }
+        try {
+            // استخدام POST بدلاً من GET للتعديل الحساس
+            const res = await fetch(`/api/audit-user?query=${uid}`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': MASTER_KEY 
+                },
+                body: JSON.stringify({
+                    action: type,
+                    amount: type === 'updatePoints' ? document.getElementById('editPoints').value : null,
+                    status: type === 'updateStatus' ? val : null
+                })
+            });
+
+            const result = await res.json();
+            if(res.ok) { 
+                alert("تم التنفيذ!"); 
+                fetchUser(); 
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (e) {
+            alert("خطأ: " + e.message);
+        }
     }
 
     function fillTable(id, data, rowFunc) {
