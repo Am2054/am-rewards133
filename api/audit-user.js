@@ -15,7 +15,13 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req, res) {
-  const { query, action, amount, status } = req.query;
+  // --- إضافة حماية الأمان (Authorization) ---
+  const adminSecret = process.env.ADMIN_SECRET;
+  if (req.headers.authorization !== adminSecret) {
+    return res.status(403).json({ error: "Unauthorized Access! ⛔" });
+  }
+
+  const { query } = req.query; // Query للإشارة للمستخدم (UID أو Email)
   if (!query) return res.status(400).json({ error: "Query required" });
 
   try {
@@ -29,17 +35,21 @@ export default async function handler(req, res) {
     const uid = userDoc.id;
     const userData = userDoc.data();
 
-    // 2. معالجة الإجراءات الإدارية (تعديل رصيد أو حظر)
-    if (action === "updatePoints") {
-      await db.collection("users").doc(uid).update({ points: Number(amount) });
-      return res.status(200).json({ success: true });
-    }
-    if (action === "updateStatus") {
-      await db.collection("users").doc(uid).update({ accountStatus: status });
-      return res.status(200).json({ success: true });
+    // 2. معالجة الإجراءات الإدارية (عبر POST لضمان الأمان)
+    if (req.method === "POST") {
+      const { action, amount, status } = req.body; // استقبال البيانات من Body
+
+      if (action === "updatePoints") {
+        await db.collection("users").doc(uid).update({ points: Number(amount) });
+        return res.status(200).json({ success: true, message: "تم تحديث النقاط" });
+      }
+      if (action === "updateStatus") {
+        await db.collection("users").doc(uid).update({ accountStatus: status });
+        return res.status(200).json({ success: true, message: "تم تغيير الحالة" });
+      }
     }
 
-    // 3. جلب التقارير الشاملة بالتوازي
+    // 3. جلب التقارير الشاملة بالتوازي (GET)
     const [withdrawals, tasks, referrals, devices, rewards] = await Promise.all([
       db.collection("withdrawals").where("userId", "==", uid).get(),
       db.collection("tasksCompleted").where("userId", "==", uid).get(),
@@ -53,9 +63,10 @@ export default async function handler(req, res) {
     const tasksList = [];
     tasks.forEach(doc => {
       const d = doc.data();
-      if (d.status === "done") { // التأكد من حالة المهمة
+      if (d.status === "done") { 
         totalTasksPoints += (Number(d.pointsEarned) || 0);
       }
+      // ملاحظة: يمكنك تقليل الداتا هنا بإرجاع آخر 5 مهام فقط لتوفير الأداء
       tasksList.push({ ...d, date: d.date?.toDate() || "N/A" });
     });
 
@@ -65,10 +76,11 @@ export default async function handler(req, res) {
       totalRewardsPoints += (Number(doc.data().amount) || 0);
     });
 
-    // جلب معرف الجهاز (DeviceId)
+    // جلب معرف الجهاز (DeviceId) - تم التصحيح لجلب القيمة من الداتا
     let deviceId = "غير مسجل";
     if (!devices.empty) {
-      deviceId = devices.docs[0].id; // أو الحقل المخصص داخل الوثيقة
+      const dData = devices.docs[0].data();
+      deviceId = dData.deviceId || devices.docs[0].id; 
     }
 
     // حساب السحوبات (بناءً على حقل net)
@@ -86,6 +98,7 @@ export default async function handler(req, res) {
       referralsList.push({ name: d.name, email: d.email });
     });
 
+    // إرسال الرد النهائي
     return res.status(200).json({
       profile: {
         uid,
@@ -94,17 +107,18 @@ export default async function handler(req, res) {
         points: userData.points || 0,
         refEarnings: userData.totalReferralEarnings || 0,
         status: userData.accountStatus || "active",
-        deviceId: deviceId, // معرف الجهاز المطلوب
+        deviceId: deviceId, 
         lastIp: userData.lastIp || "N/A"
       },
       stats: { 
         totalPaidNet,
-        totalTasksPoints, // مجموع نقاط المهام المطلوب
-        totalRewardsPoints // مجموع المكافآت المطلوب
+        totalTasksPoints, 
+        totalRewardsPoints 
       },
       history: {
+        tasksCount: tasks.size, // إرسال العدد الإجمالي لتقليل حمل البيانات
         withdrawals: withdrawalsList,
-        tasks: tasksList,
+        tasks: tasksList, // قائمة المهام (يمكن فلترتها برمجياً في الواجهة)
         referrals: referralsList
       }
     });
