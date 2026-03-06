@@ -15,11 +15,7 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req, res) {
-  // --- تعديل مسمى الحماية إلى JWT_SECRET كما طلبت ---
-  const jwtSecret = process.env.JWT_SECRET;
-  if (req.headers.authorization !== jwtSecret) {
-    return res.status(403).json({ error: "Unauthorized Access! ⛔" });
-  }
+  // تم حذف جزء التحقق من JWT_SECRET بناءً على طلبك
 
   const { query } = req.query; // Query للإشارة للمستخدم (UID أو Email)
   if (!query) return res.status(400).json({ error: "Query required" });
