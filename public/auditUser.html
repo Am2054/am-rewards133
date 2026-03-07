@@ -4,85 +4,257 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AM REWARDS | نظام المراجعة المتقدم</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #00f2ff; --bg: #0a0a0a; --card: #151515; --border: rgba(0, 242, 255, 0.15); --danger: #ff0055; --success: #00ffc3; }
-        body { background: var(--bg); color: #fff; font-family: 'Cairo', sans-serif; margin: 0; padding: 20px; line-height: 1.6; }
+        :root { 
+            --primary: #00f2ff; 
+            --bg: #050505; 
+            --card: #111111; 
+            --border: rgba(0, 242, 255, 0.1); 
+            --danger: #ff0055; 
+            --success: #00ffc3; 
+            --glass: rgba(255, 255, 255, 0.03);
+        }
+        
+        body { 
+            background: var(--bg); 
+            color: #fff; 
+            font-family: 'Cairo', sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            line-height: 1.6;
+            background-image: radial-gradient(circle at 50% 50%, #0a151a 0%, #050505 100%);
+            background-attachment: fixed;
+        }
+
         .container { max-width: 1200px; margin: 0 auto; }
-        .search-area { display: flex; gap: 10px; margin-bottom: 30px; }
-        input { flex: 1; padding: 15px; border-radius: 12px; border: 1px solid var(--border); background: #111; color: #fff; outline: none; }
-        .btn-search { background: var(--primary); color: #000; border: none; padding: 0 30px; border-radius: 12px; font-weight: 900; cursor: pointer; }
-        .audit-grid { display: grid; grid-template-columns: 320px 1fr; gap: 25px; }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 25px; }
-        .section-title { color: var(--primary); font-size: 1.1rem; font-weight: 900; margin: 30px 0 15px; display: flex; align-items: center; gap: 10px; }
-        .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-        table { width: 100%; border-collapse: collapse; background: rgba(255,255,255,0.02); border-radius: 12px; overflow: hidden; }
-        th { background: rgba(0, 242, 255, 0.05); color: var(--primary); text-align: right; padding: 15px; font-size: 0.85rem; }
-        td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
-        .btn-details { background: #333; color: var(--primary); border: 1px solid var(--primary); padding: 5px 15px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: 700; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: var(--card); width: 90%; max-width: 800px; max-height: 80vh; overflow-y: auto; padding: 30px; border-radius: 20px; border: 1px solid var(--primary); }
-        .close-modal { float: left; color: var(--danger); font-size: 1.5rem; cursor: pointer; }
-        .status-tag { padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 900; }
-        .status-active { background: rgba(0, 255, 195, 0.1); color: var(--success); }
-        .status-banned { background: rgba(255, 0, 85, 0.1); color: var(--danger); }
+        
+        /* البحث الاحترافي */
+        .search-area { 
+            display: flex; 
+            gap: 15px; 
+            margin-bottom: 40px; 
+            background: var(--glass);
+            padding: 20px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+        }
+        
+        input { 
+            flex: 1; 
+            padding: 15px 25px; 
+            border-radius: 12px; 
+            border: 1px solid var(--border); 
+            background: rgba(0,0,0,0.5); 
+            color: #fff; 
+            outline: none; 
+            font-size: 1rem;
+            transition: 0.3s;
+        }
+        
+        input:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); }
+
+        .btn-search { 
+            background: linear-gradient(45deg, var(--primary), #00a2ff); 
+            color: #000; 
+            border: none; 
+            padding: 0 40px; 
+            border-radius: 12px; 
+            font-weight: 900; 
+            cursor: pointer; 
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+        
+        .btn-search:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0, 242, 255, 0.4); }
+
+        /* الشبكة والبطاقات */
+        .audit-grid { display: grid; grid-template-columns: 350px 1fr; gap: 30px; }
+        
+        .card { 
+            background: var(--card); 
+            border: 1px solid var(--border); 
+            border-radius: 24px; 
+            padding: 30px; 
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-info { position: sticky; top: 20px; }
+        
+        .section-title { 
+            color: var(--primary); 
+            font-size: 1.2rem; 
+            font-weight: 900; 
+            margin: 40px 0 20px; 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+        }
+        
+        .section-title::after { content: ''; flex: 1; height: 2px; background: linear-gradient(90deg, var(--border), transparent); }
+
+        /* الجداول */
+        table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+        th { text-align: right; color: #666; padding: 15px 20px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+        td { background: var(--glass); padding: 20px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+        td:first-child { border-left: 1px solid var(--border); border-radius: 15px 0 0 15px; }
+        td:last-child { border-right: 1px solid var(--border); border-radius: 0 15px 15px 0; }
+
+        .btn-details { 
+            background: transparent; 
+            color: var(--primary); 
+            border: 1px solid var(--primary); 
+            padding: 8px 20px; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            font-size: 0.75rem; 
+            font-weight: 700; 
+            transition: 0.3s;
+        }
+        
+        .btn-details:hover { background: var(--primary); color: #000; }
+
+        /* المودال وتفاصيل الكروت */
+        .modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.95); 
+            z-index: 1000; 
+            justify-content: center; 
+            align-items: center; 
+            backdrop-filter: blur(10px);
+        }
+        
+        .modal-content { 
+            background: #111; 
+            width: 90%; 
+            max-width: 900px; 
+            max-height: 85vh; 
+            overflow-y: auto; 
+            padding: 40px; 
+            border-radius: 30px; 
+            border: 1px solid var(--border); 
+            box-shadow: 0 0 50px rgba(0,0,0,1);
+        }
+
+        .detail-item-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .detail-label { font-size: 0.7rem; color: #666; display: block; margin-bottom: 5px; }
+        .detail-value { font-weight: 700; font-size: 0.95rem; color: #eee; }
+
+        .close-modal { 
+            float: left; 
+            color: var(--danger); 
+            font-size: 2rem; 
+            cursor: pointer; 
+            transition: 0.3s;
+            line-height: 1;
+        }
+        
+        .close-modal:hover { transform: rotate(90deg); }
+
+        .status-tag { 
+            padding: 5px 12px; 
+            border-radius: 8px; 
+            font-size: 0.7rem; 
+            font-weight: 900; 
+            text-transform: uppercase;
+        }
+        .status-active { background: rgba(0, 255, 195, 0.1); color: var(--success); border: 1px solid var(--success); }
+        .status-banned { background: rgba(255, 0, 85, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+        
         .hidden { display: none !important; }
-        .data-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 0.85rem; }
+        
+        .data-row { 
+            display: flex; 
+            justify-content: space-between; 
+            padding: 12px 0; 
+            border-bottom: 1px solid rgba(255,255,255,0.05); 
+            font-size: 0.9rem; 
+        }
+        
+        .data-row span { color: #888; }
+        .data-row b, .data-row small { font-weight: 700; }
+
+        .admin-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px dashed var(--border);
+        }
+
+        /* لودر احترافي */
+        #loader { font-weight: 900; letter-spacing: 2px; text-transform: uppercase; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="search-area">
-        <input type="text" id="userInput" placeholder="أدخل UID أو البريد الإلكتروني للمستخدم...">
-        <button class="btn-search" onclick="fetchUser()">فحص البيانات</button>
+        <input type="text" id="userInput" placeholder="ابحث عن UID أو البريد الإلكتروني للمستخدم...">
+        <button class="btn-search" onclick="fetchUser()">تحليل الحساب</button>
     </div>
 
-    <div id="loader" class="hidden" style="text-align: center; color: var(--primary);">جاري التحميل...</div>
+    <div id="loader" class="hidden" style="text-align: center; color: var(--primary);">جاري سحب البيانات من الأرشيف...</div>
 
     <div id="mainUI" class="audit-grid hidden">
         <div class="card profile-info">
-            <h2 id="view-name" style="margin-top:0; color:var(--primary);">...</h2>
-            <div class="data-row"><span>UID:</span> <small id="view-uid" style="color:#888; font-size: 0.6rem;"></small></div>
-            <div class="data-row"><span>Device ID:</span> <small id="view-device" style="color:var(--danger); font-size: 0.6rem;"></small></div>
-            <div class="data-row"><span>آخر ظهور:</span> <small id="view-lastLogin" style="color:var(--success); font-size: 0.7rem;"></small></div>
-            <div class="data-row"><span>النقاط:</span> <b id="view-points" style="color:var(--primary);">0</b></div>
-            <div class="data-row"><span>الحالة:</span> <span id="view-status"></span></div>
-            <div style="margin-top:20px;">
-                <input type="number" id="editPoints" style="width:100%; margin-bottom:10px; padding:10px; background:#111; border:1px solid var(--border); color:#fff; border-radius:8px;">
-                <button onclick="adminAction('updatePoints')" style="width:100%; background:var(--primary); color:#000; border:none; padding:12px; border-radius:8px; font-weight:900; cursor:pointer;">حفظ النقاط</button>
+            <h2 id="view-name" style="margin-top:0; color:var(--primary); font-size: 1.8rem;">...</h2>
+            <div class="data-row"><span>ID الحساب:</span> <small id="view-uid" style="color:var(--primary);"></small></div>
+            <div class="data-row"><span>معرف الجهاز:</span> <small id="view-device" style="color:var(--danger);"></small></div>
+            <div class="data-row"><span>آخر ظهور:</span> <small id="view-lastLogin" style="color:var(--success);"></small></div>
+            <div class="data-row"><span>رصيد النقاط:</span> <b id="view-points" style="font-size: 1.2rem;">0</b></div>
+            <div class="data-row"><span>حالة الحساب:</span> <span id="view-status"></span></div>
+            
+            <div class="admin-section">
+                <p style="font-size: 0.7rem; color: #666; margin-bottom: 10px;">لوحة التحكم الإدارية</p>
+                <input type="number" id="editPoints" placeholder="أدخل النقاط الجديدة...">
+                <button onclick="adminAction('updatePoints')" style="width:100%; background:var(--primary); color:#000; border:none; padding:15px; border-radius:12px; font-weight:900; cursor:pointer; margin-top:10px;">تحديث الرصيد</button>
             </div>
         </div>
 
         <div class="logs-area">
-            <div class="section-title">المهام</div>
-            <div class="card" style="padding:0; overflow-x:auto;">
+            <div class="section-title">إحصائيات المهام المنجزة</div>
+            <div style="overflow-x:auto;">
                 <table id="table-tasks">
-                    <thead><tr><th>نوع المهمة</th><th>العدد</th><th>النقاط</th><th>التفاصيل</th></tr></thead>
+                    <thead><tr><th>نوع المهمة</th><th>العدد</th><th>إجمالي النقاط</th><th>الإجراء</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
 
-            <div class="section-title">الإحالات</div>
-            <div class="card" style="padding:0; overflow-x:auto;">
+            <div class="section-title">نظام الإحالات</div>
+            <div style="overflow-x:auto;">
                 <table id="table-referrals">
-                    <thead><tr><th>العدد الكلي</th><th>الأرباح</th><th>التفاصيل</th></tr></thead>
+                    <thead><tr><th>عدد الأشخاص</th><th>الأرباح المحققة</th><th>الإجراء</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
 
-            <div class="section-title">السحوبات</div>
-            <div class="card" style="padding:0; overflow-x:auto;">
+            <div class="section-title">سجل عمليات السحب</div>
+            <div style="overflow-x:auto;">
                 <table id="table-withdrawals">
-                    <thead><tr><th>الوسيلة</th><th>الرقم</th><th>المبلغ</th><th>التفاصيل</th></tr></thead>
+                    <thead><tr><th>وسيلة السحب</th><th>الرقم / المحفظة</th><th>المبلغ</th><th>الإجراء</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
 
-            <div class="section-title">التذاكر</div>
-            <div class="card" style="padding:0; overflow-x:auto;">
+            <div class="section-title">تذاكر الدعم والشكاوى</div>
+            <div style="overflow-x:auto;">
                 <table id="table-tickets">
-                    <thead><tr><th>المشكلة</th><th>التاريخ</th><th>النقاط</th><th>الحالة</th><th>التفاصيل</th></tr></thead>
+                    <thead><tr><th>نوع المشكلة</th><th>تاريخ الطلب</th><th>المكافأة</th><th>الحالة</th><th>الإجراء</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
@@ -93,8 +265,8 @@
 <div id="detailModal" class="modal">
     <div class="modal-content">
         <span class="close-modal" onclick="closeModal()">&times;</span>
-        <h3 id="modalTitle" style="color:var(--primary);">التفاصيل</h3>
-        <div id="modalBody" style="margin-top:20px;"></div>
+        <h3 id="modalTitle" style="color:var(--primary); margin-top:0; font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 15px;">التفاصيل</h3>
+        <div id="modalBody" style="margin-top:25px;"></div>
     </div>
 </div>
 
@@ -105,6 +277,7 @@
         const q = document.getElementById('userInput').value;
         if(!q) return;
         document.getElementById('loader').classList.remove('hidden');
+        document.getElementById('mainUI').classList.add('hidden');
         try {
             const res = await fetch(`/api/audit-user?query=${q}`);
             const data = await res.json();
@@ -117,80 +290,109 @@
 
     function renderUI(data) {
         document.getElementById('mainUI').classList.remove('hidden');
-        document.getElementById('view-name').innerText = data.profile.name || 'N/A';
+        document.getElementById('view-name').innerText = data.profile.name || 'مستخدم مجهول';
         document.getElementById('view-uid').innerText = data.profile.uid;
         document.getElementById('view-device').innerText = data.profile.deviceId;
-        document.getElementById('view-lastLogin').innerText = data.profile.lastLogin ? new Date(data.profile.lastLogin).toLocaleString('ar-EG') : 'غير متوفر';
+        document.getElementById('view-lastLogin').innerText = data.profile.lastLogin ? new Date(data.profile.lastLogin).toLocaleString('ar-EG') : 'غير مسجل';
         document.getElementById('view-points').innerText = (data.profile.points || 0).toLocaleString();
-        document.getElementById('view-status').innerHTML = `<span class="status-tag ${data.profile.accountStatus === 'active' ? 'status-active' : 'status-banned'}">${data.profile.accountStatus}</span>`;
+        document.getElementById('view-status').innerHTML = `<span class="status-tag ${data.profile.accountStatus === 'active' ? 'status-active' : 'status-banned'}">${data.profile.accountStatus === 'active' ? 'نشط' : 'محظور'}</span>`;
 
         // رندر المهام
         const tasksBody = document.querySelector('#table-tasks tbody');
         tasksBody.innerHTML = Object.entries(data.tasksGrouped).map(([type, d]) => `
-            <tr><td>${type}</td><td>${d.count}</td><td>${d.points}</td><td><button class="btn-details" onclick="showTaskDetails('${type}')">عرض</button></td></tr>
-        `).join('') || '<tr><td colspan="4" style="text-align:center">لا يوجد مهام</td></tr>';
+            <tr><td><b>${type}</b></td><td>${d.count}</td><td style="color:var(--primary)">${d.points}</td><td><button class="btn-details" onclick="showTaskDetails('${type}')">عرض التفاصيل</button></td></tr>
+        `).join('') || '<tr><td colspan="4" style="text-align:center">لا توجد سجلات مهام</td></tr>';
 
         // رندر الإحالات
         const refBody = document.querySelector('#table-referrals tbody');
-        refBody.innerHTML = `<tr><td>${data.referrals.length}</td><td style="color:var(--success)">${data.profile.totalReferralEarnings || 0}</td><td><button class="btn-details" onclick="showReferralDetails()">عرض</button></td></tr>`;
+        refBody.innerHTML = `<tr><td>${data.referrals.length} إحالة</td><td style="color:var(--success)">${data.profile.totalReferralEarnings || 0} نقطة</td><td><button class="btn-details" onclick="showReferralDetails()">قائمة المدعوين</button></td></tr>`;
 
         // رندر السحوبات
         const withBody = document.querySelector('#table-withdrawals tbody');
         withBody.innerHTML = data.withdrawals.map(w => `
-            <tr><td>${w.method}</td><td>${w.wallet || w.phone || 'N/A'}</td><td>${w.amount} EGP</td><td><button class="btn-details" onclick="showWithdrawDetails('${w.id}')">التفاصيل</button></td></tr>
-        `).join('') || '<tr><td colspan="4" style="text-align:center">لا يوجد سحوبات</td></tr>';
+            <tr><td>${w.method}</td><td>${w.wallet || w.phone || 'N/A'}</td><td><b>${w.amount} EGP</b></td><td><button class="btn-details" onclick="showWithdrawDetails('${w.id}')">كشف الحالة</button></td></tr>
+        `).join('') || '<tr><td colspan="4" style="text-align:center">لا توجد طلبات سحب</td></tr>';
 
         // رندر التذاكر
         const ticketBody = document.querySelector('#table-tickets tbody');
         ticketBody.innerHTML = data.tickets.map(t => `
-            <tr><td>${t.selectedService || 'عامة'}</td><td><small>${t.timestamp ? new Date(t.timestamp).toLocaleString('ar-EG') : 'N/A'}</small></td><td>${t.rewardPoints || 0}</td><td>${t.status}</td><td><button class="btn-details" onclick="showTicketDetails('${t.id}')">فتح</button></td></tr>
-        `).join('') || '<tr><td colspan="5" style="text-align:center">لا يوجد تذاكر</td></tr>';
+            <tr><td>${t.selectedService || 'عامة'}</td><td><small>${t.timestamp ? new Date(t.timestamp).toLocaleString('ar-EG') : 'N/A'}</small></td><td>${t.rewardPoints || 0}</td><td><span class="status-tag status-active">${t.status}</span></td><td><button class="btn-details" onclick="showTicketDetails('${t.id}')">المحادثة</button></td></tr>
+        `).join('') || '<tr><td colspan="5" style="text-align:center">لا توجد تذاكر دعم</td></tr>';
     }
 
     function showTaskDetails(type) {
         const details = globalData.tasksGrouped[type].details;
-        let html = `<table><tr><th>ID</th><th>النقاط</th><th>التاريخ</th></tr>`;
-        details.forEach(t => {
-            html += `<tr><td>${t.taskId}</td><td>${t.pointsEarned}</td><td>${t.date ? new Date(t.date).toLocaleString() : 'N/A'}</td></tr>`;
-        });
-        openModal(`تفاصيل: ${type}`, html + `</table>`);
+        let html = details.map(t => `
+            <div class="detail-item-card">
+                <div><span class="detail-label">معرف المهمة</span><span class="detail-value">${t.taskId}</span></div>
+                <div><span class="detail-label">النقاط المكتسبة</span><span class="detail-value" style="color:var(--success)">+${t.pointsEarned}</span></div>
+                <div><span class="detail-label">تاريخ الإنجاز</span><span class="detail-value">${t.date ? new Date(t.date).toLocaleString('ar-EG') : 'N/A'}</span></div>
+            </div>
+        `).join('');
+        openModal(`تفاصيل المهام: ${type}`, html);
     }
 
     function showReferralDetails() {
-        let html = `<table><tr><th>الاسم</th><th>الربح</th><th>متبقي سحوبات</th></tr>`;
-        globalData.referrals.forEach(r => {
-            html += `<tr><td>${r.name}</td><td>${r.earnedFromHim}</td><td>${r.withdrawalsLeft}</td></tr>`;
-        });
-        openModal(`قائمة الإحالات`, html + `</table>`);
+        let html = globalData.referrals.map(r => `
+            <div class="detail-item-card">
+                <div><span class="detail-label">اسم المستخدم</span><span class="detail-value">${r.name}</span></div>
+                <div><span class="detail-label">أرباحك منه</span><span class="detail-value" style="color:var(--primary)">${r.earnedFromHim} نقطة</span></div>
+                <div><span class="detail-label">سحوبات متبقية للمكافأة</span><span class="detail-value" style="color:var(--danger)">${r.withdrawalsLeft} سحب</span></div>
+            </div>
+        `).join('');
+        openModal(`قائمة الإحالات النشطة`, html);
     }
 
     function showWithdrawDetails(id) {
         const w = globalData.withdrawals.find(x => x.id === id);
-        openModal('تفاصيل السحب', `<div class="data-row"><span>الحالة:</span><b>${w.status}</b></div><div class="data-row"><span>الصافي:</span><b>${w.net}</b></div><div class="data-row"><span>التاريخ:</span><b>${w.timestamp ? new Date(w.timestamp).toLocaleString() : 'N/A'}</b></div>`);
+        let html = `
+            <div class="detail-item-card" style="grid-template-columns: 1fr 1fr;">
+                <div><span class="detail-label">الحالة النهائية</span><span class="detail-value">${w.status}</span></div>
+                <div><span class="detail-label">المبلغ الصافي (Net)</span><span class="detail-value">${w.net} EGP</span></div>
+                <div><span class="detail-label">تاريخ العملية</span><span class="detail-value">${w.timestamp ? new Date(w.timestamp).toLocaleString() : 'N/A'}</span></div>
+                <div><span class="detail-label">رقم الطلب</span><span class="detail-value">#${w.id.substring(0,8)}</span></div>
+            </div>
+        `;
+        openModal('بيانات السحب المالي', html);
     }
 
     function showTicketDetails(id) {
         const t = globalData.tickets.find(x => x.id === id);
-        openModal('تفاصيل التذكرة', `<p><b>الرسالة:</b><br>${t.message}</p><p style="color:var(--primary)"><b>الرد:</b><br>${t.adminReply || 'قيد الانتظار'}</p>`);
+        let html = `
+            <div class="card" style="background:rgba(0,0,0,0.3); margin-bottom: 20px;">
+                <span class="detail-label">رسالة المستخدم:</span>
+                <p style="margin:10px 0; font-size:1rem; border-right: 3px solid var(--primary); padding-right: 15px;">${t.message}</p>
+            </div>
+            <div class="card" style="background:rgba(0,255,195,0.05);">
+                <span class="detail-label">رد الإدارة:</span>
+                <p style="margin:10px 0; font-size:1rem; color:var(--success); border-right: 3px solid var(--success); padding-right: 15px;">${t.adminReply || 'لا يوجد رد إداري حتى الآن'}</p>
+            </div>
+        `;
+        openModal('محتوى تذكرة الدعم', html);
     }
 
     function openModal(title, body) {
         document.getElementById('modalTitle').innerText = title;
         document.getElementById('modalBody').innerHTML = body;
         document.getElementById('detailModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
     }
 
-    function closeModal() { document.getElementById('detailModal').style.display = 'none'; }
+    function closeModal() { 
+        document.getElementById('detailModal').style.display = 'none'; 
+        document.body.style.overflow = 'auto';
+    }
 
     async function adminAction(action) {
         const uid = document.getElementById('view-uid').innerText;
         const amount = document.getElementById('editPoints').value;
+        if(!amount) { alert("يرجى إدخال النقاط أولاً"); return; }
         const res = await fetch(`/api/audit-user?query=${uid}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action, amount })
         });
-        if(res.ok) { alert("تم الحفظ!"); fetchUser(); }
+        if(res.ok) { alert("تم تحديث قاعدة البيانات بنجاح!"); fetchUser(); }
     }
 </script>
 </body>
