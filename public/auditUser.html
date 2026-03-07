@@ -25,7 +25,7 @@
 
         .container { max-width: 1200px; margin: 0 auto; }
         
-        /* حل مشكلة تداخل الزر مع الحقل (الصورة 1) */
+        /* حل مشكلة تداخل الزر مع الحقل */
         .search-area { 
             display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 40px; 
             background: var(--glass); padding: 20px; border-radius: 20px;
@@ -57,17 +57,7 @@
         td:first-child { border-radius: 15px 0 0 15px; border-left: 1px solid var(--border); }
         td:last-child { border-radius: 0 15px 15px 0; border-right: 1px solid var(--border); }
 
-        /* ستايل الإحالات الجديد (الصورة 3) */
-        .referral-item {
-            background: #111; border: 1px solid var(--border); border-radius: 15px;
-            padding: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;
-        }
-        .ref-info { display: flex; flex-direction: column; }
-        .ref-name { font-weight: 900; font-size: 1.1rem; margin-bottom: 5px; }
-        .ref-stats { font-size: 0.8rem; color: #888; }
-        .ref-earning { background: rgba(0, 255, 195, 0.1); color: var(--success); padding: 10px 20px; border-radius: 10px; font-weight: 900; }
-
-        /* ستايل الكارت الاحترافي في منتصف الشاشة (الصورة 2) */
+        /* ستايل الكارت الاحترافي في منتصف الشاشة */
         .modal { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; 
@@ -115,8 +105,8 @@
             <div class="data-row"><span>النقاط:</span> <b id="view-points">0</b></div>
             <div class="data-row"><span>الحالة:</span> <span id="view-status"></span></div>
             <div style="margin-top:20px;">
-                <input type="number" id="editPoints" style="width:100%; margin-bottom:10px; background:#000;">
-                <button onclick="adminAction('updatePoints')" style="width:100%; background:var(--primary); border:none; padding:12px; border-radius:8px; font-weight:900; cursor:pointer;">تعديل الرصيد</button>
+                <input type="number" id="editPoints" style="width:100%; margin-bottom:10px; background:#000; border:1px solid var(--border); color:#fff; border-radius:8px; padding:10px;">
+                <button onclick="adminAction('updatePoints')" style="width:100%; background:var(--primary); border:none; padding:12px; border-radius:8px; font-weight:900; cursor:pointer; color:#000;">تعديل الرصيد</button>
             </div>
         </div>
 
@@ -127,8 +117,13 @@
                 <tbody></tbody>
             </table>
 
-            <div class="section-title">نظام الإحالات المتقدم</div>
-            <div id="referrals-list"></div> <div class="section-title">طلبات السحب</div>
+            <div class="section-title">نظام الإحالات</div>
+            <table id="table-referrals">
+                <thead><tr><th>العدد الكلي</th><th>الأرباح</th><th>التفاصيل</th></tr></thead>
+                <tbody></tbody>
+            </table>
+
+            <div class="section-title">طلبات السحب</div>
             <table id="table-withdrawals">
                 <thead><tr><th>الوسيلة</th><th>الوجهة</th><th>المبلغ</th><th>التفاصيل</th></tr></thead>
                 <tbody></tbody>
@@ -182,17 +177,9 @@
             <tr><td>${type}</td><td>${d.count}</td><td>${d.points}</td><td><button class="btn-search" style="padding:5px 15px; font-size:0.7rem;" onclick="showTaskDetails('${type}')">عرض</button></td></tr>
         `).join('') || '<tr><td colspan="4">لا يوجد مهام</td></tr>';
 
-        // رندر الإحالات بالشكل الجديد (الصورة 3)
-        const refContainer = document.getElementById('referrals-list');
-        refContainer.innerHTML = data.referrals.map(r => `
-            <div class="referral-item">
-                <div class="ref-info">
-                    <span class="ref-name">${r.name}</span>
-                    <span class="ref-stats">سحوبات متبقية: ${r.withdrawalsLeft} | الربح الإجمالي: ${r.earnedFromHim}</span>
-                </div>
-                <div class="ref-earning">+${r.earnedFromHim} نقطة</div>
-            </div>
-        `).join('') || '<p style="text-align:center">لا توجد إحالات</p>';
+        // استعادة شكل الإحالات للجدول (Table)
+        const refBody = document.querySelector('#table-referrals tbody');
+        refBody.innerHTML = `<tr><td>${data.referrals.length} إحالات</td><td style="color:var(--success)">${data.profile.totalReferralEarnings || 0}</td><td><button class="btn-search" style="padding:5px 15px; font-size:0.7rem;" onclick="showReferralDetails()">عرض</button></td></tr>`;
 
         const withBody = document.querySelector('#table-withdrawals tbody');
         withBody.innerHTML = data.withdrawals.map(w => `
@@ -209,6 +196,14 @@
         const details = globalData.tasksGrouped[type].details;
         let html = details.map(t => `<div class="data-row"><span>ID: ${t.taskId}</span><b>+${t.pointsEarned}</b></div>`).join('');
         openModal(`مهام: ${type}`, html);
+    }
+
+    function showReferralDetails() {
+        let html = `<table><tr><th>الاسم</th><th>الربح</th><th>متبقي</th></tr>`;
+        globalData.referrals.forEach(r => {
+            html += `<tr><td>${r.name}</td><td>${r.earnedFromHim}</td><td>${r.withdrawalsLeft}</td></tr>`;
+        });
+        openModal(`قائمة الإحالات`, html + `</table>`);
     }
 
     function showWithdrawDetails(id) {
