@@ -119,7 +119,7 @@
 
             <div class="section-title">نظام الإحالات</div>
             <table id="table-referrals">
-                <thead><tr><th>العدد الكلي</th><th>الأرباح</th><th>التفاصيل</th></tr></thead>
+                <thead><tr><th>العدد الكلي</th><th>الأرباح (EGP)</th><th>الأرباح (نقاط)</th><th>التفاصيل</th></tr></thead>
                 <tbody></tbody>
             </table>
 
@@ -131,7 +131,7 @@
 
             <div class="section-title">الدعم الفني</div>
             <table id="table-tickets">
-                <thead><tr><th>الخدمة</th><th>التاريخ</th><th>الحالة</th><th>فتح</th></tr></thead>
+                <thead><tr><th>الخدمة</th><th>المكافأة</th><th>التاريخ</th><th>الحالة</th><th>فتح</th></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
@@ -177,19 +177,20 @@
             <tr><td>${type}</td><td>${d.count}</td><td>${d.points}</td><td><button class="btn-search" style="padding:5px 15px; font-size:0.7rem;" onclick="showTaskDetails('${type}')">عرض</button></td></tr>
         `).join('') || '<tr><td colspan="4">لا يوجد مهام</td></tr>';
 
-        // استعادة شكل الإحالات للجدول (Table)
+        // تعديل جدول الإحالات لإضافة عمود النقاط
         const refBody = document.querySelector('#table-referrals tbody');
-        refBody.innerHTML = `<tr><td>${data.referrals.length} إحالات</td><td style="color:var(--success)">${data.profile.totalReferralEarnings || 0}</td><td><button class="btn-search" style="padding:5px 15px; font-size:0.7rem;" onclick="showReferralDetails()">عرض</button></td></tr>`;
+        refBody.innerHTML = `<tr><td>${data.referrals.length} إحالات</td><td style="color:var(--success)">${data.profile.totalReferralEarnings || 0}</td><td style="color:var(--primary)">${data.profile.referralPoints || 0}</td><td><button class="btn-search" style="padding:5px 15px; font-size:0.7rem;" onclick="showReferralDetails()">عرض</button></td></tr>`;
 
         const withBody = document.querySelector('#table-withdrawals tbody');
         withBody.innerHTML = data.withdrawals.map(w => `
             <tr><td>${w.method}</td><td>${w.wallet || w.phone || 'N/A'}</td><td>${w.amount} EGP</td><td><button class="btn-search" style="padding:5px 15px; font-size:0.7rem;" onclick="showWithdrawDetails('${w.id}')">تفاصيل</button></td></tr>
         `).join('') || '<tr><td colspan="4">لا يوجد سحوبات</td></tr>';
 
+        // تعديل جدول التذاكر لإضافة عمود المكافأة
         const ticketBody = document.querySelector('#table-tickets tbody');
         ticketBody.innerHTML = data.tickets.map(t => `
-            <tr><td>${t.selectedService || 'عامة'}</td><td><small>${new Date(t.timestamp).toLocaleDateString('ar-EG')}</small></td><td>${t.status}</td><td><button class="btn-search" style="padding:5px 15px; font-size:0.7rem;" onclick="showTicketDetails('${t.id}')">فتح</button></td></tr>
-        `).join('') || '<tr><td colspan="4">لا يوجد تذاكر</td></tr>';
+            <tr><td>${t.selectedService || 'عامة'}</td><td style="color:var(--success)">${t.rewardPoints || 0}</td><td><small>${new Date(t.timestamp).toLocaleDateString('ar-EG')}</small></td><td>${t.status}</td><td><button class="btn-search" style="padding:5px 15px; font-size:0.7rem;" onclick="showTicketDetails('${t.id}')">فتح</button></td></tr>
+        `).join('') || '<tr><td colspan="5">لا يوجد تذاكر</td></tr>';
     }
 
     function showTaskDetails(type) {
@@ -199,7 +200,7 @@
     }
 
     function showReferralDetails() {
-        let html = `<table><tr><th>الاسم</th><th>الربح</th><th>متبقي</th></tr>`;
+        let html = `<table><tr><th>الاسم</th><th>الربح (نقاط)</th><th>متبقي</th></tr>`;
         globalData.referrals.forEach(r => {
             html += `<tr><td>${r.name}</td><td>${r.earnedFromHim}</td><td>${r.withdrawalsLeft}</td></tr>`;
         });
