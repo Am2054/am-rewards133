@@ -40,29 +40,30 @@ export default async function handler(req, res) {
       }
     }
 
-    // جلب البيانات الشاملة بما فيها تذاكر الدعم
     const [withdrawals, tasks, referrals, devices, rewards, tickets] = await Promise.all([
       db.collection("withdrawals").where("userId", "==", uid).get(),
       db.collection("tasksCompleted").where("userId", "==", uid).get(),
       db.collection("users").where("referredBy", "==", uid).get(),
-      db.collection("userDevices").where("userId", "==", uid).limit(1).get(),
+      db.collection("userDevices").where("uid", "==", uid).limit(1).get(),
       db.collection("points_transactions").where("uid", "==", uid).where("type", "==", "reward").get(),
       db.collection("support_tickets").where("uid", "==", uid).get()
     ]);
 
-    // معالجة المهام وتجميعها حسب النوع
     const tasksAnalysis = {};
-    const fullTasks = [];
     tasks.forEach(doc => {
       const d = doc.data();
       const type = d.taskType || "other";
       if (!tasksAnalysis[type]) tasksAnalysis[type] = { count: 0, points: 0, details: [] };
       tasksAnalysis[type].count++;
       tasksAnalysis[type].points += (Number(d.pointsEarned) || 0);
-      tasksAnalysis[type].details.push({ ...d, id: doc.id, date: d.date?.toDate() });
+      // استخدام حقل date للمهام بناءً على الصورة
+      tasksAnalysis[type].details.push({ 
+        ...d, 
+        id: doc.id, 
+        date: d.date?.toDate() || null 
+      });
     });
 
-    // معالجة الإحالات وحساب متبقي السحوبات (10 سحوبات)
     const referralsAnalysis = [];
     referrals.forEach(doc => {
       const d = doc.data();
@@ -77,18 +78,26 @@ export default async function handler(req, res) {
       });
     });
 
-    // معالجة السحوبات
     const withdrawalsList = [];
     withdrawals.forEach(doc => {
       const d = doc.data();
-      withdrawalsList.push({ ...d, id: doc.id, timestamp: d.date?.toDate() || d.timestamp?.toDate() });
+      // استخدام حقل date للسحوبات بناءً على الصورة
+      withdrawalsList.push({ 
+        ...d, 
+        id: doc.id, 
+        timestamp: d.date?.toDate() || null 
+      });
     });
 
-    // معالجة التذاكر
     const ticketsList = [];
     tickets.forEach(doc => {
       const d = doc.data();
-      ticketsList.push({ ...d, id: doc.id, timestamp: d.timestamp?.toDate() });
+      // استخدام حقل timestamp للتذاكر بناءً على الصورة
+      ticketsList.push({ 
+        ...d, 
+        id: doc.id, 
+        timestamp: d.timestamp?.toDate() || null 
+      });
     });
 
     let deviceId = "غير مسجل";
@@ -97,7 +106,13 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({
-      profile: { uid, ...userData, deviceId, accountStatus: userData.accountStatus || "active" },
+      profile: { 
+        uid, 
+        ...userData, 
+        deviceId, 
+        accountStatus: userData.accountStatus || "active",
+        lastLogin: userData.lastLogin?.toDate() || null // جلب وقت الدخول
+      },
       tasksGrouped: tasksAnalysis,
       referrals: referralsAnalysis,
       withdrawals: withdrawalsList,
