@@ -15,13 +15,10 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req, res) {
-  // تم حذف جزء التحقق من JWT_SECRET بناءً على طلبك
-
-  const { query } = req.query; // Query للإشارة للمستخدم (UID أو Email)
+  const { query } = req.query; 
   if (!query) return res.status(400).json({ error: "Query required" });
 
   try {
-    // 1. البحث عن المستخدم (UID أو Email)
     let userDoc = await db.collection("users").doc(query).get();
     if (!userDoc.exists) {
       const emailQuery = await db.collection("users").where("email", "==", query).limit(1).get();
@@ -31,90 +28,83 @@ export default async function handler(req, res) {
     const uid = userDoc.id;
     const userData = userDoc.data();
 
-    // 2. معالجة الإجراءات الإدارية (عبر POST لضمان الأمان)
     if (req.method === "POST") {
-      const { action, amount, status } = req.body; // استقبال البيانات من Body
-
+      const { action, amount, status } = req.body;
       if (action === "updatePoints") {
         await db.collection("users").doc(uid).update({ points: Number(amount) });
-        return res.status(200).json({ success: true, message: "تم تحديث النقاط" });
+        return res.status(200).json({ success: true });
       }
       if (action === "updateStatus") {
         await db.collection("users").doc(uid).update({ accountStatus: status });
-        return res.status(200).json({ success: true, message: "تم تغيير الحالة" });
+        return res.status(200).json({ success: true });
       }
     }
 
-    // 3. جلب التقارير الشاملة بالتوازي (GET)
-    const [withdrawals, tasks, referrals, devices, rewards] = await Promise.all([
+    // جلب البيانات الشاملة بما فيها تذاكر الدعم
+    const [withdrawals, tasks, referrals, devices, rewards, tickets] = await Promise.all([
       db.collection("withdrawals").where("userId", "==", uid).get(),
       db.collection("tasksCompleted").where("userId", "==", uid).get(),
       db.collection("users").where("referredBy", "==", uid).get(),
       db.collection("userDevices").where("userId", "==", uid).limit(1).get(),
-      db.collection("points_transactions").where("uid", "==", uid).where("type", "==", "reward").get()
+      db.collection("points_transactions").where("uid", "==", uid).where("type", "==", "reward").get(),
+      db.collection("support_tickets").where("uid", "==", uid).get()
     ]);
 
-    // حساب إجمالي نقاط المهام (بناءً على حقل pointsEarned)
-    let totalTasksPoints = 0;
-    const tasksList = [];
+    // معالجة المهام وتجميعها حسب النوع
+    const tasksAnalysis = {};
+    const fullTasks = [];
     tasks.forEach(doc => {
       const d = doc.data();
-      if (d.status === "done") { 
-        totalTasksPoints += (Number(d.pointsEarned) || 0);
-      }
-      tasksList.push({ ...d, date: d.date?.toDate() || "N/A" });
+      const type = d.taskType || "other";
+      if (!tasksAnalysis[type]) tasksAnalysis[type] = { count: 0, points: 0, details: [] };
+      tasksAnalysis[type].count++;
+      tasksAnalysis[type].points += (Number(d.pointsEarned) || 0);
+      tasksAnalysis[type].details.push({ ...d, id: doc.id, date: d.date?.toDate() });
     });
 
-    // حساب إجمالي المكافآت (بناءً على حقل amount ونوع reward)
-    let totalRewardsPoints = 0;
-    rewards.forEach(doc => {
-      totalRewardsPoints += (Number(doc.data().amount) || 0);
+    // معالجة الإحالات وحساب متبقي السحوبات (10 سحوبات)
+    const referralsAnalysis = [];
+    referrals.forEach(doc => {
+      const d = doc.data();
+      const completedWithdrawals = Number(d.completedReferralsCount) || 0;
+      referralsAnalysis.push({
+        uid: doc.id,
+        name: d.name || "N/A",
+        email: d.email,
+        earnedFromHim: (Number(d.referralPoints) || 0),
+        withdrawalsDone: completedWithdrawals,
+        withdrawalsLeft: Math.max(0, 10 - completedWithdrawals)
+      });
     });
 
-    // جلب معرف الجهاز (DeviceId) - تم التصحيح لجلب القيمة من الداتا
-    let deviceId = "غير مسجل";
-    if (!devices.empty) {
-      const dData = devices.docs[0].data();
-      deviceId = dData.deviceId || devices.docs[0].id;
-    }
-
-    // حساب السحوبات (بناءً على حقل net)
-    let totalPaidNet = 0;
+    // معالجة السحوبات
     const withdrawalsList = [];
     withdrawals.forEach(doc => {
       const d = doc.data();
-      if (d.status === "completed") totalPaidNet += (Number(d.net) || 0);
-      withdrawalsList.push({ ...d, id: doc.id, date: d.timestamp?.toDate() || "N/A" });
+      withdrawalsList.push({ ...d, id: doc.id, timestamp: d.date?.toDate() || d.timestamp?.toDate() });
     });
 
-    const referralsList = [];
-    referrals.forEach(doc => {
+    // معالجة التذاكر
+    const ticketsList = [];
+    tickets.forEach(doc => {
       const d = doc.data();
-      referralsList.push({ name: d.name, email: d.email });
+      ticketsList.push({ ...d, id: doc.id, timestamp: d.timestamp?.toDate() });
     });
 
-    // إرسال الرد النهائي
+    let deviceId = "غير مسجل";
+    if (!devices.empty) {
+      deviceId = devices.docs[0].data().deviceId || "N/A";
+    }
+
     return res.status(200).json({
-      profile: {
-        uid,
-        name: userData.name || "بدون اسم",
-        email: userData.email,
-        points: userData.points || 0,
-        refEarnings: userData.totalReferralEarnings || 0,
-        status: userData.accountStatus || "active",
-        deviceId: deviceId, 
-        lastIp: userData.lastIp || "N/A"
-      },
-      stats: { 
-        totalPaidNet,
-        totalTasksPoints, 
-        totalRewardsPoints 
-      },
-      history: {
-        tasksCount: tasks.size, 
-        withdrawals: withdrawalsList,
-        tasks: tasksList, 
-        referrals: referralsList
+      profile: { uid, ...userData, deviceId, accountStatus: userData.accountStatus || "active" },
+      tasksGrouped: tasksAnalysis,
+      referrals: referralsAnalysis,
+      withdrawals: withdrawalsList,
+      tickets: ticketsList,
+      stats: {
+        totalPaidNet: withdrawalsList.filter(w => w.status === "completed").reduce((sum, w) => sum + (Number(w.net) || 0), 0),
+        totalTasksPoints: Object.values(tasksAnalysis).reduce((sum, t) => sum + t.points, 0)
       }
     });
 
