@@ -188,7 +188,31 @@
     const ADMIN_EMAIL = "amirfg992005@gmail.com";
     let allUsers = []; 
 
+    // دالة التحقق من صحة الجلسة عبر الـ API
+    async function verifyAdminSession() {
+      try {
+        const fingerprint = localStorage.getItem('admin_fingerprint') || 'default_fingerprint';
+        const res = await fetch('/api/admin-login', {
+          method: 'GET',
+          headers: { 'x-fingerprint': fingerprint }
+        });
+        const data = await res.json();
+        return data.valid === true;
+      } catch (e) {
+        console.error("Auth Check Error:", e);
+        return false;
+      }
+    }
+
     async function loadData() {
+      // التحقق من الأمان قبل جلب البيانات
+      const isValid = await verifyAdminSession();
+      if (!isValid) {
+        alert("انتهت الجلسة أو محاولة دخول غير مصرح بها.");
+        signOut(auth);
+        return;
+      }
+
       const usersSnap = await getDocs(collection(db, 'users'));
       allUsers = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       
@@ -250,6 +274,9 @@
 
     // وظائف التحكم الخاصة (Private Functions inside Module)
     async function handleEditPoints(id) {
+        const isValid = await verifyAdminSession();
+        if(!isValid) return alert("Security Error");
+
         const u = allUsers.find(x => x.id === id);
         const newPts = prompt(`تعديل نقاط ${u.name}:`, u.points);
         if (newPts !== null && !isNaN(newPts)) {
@@ -259,6 +286,9 @@
     }
 
     async function handleToggleBan(id, currentStatus) {
+        const isValid = await verifyAdminSession();
+        if(!isValid) return alert("Security Error");
+
         const newStatus = currentStatus === 'banned' ? 'active' : 'banned';
         const msg = newStatus === 'banned' ? "هل تريد حظر هذا المستخدم؟" : "هل تريد فك الحظر؟";
         if(confirm(msg)) {
@@ -282,11 +312,17 @@
     };
     document.getElementById('logoutBtn').onclick = () => signOut(auth);
 
-    onAuthStateChanged(auth, user => {
+    onAuthStateChanged(auth, async user => {
       if (user && user.email === ADMIN_EMAIL) {
-        document.getElementById('loginBox').classList.add('hidden');
-        document.getElementById('main-ui').classList.remove('hidden');
-        loadData();
+        // فحص إضافي عبر الـ API عند تغيير حالة الـ Auth
+        const isValid = await verifyAdminSession();
+        if(isValid) {
+            document.getElementById('loginBox').classList.add('hidden');
+            document.getElementById('main-ui').classList.remove('hidden');
+            loadData();
+        } else {
+            signOut(auth);
+        }
       } else {
         document.getElementById('loginBox').classList.remove('hidden');
         document.getElementById('main-ui').classList.add('hidden');
