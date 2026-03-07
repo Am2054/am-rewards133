@@ -148,6 +148,7 @@
 
 <script>
     let globalData = null;
+    const POINT_PRICE = 0.07; // سعر النقطة بالجنيه
 
     async function fetchUser() {
         const q = document.getElementById('userInput').value;
@@ -177,9 +178,11 @@
             <tr><td>${type}</td><td>${d.count}</td><td>${d.points}</td><td><button class="btn-search" style="padding:5px 15px; font-size:0.7rem;" onclick="showTaskDetails('${type}')">عرض</button></td></tr>
         `).join('') || '<tr><td colspan="4">لا يوجد مهام</td></tr>';
 
-        // تعديل جدول الإحالات لإضافة عمود النقاط
+        // تعديل جدول الإحالات لحساب النقاط من الجنيه
         const refBody = document.querySelector('#table-referrals tbody');
-        refBody.innerHTML = `<tr><td>${data.referrals.length} إحالات</td><td style="color:var(--success)">${data.profile.totalReferralEarnings || 0}</td><td style="color:var(--primary)">${data.profile.referralPoints || 0}</td><td><button class="btn-search" style="padding:5px 15px; font-size:0.7rem;" onclick="showReferralDetails()">عرض</button></td></tr>`;
+        const totalEGP = data.profile.totalReferralEarnings || 0;
+        const calcPoints = Math.floor(totalEGP / POINT_PRICE);
+        refBody.innerHTML = `<tr><td>${data.referrals.length} إحالات</td><td style="color:var(--success)">${totalEGP.toFixed(2)}</td><td style="color:var(--primary)">${calcPoints.toLocaleString()}</td><td><button class="btn-search" style="padding:5px 15px; font-size:0.7rem;" onclick="showReferralDetails()">عرض</button></td></tr>`;
 
         const withBody = document.querySelector('#table-withdrawals tbody');
         withBody.innerHTML = data.withdrawals.map(w => `
@@ -200,9 +203,10 @@
     }
 
     function showReferralDetails() {
-        let html = `<table><tr><th>الاسم</th><th>الربح (نقاط)</th><th>متبقي</th></tr>`;
+        let html = `<table><tr><th>الاسم</th><th>الربح (ج)</th><th>الربح (نقاط)</th><th>سحوبات</th></tr>`;
         globalData.referrals.forEach(r => {
-            html += `<tr><td>${r.name}</td><td>${r.earnedFromHim}</td><td>${r.withdrawalsLeft}</td></tr>`;
+            const pFromEGP = Math.floor(r.earnedFromHim / POINT_PRICE);
+            html += `<tr><td>${r.name || 'مستخدم'}</td><td>${r.earnedFromHim.toFixed(2)}</td><td style="color:var(--primary)">${pFromEGP.toLocaleString()}</td><td>${10 - (r.withdrawalsLeft || 0)}/10</td></tr>`;
         });
         openModal(`قائمة الإحالات`, html + `</table>`);
     }
