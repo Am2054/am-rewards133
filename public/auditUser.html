@@ -3,120 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AM REWARDS | نظام مراجعة المستخدمين</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Syncopate:wght@700&display=swap" rel="stylesheet">
+    <title>AM REWARDS | نظام المراجعة المتقدم</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #00f2ff; --bg: #020202; --card: rgba(20, 20, 20, 0.9); --border: rgba(0, 242, 255, 0.1); --danger: #ff0055; --success: #00ffc3; }
-        body { background: var(--bg); color: #fff; font-family: 'Cairo'; margin: 0; padding: 20px; }
-        .container { max-width: 1100px; margin: 0 auto; }
+        :root { --primary: #00f2ff; --bg: #0a0a0a; --card: #151515; --border: rgba(0, 242, 255, 0.15); --danger: #ff0055; --success: #00ffc3; }
+        body { background: var(--bg); color: #fff; font-family: 'Cairo', sans-serif; margin: 0; padding: 20px; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; }
         
-        /* البحث */
+        /* البحث والبروفايل */
         .search-area { display: flex; gap: 10px; margin-bottom: 30px; }
         input { flex: 1; padding: 15px; border-radius: 12px; border: 1px solid var(--border); background: #111; color: #fff; outline: none; }
-        .btn-search { background: var(--primary); color: #000; border: none; padding: 0 30px; border-radius: 12px; font-weight: 900; cursor: pointer; }
-
-        /* الهيكل */
-        .audit-grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 20px; backdrop-filter: blur(10px); }
+        .btn-search { background: var(--primary); color: #000; border: none; padding: 0 30px; border-radius: 12px; font-weight: 900; cursor: pointer; transition: 0.3s; }
         
-        /* البروفايل والإجراءات */
-        .profile-info h2 { font-family: 'Syncopate'; font-size: 1rem; color: var(--primary); margin-top: 0; }
-        .data-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .admin-box { margin-top: 25px; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 15px; border: 1px solid var(--danger); }
-        .admin-box h3 { font-size: 0.75rem; color: var(--danger); margin-top: 0; }
-        .input-sm { width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 8px; border: 1px solid var(--border); background: #000; color: #fff; box-sizing: border-box; }
-        .btn-action { width: 100%; padding: 10px; border-radius: 8px; border: none; font-weight: 900; cursor: pointer; margin-bottom: 5px; font-size: 0.75rem; }
+        .audit-grid { display: grid; grid-template-columns: 320px 1fr; gap: 25px; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        /* الجداول الاحترافية */
+        .section-title { color: var(--primary); font-size: 1.1rem; font-weight: 900; margin: 30px 0 15px; display: flex; align-items: center; gap: 10px; }
+        .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+        
+        table { width: 100%; border-collapse: collapse; background: rgba(255,255,255,0.02); border-radius: 12px; overflow: hidden; }
+        th { background: rgba(0, 242, 255, 0.05); color: var(--primary); text-align: right; padding: 15px; font-size: 0.85rem; }
+        td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
+        
+        .btn-details { background: #333; color: var(--primary); border: 1px solid var(--primary); padding: 5px 15px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: 700; }
+        .btn-details:hover { background: var(--primary); color: #000; }
 
-        /* الجداول */
-        .logs-area { display: flex; flex-direction: column; gap: 20px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
-        th { text-align: right; color: #666; padding: 10px; border-bottom: 2px solid var(--border); }
-        td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .status-tag { padding: 3px 8px; border-radius: 5px; font-weight: 900; font-size: 0.65rem; }
+        /* نافذة التفاصيل (Modal) */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: var(--card); width: 90%; max-width: 800px; max-height: 80vh; overflow-y: auto; padding: 30px; border-radius: 20px; border: 1px solid var(--primary); }
+        .close-modal { float: left; color: var(--danger); font-size: 1.5rem; cursor: pointer; }
+
+        .status-tag { padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 900; }
+        .status-active { background: rgba(0, 255, 195, 0.1); color: var(--success); }
+        .status-banned { background: rgba(255, 0, 85, 0.1); color: var(--danger); }
+        
         .hidden { display: none !important; }
-        
-        /* ستايل الملخص الجديد */
-        .summary-box { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
-        .summary-item { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); }
-        .summary-item span { display: block; font-size: 0.7rem; color: #888; margin-bottom: 5px; }
-        .summary-item b { font-size: 1.2rem; color: var(--primary); }
+        .data-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 0.85rem; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="search-area">
-        <input type="text" id="userInput" placeholder="ابحث بـ UID أو Email...">
-        <button class="btn-search" onclick="fetchUser()">فحص المستخدم</button>
+        <input type="text" id="userInput" placeholder="أدخل UID أو البريد الإلكتروني للمستخدم...">
+        <button class="btn-search" onclick="fetchUser()">فحص البيانات</button>
     </div>
 
-    <div id="loader" class="hidden" style="text-align: center; color: var(--primary);">جاري مراجعة الأرشيف...</div>
+    <div id="loader" class="hidden" style="text-align: center;"><img src="https://i.gifer.com/ZZ5H.gif" width="30"></div>
 
     <div id="mainUI" class="audit-grid hidden">
         <div class="card profile-info">
-            <h2 id="view-name">اسم المستخدم</h2>
-            <div class="data-row"><span>ID:</span> <span id="view-uid" style="font-size: 0.6rem;"></span></div>
-            <div class="data-row"><span>Device ID:</span> <span id="view-device" style="font-size: 0.6rem; color: #888;"></span></div>
-            <div class="data-row"><span>الحالة:</span> <b id="view-status"></b></div>
-            <div class="data-row"><span>النقاط الحالية:</span> <b id="view-points" style="color: var(--primary);"></b></div>
-            <div class="data-row"><span>نقاط المهام:</span> <b id="view-task-points" style="color: #e2e2e2;"></b></div>
-            <div class="data-row"><span>نقاط المكافآت:</span> <b id="view-reward-points" style="color: #e2e2e2;"></b></div>
-            <div class="data-row"><span>أرباح الإحالات:</span> <b id="view-ref-earn" style="color: var(--success);"></b></div>
-            <div class="data-row"><span>إجمالي المسحوبات:</span> <b id="view-paid" style="color: var(--danger);"></b></div>
-
-            <div class="admin-box">
-                <h3>لوحة التحكم الإدارية</h3>
-                <label style="font-size: 0.65rem;">تعديل الرصيد يدوياً:</label>
-                <input type="number" id="editPoints" class="input-sm">
-                <button class="btn-action" style="background: var(--primary);" onclick="adminAction('updatePoints')">حفظ النقاط</button>
-                <div style="margin-top: 10px; display: flex; gap: 5px;">
-                    <button class="btn-action" style="background: var(--danger); color: #fff;" onclick="adminAction('updateStatus', 'banned')">حظر</button>
-                    <button class="btn-action" style="background: var(--success); color: #000;" onclick="adminAction('updateStatus', 'active')">تنشيط</button>
-                </div>
+            <h2 id="view-name" style="margin-top:0; color:var(--primary);">...</h2>
+            <div class="data-row"><span>UID:</span> <small id="view-uid" style="color:#888;"></small></div>
+            <div class="data-row"><span>Device ID:</span> <small id="view-device" style="color:var(--danger);"></small></div>
+            <div class="data-row"><span>النقاط:</span> <b id="view-points" style="color:var(--primary);">0</b></div>
+            <div class="data-row"><span>الحالة:</span> <span id="view-status"></span></div>
+            
+            <div style="margin-top:20px; padding:15px; background:rgba(255,255,255,0.03); border-radius:12px;">
+                <h4 style="margin:0 0 10px; font-size:0.8rem;">تعديل إداري</h4>
+                <input type="number" id="editPoints" style="width:100%; margin-bottom:10px; padding:8px; box-sizing:border-box;">
+                <button onclick="adminAction('updatePoints')" style="width:100%; background:var(--primary); color:#000; border:none; padding:10px; border-radius:8px; font-weight:900; cursor:pointer;">حفظ النقاط</button>
             </div>
         </div>
 
         <div class="logs-area">
-            <div class="card">
-                <h4 style="margin:0 0 15px 0; font-size: 0.8rem; color: var(--primary);">تحليل المهام المنجزة</h4>
-                <div class="summary-box">
-                    <div class="summary-item">
-                        <span>روابط مختصرة</span>
-                        <b id="count-shrt">0</b>
-                    </div>
-                    <div class="summary-item">
-                        <span>عروض (Offerwalls)</span>
-                        <b id="count-offers">0</b>
-                    </div>
-                    <div class="summary-item">
-                        <span>فيديوهات</span>
-                        <b id="count-videos">0</b>
-                    </div>
-                    <div class="summary-item">
-                        <span>أخرى</span>
-                        <b id="count-other-tasks">0</b>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h4 style="margin:0 0 15px 0; font-size: 0.8rem; color: var(--primary);">سجل السحوبات المكتملة</h4>
-                <div id="withdrawals-summary" style="font-size: 0.75rem; line-height: 1.8;">
-                    </div>
-            </div>
-
-            <div class="card hidden">
-                <h4 style="margin:0 0 15px 0; font-size: 0.8rem; color: var(--primary);">سجل السحوبات</h4>
-                <table id="table-withdrawals">
-                    <thead><tr><th>المبلغ</th><th>الصافي</th><th>الوسيلة</th><th>الحالة</th></tr></thead>
+            <div class="section-title">إحصائيات المهام</div>
+            <div class="card" style="padding:0; overflow:hidden;">
+                <table id="table-tasks">
+                    <thead><tr><th>نوع المهمة</th><th>العدد المكتمل</th><th>إجمالي النقاط</th><th>التفاصيل</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
 
-            <div class="card hidden">
-                <h4 style="margin:0 0 15px 0; font-size: 0.8rem; color: var(--primary);">المهام المكتملة</h4>
-                <table id="table-tasks">
-                    <thead><tr><th>المهمة</th><th>النقاط</th><th>التاريخ</th></tr></thead>
+            <div class="section-title">نظام الإحالات (10%)</div>
+            <div class="card" style="padding:0; overflow:hidden;">
+                <table id="table-referrals">
+                    <thead><tr><th>المستخدم المدعو</th><th>عدد المدعوين</th><th>الأرباح منه</th><th>التفاصيل</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="section-title">سجل السحوبات</div>
+            <div class="card" style="padding:0; overflow:hidden;">
+                <table id="table-withdrawals">
+                    <thead><tr><th>المحفظة</th><th>الرقم</th><th>المبلغ</th><th>التفاصيل</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="section-title">تذاكر الدعم الفني</div>
+            <div class="card" style="padding:0; overflow:hidden;">
+                <table id="table-tickets">
+                    <thead><tr><th>المشكلة</th><th>الوقت</th><th>النقاط</th><th>الحالة</th><th>التفاصيل</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
@@ -124,103 +103,138 @@
     </div>
 </div>
 
+<div id="detailModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <h3 id="modalTitle" style="color:var(--primary);">التفاصيل</h3>
+        <div id="modalBody" style="margin-top:20px;"></div>
+    </div>
+</div>
+
 <script>
+    let globalData = null;
+
     async function fetchUser() {
-        const q = document.getElementById('userInput').value.trim();
-        if(!q) return;
-
+        const q = document.getElementById('userInput').value;
         document.getElementById('loader').classList.remove('hidden');
-        document.getElementById('mainUI').classList.add('hidden');
-
         try {
-            const res = await fetch(`/api/audit-user?query=${encodeURIComponent(q)}`);
+            const res = await fetch(`/api/audit-user?query=${q}`);
             const data = await res.json();
-            
             if(!res.ok) throw new Error(data.error);
-
-            document.getElementById('view-name').innerText = data.profile.name;
-            document.getElementById('view-uid').innerText = data.profile.uid;
-            document.getElementById('view-device').innerText = data.profile.deviceId || 'غير متوفر';
-            document.getElementById('view-points').innerText = data.profile.points.toLocaleString();
-            document.getElementById('view-task-points').innerText = data.stats.totalTasksPoints.toLocaleString();
-            document.getElementById('view-reward-points').innerText = data.stats.totalRewardsPoints.toLocaleString();
-            document.getElementById('view-ref-earn').innerText = data.profile.refEarnings.toFixed(2) + " EGP";
-            document.getElementById('view-paid').innerText = data.stats.totalPaidNet.toFixed(2) + " EGP";
-            document.getElementById('view-status').innerText = data.profile.status === 'active' ? '✅ نشط' : '🚫 محظور';
-            document.getElementById('editPoints').value = data.profile.points;
-
-            // --- تحليل المهام حسب النوع ---
-            let shrt = 0, offer = 0, vid = 0, other = 0;
-            data.history.tasks.forEach(t => {
-                const type = (t.type || "").toLowerCase();
-                const name = (t.taskName || "").toLowerCase();
-                if(type.includes('short') || name.includes('link')) shrt++;
-                else if(type.includes('offer') || type.includes('cpa')) offer++;
-                else if(type.includes('video') || type.includes('ads')) vid++;
-                else other++;
-            });
-            document.getElementById('count-shrt').innerText = shrt;
-            document.getElementById('count-offers').innerText = offer;
-            document.getElementById('count-videos').innerText = vid;
-            document.getElementById('count-other-tasks').innerText = other;
-
-            // --- تحليل السحوبات حسب الرقم ---
-            const wSummary = document.getElementById('withdrawals-summary');
-            wSummary.innerHTML = "";
-            const stats = {};
-            data.history.withdrawals.filter(w => w.status === 'completed').forEach(w => {
-                const key = w.account || w.number || "غير معروف";
-                stats[key] = (stats[key] || 0) + 1;
-            });
-
-            const keys = Object.keys(stats);
-            if(keys.length > 0) {
-                keys.forEach(k => {
-                    wSummary.innerHTML += `<div>💰 تم سحب <b style="color:var(--success)">${stats[k]} مرات</b> على الرقم/الحساب: <b>${k}</b></div>`;
-                });
-            } else {
-                wSummary.innerHTML = "لا يوجد سحوبات مكتملة لهذا المستخدم.";
-            }
-
-            document.getElementById('mainUI').classList.remove('hidden');
-        } catch (e) { 
-            alert(e.message);
-        }
+            globalData = data;
+            renderUI(data);
+        } catch (e) { alert(e.message); }
         finally { document.getElementById('loader').classList.add('hidden'); }
     }
 
-    async function adminAction(type, val) {
-        const uid = document.getElementById('view-uid').innerText;
-        if(!confirm("هل أنت متأكد من هذا الإجراء؟")) return;
+    function renderUI(data) {
+        document.getElementById('mainUI').classList.remove('hidden');
+        document.getElementById('view-name').innerText = data.profile.name;
+        document.getElementById('view-uid').innerText = data.profile.uid;
+        document.getElementById('view-device').innerText = data.profile.deviceId;
+        document.getElementById('view-points').innerText = data.profile.points;
+        document.getElementById('view-status').innerHTML = `<span class="status-tag ${data.profile.accountStatus === 'active' ? 'status-active' : 'status-banned'}">${data.profile.accountStatus}</span>`;
 
-        try {
-            const res = await fetch(`/api/audit-user?query=${uid}`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    action: type,
-                    amount: type === 'updatePoints' ? document.getElementById('editPoints').value : null,
-                    status: type === 'updateStatus' ? val : null
-                })
-            });
+        // 1. رندر المهام
+        const tasksBody = document.querySelector('#table-tasks tbody');
+        tasksBody.innerHTML = Object.entries(data.tasksGrouped).map(([type, d]) => `
+            <tr>
+                <td>${type}</td>
+                <td>${d.count}</td>
+                <td style="color:var(--success)">${d.points}</td>
+                <td><button class="btn-details" onclick="showTaskDetails('${type}')">عرض</button></td>
+            </tr>
+        `).join('');
 
-            const result = await res.json();
-            if(res.ok) { 
-                alert("تم التنفيذ!"); 
-                fetchUser(); 
-            } else {
-                throw new Error(result.error);
-            }
-        } catch (e) {
-            alert("خطأ: " + e.message);
-        }
+        // 2. رندر الإحالات
+        const refBody = document.querySelector('#table-referrals tbody');
+        refBody.innerHTML = `<tr>
+            <td>إجمالي المدعوين</td>
+            <td>${data.referrals.length}</td>
+            <td style="color:var(--success)">${data.profile.totalReferralEarnings || 0}</td>
+            <td><button class="btn-details" onclick="showReferralDetails()">عرض</button></td>
+        </tr>`;
+
+        // 3. رندر السحوبات
+        const withBody = document.querySelector('#table-withdrawals tbody');
+        withBody.innerHTML = data.withdrawals.map(w => `
+            <tr>
+                <td>${w.method}</td>
+                <td>${w.wallet || w.phone || 'N/A'}</td>
+                <td>${w.amount} EGP</td>
+                <td><button class="btn-details" onclick="showWithdrawDetails('${w.id}')">التفاصيل</button></td>
+            </tr>
+        `).join('');
+
+        // 4. رندر التذاكر
+        const ticketBody = document.querySelector('#table-tickets tbody');
+        ticketBody.innerHTML = data.tickets.map(t => `
+            <tr>
+                <td>${t.selectedService || 'عامة'}</td>
+                <td><small>${new Date(t.timestamp).toLocaleString('ar-EG')}</small></td>
+                <td>${t.rewardPoints || 0}</td>
+                <td><span class="status-tag status-active">${t.status}</span></td>
+                <td><button class="btn-details" onclick="showTicketDetails('${t.id}')">فتح</button></td>
+            </tr>
+        `).join('');
     }
 
-    function fillTable(id, data, rowFunc) {
-        const body = document.querySelector(`#${id} tbody`);
-        body.innerHTML = data.length ? data.map(item => `<tr>${rowFunc(item)}</tr>`).join('') : '<tr><td colspan="4" style="text-align:center">لا يوجد سجلات</td></tr>';
+    // دوال التفاصيل (Show Details)
+    function showTaskDetails(type) {
+        const details = globalData.tasksGrouped[type].details;
+        let html = `<table style="font-size:0.7rem;"><tr><th>ID المهمة</th><th>النقاط</th><th>التاريخ</th></tr>`;
+        details.forEach(t => {
+            html += `<tr><td>${t.taskId}</td><td>${t.pointsEarned}</td><td>${new Date(t.date).toLocaleString()}</td></tr>`;
+        });
+        openModal(`تفاصيل مهمة: ${type}`, html + `</table>`);
+    }
+
+    function showReferralDetails() {
+        let html = `<table style="font-size:0.7rem;"><tr><th>الاسم</th><th>الربح منه</th><th>سحوبات متبقية</th></tr>`;
+        globalData.referrals.forEach(r => {
+            html += `<tr><td>${r.name}</td><td>${r.earnedFromHim}</td><td>${r.withdrawalsLeft} سحب</td></tr>`;
+        });
+        openModal(`قائمة المحالين`, html + `</table>`);
+    }
+
+    function showWithdrawDetails(id) {
+        const w = globalData.withdrawals.find(x => x.id === id);
+        const html = `
+            <div class="data-row"><span>الحالة:</span> <b>${w.status}</b></div>
+            <div class="data-row"><span>المبلغ الصافي:</span> <b>${w.net} EGP</b></div>
+            <div class="data-row"><span>تاريخ الطلب:</span> <b>${new Date(w.timestamp).toLocaleString()}</b></div>
+            <div class="data-row"><span>رقم المعاملة:</span> <small>${w.id}</small></div>
+        `;
+        openModal('تفاصيل السحب', html);
+    }
+
+    function showTicketDetails(id) {
+        const t = globalData.tickets.find(x => x.id === id);
+        const html = `
+            <p><b>الرسالة:</b><br>${t.message}</p>
+            <p style="color:var(--primary)"><b>رد الإدارة:</b><br>${t.adminReply || 'لا يوجد رد بعد'}</p>
+            <div class="data-row"><span>معلومات إضافية:</span> <b>${t.extraData || 'لا يوجد'}</b></div>
+        `;
+        openModal('تفاصيل التذكرة', html);
+    }
+
+    function openModal(title, body) {
+        document.getElementById('modalTitle').innerText = title;
+        document.getElementById('modalBody').innerHTML = body;
+        document.getElementById('detailModal').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('detailModal').style.display = 'none'; }
+
+    async function adminAction(action) {
+        const uid = document.getElementById('view-uid').innerText;
+        const amount = document.getElementById('editPoints').value;
+        const res = await fetch(`/api/audit-user?query=${uid}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, amount })
+        });
+        if(res.ok) { alert("تم التحديث"); fetchUser(); }
     }
 </script>
 </body>
