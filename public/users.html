@@ -101,6 +101,12 @@
     .btn-ban { background: rgba(239, 68, 68, 0.1); color: var(--red); border: 1px solid var(--red); }
     .btn-ban:hover { background: var(--red); color: #fff; }
 
+    /* تحسين إضافي: مؤشر الحسابات المشبوهة */
+    .fraud-warn { border-right: 4px solid var(--red) !important; animation: pulseRed 2s infinite; }
+    @keyframes pulseRed { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+    .pagination-box { padding: 20px; display: flex; justify-content: center; gap: 10px; }
+
     .hidden { display: none !important; }
     #loginBox { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 10000; }
     .auth-box { width: 350px; padding: 40px; background: var(--card); border: 1px solid var(--gold); border-radius: 30px; text-align: center; }
@@ -168,13 +174,18 @@
             </tbody>
         </table>
       </div>
+      
+      <div class="pagination-box">
+          <button id="prevPage" class="action-btn" style="background: var(--card); color: var(--gold); border: 1px solid var(--gold); opacity: 0.5;">السابق</button>
+          <button id="nextPage" class="action-btn btn-edit">التالي</button>
+      </div>
     </div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, collection, getDocs, query, where, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, query, where, doc, limit, startAfter, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -187,21 +198,31 @@
 
     const ADMIN_EMAIL = "amirfg992005@gmail.com";
     let allUsers = []; 
+    let lastDoc = null; 
+    const PAGE_SIZE = 50;
 
-    async function loadData() {
-      const usersSnap = await getDocs(collection(db, 'users'));
+    async function verifyAdmin() {
+        try {
+            const fp = localStorage.getItem('admin_fingerprint') || 'unknown';
+            const res = await fetch('/api/admin-login', { headers: { 'x-fingerprint': fp } });
+            const data = await res.json();
+            return data.valid;
+        } catch(e) { return false; }
+    }
+
+    async function loadData(isNext = false) {
+      if(!(await verifyAdmin())) { signOut(auth); return; }
+
+      let q = query(collection(db, 'users'), orderBy('lastLogin', 'desc'), limit(PAGE_SIZE));
+      if(isNext && lastDoc) q = query(collection(db, 'users'), orderBy('lastLogin', 'desc'), startAfter(lastDoc), limit(PAGE_SIZE));
+
+      const usersSnap = await getDocs(q);
+      if(usersSnap.empty) return;
+
+      lastDoc = usersSnap.docs[usersSnap.docs.length - 1];
       allUsers = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       
-      document.getElementById('metricAllUsersVal').textContent = allUsers.length;
-      
-      const threshold = Date.now() - 24*60*60*1000;
-      document.getElementById('metricActiveUsersVal').textContent = allUsers.filter(u => (u.lastLogin?.toDate ? u.lastLogin.toDate() : new Date(u.lastLogin)).getTime() >= threshold).length;
-
-      const today = new Date().setHours(0,0,0,0);
-      const tasksSnap = await getDocs(query(collection(db, 'tasksCompleted'), where('date', '>=', new Date(today))));
-      let sum = 0; tasksSnap.forEach(d => sum += Number(d.data().pointsEarned || 0));
-      document.getElementById('metricPointsTodayVal').textContent = sum.toLocaleString();
-
+      document.getElementById('metricAllUsersVal').textContent = "..."; 
       renderTable(allUsers);
     }
 
@@ -210,9 +231,12 @@
       tbody.innerHTML = '';
       data.forEach((u) => {
         const tr = document.createElement('tr');
-        const lastLogin = u.lastLogin?.toDate ? u.lastLogin.toDate() : new Date(u.lastLogin);
+        const lastLogin = u.lastLogin?.toDate?.() || (u.lastLogin ? new Date(u.lastLogin) : new Date(0));
         const initial = (u.name || 'U').charAt(0).toUpperCase();
         const isBanned = u.status === 'banned';
+
+        const isSuspicious = data.filter(x => x.deviceId === u.deviceId && x.id !== u.id && u.deviceId).length > 0;
+        if(isSuspicious) tr.classList.add('fraud-warn');
 
         tr.innerHTML = `
           <td>
@@ -239,7 +263,6 @@
         tbody.appendChild(tr);
       });
 
-      // ربط الأزرار برمجياً بدلاً من onclick (آمان 100%)
       document.querySelectorAll('.edit-pts-trigger').forEach(btn => {
           btn.addEventListener('click', () => handleEditPoints(btn.dataset.id));
       });
@@ -248,22 +271,47 @@
       });
     }
 
-    // وظائف التحكم الخاصة (Private Functions inside Module)
     async function handleEditPoints(id) {
+        if(!(await verifyAdmin())) return;
         const u = allUsers.find(x => x.id === id);
         const newPts = prompt(`تعديل نقاط ${u.name}:`, u.points);
         if (newPts !== null && !isNaN(newPts)) {
-            await updateDoc(doc(db, 'users', id), { points: Number(newPts) });
-            loadData();
+            try {
+                const res = await fetch('/api/admin/update-user', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-fingerprint': localStorage.getItem('admin_fingerprint') 
+                    },
+                    body: JSON.stringify({ uid: id, points: Number(newPts), action: 'edit_points' })
+                });
+                if(res.ok) {
+                    alert("تم تحديث النقاط بنجاح");
+                    loadData();
+                } else {
+                    const err = await res.json();
+                    alert("خطأ: " + err.error);
+                }
+            } catch(e) { alert("فشل الاتصال بالسيرفر"); }
         }
     }
 
     async function handleToggleBan(id, currentStatus) {
+        if(!(await verifyAdmin())) return;
         const newStatus = currentStatus === 'banned' ? 'active' : 'banned';
-        const msg = newStatus === 'banned' ? "هل تريد حظر هذا المستخدم؟" : "هل تريد فك الحظر؟";
-        if(confirm(msg)) {
-            await updateDoc(doc(db, 'users', id), { status: newStatus });
-            loadData();
+        if(confirm(`هل أنت متأكد من ${newStatus === 'banned' ? 'حظر' : 'فك حظر'} هذا المستخدم؟`)) {
+            try {
+                const res = await fetch('/api/admin/update-user', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-fingerprint': localStorage.getItem('admin_fingerprint') 
+                    },
+                    body: JSON.stringify({ uid: id, status: newStatus, action: 'toggle_ban' })
+                });
+                if(res.ok) loadData();
+                else alert("فشل تنفيذ العملية");
+            } catch(e) { alert("خطأ في الشبكة"); }
         }
     }
 
@@ -272,9 +320,10 @@
         renderTable(allUsers.filter(u => (u.name||'').toLowerCase().includes(val) || (u.email||'').toLowerCase().includes(val) || u.id.toLowerCase().includes(val)));
     };
 
-    document.getElementById('btnShowAll').onclick = () => renderTable(allUsers);
-    document.getElementById('btnShowTop20').onclick = () => renderTable([...allUsers].sort((a,b)=>b.points-a.points).slice(0,20));
-    document.getElementById('refreshBtn').onclick = loadData;
+    document.getElementById('nextPage').onclick = () => loadData(true);
+    document.getElementById('prevPage').onclick = () => { lastDoc = null; loadData(); }; 
+    document.getElementById('btnShowAll').onclick = () => { lastDoc = null; loadData(); };
+    document.getElementById('refreshBtn').onclick = () => { lastDoc = null; loadData(); };
 
     document.getElementById('loginBtn').onclick = async () => {
       try { await signInWithEmailAndPassword(auth, document.getElementById('adminEmail').value, document.getElementById('adminPass').value); }
@@ -282,11 +331,13 @@
     };
     document.getElementById('logoutBtn').onclick = () => signOut(auth);
 
-    onAuthStateChanged(auth, user => {
+    onAuthStateChanged(auth, async user => {
       if (user && user.email === ADMIN_EMAIL) {
-        document.getElementById('loginBox').classList.add('hidden');
-        document.getElementById('main-ui').classList.remove('hidden');
-        loadData();
+        if(await verifyAdmin()) {
+            document.getElementById('loginBox').classList.add('hidden');
+            document.getElementById('main-ui').classList.remove('hidden');
+            loadData();
+        } else { signOut(auth); }
       } else {
         document.getElementById('loginBox').classList.remove('hidden');
         document.getElementById('main-ui').classList.add('hidden');
