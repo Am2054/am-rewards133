@@ -1,89 +1,95 @@
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { getAuth } from "firebase-admin/auth";
 import jwt from "jsonwebtoken";
-import { parse } from "cookie";
+import { parse, serialize } from "cookie";
 
-// --- 1. تهيئة Firebase Admin (المنطق الخاص بك) ---
+// تهيئة Firebase Admin
 if (!getApps().length) {
   try {
     let rawKey = process.env.FIREBASE_ADMIN_KEY;
     if (rawKey) {
       const serviceAccount = JSON.parse(rawKey.trim());
-      if (serviceAccount.private_key) {
-        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-      }
+      if (serviceAccount.private_key) serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
       initializeApp({ credential: cert(serviceAccount) });
     }
-  } catch (error) {
-    console.error("Firebase Init Error:", error.message);
-  }
+  } catch (error) { console.error("Firebase Init Error:", error.message); }
 }
 
 const db = getFirestore();
-const firebaseAuth = getAuth(); // مسمى مختلف لتجنب التعارض مع الـ Logic
 
-// --- 2. معالج الطلبات الرئيسي (API Handler) ---
 export default async function handler(req, res) {
-  // السماح بطلبات POST فقط
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-  // أ. فحص الأمان (JWT & Fingerprint)
-  const cookies = parse(req.headers.cookie || "");
-  const token = cookies.adminToken;
+  const { action, password, uid, points, status, lastId, searchQuery } = req.body;
   const clientFingerprint = req.headers['x-fingerprint'];
 
-  if (!token || !clientFingerprint) {
-    return res.status(401).json({ error: "Access Denied: Missing Credentials" });
+  // 1. تسجيل الدخول باستخدام Environment Variable
+  if (action === 'admin_login') {
+    if (password === process.env.ADMIN_PASSWORD) {
+      const token = jwt.sign({ admin: true, device: clientFingerprint }, process.env.JWT_SECRET, { expiresIn: '24h' });
+      res.setHeader('Set-Cookie', serialize('adminToken', token, { path: '/', httpOnly: true, secure: true, sameSite: 'strict' }));
+      return res.status(200).json({ success: true });
+    }
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
+  // 2. التحقق من التوكن للعمليات الأخرى
+  const cookies = parse(req.headers.cookie || "");
   try {
-    // ب. فحص التوكن
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // ج. مطابقة بصمة الجهاز (Fingerprint) لضمان عدم سرقة الجلسة
-    if (decoded.device !== clientFingerprint) {
-      return res.status(403).json({ error: "Security Mismatch: Unknown Device" });
-    }
+    const decoded = jwt.verify(cookies.adminToken, process.env.JWT_SECRET);
+    if (decoded.device !== clientFingerprint) throw new Error();
+  } catch (e) { return res.status(401).json({ error: "Invalid Session" }); }
 
-    // د. استخراج البيانات من الطلب
-    const { uid, points, status, action } = req.body;
-    if (!uid || !action) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
+  try {
+    // --- جلب المستخدمين (Pagination & Search) --- لتقليل التكلفة
+    if (action === 'get_users') {
+      let query = db.collection('users').orderBy('lastLogin', 'desc').limit(20);
 
-    const userRef = db.collection('users').doc(uid);
+      // البحث المحدود
+      if (searchQuery) {
+        query = db.collection('users')
+          .where('email', '>=', searchQuery)
+          .where('email', '<=', searchQuery + '\uf8ff')
+          .limit(10);
+      } else if (lastId) {
+        const lastSnapshot = await db.collection('users').doc(lastId).get();
+        query = query.startAfter(lastSnapshot);
+      }
 
-    // --- 3. تنفيذ العمليات (Actions) ---
-    
-    // تعديل النقاط
-    if (action === 'edit_points') {
-      await userRef.update({ 
-        points: Number(points),
-        lastUpdatedBy: 'ADMIN_SERVER',
-        updatedAt: FieldValue.serverTimestamp()
+      const snap = await query.get();
+      const users = snap.docs.map(d => {
+        const data = d.data();
+        return {
+          id: d.id,
+          ...data,
+          lastLoginText: data.lastLogin?.toDate?.().toLocaleString('ar-EG') || 'غير متاح'
+        };
       });
-      return res.status(200).json({ success: true, message: "Points updated via server" });
+
+      // جلب العدد الإجمالي (مرة واحدة لتقليل الـ Reads)
+      const countSnap = await db.collection('users').count().get();
+      return res.status(200).json({ users, total: countSnap.data().count });
     }
 
-    // حظر أو فك حظر المستخدم
+    // --- تعديل النقاط ---
+    if (action === 'edit_points') {
+      await db.collection('users').doc(uid).update({ 
+        points: Number(points), 
+        updatedAt: FieldValue.serverTimestamp() 
+      });
+      return res.status(200).json({ success: true });
+    }
+
+    // --- حظر المستخدم ---
     if (action === 'toggle_ban') {
-      await userRef.update({ 
-        status: status, // 'banned' or 'active'
+      await db.collection('users').doc(uid).update({ 
+        status: status, 
         bannedAt: status === 'banned' ? FieldValue.serverTimestamp() : null 
       });
-      return res.status(200).json({ success: true, message: `User status changed to ${status}` });
+      return res.status(200).json({ success: true });
     }
 
-    return res.status(400).json({ error: "Invalid Action Specified" });
-
-  } catch (error) {
-    console.error("Security/DB Error:", error.message);
-    if (error.name === 'JsonWebTokenError') {
-        return res.status(401).json({ error: "Invalid Session Token" });
-    }
-    return res.status(500).json({ error: "Internal Server Error" });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
 }
