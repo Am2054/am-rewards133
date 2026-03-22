@@ -33,20 +33,20 @@ export default async function handler(req, res) {
   const { action, password, fingerprint } = req.body;
   const clientFingerprint = req.headers['x-fingerprint'] || fingerprint;
 
-  // ✅ تعديل: استخدام البصمة كمفتاح أساسي لضمان استقلالية كل جهاز
   const userIp = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
   const key = clientFingerprint || userIp;
 
   const now = Date.now();
 
-  // ✅ تعديل الـ Rate Limit ليكون 2 ثانية لمنع الضغط العشوائي
-  if (requestTracker.has(key)) {
+  // ✨ 5. (اختياري قوي) شيل Rate Limit مؤقتًا للاختبار
+  /* if (requestTracker.has(key)) {
     const last = requestTracker.get(key);
     if (now - last < 2000) { 
       return res.status(429).json({ error: "Too many requests" });
     }
   }
   requestTracker.set(key, now);
+  */
 
   if (action === 'admin_login') {
     if (password === process.env.ADMIN_PASSWORD2) {
