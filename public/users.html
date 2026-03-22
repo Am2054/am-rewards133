@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AM REWARDS | USERS MANAGEMENT</title>
+  <title>AM REWARDS | SECURE ADMIN</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -28,18 +28,14 @@
     td { padding: 15px 20px; background: rgba(255,255,255,0.02); vertical-align: middle; transition: 0.3s; }
     td:first-child { border-radius: 0 15px 15px 0; }
     td:last-child { border-radius: 15px 0 0 15px; }
-    tr:hover td { background: rgba(245, 197, 66, 0.08); transform: scale(1.002); }
+    tr:hover td { background: rgba(245, 197, 66, 0.08); }
     .user-info { display: flex; align-items: center; gap: 12px; }
-    .avatar { width: 40px; height: 40px; background: linear-gradient(45deg, var(--gold), #b48a1d); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #000; font-weight: 900; font-family: 'Syncopate'; font-size: 1.1rem; }
+    .avatar { width: 40px; height: 40px; background: linear-gradient(45deg, var(--gold), #b48a1d); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #000; font-weight: 900; font-family: 'Syncopate'; }
     .uid-tag { font-family: monospace; font-size: 0.7rem; color: #64748b; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; }
     .points-badge { color: var(--gold); font-weight: 900; font-size: 1rem; display: flex; align-items: center; gap: 5px; }
     .action-btn { padding: 10px 18px; border-radius: 12px; border: none; font-weight: 800; cursor: pointer; transition: 0.3s; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; }
-    .btn-edit { background: var(--gold); color: #000; box-shadow: 0 4px 15px rgba(245, 197, 66, 0.2); }
+    .btn-edit { background: var(--gold); color: #000; }
     .btn-ban { background: rgba(239, 68, 68, 0.1); color: var(--red); border: 1px solid var(--red); }
-    .btn-ban:hover { background: var(--red); color: #fff; }
-    .fraud-warn { border-right: 4px solid var(--red) !important; animation: pulseRed 2s infinite; }
-    @keyframes pulseRed { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-    .pagination-box { padding: 20px; display: flex; justify-content: center; gap: 10px; }
     .hidden { display: none !important; }
     #loginBox { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 10000; }
     .auth-box { width: 350px; padding: 40px; background: var(--card); border: 1px solid var(--gold); border-radius: 30px; text-align: center; }
@@ -71,7 +67,7 @@
         <strong id="metricAllUsersVal">0</strong> <span>Total Members</span>
       </div>
       <div class="stat-item">
-        <strong id="metricActiveUsersVal">0</strong> <span>Points Volume</span>
+        <strong id="metricActiveUsersVal">...</strong> <span>System Status: Active</span>
       </div>
     </div>
 
@@ -105,19 +101,34 @@
 
   <script>
     let lastDocId = null;
-    const fingerprint = btoa(navigator.userAgent).slice(0, 16);
+    
+    // --- البصمة المتقدمة (Advanced Fingerprint) ---
+    const getFingerprint = () => {
+        return btoa(
+            navigator.userAgent + 
+            screen.width + 
+            screen.height + 
+            Intl.DateTimeFormat().resolvedOptions().timeZone +
+            navigator.language
+        ).slice(0, 32);
+    };
+
+    const fingerprint = getFingerprint();
 
     async function apiRequest(data) {
-        const res = await fetch('/api/admin', {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'x-fingerprint': fingerprint 
-            },
-            body: JSON.stringify(data)
-        });
-        if (res.status === 401) { toggleUI(false); return null; }
-        return res.json();
+        try {
+            const res = await fetch('/api/admin', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-fingerprint': fingerprint 
+                },
+                body: JSON.stringify(data)
+            });
+            if (res.status === 401 || res.status === 403) { toggleUI(false); return null; }
+            if (res.status === 429) { alert("تم تجاوز حد الطلبات! انتظر قليلاً."); return null; }
+            return res.json();
+        } catch(e) { console.error("API Error"); return null; }
     }
 
     async function loadData(isNext = false) {
@@ -140,8 +151,8 @@
         tbody.innerHTML = '';
         users.forEach(u => {
             const tr = document.createElement('tr');
-            if (u.status === 'banned') tr.style.opacity = '0.6';
-            
+            if (u.status === 'banned') tr.style.opacity = '0.5';
+
             tr.innerHTML = `
                 <td>
                     <div class="user-info">
@@ -158,29 +169,42 @@
                 <td style="font-size:0.7rem; color:#64748b;">${u.lastLoginText}</td>
                 <td>
                     <div style="display:flex; gap:5px;">
-                        <button onclick="editPoints('${u.id}', ${u.points})" class="action-btn btn-edit">🪙</button>
-                        <button onclick="toggleBan('${u.id}', '${u.status}')" class="action-btn btn-ban">${u.status === 'banned' ? '✅' : '🚫'}</button>
+                        <button class="action-btn btn-edit edit-btn" data-id="${u.id}" data-points="${u.points}">🪙</button>
+                        <button class="action-btn btn-ban ban-btn" data-id="${u.id}" data-status="${u.status}">${u.status === 'banned' ? '✅' : '🚫'}</button>
                     </div>
                 </td>
             `;
             tbody.appendChild(tr);
         });
+
+        // --- ربط الأحداث بطريقة آمنة (Event Delegation) ---
+        attachActionListeners();
     }
 
-    async function editPoints(id, current) {
-        const p = prompt("تعديل النقاط:", current);
-        if (p !== null && !isNaN(p)) {
-            const res = await apiRequest({ action: 'edit_points', uid: id, points: p });
-            if (res?.success) loadData();
-        }
-    }
+    function attachActionListeners() {
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.onclick = async () => {
+                const id = btn.getAttribute('data-id');
+                const current = btn.getAttribute('data-points');
+                const p = prompt("تعديل النقاط:", current);
+                if (p !== null && !isNaN(p)) {
+                    const res = await apiRequest({ action: 'edit_points', uid: id, points: p });
+                    if (res?.success) loadData();
+                }
+            };
+        });
 
-    async function toggleBan(id, status) {
-        const nextStatus = status === 'banned' ? 'active' : 'banned';
-        if (confirm(`هل تريد ${nextStatus === 'banned' ? 'حظر' : 'فك حظر'} المستخدم؟`)) {
-            const res = await apiRequest({ action: 'toggle_ban', uid: id, status: nextStatus });
-            if (res?.success) loadData();
-        }
+        document.querySelectorAll('.ban-btn').forEach(btn => {
+            btn.onclick = async () => {
+                const id = btn.getAttribute('data-id');
+                const status = btn.getAttribute('data-status');
+                const nextStatus = status === 'banned' ? 'active' : 'banned';
+                if (confirm(`تغيير حالة المستخدم إلى ${nextStatus}؟`)) {
+                    const res = await apiRequest({ action: 'toggle_ban', uid: id, status: nextStatus });
+                    if (res?.success) loadData();
+                }
+            };
+        });
     }
 
     function toggleUI(isLoggedIn) {
@@ -191,7 +215,7 @@
     document.getElementById('loginBtn').onclick = async () => {
         const pass = document.getElementById('adminPass').value;
         const res = await apiRequest({ action: 'admin_login', password: pass });
-        if (res?.success) { toggleUI(true); loadData(); } else { alert("رمز الدخول خاطئ"); }
+        if (res?.success) { toggleUI(true); loadData(); } else { alert("خطأ في البيانات"); }
     };
 
     document.getElementById('logoutBtn').onclick = () => {
@@ -206,10 +230,9 @@
     let searchTimer;
     document.getElementById('searchInput').oninput = () => {
         clearTimeout(searchTimer);
-        searchTimer = setTimeout(() => { lastDocId = null; loadData(); }, 600);
+        searchTimer = setTimeout(() => { lastDocId = null; loadData(); }, 700);
     };
 
-    // محاولة الدخول التلقائي إذا كان التوكن موجوداً
     window.onload = () => { if(document.cookie.includes('adminToken')) { toggleUI(true); loadData(); } };
   </script>
 </body>
