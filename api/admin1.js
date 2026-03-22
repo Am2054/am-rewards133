@@ -32,24 +32,27 @@ export default async function handler(req, res) {
 
   const { action, password, fingerprint } = req.body;
   const clientFingerprint = req.headers['x-fingerprint'] || fingerprint;
-  const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  
+  // ✅ التعديل الاحترافي للـ IP والـ Key
+  const userIp = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
+  const key = userIp + "_" + (clientFingerprint || "no_fp");
 
   const now = Date.now();
 
-  // ✅ التعديل الاحترافي للـ Rate Limit
-  if (requestTracker.has(userIp)) {
-    const last = requestTracker.get(userIp);
-    if (now - last < 1000) {
+  // ✅ نظام الـ Rate Limit المطور
+  if (requestTracker.has(key)) {
+    const last = requestTracker.get(key);
+    if (now - last < 800) { // تم تقليل الحساسية لـ 800ms لمرونة أكبر
       return res.status(429).json({ error: "Too many requests" });
     }
   }
-  requestTracker.set(userIp, now);
+  requestTracker.set(key, now);
 
   if (action === 'admin_login') {
     if (password === process.env.ADMIN_PASSWORD2) {
-      // ✅ حفظ أول 20 حرف فقط من البصمة لزيادة الاستقرار
       const token = jwt.sign({ role: 'ref_admin', device: clientFingerprint.slice(0, 20) }, process.env.JWT_SECRET, { expiresIn: '12h' });
-      res.setHeader('Set-Cookie', serialize('adminToken', token, { path: '/', httpOnly: true, secure: true, sameSite: 'strict', maxAge: 43200 }));
+      // ✅ تعديل الـ Cookie ليكون lax لضمان الاستقرار على الموبايل
+      res.setHeader('Set-Cookie', serialize('adminToken', token, { path: '/', httpOnly: true, secure: true, sameSite: 'lax', maxAge: 43200 }));
       return res.status(200).json({ success: true });
     }
     return res.status(401).json({ error: "Unauthorized" });
@@ -60,7 +63,6 @@ export default async function handler(req, res) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // ✅ التحقق المرن من البصمة لمنع الخروج المفاجئ
     if (!decoded.device || !clientFingerprint.includes(decoded.device)) {
         return res.status(403).json({ error: "Security Mismatch" });
     }
