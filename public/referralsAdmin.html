@@ -126,10 +126,10 @@
     const fingerprint = getSecureFingerprint();
     let cachedLeaderboard = [];
 
-    // --- دالة التواصل مع الـ Backend ---
+    // --- دالة التواصل مع الـ Backend (تعديل المسار لـ admin1) ---
     async function apiRequest(data) {
         try {
-            const res = await fetch('/api/admin', {
+            const res = await fetch('/api/admin1', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -165,11 +165,9 @@
     }
 
     function renderUI(data) {
-        // تحديث العدادات
         document.getElementById('totalReferrals').innerText = data.totalConversions;
         document.getElementById('totalRewardEGP').innerText = data.totalSystemCommission.toFixed(2);
 
-        // بناء جدول المتصدرين
         const lbBody = document.getElementById('leaderboardBody');
         lbBody.innerHTML = data.leaderboard.map((user, i) => `
             <tr>
@@ -181,7 +179,6 @@
             </tr>
         `).join('');
 
-        // بناء سجل النشاطات
         const logsBody = document.getElementById('liveLogsBody');
         logsBody.innerHTML = data.recentLogs.map(u => `
             <tr>
@@ -191,7 +188,6 @@
             </tr>
         `).join('');
 
-        // ربط الأحداث بطريقة آمنة
         attachEventListeners();
     }
 
@@ -229,7 +225,6 @@
         document.getElementById('detailsModal').classList.remove('hidden');
     }
 
-    // --- إدارة الجلسة والواجهة ---
     function toggleUI(isLoggedIn) {
         document.getElementById('loginBox').classList.toggle('hidden', isLoggedIn);
         document.getElementById('main-ui').classList.toggle('hidden', !isLoggedIn);
@@ -242,7 +237,7 @@
             toggleUI(true);
             loadReferralData();
         } else {
-            alert("خطأ: كلمة المرor غير صحيحة أو غير مصرح لك.");
+            alert("خطأ: كلمة المرور غير صحيحة.");
         }
     });
 
@@ -252,7 +247,6 @@
         document.getElementById('detailsModal').classList.add('hidden');
     });
 
-    // تسجيل الخروج التلقائي عند مسح الكوكيز أو انتهاء الجلسة
     if (document.cookie.includes('adminToken')) {
         toggleUI(true);
         loadReferralData();
