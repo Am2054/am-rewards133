@@ -112,7 +112,6 @@
   </div>
 
   <script>
-    // ✅ نظام التحكم في الطلبات المكررة
     let isLoading = false;
 
     const getSecureFingerprint = () => {
@@ -141,8 +140,14 @@
                 body: JSON.stringify(data)
             });
             
-            if (res.status === 401 || res.status === 403) {
+            // ✅ تعديل منطق الـ Status لمنع الـ Logout التلقائي بسبب 403
+            if (res.status === 401) {
                 toggleUI(false);
+                return null;
+            }
+
+            if (res.status === 403) {
+                console.warn("Fingerprint mismatch");
                 return null;
             }
             
@@ -158,7 +163,6 @@
         }
     }
 
-    // ✅ التعديل الاحترافي لجلب البيانات مع نظام الـ Loading
     async function loadReferralData() {
         if (isLoading) return;
         isLoading = true;
@@ -167,10 +171,8 @@
         if (data) {
             cachedLeaderboard = data.leaderboard;
             renderUI(data);
-            if(data.fromCache) console.log("Data loaded from server cache ⚡");
         }
 
-        // تحرير القفل بعد ثانية
         setTimeout(() => {
             isLoading = false;
         }, 1000);
@@ -216,7 +218,6 @@
     function showFriendsModal(boss) {
         document.getElementById('modalTitle').innerText = `قائمة أصدقاء: ${boss.name}`;
         const container = document.getElementById('friendsListContainer');
-        
         container.innerHTML = boss.friends.map(f => {
             const progress = Math.min((f.withdrawalsCount / 10) * 100, 100);
             return `
@@ -233,7 +234,6 @@
                 </div>
             `;
         }).join('');
-        
         document.getElementById('detailsModal').classList.remove('hidden');
     }
 
@@ -253,7 +253,6 @@
         }
     });
 
-    // ✅ تحسين تجربة زر الـ Sync مع تأخير بسيط لمنع تضارب الطلبات
     document.getElementById('refreshBtn').addEventListener('click', () => {
         setTimeout(loadReferralData, 300);
     });
@@ -262,11 +261,12 @@
         document.getElementById('detailsModal').classList.add('hidden');
     });
 
+    // ✅ زيادة مهلة البداية لـ 1500ms لضمان استقرار السيرفر
     if (document.cookie.includes('adminToken')) {
         toggleUI(true);
         setTimeout(() => {
             loadReferralData();
-        }, 600);
+        }, 1500);
     }
   </script>
 </body>
