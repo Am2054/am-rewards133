@@ -59,13 +59,8 @@ export default async function handler(req, res) {
   const cookies = parse(req.headers.cookie || "");
   const token = cookies.adminToken;
   try {
+    // ✅ تم إلغاء التحقق من الـ fingerprint تماماً هنا
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // ✨ 2. خفف تحقق الـ fingerprint (الحل الاحترافي)
-    if (!decoded.device) {
-        return res.status(403).json({ error: "Security Mismatch" });
-    }
-    // سيبنا الـ fingerprint للمراقبة فقط هنا بدون عمل block
 
     if (action === 'get_referrals_stats') {  
       if (statsCache && (now - lastCacheTime < CACHE_DURATION)) {  
