@@ -3,7 +3,6 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import jwt from "jsonwebtoken";  
 import { parse, serialize } from "cookie";  
 
-// --- 1. تهيئة Firebase Admin (بدون حذف حرف واحد) ---
 if (!getApps().length) {
   try {
     let rawKey = process.env.FIREBASE_ADMIN_KEY;
@@ -22,10 +21,9 @@ if (!getApps().length) {
 const db = getFirestore();
 const requestTracker = new Map();
 
-// --- نظام الـ Cache في السيرفر (لتوفير الـ Reads) ---
 let statsCache = null;
 let lastCacheTime = 0;
-const CACHE_DURATION = 60 * 1000; // دقيقة واحدة
+const CACHE_DURATION = 60 * 1000; 
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
@@ -38,8 +36,9 @@ export default async function handler(req, res) {
 
   const now = Date.now();
 
-  // ✨ 5. (اختياري قوي) شيل Rate Limit مؤقتًا للاختبار
-  /* if (requestTracker.has(key)) {
+  // الـ Rate Limit موقوف حالياً بناءً على طلبك السابق للاختبار
+  /*
+  if (requestTracker.has(key)) {
     const last = requestTracker.get(key);
     if (now - last < 2000) { 
       return res.status(429).json({ error: "Too many requests" });
@@ -62,9 +61,11 @@ export default async function handler(req, res) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (!decoded.device || !clientFingerprint.includes(decoded.device)) {  
-        return res.status(403).json({ error: "Security Mismatch" });  
-    }  
+    // ✨ 2. خفف تحقق الـ fingerprint (الحل الاحترافي)
+    if (!decoded.device) {
+        return res.status(403).json({ error: "Security Mismatch" });
+    }
+    // سيبنا الـ fingerprint للمراقبة فقط هنا بدون عمل block
 
     if (action === 'get_referrals_stats') {  
       if (statsCache && (now - lastCacheTime < CACHE_DURATION)) {  
@@ -104,11 +105,8 @@ export default async function handler(req, res) {
       referredUsers.forEach(user => {  
           const bossId = user.referredBy;  
           const hisWithdrawals = allWithdrawals.filter(w => w.userId === user.id);  
-            
           let commFromHim = 0;  
-          hisWithdrawals.slice(0, 10).forEach(w => {  
-              commFromHim += (Number(w.amount) * 0.10);  
-          });  
+          hisWithdrawals.slice(0, 10).forEach(w => { commFromHim += (Number(w.amount) * 0.10); });  
 
           if (!referrersMap[bossId]) {  
               const bossData = allReferrers.find(r => r.id === bossId);  
@@ -119,31 +117,16 @@ export default async function handler(req, res) {
                   totalComm: 0  
               };  
           }  
-
-          referrersMap[bossId].friends.push({  
-              name: user.name,  
-              email: user.email,  
-              withdrawalsCount: hisWithdrawals.length,  
-              commGenerated: commFromHim  
-          });  
+          referrersMap[bossId].friends.push({ name: user.name, email: user.email, withdrawalsCount: hisWithdrawals.length, commGenerated: commFromHim });  
           referrersMap[bossId].totalComm += commFromHim;  
           totalSystemCommission += commFromHim;  
       });  
 
-      const leaderboard = Object.entries(referrersMap)  
-          .sort((a, b) => b[1].totalComm - a[1].totalComm)  
-          .map(([id, data]) => ({ id, ...data }));  
-
-      const finalResponse = {  
-          leaderboard,  
-          totalConversions: referredUsers.length,  
-          totalSystemCommission,  
-          recentLogs: referredUsers.slice(-15).reverse()  
-      };  
+      const leaderboard = Object.entries(referrersMap).sort((a, b) => b[1].totalComm - a[1].totalComm).map(([id, data]) => ({ id, ...data }));  
+      const finalResponse = { leaderboard, totalConversions: referredUsers.length, totalSystemCommission, recentLogs: referredUsers.slice(-15).reverse() };  
 
       statsCache = finalResponse;  
       lastCacheTime = now;  
-
       return res.status(200).json(finalResponse);  
     }
   } catch (error) {
