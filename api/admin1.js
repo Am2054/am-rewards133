@@ -35,14 +35,20 @@ export default async function handler(req, res) {
   const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
   const now = Date.now();
-  if (requestTracker.has(userIp) && now - requestTracker.get(userIp) < 500) {
-    return res.status(429).json({ error: "Too many requests" });
+
+  // ✅ التعديل الاحترافي للـ Rate Limit
+  if (requestTracker.has(userIp)) {
+    const last = requestTracker.get(userIp);
+    if (now - last < 1000) {
+      return res.status(429).json({ error: "Too many requests" });
+    }
   }
   requestTracker.set(userIp, now);
 
   if (action === 'admin_login') {
     if (password === process.env.ADMIN_PASSWORD2) {
-      const token = jwt.sign({ role: 'ref_admin', device: clientFingerprint }, process.env.JWT_SECRET, { expiresIn: '12h' });
+      // ✅ حفظ أول 20 حرف فقط من البصمة لزيادة الاستقرار
+      const token = jwt.sign({ role: 'ref_admin', device: clientFingerprint.slice(0, 20) }, process.env.JWT_SECRET, { expiresIn: '12h' });
       res.setHeader('Set-Cookie', serialize('adminToken', token, { path: '/', httpOnly: true, secure: true, sameSite: 'strict', maxAge: 43200 }));
       return res.status(200).json({ success: true });
     }
@@ -53,20 +59,21 @@ export default async function handler(req, res) {
   const token = cookies.adminToken;
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.device !== clientFingerprint) return res.status(403).json({ error: "Security Mismatch" });
+    
+    // ✅ التحقق المرن من البصمة لمنع الخروج المفاجئ
+    if (!decoded.device || !clientFingerprint.includes(decoded.device)) {
+        return res.status(403).json({ error: "Security Mismatch" });
+    }
 
     if (action === 'get_referrals_stats') {
-      // التحقق من الـ Cache أولاً
       if (statsCache && (now - lastCacheTime < CACHE_DURATION)) {
         return res.status(200).json({ ...statsCache, fromCache: true });
       }
 
-      // 1. جلب المستخدمين المحالين فقط
       const referredUsersSnap = await db.collection('users').where('referredBy', '!=', null).get();
       const referredUsers = referredUsersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       const referredUserIds = referredUsers.map(u => u.id);
 
-      // 2. جلب بيانات الداعين (Referrers) بنظام الـ Chunks
       const referrerIds = [...new Set(referredUsers.map(u => u.referredBy))];
       let allReferrers = [];
       if (referrerIds.length > 0) {
@@ -77,7 +84,6 @@ export default async function handler(req, res) {
           }
       }
 
-      // 3. جلب السحبات المكتملة المرتبطة بهؤلاء المستخدمين فقط (توفير هائل)
       let allWithdrawals = [];
       if (referredUserIds.length > 0) {
           for (let i = 0; i < referredUserIds.length; i += 30) {
@@ -85,7 +91,7 @@ export default async function handler(req, res) {
               const wSnap = await db.collection('withdrawals')
                 .where('userId', 'in', uChunk)
                 .where('status', '==', 'completed')
-                .orderBy('createdAt', 'asc') // الترتيب لضمان أول 10 سحبات
+                .orderBy('createdAt', 'asc')
                 .get();
               allWithdrawals.push(...wSnap.docs.map(d => d.data()));
           }
@@ -96,7 +102,6 @@ export default async function handler(req, res) {
 
       referredUsers.forEach(user => {
           const bossId = user.referredBy;
-          // تصفية سحبات هذا المستخدم من المصفوفة المجلوبة
           const hisWithdrawals = allWithdrawals.filter(w => w.userId === user.id);
           
           let commFromHim = 0;
@@ -135,7 +140,6 @@ export default async function handler(req, res) {
           recentLogs: referredUsers.slice(-15).reverse()
       };
 
-      // تحديث الـ Cache
       statsCache = finalResponse;
       lastCacheTime = now;
 
