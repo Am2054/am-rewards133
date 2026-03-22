@@ -112,14 +112,16 @@
   </div>
 
   <script>
-    // --- Fingerprint المستوى الأعلى (High-Level Fingerprint) ---
+    // ✅ نظام التحكم في الطلبات المكررة
+    let isLoading = false;
+
     const getSecureFingerprint = () => {
         const parts = [
             navigator.userAgent,
             screen.width + 'x' + screen.height,
             navigator.language,
-            navigator.hardwareConcurrency || 'N/A', // عدد الأنوية
-            navigator.deviceMemory || 'N/A',      // الرام بالجيجا
+            navigator.hardwareConcurrency || 'N/A', 
+            navigator.deviceMemory || 'N/A',      
             Intl.DateTimeFormat().resolvedOptions().timeZone
         ];
         return btoa(parts.join('|')).slice(0, 48);
@@ -128,7 +130,6 @@
     const fingerprint = getSecureFingerprint();
     let cachedLeaderboard = [];
 
-    // --- دالة التواصل مع الـ Backend ---
     async function apiRequest(data) {
         try {
             const res = await fetch('/api/admin1', {
@@ -157,15 +158,22 @@
         }
     }
 
-    // --- جلب البيانات وعرضها ---
+    // ✅ التعديل الاحترافي لجلب البيانات مع نظام الـ Loading
     async function loadReferralData() {
+        if (isLoading) return;
+        isLoading = true;
+
         const data = await apiRequest({ action: 'get_referrals_stats' });
         if (data) {
             cachedLeaderboard = data.leaderboard;
             renderUI(data);
-            // تنبيه بسيط في الـ Console إذا كانت البيانات من الـ Cache
             if(data.fromCache) console.log("Data loaded from server cache ⚡");
         }
+
+        // تحرير القفل بعد ثانية
+        setTimeout(() => {
+            isLoading = false;
+        }, 1000);
     }
 
     function renderUI(data) {
@@ -245,13 +253,15 @@
         }
     });
 
-    document.getElementById('refreshBtn').addEventListener('click', loadReferralData);
+    // ✅ تحسين تجربة زر الـ Sync مع تأخير بسيط لمنع تضارب الطلبات
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+        setTimeout(loadReferralData, 300);
+    });
     
     document.getElementById('closeModalBtn').addEventListener('click', () => {
         document.getElementById('detailsModal').classList.add('hidden');
     });
 
-    // --- الجزء المعدل لمنع تصادم الطلبات عند البداية مع استخدام البصمة الجديدة ---
     if (document.cookie.includes('adminToken')) {
         toggleUI(true);
         setTimeout(() => {
