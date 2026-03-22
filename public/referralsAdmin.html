@@ -105,21 +105,21 @@
     <div class="modal-content">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; border-bottom:1px solid var(--border); padding-bottom:15px;">
         <h3 id="modalTitle" style="color:var(--gold); margin:0; font-family:'Cairo';">تفاصيل الأصدقاء</h3>
-        <span style="color:var(--red); cursor:pointer; font-weight:bold; font-size:1.5rem;" id="closeModalBtn">✕</span>
+        <span style="color:var(--red); cursor:pointer; font-weight:bold; font-size:15rem;" id="closeModalBtn">✕</span>
       </div>
       <div id="friendsListContainer"></div>
     </div>
   </div>
 
   <script>
-    // --- Fingerprint المستوى الأعلى (High-Level Fingerprint) ---
+    // --- إعدادات الأمان المتقدمة (High-Level Fingerprint) ---
     const getSecureFingerprint = () => {
         const parts = [
             navigator.userAgent,
             screen.width + 'x' + screen.height,
             navigator.language,
-            navigator.hardwareConcurrency || 'N/A', // عدد الأنوية
-            navigator.deviceMemory || 'N/A',      // الرام بالجيجا
+            navigator.hardwareConcurrency || 'N/A',
+            navigator.deviceMemory || 'N/A',
             Intl.DateTimeFormat().resolvedOptions().timeZone
         ];
         return btoa(parts.join('|')).slice(0, 48);
@@ -128,7 +128,6 @@
     const fingerprint = getSecureFingerprint();
     let cachedLeaderboard = [];
 
-    // --- دالة التواصل مع الـ Backend ---
     async function apiRequest(data) {
         try {
             const res = await fetch('/api/admin1', {
@@ -157,13 +156,11 @@
         }
     }
 
-    // --- جلب البيانات وعرضها ---
     async function loadReferralData() {
         const data = await apiRequest({ action: 'get_referrals_stats' });
         if (data) {
             cachedLeaderboard = data.leaderboard;
             renderUI(data);
-            // تنبيه بسيط في الـ Console إذا كانت البيانات من الـ Cache
             if(data.fromCache) console.log("Data loaded from server cache ⚡");
         }
     }
@@ -251,12 +248,9 @@
         document.getElementById('detailsModal').classList.add('hidden');
     });
 
-    // --- الجزء المعدل لمنع تصادم الطلبات عند البداية مع استخدام البصمة الجديدة ---
     if (document.cookie.includes('adminToken')) {
         toggleUI(true);
-        setTimeout(() => {
-            loadReferralData();
-        }, 600);
+        loadReferralData();
     }
   </script>
 </body>
