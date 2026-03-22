@@ -35,7 +35,7 @@ export default async function handler(req, res) {
   const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
   const now = Date.now();
-  if (requestTracker.has(userIp) && now - requestTracker.get(userIp) < 1000) {
+  if (requestTracker.has(userIp) && now - requestTracker.get(userIp) < 500) {
     return res.status(429).json({ error: "Too many requests" });
   }
   requestTracker.set(userIp, now);
