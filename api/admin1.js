@@ -22,6 +22,11 @@ if (!getApps().length) {
 const db = getFirestore();
 const requestTracker = new Map();
 
+// --- نظام الـ Cache في السيرفر (لتوفير الـ Reads) ---
+let statsCache = null;
+let lastCacheTime = 0;
+const CACHE_DURATION = 60 * 1000; // دقيقة واحدة
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
@@ -29,14 +34,12 @@ export default async function handler(req, res) {
   const clientFingerprint = req.headers['x-fingerprint'] || fingerprint;
   const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-  // --- Rate Limit ---
   const now = Date.now();
   if (requestTracker.has(userIp) && now - requestTracker.get(userIp) < 1000) {
     return res.status(429).json({ error: "Too many requests" });
   }
   requestTracker.set(userIp, now);
 
-  // --- Login Logic (Password 2) ---
   if (action === 'admin_login') {
     if (password === process.env.ADMIN_PASSWORD2) {
       const token = jwt.sign({ role: 'ref_admin', device: clientFingerprint }, process.env.JWT_SECRET, { expiresIn: '12h' });
@@ -46,54 +49,54 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  // --- Auth Check ---
   const cookies = parse(req.headers.cookie || "");
   const token = cookies.adminToken;
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.device !== clientFingerprint) return res.status(403).json({ error: "Security Mismatch" });
 
-    // --- الحل الأمثل للأداء (Referrals Stats) ---
     if (action === 'get_referrals_stats') {
-      
-      // 1. جلب فقط المستخدمين الذين تم إحالتهم (Referred Users)
-      // بدلاً من جلب الكل، نجلب فقط من لديه حقل referredBy
-      const referredUsersSnap = await db.collection('users')
-        .where('referredBy', '!=', null)
-        .get();
-      
-      const referredUsers = referredUsersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // التحقق من الـ Cache أولاً
+      if (statsCache && (now - lastCacheTime < CACHE_DURATION)) {
+        return res.status(200).json({ ...statsCache, fromCache: true });
+      }
 
-      // 2. جلب معرفات الداعين (Referrers) الفريدة فقط لجلب بياناتهم
+      // 1. جلب المستخدمين المحالين فقط
+      const referredUsersSnap = await db.collection('users').where('referredBy', '!=', null).get();
+      const referredUsers = referredUsersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const referredUserIds = referredUsers.map(u => u.id);
+
+      // 2. جلب بيانات الداعين (Referrers) بنظام الـ Chunks
       const referrerIds = [...new Set(referredUsers.map(u => u.referredBy))];
-      
-      // جلب بيانات الداعين فقط (في مصفوفات بحد أقصى 30 لكل طلب لتوفير الـ Reads)
       let allReferrers = [];
       if (referrerIds.length > 0) {
-          const chunks = [];
           for (let i = 0; i < referrerIds.length; i += 30) {
-              chunks.push(referrerIds.slice(i, i + 30));
-          }
-          for (const chunk of chunks) {
+              const chunk = referrerIds.slice(i, i + 30);
               const rSnap = await db.collection('users').where('__name__', 'in', chunk).get();
               allReferrers.push(...rSnap.docs.map(d => ({ id: d.id, ...d.data() })));
           }
       }
 
-      // 3. جلب السحبات المكتملة للمستخدمين المحالين فقط (Optimization)
-      const withdrawalsSnap = await db.collection('withdrawals')
-        .where('status', '==', 'completed')
-        .get(); // ملاحظة: يفضل مستقبلاً فلترة السحبات بالتاريخ أو بالـ userId أيضاً
-      
-      const allWithdrawals = withdrawalsSnap.docs.map(d => d.data());
+      // 3. جلب السحبات المكتملة المرتبطة بهؤلاء المستخدمين فقط (توفير هائل)
+      let allWithdrawals = [];
+      if (referredUserIds.length > 0) {
+          for (let i = 0; i < referredUserIds.length; i += 30) {
+              const uChunk = referredUserIds.slice(i, i + 30);
+              const wSnap = await db.collection('withdrawals')
+                .where('userId', 'in', uChunk)
+                .where('status', '==', 'completed')
+                .orderBy('createdAt', 'asc') // الترتيب لضمان أول 10 سحبات
+                .get();
+              allWithdrawals.push(...wSnap.docs.map(d => d.data()));
+          }
+      }
 
-      // --- معالجة البيانات ---
       const referrersMap = {};
       let totalSystemCommission = 0;
-      let totalConversions = referredUsers.length;
 
       referredUsers.forEach(user => {
           const bossId = user.referredBy;
+          // تصفية سحبات هذا المستخدم من المصفوفة المجلوبة
           const hisWithdrawals = allWithdrawals.filter(w => w.userId === user.id);
           
           let commFromHim = 0;
@@ -125,14 +128,19 @@ export default async function handler(req, res) {
           .sort((a, b) => b[1].totalComm - a[1].totalComm)
           .map(([id, data]) => ({ id, ...data }));
 
-      return res.status(200).json({
+      const finalResponse = {
           leaderboard,
-          totalConversions,
+          totalConversions: referredUsers.length,
           totalSystemCommission,
           recentLogs: referredUsers.slice(-15).reverse()
-      });
-    }
+      };
 
+      // تحديث الـ Cache
+      statsCache = finalResponse;
+      lastCacheTime = now;
+
+      return res.status(200).json(finalResponse);
+    }
   } catch (error) {
     return res.status(401).json({ error: "Session Expired" });
   }
