@@ -3,7 +3,7 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import jwt from "jsonwebtoken";
 import { parse, serialize } from "cookie";
 
-// --- 1. تهيئة Firebase Admin (بدون حذف حرف) ---
+// --- 1. تهيئة Firebase Admin (بدون حذف حرف واحد) ---
 if (!getApps().length) {
   try {
     let rawKey = process.env.FIREBASE_ADMIN_KEY;
@@ -20,8 +20,6 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
-
-// نظام تتبع الطلبات لمنع الإغراق (Rate Limiting)
 const requestTracker = new Map();
 
 export default async function handler(req, res) {
@@ -31,106 +29,107 @@ export default async function handler(req, res) {
   const clientFingerprint = req.headers['x-fingerprint'] || fingerprint;
   const userIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-  // --- حماية Rate Limit ---
+  // --- Rate Limit ---
   const now = Date.now();
-  if (requestTracker.has(userIp)) {
-    if (now - requestTracker.get(userIp) < 1000) { // طلب واحد في الثانية كحد أقصى
-      return res.status(429).json({ error: "Too many requests" });
-    }
+  if (requestTracker.has(userIp) && now - requestTracker.get(userIp) < 1000) {
+    return res.status(429).json({ error: "Too many requests" });
   }
   requestTracker.set(userIp, now);
 
-  // --- 2. تسجيل الدخول بكلمة السر الثانية ADMIN_PASSWORD2 ---
+  // --- Login Logic (Password 2) ---
   if (action === 'admin_login') {
     if (password === process.env.ADMIN_PASSWORD2) {
-      const token = jwt.sign(
-        { role: 'referral_admin', device: clientFingerprint }, 
-        process.env.JWT_SECRET, 
-        { expiresIn: '12h' }
-      );
-      
-      res.setHeader('Set-Cookie', serialize('adminToken', token, { 
-        path: '/', httpOnly: true, secure: true, sameSite: 'strict', maxAge: 43200 
-      }));
+      const token = jwt.sign({ role: 'ref_admin', device: clientFingerprint }, process.env.JWT_SECRET, { expiresIn: '12h' });
+      res.setHeader('Set-Cookie', serialize('adminToken', token, { path: '/', httpOnly: true, secure: true, sameSite: 'strict', maxAge: 43200 }));
       return res.status(200).json({ success: true });
     }
-    return res.status(401).json({ error: "Unauthorized Access" });
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
-  // --- 3. التحقق من التوكن والبصمة (Security Layer) ---
+  // --- Auth Check ---
   const cookies = parse(req.headers.cookie || "");
   const token = cookies.adminToken;
-
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.device !== clientFingerprint) {
-      return res.status(403).json({ error: "Security Mismatch" });
-    }
+    if (decoded.device !== clientFingerprint) return res.status(403).json({ error: "Security Mismatch" });
 
-    // --- 4. جلب وتحليل بيانات الإحالات (Server-Side Logic) ---
+    // --- الحل الأمثل للأداء (Referrals Stats) ---
     if (action === 'get_referrals_stats') {
       
-      // جلب المستخدمين الذين قاموا بالإحالة أو تم إحالتهم (Optimization)
-      const usersSnap = await db.collection('users').get();
-      const allUsers = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // 1. جلب فقط المستخدمين الذين تم إحالتهم (Referred Users)
+      // بدلاً من جلب الكل، نجلب فقط من لديه حقل referredBy
+      const referredUsersSnap = await db.collection('users')
+        .where('referredBy', '!=', null)
+        .get();
+      
+      const referredUsers = referredUsersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-      // جلب السحبات المكتملة فقط لحساب العمولات
+      // 2. جلب معرفات الداعين (Referrers) الفريدة فقط لجلب بياناتهم
+      const referrerIds = [...new Set(referredUsers.map(u => u.referredBy))];
+      
+      // جلب بيانات الداعين فقط (في مصفوفات بحد أقصى 30 لكل طلب لتوفير الـ Reads)
+      let allReferrers = [];
+      if (referrerIds.length > 0) {
+          const chunks = [];
+          for (let i = 0; i < referrerIds.length; i += 30) {
+              chunks.push(referrerIds.slice(i, i + 30));
+          }
+          for (const chunk of chunks) {
+              const rSnap = await db.collection('users').where('__name__', 'in', chunk).get();
+              allReferrers.push(...rSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+          }
+      }
+
+      // 3. جلب السحبات المكتملة للمستخدمين المحالين فقط (Optimization)
       const withdrawalsSnap = await db.collection('withdrawals')
         .where('status', '==', 'completed')
-        .get();
+        .get(); // ملاحظة: يفضل مستقبلاً فلترة السحبات بالتاريخ أو بالـ userId أيضاً
+      
       const allWithdrawals = withdrawalsSnap.docs.map(d => d.data());
 
+      // --- معالجة البيانات ---
       const referrersMap = {};
       let totalSystemCommission = 0;
-      let totalConversions = 0;
+      let totalConversions = referredUsers.length;
 
-      allUsers.forEach(user => {
-        if (user.referredBy) {
-          totalConversions++;
+      referredUsers.forEach(user => {
           const bossId = user.referredBy;
-          
-          // فلترة سحبات هذا المستخدم المحال
           const hisWithdrawals = allWithdrawals.filter(w => w.userId === user.id);
           
           let commFromHim = 0;
-          // حساب العمولة (أول 10 سحبات فقط)
           hisWithdrawals.slice(0, 10).forEach(w => {
-            commFromHim += (Number(w.amount) * 0.10);
+              commFromHim += (Number(w.amount) * 0.10);
           });
 
           if (!referrersMap[bossId]) {
-            const bossData = allUsers.find(u => u.id === bossId);
-            referrersMap[bossId] = {
-              name: bossData?.name || "Unknown User",
-              email: bossData?.email || "-",
-              friends: [],
-              totalComm: 0
-            };
+              const bossData = allReferrers.find(r => r.id === bossId);
+              referrersMap[bossId] = {
+                  name: bossData?.name || "User " + bossId.slice(0,5),
+                  email: bossData?.email || "-",
+                  friends: [],
+                  totalComm: 0
+              };
           }
 
           referrersMap[bossId].friends.push({
-            name: user.name,
-            email: user.email,
-            withdrawalsCount: hisWithdrawals.length,
-            commGenerated: commFromHim
+              name: user.name,
+              email: user.email,
+              withdrawalsCount: hisWithdrawals.length,
+              commGenerated: commFromHim
           });
-          
           referrersMap[bossId].totalComm += commFromHim;
           totalSystemCommission += commFromHim;
-        }
       });
 
-      // تحويل الخريطة إلى مصفوفة مرتبة للأوائل
       const leaderboard = Object.entries(referrersMap)
-        .sort((a, b) => b[1].totalComm - a[1].totalComm)
-        .map(([id, data]) => ({ id, ...data }));
+          .sort((a, b) => b[1].totalComm - a[1].totalComm)
+          .map(([id, data]) => ({ id, ...data }));
 
-      // إرسال البيانات النهائية الجاهزة للعرض
       return res.status(200).json({
-        leaderboard,
-        totalConversions,
-        totalSystemCommission,
-        recentLogs: allUsers.filter(u => u.referredBy).slice(-15).reverse()
+          leaderboard,
+          totalConversions,
+          totalSystemCommission,
+          recentLogs: referredUsers.slice(-15).reverse()
       });
     }
 
