@@ -112,21 +112,23 @@
   </div>
 
   <script>
-    // --- إعدادات الأمان المتقدمة ---
+    // --- Fingerprint المستوى الأعلى (High-Level Fingerprint) ---
     const getSecureFingerprint = () => {
-        return btoa(
-            navigator.userAgent + 
-            screen.width + 
-            screen.height + 
-            Intl.DateTimeFormat().resolvedOptions().timeZone +
-            navigator.language
-        ).slice(0, 32);
+        const parts = [
+            navigator.userAgent,
+            screen.width + 'x' + screen.height,
+            navigator.language,
+            navigator.hardwareConcurrency || 'N/A', // عدد الأنوية
+            navigator.deviceMemory || 'N/A',      // الرام بالجيجا
+            Intl.DateTimeFormat().resolvedOptions().timeZone
+        ];
+        return btoa(parts.join('|')).slice(0, 48);
     };
 
     const fingerprint = getSecureFingerprint();
     let cachedLeaderboard = [];
 
-    // --- دالة التواصل مع الـ Backend (تعديل المسار لـ admin1) ---
+    // --- دالة التواصل مع الـ Backend ---
     async function apiRequest(data) {
         try {
             const res = await fetch('/api/admin1', {
@@ -144,7 +146,7 @@
             }
             
             if (res.status === 429) {
-                alert("Too many requests! Please wait.");
+                alert("تنبيه: أنت ترسل الكثير من الطلبات بسرعة! انتظر قليلاً.");
                 return null;
             }
 
@@ -161,6 +163,8 @@
         if (data) {
             cachedLeaderboard = data.leaderboard;
             renderUI(data);
+            // تنبيه بسيط في الـ Console إذا كانت البيانات من الـ Cache
+            if(data.fromCache) console.log("Data loaded from server cache ⚡");
         }
     }
 
@@ -247,9 +251,12 @@
         document.getElementById('detailsModal').classList.add('hidden');
     });
 
+    // --- الجزء المعدل لمنع تصادم الطلبات عند البداية مع استخدام البصمة الجديدة ---
     if (document.cookie.includes('adminToken')) {
         toggleUI(true);
-        loadReferralData();
+        setTimeout(() => {
+            loadReferralData();
+        }, 600);
     }
   </script>
 </body>
