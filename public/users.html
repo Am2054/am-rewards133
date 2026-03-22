@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AM REWARDS | ADMIN PANEL</title>
+  <title>AM REWARDS | USERS MANAGEMENT</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -11,7 +11,7 @@
       --border: rgba(245, 197, 66, 0.1); --text: #eef2f7; --accent: #00fa9a;
       --red: #ef4444; --blue: #3b82f6;
     }
-    body { font-family: "Cairo", sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; min-height: 100vh; background-image: radial-gradient(circle at top right, #1e293b, #030712); }
+    body { font-family: "Cairo", sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; background-image: radial-gradient(circle at top right, #1e293b, #030712); min-height: 100vh; }
     .wrap { max-width: 1400px; margin: 0 auto; }
     header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; padding: 25px; background: var(--card); border-radius: 24px; border: 1px solid var(--border); backdrop-filter: blur(15px); }
     header h1 { margin: 0; font-family: 'Syncopate'; color: var(--gold); font-size: 1.3rem; letter-spacing: 2px; }
@@ -28,16 +28,17 @@
     td { padding: 15px 20px; background: rgba(255,255,255,0.02); vertical-align: middle; transition: 0.3s; }
     td:first-child { border-radius: 0 15px 15px 0; }
     td:last-child { border-radius: 15px 0 0 15px; }
-    tr:hover td { background: rgba(245, 197, 66, 0.08); }
+    tr:hover td { background: rgba(245, 197, 66, 0.08); transform: scale(1.002); }
     .user-info { display: flex; align-items: center; gap: 12px; }
-    .avatar { width: 40px; height: 40px; background: linear-gradient(45deg, var(--gold), #b48a1d); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #000; font-weight: 900; font-family: 'Syncopate'; }
+    .avatar { width: 40px; height: 40px; background: linear-gradient(45deg, var(--gold), #b48a1d); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #000; font-weight: 900; font-family: 'Syncopate'; font-size: 1.1rem; }
     .uid-tag { font-family: monospace; font-size: 0.7rem; color: #64748b; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; }
     .points-badge { color: var(--gold); font-weight: 900; font-size: 1rem; display: flex; align-items: center; gap: 5px; }
     .action-btn { padding: 10px 18px; border-radius: 12px; border: none; font-weight: 800; cursor: pointer; transition: 0.3s; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; }
-    .btn-edit { background: var(--gold); color: #000; }
+    .btn-edit { background: var(--gold); color: #000; box-shadow: 0 4px 15px rgba(245, 197, 66, 0.2); }
     .btn-ban { background: rgba(239, 68, 68, 0.1); color: var(--red); border: 1px solid var(--red); }
     .btn-ban:hover { background: var(--red); color: #fff; }
-    .fraud-warn { border-right: 4px solid var(--red) !important; }
+    .fraud-warn { border-right: 4px solid var(--red) !important; animation: pulseRed 2s infinite; }
+    @keyframes pulseRed { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
     .pagination-box { padding: 20px; display: flex; justify-content: center; gap: 10px; }
     .hidden { display: none !important; }
     #loginBox { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 10000; }
@@ -51,8 +52,8 @@
   <div id="loginBox">
     <div class="auth-box">
       <h2 style="font-family:'Syncopate'; color:var(--gold);">ADMIN ACCESS</h2>
-      <input id="adminPass" type="password" placeholder="ENTER ADMIN PASSWORD" />
-      <button id="loginBtn">AUTHORIZE SYSTEM</button>
+      <input id="adminPass" type="password" placeholder="PASSWORD" />
+      <button id="loginBtn">AUTHORIZE</button>
     </div>
   </div>
 
@@ -60,23 +61,23 @@
     <header>
       <h1>USERS <span style="color:#64748b; font-size:0.9rem;">MANAGEMENT</span></h1>
       <div style="display:flex; gap:12px;">
-        <button id="refreshBtn" class="action-btn" style="background:rgba(255,255,255,0.05); color:#fff; border:1px solid var(--border);">🔄 تحديث القائمة</button>
+        <button id="refreshBtn" class="action-btn" style="background:rgba(255,255,255,0.05); color:#fff; border:1px solid var(--border);">🔄 تحديث</button>
         <button id="logoutBtn" class="action-btn" style="background:var(--red); color:#fff;">LOGOUT</button>
       </div>
     </header>
 
     <div class="metrics">
       <div class="stat-item">
-        <strong id="metricAllUsersVal">0</strong> <span>إجمالي المستخدمين</span>
+        <strong id="metricAllUsersVal">0</strong> <span>Total Members</span>
       </div>
       <div class="stat-item">
-        <strong id="metricActiveUsersVal">0</strong> <span>نشط حالياً</span>
+        <strong id="metricActiveUsersVal">0</strong> <span>Points Volume</span>
       </div>
     </div>
 
     <div class="table-card">
       <div class="controls">
-        <input id="searchInput" type="search" placeholder="بحث بالبريد الإلكتروني أو الـ UID...">
+        <input id="searchInput" type="search" placeholder="Search by email or UID...">
       </div>
 
       <div class="table-container">
@@ -106,10 +107,13 @@
     let lastDocId = null;
     const fingerprint = btoa(navigator.userAgent).slice(0, 16);
 
-    async function apiCall(data) {
+    async function apiRequest(data) {
         const res = await fetch('/api/admin', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-fingerprint': fingerprint },
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-fingerprint': fingerprint 
+            },
             body: JSON.stringify(data)
         });
         if (res.status === 401) { toggleUI(false); return null; }
@@ -118,16 +122,16 @@
 
     async function loadData(isNext = false) {
         const search = document.getElementById('searchInput').value;
-        const result = await apiCall({
+        const res = await apiRequest({
             action: 'get_users',
             lastId: isNext ? lastDocId : null,
             searchQuery: search
         });
 
-        if (result && result.users) {
-            renderTable(result.users);
-            document.getElementById('metricAllUsersVal').textContent = result.total || 0;
-            if (result.users.length > 0) lastDocId = result.users[result.users.length - 1].id;
+        if (res && res.users) {
+            renderTable(res.users);
+            document.getElementById('metricAllUsersVal').textContent = res.total || 0;
+            if (res.users.length > 0) lastDocId = res.users[res.users.length - 1].id;
         }
     }
 
@@ -136,7 +140,8 @@
         tbody.innerHTML = '';
         users.forEach(u => {
             const tr = document.createElement('tr');
-            if (u.isSuspicious) tr.classList.add('fraud-warn');
+            if (u.status === 'banned') tr.style.opacity = '0.6';
+            
             tr.innerHTML = `
                 <td>
                     <div class="user-info">
@@ -147,10 +152,10 @@
                         </div>
                     </div>
                 </td>
-                <td>${u.email}</td>
-                <td>${u.referralCount || 0}</td>
+                <td>${u.email || '-'}</td>
+                <td><b style="color:var(--accent);">${u.referralCount || 0}</b></td>
                 <td><div class="points-badge">🪙 ${Number(u.points || 0).toLocaleString()}</div></td>
-                <td style="font-size:0.7rem;">${u.lastLoginText || 'N/A'}</td>
+                <td style="font-size:0.7rem; color:#64748b;">${u.lastLoginText}</td>
                 <td>
                     <div style="display:flex; gap:5px;">
                         <button onclick="editPoints('${u.id}', ${u.points})" class="action-btn btn-edit">🪙</button>
@@ -164,15 +169,16 @@
 
     async function editPoints(id, current) {
         const p = prompt("تعديل النقاط:", current);
-        if (p !== null) {
-            const res = await apiCall({ action: 'edit_points', uid: id, points: p });
+        if (p !== null && !isNaN(p)) {
+            const res = await apiRequest({ action: 'edit_points', uid: id, points: p });
             if (res?.success) loadData();
         }
     }
 
     async function toggleBan(id, status) {
-        if (confirm("تغيير حالة الحظر؟")) {
-            const res = await apiCall({ action: 'toggle_ban', uid: id, status: status === 'banned' ? 'active' : 'banned' });
+        const nextStatus = status === 'banned' ? 'active' : 'banned';
+        if (confirm(`هل تريد ${nextStatus === 'banned' ? 'حظر' : 'فك حظر'} المستخدم؟`)) {
+            const res = await apiRequest({ action: 'toggle_ban', uid: id, status: nextStatus });
             if (res?.success) loadData();
         }
     }
@@ -184,21 +190,27 @@
 
     document.getElementById('loginBtn').onclick = async () => {
         const pass = document.getElementById('adminPass').value;
-        const res = await apiCall({ action: 'admin_login', password: pass });
-        if (res?.success) { toggleUI(true); loadData(); } else { alert("كلمة المرور خاطئة"); }
+        const res = await apiRequest({ action: 'admin_login', password: pass });
+        if (res?.success) { toggleUI(true); loadData(); } else { alert("رمز الدخول خاطئ"); }
     };
 
-    document.getElementById('logoutBtn').onclick = () => { document.cookie = "adminToken=; max-age=0"; location.reload(); };
+    document.getElementById('logoutBtn').onclick = () => {
+        document.cookie = "adminToken=; max-age=0; path=/";
+        location.reload();
+    };
+
     document.getElementById('refreshBtn').onclick = () => { lastDocId = null; loadData(); };
     document.getElementById('nextPage').onclick = () => loadData(true);
     document.getElementById('prevPage').onclick = () => { lastDocId = null; loadData(); };
-    
-    // البحث الحي (يوفر قراءات لأنه يجلب 10 نتائج فقط)
+
     let searchTimer;
     document.getElementById('searchInput').oninput = () => {
         clearTimeout(searchTimer);
-        searchTimer = setTimeout(() => { lastDocId = null; loadData(); }, 500);
+        searchTimer = setTimeout(() => { lastDocId = null; loadData(); }, 600);
     };
+
+    // محاولة الدخول التلقائي إذا كان التوكن موجوداً
+    window.onload = () => { if(document.cookie.includes('adminToken')) { toggleUI(true); loadData(); } };
   </script>
 </body>
 </html>
