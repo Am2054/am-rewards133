@@ -105,29 +105,28 @@
     <div class="modal-content">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; border-bottom:1px solid var(--border); padding-bottom:15px;">
         <h3 id="modalTitle" style="color:var(--gold); margin:0; font-family:'Cairo';">تفاصيل الأصدقاء</h3>
-        <span style="color:var(--red); cursor:pointer; font-weight:bold; font-size:15rem;" id="closeModalBtn">✕</span>
+        <span style="color:var(--red); cursor:pointer; font-weight:bold; font-size:1.5rem;" id="closeModalBtn">✕</span>
       </div>
       <div id="friendsListContainer"></div>
     </div>
   </div>
 
   <script>
-    // --- إعدادات الأمان المتقدمة (High-Level Fingerprint) ---
+    // --- إعدادات الأمان المتقدمة ---
     const getSecureFingerprint = () => {
-        const parts = [
-            navigator.userAgent,
-            screen.width + 'x' + screen.height,
-            navigator.language,
-            navigator.hardwareConcurrency || 'N/A',
-            navigator.deviceMemory || 'N/A',
-            Intl.DateTimeFormat().resolvedOptions().timeZone
-        ];
-        return btoa(parts.join('|')).slice(0, 48);
+        return btoa(
+            navigator.userAgent + 
+            screen.width + 
+            screen.height + 
+            Intl.DateTimeFormat().resolvedOptions().timeZone +
+            navigator.language
+        ).slice(0, 32);
     };
 
     const fingerprint = getSecureFingerprint();
     let cachedLeaderboard = [];
 
+    // --- دالة التواصل مع الـ Backend (تعديل المسار لـ admin1) ---
     async function apiRequest(data) {
         try {
             const res = await fetch('/api/admin1', {
@@ -145,7 +144,7 @@
             }
             
             if (res.status === 429) {
-                alert("تنبيه: أنت ترسل الكثير من الطلبات بسرعة! انتظر قليلاً.");
+                alert("Too many requests! Please wait.");
                 return null;
             }
 
@@ -156,12 +155,12 @@
         }
     }
 
+    // --- جلب البيانات وعرضها ---
     async function loadReferralData() {
         const data = await apiRequest({ action: 'get_referrals_stats' });
         if (data) {
             cachedLeaderboard = data.leaderboard;
             renderUI(data);
-            if(data.fromCache) console.log("Data loaded from server cache ⚡");
         }
     }
 
