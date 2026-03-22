@@ -105,29 +105,15 @@
   </div>    
   <script>  
     let isLoading = false;  
-  
-    const getSecureFingerprint = () => {  
-        const parts = [  
-            navigator.userAgent,  
-            screen.width + 'x' + screen.height,  
-            navigator.language,  
-            navigator.hardwareConcurrency || 'N/A',   
-            navigator.deviceMemory || 'N/A',        
-            Intl.DateTimeFormat().resolvedOptions().timeZone  
-        ];  
-        return btoa(parts.join('|')).slice(0, 48);  
-    };  
-  
-    const fingerprint = getSecureFingerprint();  
     let cachedLeaderboard = [];  
   
     async function apiRequest(data) {  
         try {  
             const res = await fetch('/api/admin1', {  
                 method: 'POST',  
+                credentials: 'include', // ✅ إرسال الكوكيز للجلسة
                 headers: {   
-                    'Content-Type': 'application/json',  
-                    'x-fingerprint': fingerprint   
+                    'Content-Type': 'application/json'
                 },  
                 body: JSON.stringify(data)  
             });  
@@ -137,11 +123,6 @@
                 return null;  
             }  
   
-            if (res.status === 403) {  
-                console.warn("Fingerprint mismatch");  
-                return null;  
-            }  
-              
             if (res.status === 429) {  
                 alert("تنبيه: أنت ترسل الكثير من الطلبات بسرعة! انتظر قليلاً.");  
                 return null;  
@@ -244,7 +225,6 @@
         }  
     });  
   
-    // ✅ تعديل الزر لمنع الضغط السريع نهائياً
     document.getElementById('refreshBtn').addEventListener('click', () => {  
         if (isLoading) return;
         loadReferralData();  
@@ -254,10 +234,8 @@
         document.getElementById('detailsModal').classList.add('hidden');  
     });  
   
-    // ✅ تعديل: منع أي request تلقائي بعد login مباشرة لتجنب الازدواجية
     if (document.cookie.includes('adminToken')) {  
         toggleUI(true);  
-        // تمت إزالة setTimeout و loadReferralData من هنا لتجنب الطلبات المزدوجة عند الدخول
     }  
   </script>  </body>  
 </html>
