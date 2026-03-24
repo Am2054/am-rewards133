@@ -1,5 +1,5 @@
 import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import jwt from "jsonwebtoken";
 import { parse, serialize } from "cookie";
 
@@ -13,73 +13,143 @@ if (!getApps().length) {
 
 const db = getFirestore();
 
+// نظام الـ Cache الخاص بالإحالات
+let statsCache = null;
+let lastCacheTime = 0;
+const CACHE_DURATION = 60 * 1000; 
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-  const { action, password, filter, customStart, customEnd } = req.body;
+  const { action, module, password, filter, customStart } = req.body;
+  const now = Date.now();
 
-  // 1. تسجيل الدخول
+  // --- [1] نظام تسجيل الدخول الموحد ---
   if (action === 'admin_login') {
-    if (password === process.env.ADMIN_PASSWORD4) {
-      const token = jwt.sign({ role: 'task_analyst' }, process.env.JWT_SECRET, { expiresIn: '8h' });
-      res.setHeader('Set-Cookie', serialize('taskToken', token, { 
-        path: '/', httpOnly: true, secure: true, sameSite: 'strict', maxAge: 28800 
+    let isValid = false;
+    let tokenName = "taskToken"; // افتراضي للمهام
+
+    if (module === 'tasks' && password === process.env.ADMIN_PASSWORD4) {
+        isValid = true;
+    } 
+    else if (module === 'referrals' && password === process.env.ADMIN_PASSWORD2) {
+        isValid = true;
+        tokenName = "refToken"; // توكن منفصل للإحالات
+    }
+
+    if (isValid) {
+      const token = jwt.sign({ role: 'admin', module }, process.env.JWT_SECRET, { expiresIn: '12h' });
+      res.setHeader('Set-Cookie', serialize(tokenName, token, { 
+        path: '/', httpOnly: true, secure: true, sameSite: 'strict', maxAge: 43200 
       }));
       return res.status(200).json({ success: true });
     }
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  // 2. التحقق من التوكن
+  // --- [2] التحقق من التوكنات ---
   const cookies = parse(req.headers.cookie || "");
-  const token = cookies.taskToken;
-  if (!token) return res.status(401).json({ error: "No Token" });
+  const taskToken = cookies.taskToken;
+  const refToken = cookies.refToken;
 
   try {
-    jwt.verify(token, process.env.JWT_SECRET);
+    // --- [3] موديول المهام (Tasks Module) ---
+    if (module === 'tasks') {
+      if (!taskToken) return res.status(401).json({ error: "No Task Token" });
+      jwt.verify(taskToken, process.env.JWT_SECRET);
 
-    if (action === 'get_analytics') {
-      let query = db.collection('tasksCompleted');
-      let start;
-      const now = new Date();
+      if (action === 'get_analytics') {
+        let query = db.collection('tasksCompleted');
+        let start;
+        const nowDate = new Date();
 
-      // تحديد المدى الزمني
-      if (filter === 'today') start = new Date(now.setHours(0,0,0,0));
-      else if (filter === '7days') start = new Date(now.getTime() - 7*24*60*60*1000);
-      else if (filter === '30days') start = new Date(now.getTime() - 30*24*60*60*1000);
-      else if (filter === 'custom' && customStart) start = new Date(customStart);
-
-      if (start && filter !== 'all') {
-        query = query.where('date', '>=', start);
-      }
-
-      const snap = await query.get();
-      const taskCounts = {};
-      let totalTasks = 0;
-      let todayCount = 0;
-      const todayStr = new Date().toDateString();
-
-      snap.forEach(doc => {
-        const d = doc.data();
-        totalTasks++;
-        const type = d.taskType || d.taskId || 'غير معروف';
-        taskCounts[type] = (taskCounts[type] || 0) + 1;
+        if (filter === 'today') start = new Date(nowDate.setHours(0,0,0,0));
+        else if (filter === '7days') start = new Date(nowDate.getTime() - 7*24*60*60*1000);
+        else if (filter === '30days') start = new Date(nowDate.getTime() - 30*24*60*60*1000);
         
-        const dDate = d.date?.toDate ? d.date.toDate() : null;
-        if (dDate && dDate.toDateString() === todayStr) todayCount++;
-      });
+        if (start && filter !== 'all') query = query.where('date', '>=', start);
 
-      // ترتيب أعلى 10 مهام
-      const topTasks = Object.entries(taskCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
+        const snap = await query.get();
+        const taskCounts = {};
+        let totalTasks = 0, todayCount = 0;
+        const todayStr = new Date().toDateString();
 
-      return res.status(200).json({
-        totalTasks,
-        todayCount,
-        uniqueTypes: Object.keys(taskCounts).length,
-        topTasks
-      });
+        snap.forEach(doc => {
+          const d = doc.data();
+          totalTasks++;
+          const type = d.taskType || d.taskId || 'غير معروف';
+          taskCounts[type] = (taskCounts[type] || 0) + 1;
+          const dDate = d.date?.toDate ? d.date.toDate() : null;
+          if (dDate && dDate.toDateString() === todayStr) todayCount++;
+        });
+
+        const topTasks = Object.entries(taskCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        return res.status(200).json({ totalTasks, todayCount, uniqueTypes: Object.keys(taskCounts).length, topTasks });
+      }
+    }
+
+    // --- [4] موديول الإحالات (Referrals Module) ---
+    if (module === 'referrals') {
+      if (!refToken) return res.status(401).json({ error: "No Ref Token" });
+      jwt.verify(refToken, process.env.JWT_SECRET);
+
+      if (action === 'get_referrals_stats') {
+        if (statsCache && (now - lastCacheTime < CACHE_DURATION)) {
+          return res.status(200).json({ ...statsCache, fromCache: true });
+        }
+
+        const referredUsersSnap = await db.collection('users').where('referredBy', '!=', null).get();
+        const referredUsers = referredUsersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const referredUserIds = referredUsers.map(u => u.id);
+        const referrerIds = [...new Set(referredUsers.map(u => u.referredBy))];
+
+        let allReferrers = [];
+        if (referrerIds.length > 0) {
+          for (let i = 0; i < referrerIds.length; i += 30) {
+            const chunk = referrerIds.slice(i, i + 30);
+            const rSnap = await db.collection('users').where('__name__', 'in', chunk).get();
+            allReferrers.push(...rSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+          }
+        }
+
+        let allWithdrawals = [];
+        if (referredUserIds.length > 0) {
+          for (let i = 0; i < referredUserIds.length; i += 30) {
+            const uChunk = referredUserIds.slice(i, i + 30);
+            const wSnap = await db.collection('withdrawals').where('userId', 'in', uChunk).where('status', '==', 'completed').get();
+            allWithdrawals.push(...wSnap.docs.map(d => d.data()));
+          }
+        }
+
+        const referrersMap = {};
+        let totalSystemCommission = 0;
+
+        referredUsers.forEach(user => {
+          const bossId = user.referredBy;
+          const hisWithdrawals = allWithdrawals.filter(w => w.userId === user.id);
+          let commFromHim = 0;
+          hisWithdrawals.slice(0, 10).forEach(w => { commFromHim += (Number(w.amount) * 0.10); });
+
+          if (!referrersMap[bossId]) {
+            const bossData = allReferrers.find(r => r.id === bossId);
+            referrersMap[bossId] = {
+              name: bossData?.name || "مستخدم " + bossId.slice(0,5),
+              email: bossData?.email || "-",
+              friends: [], totalComm: 0
+            };
+          }
+          referrersMap[bossId].friends.push({ name: user.name, email: user.email, withdrawalsCount: hisWithdrawals.length, commGenerated: commFromHim });
+          referrersMap[bossId].totalComm += commFromHim;
+          totalSystemCommission += commFromHim;
+        });
+
+        const leaderboard = Object.entries(referrersMap).sort((a, b) => b[1].totalComm - a[1].totalComm).map(([id, data]) => ({ id, ...data }));
+        const finalResponse = { leaderboard, totalConversions: referredUsers.length, totalSystemCommission, recentLogs: referredUsers.slice(-15).reverse() };
+        
+        statsCache = finalResponse;
+        lastCacheTime = now;
+        return res.status(200).json(finalResponse);
+      }
     }
 
   } catch (e) { return res.status(401).json({ error: "Session Expired" }); }
