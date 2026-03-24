@@ -3,237 +3,198 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AM REWARDS | TASKS ANALYTICS PRO</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+  <title>AM REWARDS | تحليلات المهام</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
-      --bg: #030712; --card: rgba(17, 24, 39, 0.7); --gold: #f5c542; 
-      --border: rgba(245, 197, 66, 0.1); --text: #eef2f7; --accent: #00fa9a;
-      --blue: #3b82f6; --red: #ef4444;
+      --bg: #020617; --card: #0f172a; --blue: #38bdf8; 
+      --border: rgba(56, 189, 248, 0.2); --text: #f1f5f9; --accent: #22d3ee;
     }
-    body { font-family: "Cairo", sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; background-image: radial-gradient(circle at top right, #1e293b, #030712); min-height: 100vh; }
-    .wrap { max-width: 1000px; margin: 0 auto; }
-    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; padding: 25px; background: var(--card); border-radius: 24px; border: 1px solid var(--border); backdrop-filter: blur(15px); }
-    header h1 { margin: 0; font-family: 'Syncopate'; color: var(--gold); font-size: 1.2rem; }
-    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-    .stat-item { background: var(--card); padding: 25px; border-radius: 24px; border: 1px solid var(--border); border-bottom: 3px solid var(--gold); text-align: center; transition: 0.3s; }
-    .stat-item strong { display: block; font-size: 1.8rem; font-family: 'Syncopate'; color: #fff; margin-bottom: 5px; }
-    .stat-item span { color: var(--gold); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
-    .control-card { background: var(--card); border-radius: 28px; padding: 25px; border: 1px solid var(--border); backdrop-filter: blur(15px); margin-bottom: 30px; }
-    .controls { display: flex; gap: 15px; align-items: center; justify-content: center; flex-wrap: wrap; }
-    select, input[type="date"], .btn-main { background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: #fff; padding: 10px 15px; border-radius: 12px; outline: none; font-family: 'Cairo'; cursor: pointer; }
-    .btn-main { background: var(--gold); color: #000; font-weight: 900; border: none; font-family: 'Syncopate'; font-size: 0.7rem; padding: 12px 20px; }
-    .chart-box { height: 300px; margin: 25px 0; background: rgba(0,0,0,0.2); border-radius: 20px; padding: 15px; border: 1px solid var(--border); }
-    .task-list { list-style: none; padding: 0; margin: 0; }
-    .task-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; margin-bottom: 10px; background: rgba(255,255,255,0.03); border-radius: 18px; border: 1px solid transparent; transition: 0.3s; }
-    .task-name { font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
-    .rank-badge { width: 28px; height: 28px; background: var(--gold); color: #000; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 900; font-size: 0.8rem; }
-    .count-badge { background: #000; color: var(--accent); padding: 6px 15px; border-radius: 10px; font-family: 'Syncopate'; font-weight: 700; border: 1px solid rgba(0,250,154,0.2); }
-    .loader { border: 3px solid rgba(255, 255, 255, 0.1); border-top: 3px solid var(--gold); border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .hidden { display: none !important; }
+    body { 
+        font-family: "Cairo", sans-serif; background: var(--bg); color: var(--text); 
+        margin: 0; padding: 20px; min-height: 100vh;
+        background-image: radial-gradient(circle at 0% 0%, #1e293b 0%, transparent 50%);
+    }
+
     #auth-gate { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 10000; }
+    .auth-box { background: var(--card); padding: 40px; border-radius: 20px; border: 1px solid var(--blue); text-align: center; width: 320px; }
+    
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    header { 
+        display: flex; justify-content: space-between; align-items: center; 
+        margin-bottom: 30px; padding: 20px; background: var(--card); border-radius: 15px; border: 1px solid var(--border);
+    }
+    header h1 { font-family: 'Orbitron', 'Cairo'; font-size: 1.1rem; color: var(--blue); margin: 0; }
 
-    /* الجزء الجديد المضاف */
-    #autoRefreshNotice {
-        animation: pulse 2s infinite;
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .metric-card { 
+        background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid var(--border);
+        text-align: center; position: relative; overflow: hidden;
     }
-    @keyframes pulse {
-        0% { opacity: 0.6; }
-        50% { opacity: 1; }
-        100% { opacity: 0.6; }
+    .metric-card strong { display: block; font-size: 2.5rem; font-family: 'Orbitron'; color: var(--blue); text-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }
+    .metric-card span { font-size: 0.85rem; color: #94a3b8; font-weight: 700; }
+
+    .chart-container { 
+        background: var(--card); padding: 25px; border-radius: 25px; border: 1px solid var(--border);
+        margin-bottom: 30px; height: 350px;
     }
 
-    .task-item:hover {
-        background: rgba(245, 197, 66, 0.08);
-        border-color: rgba(245, 197, 66, 0.2);
-        transform: translateX(-5px);
+    .task-table-card { background: var(--card); border-radius: 25px; padding: 25px; border: 1px solid var(--border); }
+    .controls { display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap; }
+    select, input, .btn { 
+        background: #000; border: 1px solid var(--border); color: #fff; 
+        padding: 10px 15px; border-radius: 10px; outline: none; font-family: 'Cairo';
     }
+    .btn { background: var(--blue); color: #000; font-weight: 900; border: none; cursor: pointer; }
 
-    .count-badge {
-        box-shadow: 0 0 10px rgba(0, 250, 154, 0.1);
+    .task-item { 
+        display: flex; justify-content: space-between; align-items: center; 
+        padding: 15px; margin-bottom: 10px; background: rgba(255,255,255,0.02); 
+        border-radius: 12px; border-right: 4px solid var(--blue);
     }
+    .count-badge { background: var(--blue); color: #000; padding: 4px 12px; border-radius: 20px; font-weight: 900; font-family: 'Orbitron'; }
+
+    .hidden { display: none !important; }
+    .loader { width: 20px; height: 20px; border: 2px solid #fff; border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
-  <div id="auth-gate">
-      <div style="text-align:center;">
-          <div class="loader" style="width:40px; height:40px; margin:0 auto 20px;"></div>
-          <p style="font-family:'Syncopate'; color:var(--gold);">VERIFYING AUTHORITY...</p>
-      </div>
+<div id="auth-gate">
+  <div class="auth-box">
+    <h2 style="font-family:'Orbitron'; color:var(--blue); margin-bottom:20px;">ANALYTICS KEY</h2>
+    <input type="password" id="adm-pass" placeholder="كلمة السر (ADMIN_PASSWORD4)" style="width:90%; margin-bottom:15px; background:#000; border:1px solid #333; color:#fff; padding:10px; text-align:center;">
+    <button id="btn-login" class="btn" style="width:100%;">دخول النظام</button>
   </div>
+</div>
 
-  <div id="main-content" class="wrap hidden">
-    <header>
-      <h1>TASKS <span style="color:#64748b; font-size:0.9rem;">ANALYTICS PRO</span></h1>
-      <a href="index.html" style="text-decoration:none; color:var(--accent); font-weight:700;">BACK TO HUB</a>
-    </header>
+<div id="main-ui" class="wrap hidden">
+  <header>
+    <h1>تحليلات <span style="color:#fff;">العمليات والمهام</span></h1>
+    <button id="btnLogout" style="background:none; border:1px solid #ef4444; color:#ef4444; padding:5px 15px; border-radius:8px; cursor:pointer;">خروج</button>
+  </header>
 
-    <div class="metrics">
-      <div class="stat-item"><strong id="totalTasks">0</strong><span>Total Executions</span></div>
-      <div class="stat-item" style="border-right-color:var(--accent);"><strong id="todayTasks">0</strong><span>Today's Tasks</span></div>
-      <div class="stat-item" style="border-right-color:var(--blue);"><strong id="uniqueTasks">0</strong><span>Unique Types</span></div>
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <strong id="totalTasks">0</strong>
+      <span>إجمالي المهام المنجزة</span>
     </div>
-
-    <div class="control-card">
-      <div class="controls">
-          <select id="timeFilter">
-              <option value="today">Today</option>
-              <option value="7days">7 Days</option>
-              <option value="30days" selected>30 Days</option>
-              <option value="custom">Custom Range</option>
-              <option value="all">Lifetime</option>
-          </select>
-          <div id="customDateGroup" class="hidden" style="display:inline-flex; gap:5px;">
-              <input type="date" id="dateFrom">
-              <input type="date" id="dateTo">
-          </div>
-          <button id="refreshBtn" class="btn-main">REFRESH</button>
-      </div>
-
-      <div class="chart-box">
-          <canvas id="taskDistributionChart"></canvas>
-      </div>
-
-      <div style="margin-top: 40px;">
-        <h3 style="text-align: center; font-family: 'Syncopate'; font-size: 0.9rem; color: var(--gold); margin-bottom: 25px;">🥇 TOP PERFORMING TASKS</h3>
-        <ul id="topTasksList" class="task-list"></ul>
-      </div>
-
-      <div style="text-align:center; margin-top:20px; font-size:0.7rem; color:#64748b;">
-          <div id="loadingSpinner" class="loader hidden" style="display:inline-block; vertical-align:middle; margin-left:10px;"></div>
-          <span id="statusText">System ready...</span>
-          <div id="autoRefreshNotice" style="margin-top:5px; color:var(--accent); font-weight:700;">Auto-refresh: Active (60s)</div>
-      </div>
+    <div class="metric-card">
+      <strong id="todayTasks">0</strong>
+      <span>عمليات اليوم</span>
+    </div>
+    <div class="metric-card">
+      <strong id="uniqueTasks">0</strong>
+      <span>أنواع المهام النشطة</span>
     </div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  <div class="chart-container">
+    <canvas id="mainChart"></canvas>
+  </div>
 
-    const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
+  <div class="task-table-card">
+    <div class="controls">
+        <select id="timeFilter" onchange="fetchData()">
+            <option value="today">اليوم</option>
+            <option value="7days">آخر 7 أيام</option>
+            <option value="30days" selected>آخر 30 يوم</option>
+            <option value="all">كل الأوقات</option>
+        </select>
+        <button onclick="fetchData()" class="btn">🔄 تحديث البيانات</button>
+        <span id="syncText" style="font-size: 0.7rem; color: #64748b; margin-top: 10px;"></span>
+    </div>
 
-    const ADMIN_EMAIL = "amirfg992005@gmail.com";
-    let taskChart = null;
+    <h3 style="color:var(--blue); border-bottom: 1px solid var(--border); padding-bottom: 10px;">🏆 المهام الأكثر إنجازاً</h3>
+    <div id="topTasksList" style="margin-top:20px;"></div>
+  </div>
+</div>
 
-    onAuthStateChanged(auth, user => {
-        if (user && user.email === ADMIN_EMAIL) {
-            document.getElementById('auth-gate').classList.add('hidden');
-            document.getElementById('main-content').classList.remove('hidden');
-            fetchAndAnalyzeTasks();
-            setInterval(fetchAndAnalyzeTasks, 60000); 
-        } else {
-            window.location.href = "index.html";
-        }
-    });
+<script>
+    let myChart = null;
 
-    function updateChart(labels, data) {
-        const ctx = document.getElementById('taskDistributionChart').getContext('2d');
-        if (taskChart) taskChart.destroy();
-        taskChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Executions',
-                    data: data,
-                    backgroundColor: 'rgba(245, 197, 66, 0.6)',
-                    borderColor: '#f5c542',
-                    borderWidth: 1,
-                    borderRadius: 8
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: { 
-                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b' } },
-                    x: { grid: { display: false }, ticks: { color: '#64748b' } }
-                },
-                plugins: { legend: { display: false } }
-            }
+    async function apiRequest(data) {
+        const res = await fetch('/api/admin_tasks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
         });
+        if (res.status === 401) { toggleUI(false); return null; }
+        return res.json();
     }
 
-    async function fetchAndAnalyzeTasks() {
-        const loadingSpinner = document.getElementById('loadingSpinner');
-        const statusText = document.getElementById('statusText');
-        loadingSpinner.classList.remove('hidden');
-        statusText.textContent = 'Updating live metrics...';
-
+    async function fetchData() {
         const filter = document.getElementById('timeFilter').value;
-        let startDate = null;
-        let endDate = null;
-
-        if (filter === 'today') startDate = new Date(new Date().setHours(0,0,0,0));
-        else if (filter === '7days') startDate = new Date(Date.now() - 7*24*60*60*1000);
-        else if (filter === '30days') startDate = new Date(Date.now() - 30*24*60*60*1000);
-        else if (filter === 'custom') {
-            startDate = new Date(document.getElementById('dateFrom').value);
-            endDate = new Date(document.getElementById('dateTo').value);
-            endDate.setHours(23,59,59,999);
-        }
-
-        try {
-            let q = collection(db, 'tasksCompleted');
-            if (startDate && filter !== 'all') {
-                q = query(q, where('date', '>=', startDate));
-                if (filter === 'custom' && endDate) q = query(q, where('date', '<=', endDate));
-            }
+        const res = await apiRequest({ action: 'get_analytics', filter });
+        if (res) {
+            document.getElementById('totalTasks').textContent = res.totalTasks.toLocaleString();
+            document.getElementById('todayTasks').textContent = res.todayCount.toLocaleString();
+            document.getElementById('uniqueTasks').textContent = res.uniqueTypes;
             
-            const snap = await getDocs(q);
-            const taskCounts = {};
-            let todayCount = 0;
-            const todayStr = new Date().toDateString();
-
-            snap.forEach(doc => {
-                const d = doc.data();
-                const type = d.taskType || d.taskId || 'Unknown';
-                taskCounts[type] = (taskCounts[type] || 0) + 1;
-                const dDate = d.date?.toDate ? d.date.toDate() : null;
-                if (dDate && dDate.toDateString() === todayStr) todayCount++;
-            });
-
-            document.getElementById('totalTasks').textContent = snap.size.toLocaleString();
-            document.getElementById('todayTasks').textContent = todayCount.toLocaleString();
-            document.getElementById('uniqueTasks').textContent = Object.keys(taskCounts).length;
-
-            const sorted = Object.entries(taskCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
-            
-            renderList(sorted);
-            updateChart(sorted.map(s => s[0]), sorted.map(s => s[1]));
-
-            statusText.textContent = 'Sync Complete: ' + new Date().toLocaleTimeString();
-        } catch (e) {
-            statusText.textContent = 'Error syncing data.';
-            console.error(e);
-        } finally {
-            loadingSpinner.classList.add('hidden');
+            renderList(res.topTasks);
+            updateChart(res.topTasks);
+            document.getElementById('syncText').textContent = 'آخر مزامنة: ' + new Date().toLocaleTimeString();
         }
     }
 
     function renderList(data) {
         const list = document.getElementById('topTasksList');
         list.innerHTML = data.map(([name, count], i) => `
-            <li class="task-item">
-                <div class="task-name"><div class="rank-badge">${i+1}</div>${name}</div>
-                <div class="count-badge">${count.toLocaleString()}</div>
-            </li>
-        `).join('') || '<p style="text-align:center; opacity:0.5;">No data found</p>';
+            <div class="task-item">
+                <span><b>#${i+1}</b> &nbsp; ${name}</span>
+                <span class="count-badge">${count}</span>
+            </div>
+        `).join('') || '<p style="text-align:center; opacity:0.5;">لا توجد بيانات لهذا النطاق</p>';
     }
 
-    document.getElementById('timeFilter').onchange = (e) => {
-        document.getElementById('customDateGroup').classList.toggle('hidden', e.target.value !== 'custom');
-        fetchAndAnalyzeTasks();
+    function updateChart(data) {
+        const ctx = document.getElementById('mainChart').getContext('2d');
+        if (myChart) myChart.destroy();
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.map(d => d[0]),
+                datasets: [{
+                    label: 'عدد المرات',
+                    data: data.map(d => d[1]),
+                    borderColor: '#38bdf8',
+                    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { 
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    function toggleUI(is) {
+        document.getElementById('auth-gate').classList.toggle('hidden', is);
+        document.getElementById('main-ui').classList.toggle('hidden', !is);
+    }
+
+    document.getElementById('btn-login').onclick = async () => {
+        const pass = document.getElementById('adm-pass').value;
+        const res = await apiRequest({ action: 'admin_login', password: pass });
+        if (res?.success) { toggleUI(true); fetchData(); } else { alert("رمز الدخول خاطئ"); }
     };
-    document.getElementById('refreshBtn').onclick = fetchAndAnalyzeTasks;
-  </script>
+
+    document.getElementById('btnLogout').onclick = () => {
+        document.cookie = "taskToken=; max-age=0; path=/";
+        location.reload();
+    };
+
+    window.onload = () => {
+        if (document.cookie.includes('taskToken')) { toggleUI(true); fetchData(); }
+    };
+</script>
 </body>
 </html>
