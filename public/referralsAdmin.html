@@ -178,16 +178,23 @@
     let cachedData = [];
 
     async function apiRequest(data) {
-      try {
-        const res = await fetch('/api/admin1', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        if (res.status === 401) { toggleUI(false); return null; }
-        return await res.json();
-      } catch (e) { return null; }
-    }
+  try {
+    const res = await fetch('/api/admin_tasks', { // يكلم نفس الملف الموحد
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, module: 'referrals' }) // تحديد الموديول
+    });
+    if (res.status === 401) { toggleUI(false); return null; }
+    return await res.json();
+  } catch (e) { return null; }
+}
+
+// تعديل زر الخروج ليمسح التوكن الصحيح
+document.getElementById('logoutBtn').onclick = () => {
+  document.cookie = "refToken=; max-age=0; path=/";
+  location.reload();
+};
+
 
     async function loadReferralData() {
       const data = await apiRequest({ action: 'get_referrals_stats' });
