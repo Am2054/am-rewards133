@@ -25,12 +25,9 @@ let lastFetchTime = 0;
 const CACHE_DURATION = 30000; // 30 ثانية
 
 export default async function handler(req, res) {
-  // التحقق من البصمة الأمنية (اختياري ولكن مفضل)
-  const fingerprint = req.headers['x-fingerprint'];
-  if (!fingerprint) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
+  // تم تعديل هذا الجزء للسماح بالمرور بدون fingerprint ليتوافق مع النظام الجديد
+  const fingerprint = req.headers['x-fingerprint'] || "authorized_session"; 
+  
   // أ) فحص الـ Cache أولاً
   const currentTime = Date.now();
   if (cachedStats && (currentTime - lastFetchTime < CACHE_DURATION)) {
