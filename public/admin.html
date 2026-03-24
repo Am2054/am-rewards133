@@ -275,14 +275,23 @@
         }
     }
 
-    document.getElementById('unlock-btn').onclick = async () => {
+        document.getElementById('unlock-btn').onclick = async () => {
         const emailInput = document.getElementById('email').value.trim();
         const passInput = document.getElementById('pass').value.trim();
         const errMsg = document.getElementById('error-msg');
 
+        if (!emailInput || !passInput) {
+            errMsg.textContent = "يرجى إدخال البيانات كاملة";
+            return;
+        }
+
         errMsg.textContent = "جاري طلب تصريح الدخول...";
 
         try {
+            // 1. تسجيل الخروج من أي جلسة قديمة معلقة لضمان نظافة الطلب
+            await signOut(auth);
+
+            // 2. التحقق من السيرفر (Backend)
             const res = await fetch("/api/admin-login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -290,20 +299,28 @@
             });
 
             if (!res.ok) {
-                errMsg.textContent = "فشل التحقق من السيرفر";
+                const errorData = await res.json();
+                errMsg.textContent = "فشل السيرفر: " + (errorData.message || "كود خاطئ");
                 return;
             }
 
+            // 3. إذا نجح السيرفر، نسجل في Firebase
             await signInWithEmailAndPassword(auth, emailInput, passInput);
-            // بعد تسجيل Firebase، نتحقق من الجلسة رسمياً
-            const verified = await verifyServerSession();
-            if (verified) {
-                loadAdminStats();
-            }
+            
+            // 4. تحديث حالة الجلسة محلياً فوراً
+            isSessionValid = true;
+            
+            // 5. إخفاء الشاشة والتحميل
+            document.getElementById('auth-overlay').classList.add('hidden');
+            document.getElementById('main-panel').classList.remove('hidden');
+            loadAdminStats();
+
         } catch (e) {
-            errMsg.textContent = "خطأ: " + e.message;
+            console.error(e);
+            errMsg.textContent = "خطأ في الدخول: " + e.message;
         }
     };
+
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
