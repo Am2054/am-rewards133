@@ -188,15 +188,16 @@
     let usersMap = {};
     let currentId = null;
 
-    async function apiRequest(data) {
-        const res = await fetch('/api/admin_withdraw', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        if (res.status === 401) { toggleUI(false); return null; }
-        return res.json();
-    }
+  // داخل سكريبت صفحة السحوبات
+async function apiRequest(data) {
+    const res = await fetch('/api/admin_users', { // استخدام نفس ملف الـ Backend الموحد
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, module: 'withdraw' }) // إضافة موديول السحوبات
+    });
+    if (res.status === 401) { toggleUI(false); return null; }
+    return res.json();
+}
 
     async function loadData() {
         const res = await apiRequest({ action: 'get_withdrawals' });
