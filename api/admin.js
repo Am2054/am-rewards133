@@ -17,14 +17,12 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
-const requestTracker = new Map();
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-  const { action, password, uid, points, status, lastId, searchQuery } = req.body;
+  const { action, password, uid, points, status, lastId, searchQuery, sortBy } = req.body;
 
-  // --- 1. تسجيل الدخول ---
   if (action === 'admin_login') {
     if (password === process.env.ADMIN_PASSWORD1) {
       const token = jwt.sign({ admin: true }, process.env.JWT_SECRET, { expiresIn: '24h' });
@@ -36,7 +34,6 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  // --- 2. فحص التوكن ---
   const cookies = parse(req.headers.cookie || "");
   const token = cookies.adminToken;
   if (!token) return res.status(401).json({ error: "No Token" });
@@ -45,14 +42,18 @@ export default async function handler(req, res) {
     jwt.verify(token, process.env.JWT_SECRET);
 
     if (action === 'get_users') {
-      let query = db.collection('users').orderBy('lastLogin', 'desc').limit(20);
+      // الترتيب الافتراضي هو آخر تسجيل دخول، ويمكن تغييره للنقاط
+      let sortField = 'lastLogin';
+      if (sortBy === 'points') sortField = 'points';
+      
+      // تغيير الـ limit إلى 10 مستخدمين كما طلبت
+      let query = db.collection('users').orderBy(sortField, 'desc').limit(10);
 
       if (searchQuery) {
-        // بحث مرن بالايميل
         query = db.collection('users')
           .where('email', '>=', searchQuery)
           .where('email', '<=', searchQuery + '\uf8ff')
-          .limit(15);
+          .limit(10);
       } else if (lastId) {
         const lastSnapshot = await db.collection('users').doc(lastId).get();
         if (lastSnapshot.exists) query = query.startAfter(lastSnapshot);
