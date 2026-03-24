@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AM REWARDS | نظام المراجعة المتقدم</title>
+    <title>AM AUDIT | نظام المراجعة المطور</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
         :root { 
             --primary: #00f2ff; 
-            --bg: #050505; 
-            --card: #111111; 
-            --border: rgba(0, 242, 255, 0.1); 
+            --bg: #030712; 
+            --card: #111827; 
+            --border: rgba(0, 242, 255, 0.15); 
             --danger: #ff0055; 
             --success: #00ffc3; 
             --glass: rgba(255, 255, 255, 0.03);
@@ -18,120 +18,138 @@
         
         body { 
             background: var(--bg); color: #fff; font-family: 'Cairo', sans-serif; 
-            margin: 0; padding: 20px; line-height: 1.6;
-            background-image: radial-gradient(circle at 50% 50%, #0a151a 0%, #050505 100%);
+            margin: 0; padding: 15px; line-height: 1.6;
+            background-image: radial-gradient(circle at 10% 20%, rgba(0, 242, 255, 0.05) 0%, transparent 40%);
             background-attachment: fixed;
+        }
+
+        /* شاشة الدخول الاحترافية */
+        #auth-gate { 
+            position: fixed; inset: 0; background: var(--bg); z-index: 9999; 
+            display: flex; align-items: center; justify-content: center; backdrop-filter: blur(15px);
+        }
+        .auth-card { 
+            background: var(--card); padding: 40px; border-radius: 30px; 
+            border: 1px solid var(--primary); text-align: center; width: 320px;
+            box-shadow: 0 0 50px rgba(0, 242, 255, 0.1);
         }
 
         .container { max-width: 1200px; margin: 0 auto; }
         
-        /* حل مشكلة تداخل الزر مع الحقل */
         .search-area { 
-            display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 40px; 
-            background: var(--glass); padding: 20px; border-radius: 20px;
+            display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 30px; 
+            background: var(--glass); padding: 25px; border-radius: 25px;
             border: 1px solid var(--border); backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
         
         input { 
-            flex: 2; min-width: 250px; padding: 15px 20px; border-radius: 12px; 
-            border: 1px solid var(--border); background: rgba(0,0,0,0.5); 
-            color: #fff; outline: none; transition: 0.3s;
+            flex: 2; min-width: 200px; padding: 16px 20px; border-radius: 15px; 
+            border: 1px solid var(--border); background: rgba(0,0,0,0.4); 
+            color: #fff; outline: none; transition: 0.3s; font-size: 15px;
         }
+        input:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); }
         
-        .btn-search { 
-            flex: 1; min-width: 150px; background: linear-gradient(45deg, var(--primary), #00a2ff); 
-            color: #000; border: none; padding: 15px; border-radius: 12px; 
+        .btn-main { 
+            flex: 1; min-width: 120px; background: linear-gradient(135deg, var(--primary), #00a2ff); 
+            color: #000; border: none; padding: 16px; border-radius: 15px; 
             font-weight: 900; cursor: pointer; transition: 0.3s;
         }
+        .btn-main:hover { transform: translateY(-3px); box-shadow: 0 5px 20px rgba(0, 242, 255, 0.4); }
 
-        .audit-grid { display: grid; grid-template-columns: 350px 1fr; gap: 30px; }
-        @media (max-width: 850px) { .audit-grid { grid-template-columns: 1fr; } }
+        .audit-grid { display: grid; grid-template-columns: 380px 1fr; gap: 25px; }
+        @media (max-width: 900px) { .audit-grid { grid-template-columns: 1fr; } }
 
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 30px; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 28px; padding: 25px; position: relative; overflow: hidden; }
+        .card::before { content: ""; position: absolute; top: 0; right: 0; width: 100px; height: 100px; background: radial-gradient(circle, rgba(0,242,255,0.05) 0%, transparent 70%); }
 
-        .section-title { color: var(--primary); font-size: 1.2rem; font-weight: 900; margin: 40px 0 20px; display: flex; align-items: center; gap: 15px; }
-        .section-title::after { content: ''; flex: 1; height: 2px; background: linear-gradient(90deg, var(--border), transparent); }
+        .section-title { color: var(--primary); font-size: 1.1rem; font-weight: 900; margin: 30px 0 15px; display: flex; align-items: center; gap: 12px; }
+        .section-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
 
-        table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
-        td { background: var(--glass); padding: 20px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+        table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+        td { background: rgba(255,255,255,0.02); padding: 18px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
         td:first-child { border-radius: 15px 0 0 15px; border-left: 1px solid var(--border); }
         td:last-child { border-radius: 0 15px 15px 0; border-right: 1px solid var(--border); }
 
-        /* ستايل الكارت الاحترافي في منتصف الشاشة */
         .modal { 
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; 
-            backdrop-filter: blur(8px);
+            display: none; position: fixed; inset: 0; 
+            background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; 
+            backdrop-filter: blur(10px);
         }
         
         .modal-content { 
-            background: #151515; width: 90%; max-width: 500px; padding: 30px; 
-            border-radius: 25px; border: 2px solid var(--primary);
-            position: relative; box-shadow: 0 0 40px rgba(0, 242, 255, 0.2);
-            animation: popIn 0.3s ease-out;
+            background: #0f172a; width: 90%; max-width: 550px; padding: 35px; 
+            border-radius: 30px; border: 1px solid var(--primary);
+            position: relative; animation: slideUp 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
         }
-        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        .close-btn-fixed {
-            position: absolute; top: -15px; left: -15px; background: var(--danger);
-            color: white; width: 35px; height: 35px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; cursor: pointer;
-            font-weight: bold; border: 2px solid #fff;
+        .close-btn {
+            position: absolute; top: 20px; left: 20px; color: var(--danger);
+            cursor: pointer; font-weight: 900; font-size: 20px;
         }
 
-        .status-tag { padding: 5px 12px; border-radius: 8px; font-size: 0.7rem; font-weight: 900; }
-        .status-active { background: rgba(0, 255, 195, 0.1); color: var(--success); }
-        .status-banned { background: rgba(255, 0, 85, 0.1); color: var(--danger); }
+        .status-tag { padding: 6px 14px; border-radius: 10px; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+        .status-active { background: rgba(0, 255, 195, 0.1); color: var(--success); border: 1px solid var(--success); }
+        .status-banned { background: rgba(255, 0, 85, 0.1); color: var(--danger); border: 1px solid var(--danger); }
         .hidden { display: none !important; }
-        .data-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .data-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .val { color: var(--primary); font-weight: 700; }
     </style>
 </head>
 <body>
 
+<div id="auth-gate">
+    <div class="auth-card">
+        <h2 style="color:var(--primary); margin-bottom:10px;">نظام المراجعة</h2>
+        <p style="font-size:12px; opacity:0.6; margin-bottom:20px;">يرجى إدخال كلمة السر للمتابعة</p>
+        <input type="password" id="admin-pass" placeholder="Password (5)" style="text-align:center; margin-bottom:15px; width:100%; box-sizing:border-box;">
+        <button class="btn-main" style="width:100%" onclick="login()">دخول آمن</button>
+    </div>
+</div>
+
 <div class="container">
     <div class="search-area">
-        <input type="text" id="userInput" placeholder="أدخل UID أو البريد الإلكتروني للمستخدم...">
-        <button class="btn-search" onclick="fetchUser()">تحليل البيانات</button>
+        <input type="text" id="userInput" placeholder="بحث بواسطة UID أو البريد الإلكتروني...">
+        <button class="btn-main" onclick="fetchUser()">تحليل الحساب</button>
     </div>
 
-    <div id="loader" class="hidden" style="text-align: center; color: var(--primary);">جاري جلب السجلات...</div>
+    <div id="loader" class="hidden" style="text-align: center; color: var(--primary); padding: 20px;">
+        <div style="font-size: 24px; animation: pulse 1s infinite;">🔍 جاري فحص السجلات...</div>
+    </div>
 
     <div id="mainUI" class="audit-grid hidden">
         <div class="card profile-info">
-            <h2 id="view-name" style="color:var(--primary); margin:0 0 15px 0;">...</h2>
-            <div class="data-row"><span>UID:</span> <small id="view-uid"></small></div>
+            <h2 id="view-name" style="color:var(--primary); margin:0 0 20px 0; font-weight:900;">...</h2>
+            <div class="data-row"><span>ID:</span> <small id="view-uid" class="val"></small></div>
             <div class="data-row"><span>الجهاز:</span> <small id="view-device" style="color:var(--danger);"></small></div>
-            <div class="data-row"><span>آخر ظهور:</span> <small id="view-lastLogin" style="color:var(--success);"></small></div>
-            <div class="data-row"><span>النقاط:</span> <b id="view-points">0</b></div>
-            <div class="data-row"><span>الحالة:</span> <span id="view-status"></span></div>
-            <div style="margin-top:20px;">
-                <input type="number" id="editPoints" style="width:100%; margin-bottom:10px; background:#000; border:1px solid var(--border); color:#fff; border-radius:8px; padding:10px;">
-                <button onclick="adminAction('updatePoints')" style="width:100%; background:var(--primary); border:none; padding:12px; border-radius:8px; font-weight:900; cursor:pointer; color:#000;">تعديل الرصيد</button>
+            <div class="data-row"><span>آخر ظهور:</span> <small id="view-lastLogin" class="val"></small></div>
+            <div class="data-row"><span>رصيد النقاط:</span> <b id="view-points" class="val">0</b></div>
+            <div class="data-row"><span>حالة الحساب:</span> <span id="view-status"></span></div>
+            
+            <div style="margin-top:30px; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 20px;">
+                <p style="margin-top:0; font-size:12px; opacity:0.7;">تعديل الرصيد يدوياً:</p>
+                <input type="number" id="editPoints" placeholder="أدخل القيمة الجديدة" style="width:100%; margin-bottom:12px; background:#000;">
+                <button class="btn-main" style="width:100%; font-size:13px;" onclick="updatePointsAction()">تحديث الرصيد الآن</button>
             </div>
         </div>
 
         <div class="logs-area">
-            <div class="section-title">إحصائيات المهام</div>
+            <div class="section-title">📊 سجل المهام</div>
             <table id="table-tasks">
                 <thead><tr><th>النوع</th><th>العدد</th><th>النقاط</th><th>الإجراء</th></tr></thead>
                 <tbody></tbody>
             </table>
 
-            <div class="section-title">نظام الإحالات</div>
+            <div class="section-title">🤝 نظام الإحالات</div>
             <table id="table-referrals">
-                <thead><tr><th>العدد الكلي</th><th>الأرباح (EGP)</th><th>الأرباح (نقاط)</th><th>التفاصيل</th></tr></thead>
+                <thead><tr><th>الإجمالي</th><th>أرباحك (ج)</th><th>أرباحك (نقاط)</th><th>تفاصيل</th></tr></thead>
                 <tbody></tbody>
             </table>
 
-            <div class="section-title">طلبات السحب</div>
+            <div class="section-title">💳 طلبات السحب</div>
             <table id="table-withdrawals">
-                <thead><tr><th>الوسيلة</th><th>الوجهة</th><th>المبلغ</th><th>التفاصيل</th></tr></thead>
-                <tbody></tbody>
-            </table>
-
-            <div class="section-title">الدعم الفني</div>
-            <table id="table-tickets">
-                <thead><tr><th>الخدمة</th><th>المكافأة</th><th>التاريخ</th><th>الحالة</th><th>فتح</th></tr></thead>
+                <thead><tr><th>الوسيلة</th><th>الرقم/المحفظة</th><th>المبلغ</th><th>الحالة</th></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
@@ -140,92 +158,134 @@
 
 <div id="detailModal" class="modal">
     <div class="modal-content">
-        <div class="close-btn-fixed" onclick="closeModal()">✕</div>
-        <h3 id="modalTitle" style="color:var(--primary); text-align:center; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:10px;">التفاصيل</h3>
+        <div class="close-btn" onclick="closeModal()">✕</div>
+        <h3 id="modalTitle" style="color:var(--primary); text-align:center; margin-bottom:25px; font-weight:900;">التفاصيل</h3>
         <div id="modalBody"></div>
     </div>
 </div>
 
 <script>
     let globalData = null;
-    const POINT_PRICE = 0.07; // سعر النقطة بالجنيه
+    const POINT_PRICE = 0.07;
 
+    // --- نظام الدخول الموحد ---
+    async function login() {
+        const pass = document.getElementById('admin-pass').value;
+        const res = await fetch('/api/admin_audit_tickets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'admin_login', module: 'audit', password: pass })
+        });
+        if(res.ok) { 
+            document.getElementById('auth-gate').classList.add('hidden'); 
+        } else { 
+            alert("كلمة السر خاطئة!"); 
+        }
+    }
+
+    // --- جلب البيانات عبر السيرفر ---
     async function fetchUser() {
         const q = document.getElementById('userInput').value;
         if(!q) return;
         document.getElementById('loader').classList.remove('hidden');
+        document.getElementById('mainUI').classList.add('hidden');
+
         try {
-            const res = await fetch(`/api/audit-user?query=${q}`);
+            const res = await fetch('/api/admin_audit_tickets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'fetch_user', module: 'audit', query: q })
+            });
             const data = await res.json();
             if(!res.ok) throw new Error(data.error);
             globalData = data;
             renderUI(data);
-        } catch (e) { alert(e.message); }
-        finally { document.getElementById('loader').classList.add('hidden'); }
+        } catch (e) { 
+            alert(e.message === "Session Expired" ? "انتهت الجلسة، أعد تسجيل الدخول" : e.message);
+            if(e.message === "Session Expired") location.reload();
+        } finally { 
+            document.getElementById('loader').classList.add('hidden'); 
+        }
     }
 
     function renderUI(data) {
         document.getElementById('mainUI').classList.remove('hidden');
-        document.getElementById('view-name').innerText = data.profile.name || 'N/A';
+        document.getElementById('view-name').innerText = data.profile.name || 'مستخدم غير معروف';
         document.getElementById('view-uid').innerText = data.profile.uid;
         document.getElementById('view-device').innerText = data.profile.deviceId;
-        document.getElementById('view-lastLogin').innerText = data.profile.lastLogin ? new Date(data.profile.lastLogin).toLocaleString('ar-EG') : 'N/A';
+        document.getElementById('view-lastLogin').innerText = data.profile.lastLogin ? new Date(data.profile.lastLogin).toLocaleString('ar-EG') : 'غير متوفر';
         document.getElementById('view-points').innerText = (data.profile.points || 0).toLocaleString();
-        document.getElementById('view-status').innerHTML = `<span class="status-tag ${data.profile.accountStatus === 'active' ? 'status-active' : 'status-banned'}">${data.profile.accountStatus}</span>`;
+        
+        const status = data.profile.accountStatus || 'active';
+        document.getElementById('view-status').innerHTML = `<span class="status-tag ${status === 'active' ? 'status-active' : 'status-banned'}">${status}</span>`;
 
+        // سجل المهام
         const tasksBody = document.querySelector('#table-tasks tbody');
         tasksBody.innerHTML = Object.entries(data.tasksGrouped).map(([type, d]) => `
-            <tr><td>${type}</td><td>${d.count}</td><td>${d.points}</td><td><button class="btn-search" style="padding:5px 15px; font-size:0.7rem;" onclick="showTaskDetails('${type}')">عرض</button></td></tr>
-        `).join('') || '<tr><td colspan="4">لا يوجد مهام</td></tr>';
+            <tr>
+                <td style="font-weight:700">${type}</td>
+                <td>${d.count}</td>
+                <td style="color:var(--primary)">${d.points}</td>
+                <td><button class="btn-main" style="padding:6px 12px; font-size:11px;" onclick="showTaskDetails('${type}')">عرض</button></td>
+            </tr>
+        `).join('') || '<tr><td colspan="4" style="text-align:center">لا توجد بيانات مهام</td></tr>';
 
-        // تعديل جدول الإحالات لحساب النقاط من الجنيه
+        // الإحالات
         const refBody = document.querySelector('#table-referrals tbody');
         const totalEGP = data.profile.totalReferralEarnings || 0;
         const calcPoints = Math.floor(totalEGP / POINT_PRICE);
-        refBody.innerHTML = `<tr><td>${data.referrals.length} إحالات</td><td style="color:var(--success)">${totalEGP.toFixed(2)}</td><td style="color:var(--primary)">${calcPoints.toLocaleString()}</td><td><button class="btn-search" style="padding:5px 15px; font-size:0.7rem;" onclick="showReferralDetails()">عرض</button></td></tr>`;
+        refBody.innerHTML = `
+            <tr>
+                <td>${data.referralsCount || 0} شخص</td>
+                <td style="color:var(--success)">${totalEGP.toFixed(2)} EGP</td>
+                <td style="color:var(--primary)">${calcPoints.toLocaleString()}</td>
+                <td>-</td>
+            </tr>`;
 
+        // السحوبات
         const withBody = document.querySelector('#table-withdrawals tbody');
         withBody.innerHTML = data.withdrawals.map(w => `
-            <tr><td>${w.method}</td><td>${w.wallet || w.phone || 'N/A'}</td><td>${w.amount} EGP</td><td><button class="btn-search" style="padding:5px 15px; font-size:0.7rem;" onclick="showWithdrawDetails('${w.id}')">تفاصيل</button></td></tr>
-        `).join('') || '<tr><td colspan="4">لا يوجد سحوبات</td></tr>';
+            <tr>
+                <td>${w.method}</td>
+                <td><small>${w.wallet || w.phone || 'N/A'}</small></td>
+                <td style="font-weight:bold">${w.amount} EGP</td>
+                <td><span style="font-size:11px; color:${w.status === 'completed' ? 'var(--success)' : 'orange'}">${w.status}</span></td>
+            </tr>
+        `).join('') || '<tr><td colspan="4" style="text-align:center">لا توجد سحوبات</td></tr>';
+    }
 
-        // تعديل جدول التذاكر لإضافة عمود المكافأة
-        const ticketBody = document.querySelector('#table-tickets tbody');
-        ticketBody.innerHTML = data.tickets.map(t => `
-            <tr><td>${t.selectedService || 'عامة'}</td><td style="color:var(--success)">${t.rewardPoints || 0}</td><td><small>${new Date(t.timestamp).toLocaleDateString('ar-EG')}</small></td><td>${t.status}</td><td><button class="btn-search" style="padding:5px 15px; font-size:0.7rem;" onclick="showTicketDetails('${t.id}')">فتح</button></td></tr>
-        `).join('') || '<tr><td colspan="5">لا يوجد تذاكر</td></tr>';
+    async function updatePointsAction() {
+        const amt = document.getElementById('editPoints').value;
+        if(!amt || !globalData) return;
+
+        const res = await fetch('/api/admin_audit_tickets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                action: 'updatePoints', 
+                module: 'audit', 
+                uid: globalData.profile.uid, 
+                amount: amt 
+            })
+        });
+
+        if(res.ok) {
+            alert("تم تحديث النقاط بنجاح ✅");
+            fetchUser();
+        } else {
+            alert("فشل التحديث");
+        }
     }
 
     function showTaskDetails(type) {
         const details = globalData.tasksGrouped[type].details;
-        let html = details.map(t => `<div class="data-row"><span>ID: ${t.taskId}</span><b>+${t.pointsEarned}</b></div>`).join('');
-        openModal(`مهام: ${type}`, html);
-    }
-
-    function showReferralDetails() {
-        let html = `<table><tr><th>الاسم</th><th>الربح (ج)</th><th>الربح (نقاط)</th><th>سحوبات</th></tr>`;
-        globalData.referrals.forEach(r => {
-            const pFromEGP = Math.floor(r.earnedFromHim / POINT_PRICE);
-            html += `<tr><td>${r.name || 'مستخدم'}</td><td>${r.earnedFromHim.toFixed(2)}</td><td style="color:var(--primary)">${pFromEGP.toLocaleString()}</td><td>${10 - (r.withdrawalsLeft || 0)}/10</td></tr>`;
-        });
-        openModal(`قائمة الإحالات`, html + `</table>`);
-    }
-
-    function showWithdrawDetails(id) {
-        const w = globalData.withdrawals.find(x => x.id === id);
-        let html = `<div class="data-row"><span>الحالة:</span><b>${w.status}</b></div>
-                    <div class="data-row"><span>الصافي:</span><b>${w.net} EGP</b></div>
-                    <div class="data-row"><span>التاريخ:</span><b>${new Date(w.timestamp).toLocaleString()}</b></div>`;
-        openModal('تفاصيل السحب', html);
-    }
-
-    function showTicketDetails(id) {
-        const t = globalData.tickets.find(x => x.id === id);
-        let html = `<p><b>الرسالة:</b><br>${t.message}</p>
-                    <div style="background:#000; padding:10px; border-radius:10px; border-right:3px solid var(--primary)">
-                        <b>الرد:</b><br>${t.adminReply || 'قيد المراجعة'}
-                    </div>`;
-        openModal('تذكرة الدعم', html);
+        let html = details.map(t => `
+            <div class="data-row">
+                <span>المهمة: ${t.taskId || 'غير محدد'}</span>
+                <b style="color:var(--primary)">+${t.pointsEarned}</b>
+            </div>
+        `).join('');
+        openModal(`تفاصيل مهام: ${type}`, html);
     }
 
     function openModal(title, body) {
@@ -236,15 +296,10 @@
 
     function closeModal() { document.getElementById('detailModal').style.display = 'none'; }
 
-    async function adminAction(action) {
-        const uid = document.getElementById('view-uid').innerText;
-        const amount = document.getElementById('editPoints').value;
-        const res = await fetch(`/api/audit-user?query=${uid}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action, amount })
-        });
-        if(res.ok) { alert("تم التحديث"); fetchUser(); }
+    // إغلاق المودال عند الضغط خارجه
+    window.onclick = function(event) {
+        const modal = document.getElementById('detailModal');
+        if (event.target == modal) closeModal();
     }
 </script>
 </body>
