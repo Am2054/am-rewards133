@@ -26,7 +26,6 @@
 
     .wrap { max-width: 1400px; margin: 0 auto; padding: 20px; }
 
-    /* Login Box */
     #loginBox {
       position: fixed; inset: 0; background: #000;
       display: flex; align-items: center; justify-content: center; z-index: 10000;
@@ -46,7 +45,6 @@
       background: var(--primary); color: #000; font-weight: 900; cursor: pointer;
     }
 
-    /* Header */
     header {
       display: flex; justify-content: space-between; align-items: center;
       padding: 25px; background: var(--card); border-radius: 20px;
@@ -54,7 +52,6 @@
     }
     header h1 { font-family: 'Syncopate'; font-size: 1.2rem; color: var(--primary); margin: 0; }
 
-    /* Metrics */
     .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 25px; }
     .stat-item {
       background: var(--card); padding: 25px; border-radius: 20px;
@@ -63,17 +60,17 @@
     .stat-item strong { display: block; font-size: 2rem; font-family: 'Syncopate'; margin-bottom: 5px; }
     .stat-item span { color: #888; font-size: 0.8rem; font-weight: 700; }
 
-    /* Table & Controls */
     .table-card {
       background: var(--card); border-radius: 25px; border: 1px solid var(--border);
       overflow: hidden; backdrop-filter: blur(10px);
     }
-    .controls { padding: 20px; border-bottom: 1px solid var(--border); display: flex; gap: 15px; }
-    .controls input {
-      flex: 1; padding: 15px 25px; border-radius: 15px; border: 1px solid var(--border);
-      background: rgba(0,0,0,0.5); color: #fff; outline: none; transition: 0.3s;
+    .controls { padding: 20px; border-bottom: 1px solid var(--border); display: flex; gap: 15px; flex-wrap: wrap; }
+    .controls input, .controls select {
+      padding: 15px 20px; border-radius: 15px; border: 1px solid var(--border);
+      background: rgba(0,0,0,0.5); color: #fff; outline: none; transition: 0.3s; font-family: 'Cairo';
     }
-    .controls input:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(0, 242, 255, 0.1); }
+    .controls input { flex: 2; min-width: 250px; }
+    .controls select { flex: 1; cursor: pointer; }
 
     table { width: 100%; border-collapse: collapse; }
     th { padding: 20px; text-align: right; color: var(--primary); font-size: 0.8rem; border-bottom: 1px solid var(--border); }
@@ -82,7 +79,6 @@
     .user-row:hover { background: rgba(255,255,255,0.02); }
     .banned-row { opacity: 0.4; filter: grayscale(1); }
 
-    /* Components */
     .avatar {
       width: 45px; height: 45px; border-radius: 12px; background: linear-gradient(45deg, var(--primary), var(--secondary));
       display: flex; align-items: center; justify-content: center; font-weight: 900; color: #000;
@@ -102,7 +98,7 @@
     .hidden { display: none !important; }
 
     @media (max-width: 768px) {
-      .metrics { grid-template-columns: 1fr; }
+      .controls { flex-direction: column; }
       th:nth-child(3), td:nth-child(3) { display: none; }
     }
   </style>
@@ -121,7 +117,7 @@
     <header>
       <h1>CORE <span style="font-weight:300; opacity:0.5;">DATABASE</span></h1>
       <div style="display:flex; gap:10px;">
-        <button onclick="loadData()" class="action-btn" style="width:auto; padding:0 20px;">🔄 Sync</button>
+        <button onclick="resetAndLoad()" class="action-btn" style="width:auto; padding:0 20px;">🔄 Sync</button>
         <button id="logoutBtn" class="action-btn" style="width:auto; padding:0 20px; border-color:var(--danger); color:var(--danger);">LOGOUT</button>
       </div>
     </header>
@@ -131,13 +127,17 @@
         <strong id="metricTotal">0</strong> <span>إجمالي المستخدمين</span>
       </div>
       <div class="stat-item" style="border-color:var(--secondary);">
-        <strong id="metricBanned">...</strong> <span>الحسابات المقيدة</span>
+        <strong id="metricActive">...</strong> <span>الحالة: متصل</span>
       </div>
     </div>
 
     <div class="table-card">
       <div class="controls">
-        <input id="searchInput" type="text" placeholder="البحث بالايميل او المعرف UID...">
+        <input id="searchInput" type="text" placeholder="البحث بالايميل...">
+        <select id="sortSelect" onchange="resetAndLoad()">
+          <option value="lastLogin">آخر تسجيل دخول</option>
+          <option value="points">الأعلى نقاطاً</option>
+        </select>
       </div>
 
       <div style="overflow-x: auto;">
@@ -156,15 +156,14 @@
       </div>
 
       <div class="pagination">
-        <button id="prevBtn" class="action-btn" style="width:auto; padding:0 30px;">السابق</button>
-        <button id="nextBtn" class="action-btn" style="width:auto; padding:0 30px; background:var(--primary); color:#000;">التالي</button>
+        <button id="prevBtn" class="action-btn" style="width:auto; padding:0 30px;">البداية</button>
+        <button id="nextBtn" class="action-btn" style="width:auto; padding:0 30px; background:var(--primary); color:#000;">التالي (عرض 10)</button>
       </div>
     </div>
   </div>
 
   <script>
     let lastDocId = null;
-    let totalUsersCount = 0;
 
     async function apiRequest(data) {
       try {
@@ -178,19 +177,28 @@
       } catch(e) { return null; }
     }
 
+    function resetAndLoad() {
+      lastDocId = null;
+      loadData();
+    }
+
     async function loadData(isNext = false) {
       const search = document.getElementById('searchInput').value;
+      const sortBy = document.getElementById('sortSelect').value;
+      
       const res = await apiRequest({
         action: 'get_users',
         lastId: isNext ? lastDocId : null,
-        searchQuery: search
+        searchQuery: search,
+        sortBy: sortBy
       });
 
       if (res && res.users) {
         renderTable(res.users);
-        totalUsersCount = res.total;
         document.getElementById('metricTotal').textContent = res.total;
-        if (res.users.length > 0) lastDocId = res.users[res.users.length - 1].id;
+        if (res.users.length > 0) {
+            lastDocId = res.users[res.users.length - 1].id;
+        }
       }
     }
 
@@ -207,24 +215,18 @@
             <div style="display:flex; align-items:center; gap:15px;">
               <div class="avatar">${(u.name || 'A').charAt(0)}</div>
               <div>
-                <div style="font-weight:900;">${u.name || 'مستخدم غير معروف'}</div>
+                <div style="font-weight:900;">${u.name || 'مستخدم'}</div>
                 <div style="font-size:0.7rem; color:#666;">${u.email}</div>
               </div>
             </div>
           </td>
           <td><span style="color:var(--primary); font-weight:900;">🪙 ${Number(u.points || 0).toLocaleString()}</span></td>
-          <td>
-            <span class="status-badge ${isBanned ? 'status-banned' : 'status-active'}">
-              ${isBanned ? 'BANNED' : 'ACTIVE'}
-            </span>
-          </td>
+          <td><span class="status-badge ${isBanned ? 'status-banned' : 'status-active'}">${isBanned ? 'BANNED' : 'ACTIVE'}</span></td>
           <td style="font-size:0.75rem; color:#888;">${u.lastLoginText}</td>
           <td>
             <div style="display:flex; gap:8px;">
-              <button onclick="editPoints('${u.id}', ${u.points})" class="action-btn btn-points" title="تعديل النقاط">🪙</button>
-              <button onclick="toggleBan('${u.id}', '${u.status}')" class="action-btn btn-ban-toggle" title="حظر/فك حظر">
-                ${isBanned ? '🔓' : '🚫'}
-              </button>
+              <button onclick="editPoints('${u.id}', ${u.points})" class="action-btn btn-points">🪙</button>
+              <button onclick="toggleBan('${u.id}', '${u.status}')" class="action-btn btn-ban-toggle">${isBanned ? '🔓' : '🚫'}</button>
             </div>
           </td>
         `;
@@ -233,7 +235,7 @@
     }
 
     async function editPoints(uid, current) {
-      const p = prompt("أدخل قيمة النقاط الجديدة:", current);
+      const p = prompt("القيمة الجديدة:", current);
       if (p !== null && !isNaN(p)) {
         const res = await apiRequest({ action: 'edit_points', uid, points: p });
         if (res?.success) loadData();
@@ -242,7 +244,7 @@
 
     async function toggleBan(uid, currentStatus) {
       const nextStatus = currentStatus === 'banned' ? 'active' : 'banned';
-      if (confirm(`هل أنت متأكد من ${nextStatus === 'banned' ? 'حظر' : 'إلغاء حظر'} هذا المستخدم؟`)) {
+      if (confirm(`تحويل الحالة إلى ${nextStatus}؟`)) {
         const res = await apiRequest({ action: 'toggle_ban', uid, status: nextStatus });
         if (res?.success) loadData();
       }
@@ -256,7 +258,7 @@
     document.getElementById('loginBtn').onclick = async () => {
       const pass = document.getElementById('adminPass').value;
       const res = await apiRequest({ action: 'admin_login', password: pass });
-      if (res?.success) { toggleUI(true); loadData(); } else { alert("رمز الدخول خاطئ"); }
+      if (res?.success) { toggleUI(true); loadData(); } else { alert("رمز خاطئ"); }
     };
 
     document.getElementById('logoutBtn').onclick = () => {
@@ -265,12 +267,12 @@
     };
 
     document.getElementById('nextBtn').onclick = () => loadData(true);
-    document.getElementById('prevBtn').onclick = () => { lastDocId = null; loadData(); };
+    document.getElementById('prevBtn').onclick = () => resetAndLoad();
 
     let searchTimer;
     document.getElementById('searchInput').oninput = () => {
       clearTimeout(searchTimer);
-      searchTimer = setTimeout(() => { lastDocId = null; loadData(); }, 800);
+      searchTimer = setTimeout(() => resetAndLoad(), 800);
     };
 
     window.onload = () => { if(document.cookie.includes('adminToken')) { toggleUI(true); loadData(); } };
