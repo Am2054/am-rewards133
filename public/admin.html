@@ -237,7 +237,7 @@
         try {
             const res = await fetch("/api/verify-admin");
             const data = await res.json();
-            isSessionValid = res.ok && data.valid;
+            isSessionValid = (res.ok && data.valid === true);
             return isSessionValid;
         } catch { 
             isSessionValid = false;
@@ -275,7 +275,7 @@
         }
     }
 
-        document.getElementById('unlock-btn').onclick = async () => {
+    document.getElementById('unlock-btn').onclick = async () => {
         const emailInput = document.getElementById('email').value.trim();
         const passInput = document.getElementById('pass').value.trim();
         const errMsg = document.getElementById('error-msg');
@@ -288,10 +288,7 @@
         errMsg.textContent = "جاري طلب تصريح الدخول...";
 
         try {
-            // 1. تسجيل الخروج من أي جلسة قديمة معلقة لضمان نظافة الطلب
-            await signOut(auth);
-
-            // 2. التحقق من السيرفر (Backend)
+            // التحقق من السيرفر (Backend) أولاً
             const res = await fetch("/api/admin-login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -304,13 +301,13 @@
                 return;
             }
 
-            // 3. إذا نجح السيرفر، نسجل في Firebase
+            // إذا نجح السيرفر، نسجل في Firebase
             await signInWithEmailAndPassword(auth, emailInput, passInput);
             
-            // 4. تحديث حالة الجلسة محلياً فوراً
+            // تحديث حالة الجلسة محلياً فوراً لمنع الـ Observer من طردنا
             isSessionValid = true;
             
-            // 5. إخفاء الشاشة والتحميل
+            // إخفاء الشاشة والتحميل
             document.getElementById('auth-overlay').classList.add('hidden');
             document.getElementById('main-panel').classList.remove('hidden');
             loadAdminStats();
@@ -324,24 +321,34 @@
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
+            // إذا كان الدخول تم التوافق عليه بالفعل محلياً لا داعي لإعادة التحقق فوراً
+            if (isSessionValid) {
+                document.getElementById('auth-overlay').classList.add('hidden');
+                document.getElementById('main-panel').classList.remove('hidden');
+                loadAdminStats();
+                return;
+            }
+
+            // التحقق من الجلسة في الخلفية عند تحديث الصفحة
             const verified = await verifyServerSession();
             if (verified) {
                 document.getElementById('auth-overlay').classList.add('hidden');
                 document.getElementById('main-panel').classList.remove('hidden');
                 loadAdminStats();
             } else {
-                // إذا وجد مستخدم لكن الجلسة غير صالحة في السيرفر
                 await signOut(auth);
             }
         } else {
+            isSessionValid = false;
             document.getElementById('auth-overlay').classList.remove('hidden');
             document.getElementById('main-panel').classList.add('hidden');
-            toggleControls(false); // تعطيل الأزرار عند الخروج
+            toggleControls(false);
         }
     });
 
     window.logout = async () => {
         try {
+            isSessionValid = false;
             await fetch("/api/logout", { method: "POST" });
             await signOut(auth);
             location.reload();
