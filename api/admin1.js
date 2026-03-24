@@ -1,7 +1,7 @@
-import { initializeApp, cert, getApps } from "firebase-admin/app";  
-import { getFirestore, FieldValue } from "firebase-admin/firestore";  
-import jwt from "jsonwebtoken";  
-import { parse, serialize } from "cookie";  
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import jwt from "jsonwebtoken";
+import { parse, serialize } from "cookie";
 
 if (!getApps().length) {
   try {
@@ -9,18 +9,14 @@ if (!getApps().length) {
     if (rawKey) {
       const serviceAccount = JSON.parse(rawKey.trim());
       if (serviceAccount.private_key) {
-        serviceAccount.private_key = serviceAccount.private_key.replace(/\n/g, '\n');
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
       }
       initializeApp({ credential: cert(serviceAccount) });
     }
-  } catch (error) {
-    console.error("Firebase Init Error:", error.message);
-  }
+  } catch (error) { console.error("Firebase Init Error:", error.message); }
 }
 
 const db = getFirestore();
-const requestTracker = new Map();
-
 let statsCache = null;
 let lastCacheTime = 0;
 const CACHE_DURATION = 60 * 1000; 
@@ -28,39 +24,27 @@ const CACHE_DURATION = 60 * 1000;
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-  const { action, password, fingerprint } = req.body;
-  const clientFingerprint = req.headers['x-fingerprint'] || fingerprint;
-
-  const userIp = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
-  const key = clientFingerprint || userIp;
-
+  const { action, password } = req.body;
   const now = Date.now();
 
-  // الـ Rate Limit موقوف حالياً بناءً على طلبك السابق للاختبار
-  /*
-  if (requestTracker.has(key)) {
-    const last = requestTracker.get(key);
-    if (now - last < 2000) { 
-      return res.status(429).json({ error: "Too many requests" });
-    }
-  }
-  requestTracker.set(key, now);
-  */
-
+  // 1. تسجيل الدخول بكلمة السر الثانية
   if (action === 'admin_login') {
     if (password === process.env.ADMIN_PASSWORD2) {
-      const token = jwt.sign({ role: 'ref_admin', device: clientFingerprint.slice(0, 20) }, process.env.JWT_SECRET, { expiresIn: '12h' });
-      res.setHeader('Set-Cookie', serialize('adminToken', token, { path: '/', httpOnly: true, secure: true, sameSite: 'lax', maxAge: 43200 }));
+      const token = jwt.sign({ role: 'ref_admin' }, process.env.JWT_SECRET, { expiresIn: '12h' });
+      res.setHeader('Set-Cookie', serialize('adminToken', token, { 
+        path: '/', httpOnly: true, secure: true, sameSite: 'lax', maxAge: 43200 
+      }));
       return res.status(200).json({ success: true });
     }
     return res.status(401).json({ error: "Unauthorized" });
   }
 
+  // 2. التحقق من التوكن
   const cookies = parse(req.headers.cookie || "");
   const token = cookies.adminToken;
+  
   try {
-    // ✅ تم إلغاء التحقق من الـ fingerprint تماماً هنا
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    jwt.verify(token, process.env.JWT_SECRET);
 
     if (action === 'get_referrals_stats') {  
       if (statsCache && (now - lastCacheTime < CACHE_DURATION)) {  
@@ -88,7 +72,6 @@ export default async function handler(req, res) {
               const wSnap = await db.collection('withdrawals')  
                 .where('userId', 'in', uChunk)  
                 .where('status', '==', 'completed')  
-                .orderBy('createdAt', 'asc')  
                 .get();  
               allWithdrawals.push(...wSnap.docs.map(d => d.data()));  
           }  
@@ -106,7 +89,7 @@ export default async function handler(req, res) {
           if (!referrersMap[bossId]) {  
               const bossData = allReferrers.find(r => r.id === bossId);  
               referrersMap[bossId] = {  
-                  name: bossData?.name || "User " + bossId.slice(0,5),  
+                  name: bossData?.name || "مستخدم " + bossId.slice(0,5),  
                   email: bossData?.email || "-",  
                   friends: [],  
                   totalComm: 0  
@@ -117,14 +100,15 @@ export default async function handler(req, res) {
           totalSystemCommission += commFromHim;  
       });  
 
-      const leaderboard = Object.entries(referrersMap).sort((a, b) => b[1].totalComm - a[1].totalComm).map(([id, data]) => ({ id, ...data }));  
+      const leaderboard = Object.entries(referrersMap)
+        .sort((a, b) => b[1].totalComm - a[1].totalComm)
+        .map(([id, data]) => ({ id, ...data }));  
+
       const finalResponse = { leaderboard, totalConversions: referredUsers.length, totalSystemCommission, recentLogs: referredUsers.slice(-15).reverse() };  
 
       statsCache = finalResponse;  
       lastCacheTime = now;  
       return res.status(200).json(finalResponse);  
     }
-  } catch (error) {
-    return res.status(401).json({ error: "Session Expired" });
-  }
+  } catch (e) { return res.status(401).json({ error: "Session Expired" }); }
 }
