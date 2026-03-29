@@ -12,7 +12,19 @@
         :root { --neon-purple: #7000ff; --neon-cyan: #00f2ff; --glass-bg: rgba(31, 41, 55, 0.7); } 
         body { font-family: 'Tajawal', sans-serif; background: #020617; color: #f9fafb; margin: 0; padding: 0; min-height: 100vh; overflow-x: hidden; } 
         .stars-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.3; } 
-        .main-box { position: relative; z-index: 2; max-width: 600px; margin: 0 auto; padding-bottom: 40px; } 
+        
+        /* التعديل: إخفاء الحاوية الرئيسية افتراضياً لتأمين الصفحة */
+        .main-box { 
+            display: none; 
+            opacity: 0; 
+            transition: opacity 0.5s ease; 
+            position: relative; 
+            z-index: 2; 
+            max-width: 600px; 
+            margin: 0 auto; 
+            padding-bottom: 40px; 
+        } 
+
         header { text-align: center; background: linear-gradient(180deg, rgba(112, 0, 255, 0.2) 0%, transparent 100%); padding: 30px 0; border-radius: 0 0 30px 30px; } 
         h1 { font-size: 1.8rem; font-weight: 900; margin: 0; text-shadow: 0 0 15px var(--neon-cyan); color: var(--neon-cyan); } 
         .tabs-nav { display: flex; justify-content: center; gap: 10px; margin: 20px 0; } 
@@ -33,7 +45,6 @@
         .service-btn { background: linear-gradient(90deg, #10b981, #059669); } 
         .back-btn { display: block; margin: 20px auto; background: none; border: 1px solid #4f46e5; color: #fff; padding: 10px 25px; border-radius: 12px; cursor: pointer; }
 
-        /* التحسينات الجديدة */
         .points-glow { animation: pointsUpdate 0.5s ease-out; }
         @keyframes pointsUpdate {
             0% { transform: scale(1); box-shadow: 0 0 0px var(--neon-cyan); }
@@ -47,7 +58,7 @@
 </head>
 <body>
     <div class="stars-bg"></div>
-    <div class="main-box">
+    <div class="main-box" id="galaxyMainBox">
         <header>
             <h1>مركز المجرة 🌌</h1>
         </header>
@@ -126,12 +137,21 @@
         const db = firebase.firestore(); 
 
         let currentPoints = 0;
+        let contentShown = false; // متغير للتحكم في ظهور الصفحة
 
         auth.onAuthStateChanged(user => { 
             if (user) { 
+                // إظهار الصفحة للمستخدم المسجل فقط
+                if (!contentShown) {
+                    const mainBox = document.getElementById('galaxyMainBox');
+                    mainBox.style.display = 'block';
+                    setTimeout(() => mainBox.style.opacity = '1', 50);
+                    contentShown = true;
+                }
                 listenToPoints(user.uid); 
             } else { 
-                window.location.href = "index.html"; 
+                // تحويل المستخدم غير المسجل ومنعه من الرجوع
+                window.location.replace("index.html"); 
             } 
         }); 
 
@@ -142,13 +162,12 @@
                     const pointsElement = document.getElementById("userPoints");
                     const pointsBox = document.getElementById("pointsBox");
                     
-                    // إزالة الـ Skeleton بمجرد وصول البيانات
                     pointsElement.classList.remove('skeleton');
 
                     if (newPoints !== currentPoints) {
                         animateValue(pointsElement, currentPoints, newPoints, 1000);
                         pointsBox.classList.remove('points-glow');
-                        void pointsBox.offsetWidth; // Trigger reflow لعادة الأنميشن
+                        void pointsBox.offsetWidth; 
                         pointsBox.classList.add('points-glow');
                         currentPoints = newPoints;
                     } else {
