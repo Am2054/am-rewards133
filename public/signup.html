@@ -196,17 +196,25 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
 
-  // جلب كود الإحالة من الرابط
-  const urlParams = new URLSearchParams(window.location.search);
-  const ref = urlParams.get('ref');
-  if (ref) document.getElementById('refCode').value = ref.toUpperCase();
+  // وظيفة البصمة (Fingerprint) لزيادة الحماية
+  async function getFingerprint() {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.fillText("Am-Rewards-Secure-Auth", 2, 2);
+      const b64 = canvas.toDataURL().replace("data:image/png;base64,", "");
+      const bin = atob(b64);
+      let hash = 0;
+      for (let i = 0; i < bin.length; i++) { hash = ((hash << 5) - hash) + bin.charCodeAt(i); hash |= 0; }
+      return Math.abs(hash).toString(16);
+    } catch(e) { return "gen_" + Math.random().toString(16).slice(2, 8); }
+  }
 
-  // وظيفة إظهار/إخفاء كلمة المرور
+  // نفس دوالك الأصلية (TogglePass, getDeviceId, etc.)
   window.togglePass = (id) => {
     const input = document.getElementById(id);
     input.type = input.type === "password" ? "text" : "password";
   };
-
   window.showPolicy = () => document.getElementById('policyModal').style.display = 'flex';
   window.closePolicy = () => document.getElementById('policyModal').style.display = 'none';
 
@@ -220,15 +228,18 @@
     const statusEl = document.getElementById('status');
     const signupBtn = document.getElementById('signupBtn');
     
-    const email = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value;
-    const confirmPassword = document.getElementById('confirmPassword').value;
-    const phone = document.getElementById('phone').value.trim();
-    const name = document.getElementById('name').value.trim();
-    const referralCode = document.getElementById('refCode').value.trim().toUpperCase();
-    const deviceId = getDeviceId();
+    const fields = {
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('password').value,
+      confirmPassword: document.getElementById('confirmPassword').value,
+      phone: document.getElementById('phone').value.trim(),
+      name: document.getElementById('name').value.trim(),
+      referralCode: document.getElementById('refCode').value.trim().toUpperCase(),
+      deviceId: getDeviceId(),
+      fingerprint: await getFingerprint()
+    };
 
-    statusEl.textContent = "⏳ جاري المعالجة...";
+    statusEl.textContent = "⏳ جاري التحقق من أمان العملية...";
     statusEl.className = "status";
     signupBtn.disabled = true;
 
@@ -236,7 +247,7 @@
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, confirmPassword, name, phone, deviceId, referralCode })
+        body: JSON.stringify(fields)
       });
 
       const data = await response.json();
@@ -244,9 +255,10 @@
       if (response.ok) {
         statusEl.textContent = "✅ نجح التسجيل! جاري الدخول...";
         statusEl.className = "status success";
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInWithEmailAndPassword(auth, fields.email, fields.password);
         setTimeout(() => window.location.href = "dashboard.html", 1500);
       } else {
+        // إذا كان الخطأ بسبب الـ Rate Limit (429) أو أي خطأ آخر
         statusEl.textContent = data.message;
         statusEl.className = "status error";
         signupBtn.disabled = false;
