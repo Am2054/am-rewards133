@@ -20,41 +20,56 @@ const auth = getAuth();
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { email, password, confirmPassword, referralCode, name, phone, deviceId } = req.body;
-  const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress || "";
+  const { email, password, confirmPassword, referralCode, name, phone, deviceId, fingerprint } = req.body;
+  const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress || "unknown_ip";
 
-  // ======== 1. التحقق من صحة البيانات ========
+  // ======== 0. نظام الـ Rate Limiting (جديد) ========
+  try {
+    const rateLimitRef = db.collection("rateLimits").doc(ip.replace(/\./g, "_")); // تحويل النقط لشرطات للـ ID
+    const rateSnap = await rateLimitRef.get();
+    const now = Date.now();
+
+    if (rateSnap.exists) {
+      const data = rateSnap.data();
+      // لو حاول يسجل أكثر من 3 مرات في ساعة واحدة
+      if (data.count >= 3 && (now - data.lastAttempt < 3600000)) {
+        return res.status(429).json({ success: false, message: "❌ محاولات كثيرة جداً. يرجى الانتظار ساعة قبل المحاولة مرة أخرى." });
+      }
+      
+      // إعادة تعيين العداد لو مر أكتر من ساعة
+      if (now - data.lastAttempt > 3600000) {
+        await rateLimitRef.set({ count: 1, lastAttempt: now });
+      } else {
+        await rateLimitRef.update({ count: FieldValue.increment(1), lastAttempt: now });
+      }
+    } else {
+      await rateLimitRef.set({ count: 1, lastAttempt: now });
+    }
+  } catch (e) { console.error("Rate Limit Check Error:", e); }
+
+  // ======== 1. التحقق من صحة البيانات (منطقك الأصلي) ========
   if (!email || !password || !phone || !name || !deviceId) {
     return res.status(400).json({ success: false, message: "❌ يرجى إكمال جميع الحقول المطلوبة." });
   }
 
-  if (name.length < 3) {
-    return res.status(400).json({ success: false, message: "❌ الاسم الكامل يجب أن يكون 3 أحرف على الأقل." });
-  }
-
-  if (!/^01\d{9}$/.test(phone)) {
-    return res.status(400).json({ success: false, message: "❌ رقم الهاتف غير صحيح، يجب أن يكون 11 رقماً ويبدأ بـ 01." });
-  }
-
-  if (password.length < 6) {
-    return res.status(400).json({ success: false, message: "❌ كلمة المرور ضعيفة، يجب أن لا تقل عن 6 أحرف." });
-  }
-
-  if (password !== confirmPassword) {
-    return res.status(400).json({ success: false, message: "❌ كلمات المرور غير متطابقة." });
-  }
+  if (name.length < 3) return res.status(400).json({ success: false, message: "❌ الاسم الكامل يجب أن يكون 3 أحرف على الأقل." });
+  if (!/^01\d{9}$/.test(phone)) return res.status(400).json({ success: false, message: "❌ رقم الهاتف غير صحيح." });
+  if (password.length < 6) return res.status(400).json({ success: false, message: "❌ كلمة المرور ضعيفة." });
+  if (password !== confirmPassword) return res.status(400).json({ success: false, message: "❌ كلمات المرور غير متطابقة." });
 
   try {
-    // 2. التحقق من تكرار البيانات (خارج الـ Transaction للأداء)
-    const [deviceSnap, phoneSnap] = await Promise.all([
+    // 2. التحقق من تكرار البيانات + البصمة
+    const [deviceSnap, phoneSnap, fingerprintSnap] = await Promise.all([
       db.collection("userDevices").where("deviceId", "==", deviceId).limit(1).get(),
-      db.collection("users").where("phone", "==", phone).limit(1).get()
+      db.collection("users").where("phone", "==", phone).limit(1).get(),
+      fingerprint ? db.collection("userDevices").where("fingerprint", "==", fingerprint).limit(1).get() : { empty: true }
     ]);
 
-    if (!deviceSnap.empty) return res.status(403).json({ success: false, message: "❌ هذا الجهاز مسجل بالفعل بحساب آخر." });
-    if (!phoneSnap.empty) return res.status(400).json({ success: false, message: "❌ رقم الهاتف هذا مستخدم بالفعل." });
+    if (!deviceSnap.empty) return res.status(403).json({ success: false, message: "❌ هذا الجهاز مسجل بالفعل." });
+    if (!fingerprintSnap.empty) return res.status(403).json({ success: false, message: "❌ تم اكتشاف تسجيل مكرر من هذا المتصفح." });
+    if (!phoneSnap.empty) return res.status(400).json({ success: false, message: "❌ رقم الهاتف مستخدم بالفعل." });
 
-    // 3. التحقق من كود الإحالة (خارج الـ Transaction كما طلبت)
+    // 3. كود الإحالة (منطقك الأصلي)
     let referredBy = null;
     let referrerRef = null;
     if (referralCode) {
@@ -65,48 +80,40 @@ export default async function handler(req, res) {
       }
     }
 
-    // 4. إنشاء الحساب في Firebase Auth
+    // 4. Firebase Auth
     let userRecord;
     try {
-      userRecord = await auth.createUser({
-        email: email,
-        password: password,
-        displayName: name,
-      });
+      userRecord = await auth.createUser({ email, password, displayName: name });
     } catch (authError) {
-      if (authError.code === 'auth/email-already-exists') {
-        return res.status(400).json({ success: false, message: "❌ البريد الإلكتروني مسجل مسبقاً." });
-      }
+      if (authError.code === 'auth/email-already-exists') return res.status(400).json({ success: false, message: "❌ البريد مسجل مسبقاً." });
       throw authError;
     }
 
     const uid = userRecord.uid;
     const myReferralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    // 5. حفظ البيانات في Firestore (Transaction للكتابة فقط لضمان السرعة)
+    // 5. Firestore Transaction (حفظ بياناتك الأصلية + البصمة)
     await db.runTransaction(async (tr) => {
       tr.set(db.collection("users").doc(uid), {
         uid, email, name, phone, deviceId,
         referralCode: myReferralCode,
         referredBy: referredBy,
-        points: 0,
-        referralCount: 0,
-        totalReferralEarnings: 0,
-        referralBonusesCount: 0,
-        withdrawn: 0,
-        isBanned: false,
-        registeredIp: ip,
-        createdAt: FieldValue.serverTimestamp(),
+        points: 0, referralCount: 0, totalReferralEarnings: 0,
+        referralBonusesCount: 0, withdrawn: 0, isBanned: false,
+        registeredIp: ip, createdAt: FieldValue.serverTimestamp(),
       });
 
       if (referrerRef) tr.update(referrerRef, { referralCount: FieldValue.increment(1) });
-      tr.set(db.collection("userDevices").doc(), { uid, deviceId, ip, createdAt: FieldValue.serverTimestamp() });
+      
+      tr.set(db.collection("userDevices").doc(), { 
+        uid, deviceId, fingerprint: fingerprint || "legacy", ip, createdAt: FieldValue.serverTimestamp() 
+      });
     });
 
     return res.status(200).json({ success: true, message: "✅ تم إنشاء الحساب بنجاح." });
 
   } catch (err) {
     console.error("Signup Error:", err);
-    return res.status(500).json({ success: false, message: "❌ حدث خطأ داخلي أثناء التسجيل." });
+    return res.status(500).json({ success: false, message: "❌ حدث خطأ داخلي." });
   }
 }
