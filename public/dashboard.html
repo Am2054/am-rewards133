@@ -16,11 +16,18 @@
       --text-main: #f1f5f9;
     }      
 
-    /* تحسين الأداء: استبدال all بخصائص محددة كما طلبت */
-    * { 
-      box-sizing: border-box; 
-    }      
+    * { box-sizing: border-box; }      
     
+    /* جعل الحاوية مخفية افتراضياً لحين التأكد من تسجيل الدخول */
+    .container { 
+      max-width: 480px; 
+      margin: 0 auto; 
+      padding: 25px 15px; 
+      display: none; 
+      opacity: 0; 
+      transition: opacity 0.5s ease;
+    }
+
     .action-item, .point-box, .progress-fill, .btn-logout, .profile-card {
       transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
                   box-shadow 0.4s ease, 
@@ -44,12 +51,10 @@
     .nebula::after {
       content: ""; position: absolute; width: 200%; height: 200%;
       background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
-      opacity: 0.15; /* تحسين البطارية */
+      opacity: 0.15;
       animation: stars 100s linear infinite;
     }
     @keyframes stars { from { transform: translateY(0); } to { transform: translateY(-50%); } }
-
-    .container { max-width: 480px; margin: 0 auto; padding: 25px 15px; }
 
     header {
       display: flex; align-items: center; justify-content: space-between;
@@ -111,7 +116,6 @@
       transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* تأثير المكافأة Glow */
     .progress-fill.goal-reached {
       animation: pulseGlow 1.5s infinite alternate;
       box-shadow: 0 0 20px var(--neon-cyan), 0 0 40px var(--neon-purple);
@@ -143,7 +147,7 @@
 <body>      
   <div class="nebula"></div>      
   
-  <div class="container">      
+  <div class="container" id="mainContainer">      
     <header>      
       <div style="display:flex; gap:12px; align-items:center;">
         <div class="logo-glow">AM</div>
@@ -231,6 +235,9 @@
     const db = getFirestore(app);      
     const POINT_VALUE = 0.07;      
 
+    // متغير التحكم في ظهور المحتوى
+    let contentShown = false;
+
     function animateValue(id, start, end, duration) {
         const obj = document.getElementById(id);
         if (!obj) return;
@@ -247,8 +254,20 @@
     let lastPoints = 0;
 
     onAuthStateChanged(auth, (user) => {      
-      if (!user) return location.href = 'index.html';      
+      if (!user) {
+          // لو مش مسجل يحوله فوراً ويمنع أي حاجة تظهر
+          window.location.replace('index.html');
+          return;
+      }
       
+      // إظهار المحتوى بمجرد التأكد من أن المستخدم مسجل
+      if (!contentShown) {
+          const container = document.getElementById('mainContainer');
+          container.style.display = 'block';
+          setTimeout(() => container.style.opacity = '1', 50);
+          contentShown = true;
+      }
+
       onSnapshot(doc(db, 'users', user.uid), (snap) => {    
         if (!snap.exists()) return;
         const d = snap.data();
@@ -269,7 +288,6 @@
         document.getElementById('pointsToday').textContent = ptsToday;
         document.getElementById('totalWithdrawn').textContent = (d.withdrawn || 0) + ' ج';
 
-        // الحل الموفر للبيانات: استخدام الحقل الجاهز مباشرة
         const refEarnings = d.totalReferralEarnings || 0;
         document.getElementById('referralPoints').textContent = refEarnings.toFixed(2);
 
