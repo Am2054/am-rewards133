@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>شات الأشباح PRO | الإصدار السادس</title>
+    <title>شات الأشباح PRO | الإصدار السابع</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -13,8 +13,22 @@
         html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; color: #fff; transition: 0.5s; } 
         body { font-family: 'Tajawal', sans-serif; display: flex; flex-direction: column; background: #020617 url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1500') no-repeat center center fixed; background-size: cover; user-select: none; position: relative; } 
         body::before { content: ""; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: -1; transition: 0.5s; } 
+        
+        /* 1. تأثير التلاشي التدريجي للرسائل القديمة (الميزة 1.2.4) */
+        .msg { transition: opacity 15s linear, transform 0.3s; position: relative; }
+        .msg-old { opacity: 0.4 !important; filter: blur(0.5px); }
+
+        /* 2. تأثير الصدى البصري عند التفاعل (Spectral Echo) */
+        @keyframes spectralEcho {
+            0% { transform: scale(1); filter: hue-rotate(0deg); }
+            50% { transform: scale(1.02); filter: hue-rotate(180deg) brightness(1.5); }
+            100% { transform: scale(1); filter: hue-rotate(360deg); }
+        }
+        .echo-active { animation: spectralEcho 0.8s ease-in-out; }
+
         #chatBox::before { content: ""; position: fixed; top: 50%; left: 50%; width: 200%; height: 200%; background: radial-gradient(circle, var(--purple) 0%, transparent 70%); opacity: 0.05; z-index: -1; animation: ghostFloat 20s infinite linear; pointer-events: none; } 
         @keyframes ghostFloat { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } } 
+        
         #rulesOverlay { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.98); backdrop-filter: blur(20px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1); } 
         .rules-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(0, 242, 255, 0.3); border-radius: 30px; padding: 30px; max-width: 480px; width: 100%; text-align: center; box-shadow: 0 0 50px rgba(0, 242, 255, 0.1); max-height: 90vh; overflow-y: auto; } 
         .intro-line { color: var(--cyan); font-weight: 900; font-size: 18px; margin-bottom: 20px; display: block; } 
@@ -24,53 +38,51 @@
         .rules-list li::before { content: "✦"; position: absolute; right: 0; color: var(--cyan); } 
         .rules-list li b { color: var(--cyan); display: inline-block; margin-bottom: 2px; } 
         .agree-btn { width: 100%; background: linear-gradient(135deg, var(--cyan), var(--purple)); color: #fff; border: none; padding: 18px; border-radius: 50px; font-weight: 900; cursor: pointer; transition: 0.3s; font-size: 16px; } 
-        .agree-btn:hover { box-shadow: 0 0 20px var(--cyan); transform: translateY(-2px); } 
+        
         header { padding: env(safe-area-inset-top, 15px) 15px 15px; text-align: center; background: var(--glass); backdrop-filter: blur(15px); border-bottom: 1px solid rgba(0, 242, 255, 0.1); z-index: 100; } 
         #status { font-size: 11px; color: var(--cyan); display: block; margin-top: 5px; font-weight: 900; letter-spacing: 0.5px; } 
         #typingIndicator { font-size: 10px; color: var(--success); height: 15px; margin-top: 2px; font-style: italic; } 
+        
         #chatBox { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth; position: relative; } 
         .msg { max-width: 85%; padding: 14px 18px; border-radius: 24px; font-size: 15px; backdrop-filter: blur(10px); animation: msgIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; line-height: 1.5; cursor: pointer; transition: 0.2s; } 
         @keyframes msgIn { from { opacity: 0; transform: translateY(20px) scale(0.9); } to { opacity: 1; transform: translateY(0) scale(1); } } 
+        
         .msg-remote { align-self: flex-start; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.08); border-bottom-right-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); } 
         .msg-me { align-self: flex-end; background: linear-gradient(135deg, rgba(112, 0, 255, 0.5), rgba(70, 0, 255, 0.5)); border: 1px solid rgba(112, 0, 255, 0.3); border-bottom-left-radius: 4px; box-shadow: 0 4px 15px rgba(112, 0, 255, 0.1); } 
         .msg-secret { background: linear-gradient(135deg, rgba(30, 27, 75, 0.95), rgba(49, 46, 129, 0.95)) !important; border: 1px solid var(--purple) !important; box-shadow: 0 0 20px rgba(112, 0, 255, 0.3) !important; } 
         .msg-confession { background: linear-gradient(135deg, rgba(153, 27, 27, 0.9), rgba(69, 10, 10, 0.9)) !important; border: 1px solid var(--danger) !important; box-shadow: 0 0 25px rgba(255, 68, 68, 0.3) !important; } 
+        
         .sender { font-size: 10px; font-weight: 900; color: var(--cyan); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; opacity: 0.9; } 
+        .rank-badge { font-size: 8px; background: rgba(0, 242, 255, 0.15); color: var(--cyan); padding: 2px 6px; border-radius: 4px; margin-right: 5px; border: 1px solid rgba(0, 242, 255, 0.3); }
         .online-dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; display: inline-block; margin-left: 5px; box-shadow: 0 0 5px var(--success); } 
         .text { word-wrap: break-word; } 
         .msg-deleted { font-style: italic; opacity: 0.6; font-size: 13px; } 
         .edited-tag { font-size: 9px; opacity: 0.5; margin-right: 5px; color: var(--cyan); } 
+        
         .reply-quote { background: rgba(255, 255, 255, 0.1); border-right: 3px solid var(--cyan); padding: 6px 12px; margin-bottom: 8px; border-radius: 8px; font-size: 12px; color: #cbd5e1; display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } 
         .reply-preview { display: none; background: rgba(15, 23, 42, 0.95); border-top: 1px solid var(--cyan); padding: 10px 20px; animation: slideUp 0.3s ease; position: relative; } 
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } } 
-        .reply-preview .target-name { color: var(--cyan); font-weight: 900; font-size: 12px; } 
-        .reply-close { position: absolute; left: 20px; top: 10px; color: var(--danger); font-size: 18px; cursor: pointer; } 
+        
         .input-area { padding: 0; background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.08); padding-bottom: calc(15px + env(safe-area-inset-bottom)); } 
         .input-wrapper { display: flex; gap: 12px; align-items: center; max-width: 700px; margin: 0 auto; padding: 15px; } 
         input { flex: 1; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 16px 22px; border-radius: 35px; color: #fff; outline: none; font-size: 16px; transition: 0.3s; } 
-        input:focus { border-color: var(--cyan); background: rgba(255, 255, 255, 0.07); box-shadow: 0 0 15px rgba(0, 242, 255, 0.1); } 
-        .send-btn { background: var(--cyan); border: none; width: 54px; height: 54px; border-radius: 50%; cursor: pointer; font-size: 22px; color: #000; font-weight: bold; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); flex-shrink: 0; display: flex; align-items: center; justify-content: center; } 
-        .send-btn:hover { transform: rotate(-15deg) scale(1.1); box-shadow: 0 0 20px var(--cyan); } 
-        .send-btn:disabled { background: #334155; color: #64748b; transform: none; box-shadow: none; cursor: not-allowed; } 
+        .send-btn { background: var(--cyan); border: none; width: 54px; height: 54px; border-radius: 50%; cursor: pointer; font-size: 22px; color: #000; font-weight: bold; transition: 0.4s; flex-shrink: 0; display: flex; align-items: center; justify-content: center; } 
+        
         #actionModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; } 
         .modal-content { background: var(--dark); border: 1px solid var(--cyan); padding: 20px; border-radius: 20px; width: 80%; max-width: 300px; } 
         .modal-btn { width: 100%; padding: 12px; margin: 5px 0; border: none; border-radius: 10px; font-family: 'Tajawal'; font-weight: bold; cursor: pointer; } 
         .system-msg { text-align: center; color: var(--cyan); font-weight: 900; font-size: 13px; padding: 10px; background: rgba(0, 242, 255, 0.05); border-radius: 10px; margin: 10px 0; border: 1px dashed rgba(0, 242, 255, 0.2); animation: fadeIn 1s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
     <div id="rulesOverlay">
         <div class="rules-card">
             <span class="intro-line">هنا، لا أحد يعرفك… لكن الجميع يسمعك.</span>
-            <h3>ميثاق الأشباح – الإصدار السادس</h3>
+            <h3>ميثاق الأشباح – الإصدار السابع</h3>
             <ul class="rules-list">
                 <li><b>👻 المجهولية:</b> هنا لا اسم حقيقي، لا صورة، لا ماضٍ. روحك تتجدد كل يوم… وما يبقى هو الكلمات فقط.</li>
                 <li><b>🕯️ الاعتراف:</b> استخدم #اعتراف عندما ترغب أن يتوهج كلامك في الظلام. بعض الأسرار تحتاج شجاعة… وبعضها يحتاج صمت.</li>
                 <li><b>🔒 الخصوصية:</b> لا نطلب بريدًا، ولا رقمًا، ولا هوية. هذا الفضاء لك كما أنت… بلا أقنعة اجتماعية.</li>
-                <li><b>⚖️ المسؤولية:</b> مجهوليتك لا تعني الفوضى. الكلمة قد تُنقذ قلبًا… أو تكسره.</li>
-                <li><b>🛡️ الحماية:</b> لكل روح بصمة رقمية غير مرئية، تُستخدم فقط لحماية هذا العالم من التخريب.</li>
-                <li><b>🌒 النفي:</b> من يستخدم الظلام لإيذاء الآخرين… سيُعاد إلى العتمة خارج هذا العالم.</li>
                 <li><b>✨ التطهير:</b> هذا المكان يتجدد دائمًا… فكل شيء هنا عابر… إلا الأثر.</li>
             </ul>
             <button class="agree-btn" onclick="acceptRules()">تكلم بلا اسم… لكن لا تتكلم بلا ضمير 🕯️</button>
@@ -126,13 +138,12 @@
         let activeDay = ""; 
         let messagesRef = null;
 
-        const applyTimeTheme = () => {
-            const hour = new Date().getHours();
-            const isNight = hour >= 18 || hour < 6;
-            document.body.style.filter = isNight ? "brightness(0.9) contrast(1.1)" : "none";
-            document.body.style.backgroundColor = isNight ? "#010409" : "#020617";
+        // 🔊 صوت الرياح عند الظهور (الميزة 1.2.4)
+        const playGhostSound = () => {
+            const audio = new Audio('https://www.assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
+            audio.volume = 0.1;
+            audio.play().catch(() => {});
         };
-        applyTimeTheme();
 
         window.cancelReply = () => {
             currentReplyTo = null;
@@ -146,7 +157,6 @@
             const lastResetRef = ref(db, 'system/last_reset_date');
             onValue(lastResetRef, (snap) => {
                 const serverResetDate = snap.val();
-                // منع التغيير من الفرونت: نعتمد فقط على السيرفر
                 if (serverResetDate && activeDay && serverResetDate !== activeDay) {
                     activeDay = serverResetDate;
                     document.getElementById('chatBox').innerHTML = "<div class='system-msg'>🌅 يوم جديد بدأ! تم عزل رسائل الأمس..</div>";
@@ -158,25 +168,9 @@
 
         onMessage(messaging, (payload) => {
             if (Notification.permission === "granted" && document.hidden) {
-                new Notification(payload.notification.title, { 
-                    body: payload.notification.body, 
-                    icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png', 
-                    tag: 'ghost-chat-msg', 
-                    renotify: true 
-                });
+                new Notification(payload.notification.title, { body: payload.notification.body, icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png', tag: 'ghost-chat-msg', renotify: true });
             }
         });
-
-        const clearGhostNotifications = () => {
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.ready.then(reg => {
-                    reg.getNotifications({ tag: 'ghost-chat-msg' }).then(notifications => {
-                        notifications.forEach(n => n.close());
-                    });
-                });
-            }
-        };
-        window.addEventListener('focus', clearGhostNotifications);
 
         const getDailyIdentity = async () => {
             try {
@@ -188,12 +182,12 @@
                 });
                 const data = await res.json();
                 if (data.ghostName) {
-                    // الاعتماد كلياً على activeDay القادم من السيرفر لمنع تذبذب الهوية
                     activeDay = data.activeDay;
                     myGhostName = data.ghostName;
-                    document.getElementById('status').innerHTML = `<span class="online-dot"></span> هويتك: ${myGhostName}`;
+                    document.getElementById('status').innerHTML = `<span class="online-dot"></span> هويتك: ${myGhostName} <span class="rank-badge">${data.rank || 'روح عابرة'}</span>`;
 
                     if (data.welcomeCard && data.welcomeCard.show) {
+                        playGhostSound();
                         Swal.fire({
                             title: data.welcomeCard.title,
                             html: `
@@ -202,19 +196,12 @@
                                     <div style="background: linear-gradient(135deg, rgba(0,242,255,0.1), rgba(112,0,255,0.1)); 
                                                 padding:20px; border-radius:24px; border:1px solid ${data.welcomeCard.accentColor || '#7000ff'}; 
                                                 margin:20px 0; box-shadow: 0 0 20px rgba(112,0,255,0.2);">
-                                        <span style="font-size:12px; color:var(--cyan); display:block; margin-bottom:5px;">هويتك الجديدة لليوم:</span>
-                                        <h2 style="color:#fff; margin:0; font-weight:900; letter-spacing:1px;">${data.welcomeCard.nameTag}</h2>
+                                        <h2 style="color:#fff; margin:0; font-weight:900;">${data.welcomeCard.nameTag}</h2>
                                     </div>
-                                    <p style="font-size:12px; opacity:0.6; font-style:italic;">${data.welcomeCard.footer}</p>
+                                    <p style="font-size:12px; opacity:0.6;">${data.welcomeCard.footer}</p>
                                 </div>`,
-                            background: '#020617', 
-                            color: '#fff', 
-                            confirmButtonText: 'أتعهد بالميثاق 🕯️', 
-                            confirmButtonColor: data.welcomeCard.accentColor || '#7000ff',
-                            showClass: { popup: 'animate__animated animate__fadeInDown' },
-                            hideClass: { popup: 'animate__animated animate__fadeOutUp' }
+                            background: '#020617', color: '#fff', confirmButtonText: 'تلاشى الآن 🕯️', confirmButtonColor: '#7000ff'
                         });
-                        // مسح الشات لأن الجلسة بدأت فعلياً الآن
                         document.getElementById('chatBox').innerHTML = "";
                         renderedMsgIds.clear();
                     }
@@ -254,14 +241,8 @@
                 const permission = await Notification.requestPermission();
                 if (permission !== 'granted') return;
                 const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
-                await navigator.serviceWorker.ready;
-                const token = await getToken(messaging, { 
-                    vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws', 
-                    serviceWorkerRegistration: registration 
-                });
-                if (token) {
-                    await set(ref(db, `users_tokens/${currentUser.uid}`), { token: token, ghostName: myGhostName, lastUpdated: Date.now() });
-                }
+                const token = await getToken(messaging, { vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws', serviceWorkerRegistration: registration });
+                if (token) { await set(ref(db, `users_tokens/${currentUser.uid}`), { token: token, ghostName: myGhostName, lastUpdated: Date.now() }); }
             } catch (err) { console.warn("FCM Error", err); }
         }
 
@@ -272,9 +253,7 @@
                 getDailyIdentity();
                 document.getElementById('msgInput').disabled = false;
                 document.getElementById('sendBtn').disabled = false;
-                initBans();
                 listenForChatReset(); 
-                clearGhostNotifications();
                 if(localStorage.getItem('ghost_rules_v5') === 'true') { requestNotificationPermission(); }
             }
         });
@@ -282,10 +261,7 @@
         window.acceptRules = () => {
             localStorage.setItem('ghost_rules_v5', 'true');
             document.getElementById('rulesOverlay').style.opacity = '0';
-            setTimeout(() => { 
-                document.getElementById('rulesOverlay').style.display = 'none'; 
-                requestNotificationPermission();
-            }, 800);
+            setTimeout(() => { document.getElementById('rulesOverlay').style.display = 'none'; requestNotificationPermission(); }, 800);
         };
         if(localStorage.getItem('ghost_rules_v5') === 'true') { document.getElementById('rulesOverlay').style.display = 'none'; }
 
@@ -303,44 +279,20 @@
                 const payload = editingMsgId ? 
                     { action: "EDIT", msgId: editingMsgId, text, uid: currentUser.uid, token, day: activeDay } : 
                     { text, uid: currentUser.uid, token, day: activeDay };
-                const res = await fetch('/api/sendMessage', { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify(payload) 
-                });
-                if (res.ok) {
-                    input.value = "";
-                    cancelReply();
-                    if (editingMsgId) { editingMsgId = null; btn.innerText = "✦"; }
-                }
+                const res = await fetch('/api/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (res.ok) { input.value = ""; cancelReply(); if (editingMsgId) { editingMsgId = null; btn.innerText = "✦"; } }
             } catch(e) { console.error("API Error"); }
             setTimeout(() => { btn.disabled = false; }, 1000);
         }
 
-        function initBans() {
-            onValue(ref(db, `banned_users/${currentUser.uid}`), (snap) => {
-                if (snap.exists()) {
-                    document.getElementById('status').innerText = "🚫 كيانك منفي حالياً";
-                    document.getElementById('msgInput').disabled = true;
-                    document.getElementById('sendBtn').disabled = true;
-                    document.getElementById('chatBox').innerHTML = "<div style='text-align:center; padding:50px; color:var(--danger);'>تم نفي روحك من هذا العالم لمخالفتك الميثاق.</div>";
-                }
-            });
-        }
-
         function initMessages() {
             if (!activeDay) return; 
-            const path = `messages/global/${activeDay}`;
-            const msgRef = ref(db, path);
+            const msgRef = ref(db, `messages/global/${activeDay}`);
             if (messagesRef) off(messagesRef);
             messagesRef = msgRef;
             const q = query(msgRef, orderByChild("timestamp"), limitToLast(100));
             onChildAdded(q, (snap) => {
                 if (renderedMsgIds.has(snap.key)) return;
-                if (renderedMsgIds.size > 500) {
-                    const firstKey = renderedMsgIds.values().next().value;
-                    renderedMsgIds.delete(firstKey);
-                }
                 renderMsg(snap.key, snap.val());
             });
             onChildChanged(q, (snap) => {
@@ -348,26 +300,8 @@
                 const msgEl = document.getElementById(`msg-${snap.key}`);
                 if (msgEl) {
                     const textDiv = msgEl.querySelector('.text');
-                    const senderDiv = msgEl.querySelector('.sender');
-                    if (data.deleted) {
-                        textDiv.innerHTML = "هذه الهمسة تلاشت في العدم... (محذوفة)";
-                        textDiv.classList.add('msg-deleted');
-                    } else {
-                        const parts = data.text.match(/^رد على @(.+?): (.*)/);
-                        if (parts) {
-                            textDiv.innerHTML = "";
-                            const quote = document.createElement('span');
-                            quote.className = 'reply-quote';
-                            quote.textContent = `رد على @${parts[1]}`;
-                            textDiv.appendChild(quote);
-                            textDiv.appendChild(document.createTextNode(parts[2]));
-                        } else { textDiv.textContent = data.text; }
-                        if (data.edited && !senderDiv.querySelector('.edited-tag')) {
-                            const tag = document.createElement('span');
-                            tag.className = 'edited-tag'; tag.innerText = "(معدلة)";
-                            senderDiv.appendChild(tag);
-                        }
-                    }
+                    if (data.deleted) { textDiv.innerHTML = "هذه الهمسة تلاشت في العدم... (محذوفة)"; textDiv.classList.add('msg-deleted'); }
+                    else { textDiv.textContent = data.text; }
                 }
             });
         }
@@ -381,7 +315,11 @@
             if(data.isSecret) msgClass += ' msg-secret';
             if(data.isConfession) msgClass += ' msg-confession';
             div.className = `msg ${msgClass}`;
+
+            // ⚡ التفاعل: صدى عند الضغط (الميزة 1.2.4)
             div.onclick = () => {
+                div.classList.add('echo-active');
+                setTimeout(() => div.classList.remove('echo-active'), 800);
                 if (isMe) { showMsgActions(id); } 
                 else {
                     if(data.deleted) return;
@@ -393,32 +331,24 @@
                     document.getElementById('msgInput').focus();
                 }
             };
+
             const senderDiv = document.createElement('div');
             senderDiv.className = 'sender';
             senderDiv.innerHTML = `<span>${isMe ? 'أنت' : data.sender}</span>`;
-            if (data.edited) senderDiv.innerHTML += `<span class="edited-tag">(معدلة)</span>`;
-            if(data.isConfession) senderDiv.innerHTML += `<span style="font-size:9px; color: #ff8888; background: rgba(255,0,0,0.2); padding: 2px 6px; border-radius: 5px;">🕯️ اعتراف</span>`;
-            if(data.isSecret) senderDiv.innerHTML += `<span style="font-size:9px; color: #cc88ff; background: rgba(112,0,255,0.2); padding: 2px 6px; border-radius: 5px;">🔑 سر</span>`;
+            
             const textDiv = document.createElement('div');
             textDiv.className = 'text';
-            if (data.deleted) {
-                textDiv.textContent = "هذه الهمسة تلاشت في العدم... (محذوفة)";
-                textDiv.classList.add('msg-deleted');
-            } else {
-                const replyMatch = data.text.match(/^رد على @(.+?): (.*)/);
-                if (replyMatch) {
-                    const quote = document.createElement('span');
-                    quote.className = 'reply-quote';
-                    quote.textContent = `رد على @${replyMatch[1]}`;
-                    textDiv.appendChild(quote);
-                    textDiv.appendChild(document.createTextNode(replyMatch[2]));
-                } else { textDiv.textContent = data.text; }
-            }
+            if (data.deleted) { textDiv.textContent = "هذه الهمسة تلاشت... (محذوفة)"; textDiv.classList.add('msg-deleted'); } 
+            else { textDiv.textContent = data.text; }
+
             div.appendChild(senderDiv);
             div.appendChild(textDiv);
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
             renderedMsgIds.add(id);
+
+            // ⏳ التلاشي التلقائي (الميزة 1.2.4)
+            setTimeout(() => { div.classList.add('msg-old'); }, 40000);
         }
 
         async function showMsgActions(id) {
@@ -429,10 +359,7 @@
             modal.style.display = 'flex';
             document.getElementById('deleteBtn').onclick = async () => {
                 const token = await auth.currentUser.getIdToken();
-                await fetch('/api/sendMessage', { 
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ action: "DELETE", msgId: id, uid: currentUser.uid, token, day: activeDay }) 
-                });
+                await fetch('/api/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: "DELETE", msgId: id, uid: currentUser.uid, token, day: activeDay }) });
                 modal.style.display = 'none';
             };
             document.getElementById('editBtn').onclick = () => {
