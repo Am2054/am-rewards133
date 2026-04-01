@@ -46,29 +46,31 @@
 
         .device-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; background: rgba(255,255,255,0.03); padding: 10px 15px; border-radius: 18px; }
         .counter { display: flex; align-items: center; gap: 15px; }
-        .counter button { width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--primary); background: transparent; color: var(--primary); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-        .counter button:active { background: var(--primary); color: #000; }
+        .counter button { width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--primary); background: transparent; color: var(--primary); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .counter span { font-weight: 900; font-size: 18px; min-width: 25px; text-align: center; color: var(--primary); }
 
         .btn-glow {
             width: 100%; padding: 20px; border-radius: 20px; border: none;
             background: linear-gradient(45deg, var(--accent), var(--primary));
             color: white; font-weight: 900; font-size: 17px; cursor: pointer;
-            box-shadow: 0 10px 20px rgba(125, 51, 255, 0.3); margin-top: 10px;
+            box-shadow: 0 10px 20px rgba(125, 51, 255, 0.3);
         }
 
-        /* لوحة النتائج الجديدة */
-        #resultsPanel { display: none; margin-top: 25px; animation: slideUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
+        #resultsPanel { display: none; margin-top: 25px; animation: slideUp 0.6s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
 
-        .result-main { text-align: center; padding: 25px; border-radius: 30px; position: relative; overflow: hidden; }
-        .res-status-icon { font-size: 50px; margin-bottom: 10px; display: block; }
-        .days-circle { font-size: 45px; font-weight: 900; display: block; line-height: 1; margin: 10px 0; }
+        .result-main { text-align: center; padding: 25px; border-radius: 30px; border: 2px solid transparent; }
+        .days-circle { font-size: 48px; font-weight: 900; display: block; margin: 10px 0; color: #fff; }
         
-        .tip-box { background: rgba(255,255,255,0.07); padding: 15px; border-radius: 15px; margin-top: 20px; font-size: 13px; border-right: 4px solid var(--primary); line-height: 1.6; }
+        .grid-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
+        .stat-item { background: rgba(255,255,255,0.06); padding: 12px; border-radius: 15px; text-align: center; }
+        .stat-item small { display: block; font-size: 10px; opacity: 0.7; margin-bottom: 5px; }
+        .stat-item b { font-size: 16px; color: var(--primary); }
 
-        .usage-mini-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 10px 0; overflow: hidden; }
-        .usage-mini-fill { height: 100%; width: 0; transition: 1.5s ease-out; border-radius: 10px; }
+        .usage-mini-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 12px 0; overflow: hidden; }
+        .usage-mini-fill { height: 100%; width: 0; transition: 1.5s ease-out; }
+        
+        .tip-text { font-size: 12px; line-height: 1.5; margin-top: 15px; padding: 10px; border-radius: 10px; background: rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
@@ -85,7 +87,7 @@
             <label>حجم الباقة الكلي</label>
             <select id="quota">
                 <option value="140">140 GB</option>
-                <option value="200">200 GB</option>
+                <option value="200" selected>200 GB</option>
                 <option value="250">250 GB</option>
                 <option value="400">400 GB</option>
                 <option value="600">600 GB</option>
@@ -104,9 +106,9 @@
     </div>
 
     <div class="card">
-        <div class="section-title">📊 الاستهلاك اليومي المعتاد</div>
+        <div class="section-title">📊 نمط الاستخدام</div>
         <div class="device-row">
-            <span>📱 موبايلات (تصفح/سوشيال)</span>
+            <span>📱 موبايلات</span>
             <div class="counter">
                 <button onclick="change('mobs', -1)">-</button>
                 <span id="mobs">2</span>
@@ -114,56 +116,49 @@
             </div>
         </div>
         <div class="device-row">
-            <span>📺 شاشات (يوتيوب/نتفلكس)</span>
+            <span>📺 شاشات سمارت</span>
             <div class="counter">
                 <button onclick="change('tvs', -1)">-</button>
                 <span id="tvs">1</span>
                 <button onclick="change('tvs', 1)">+</button>
             </div>
         </div>
-        
         <div class="input-group">
-            <label>جودة الفيديو (عامل الحسم)</label>
+            <label>جودة المشاهدة المعتادة</label>
             <select id="quality">
-                <option value="0.3">توفير (144p - 360p)</option>
-                <option value="0.7" selected>متوازن (480p - 720p)</option>
-                <option value="2.5">عالي الجودة (1080p+)</option>
-            </select>
-        </div>
-
-        <div class="input-group">
-            <label>تحميلات كبيرة / بلايستيشن</label>
-            <select id="heavy">
-                <option value="0">لا يوجد</option>
-                <option value="2">خفيف (تحديثات بسيطة)</option>
-                <option value="8">ثقيل (ألعاب / تورنت)</option>
+                <option value="0.35">توفير (360p)</option>
+                <option value="0.8" selected>متوسطة (720p HD)</option>
+                <option value="2.8">عالية (1080p FHD)</option>
             </select>
         </div>
     </div>
 
-    <button class="btn-glow" onclick="analyze()">ابدأ الفحص الشامل ⚡</button>
+    <button class="btn-glow" onclick="analyze()">ابدأ التحليل الذكي ⚡</button>
 
     <div id="resultsPanel">
         <div class="card result-main" id="statusCard">
-            <span class="res-status-icon" id="resIcon">✅</span>
-            <span style="font-size: 14px; opacity: 0.8;">بناءً على استهلاكك، الباقة ستكفيك لمدة:</span>
-            <span class="days-circle" id="resDays">0</span>
-            <span id="resMsg" style="font-weight: 900; font-size: 16px;">وضع مستقر</span>
+            <span id="resIcon" style="font-size: 40px;">✅</span>
+            <div class="days-circle" id="resDays">0 يوم</div>
+            <div id="resMsg" style="font-weight: 900; font-size: 18px; margin-bottom: 15px;">وضع مستقر</div>
             
-            <div class="tip-box" id="resTip">
-                جاري تحليل البيانات...
+            <div class="usage-mini-bar">
+                <div id="safeFill" class="usage-mini-fill"></div>
             </div>
 
-            <div style="margin-top: 25px; text-align: right;">
-                <div style="display:flex; justify-content:space-between; font-size:11px;">
-                    <span>نسبة الأمان حتى موعد التجديد</span>
-                    <span id="safePercent">0%</span>
+            <div class="grid-stats">
+                <div class="stat-item">
+                    <small>ساعات يوتيوب</small>
+                    <b id="videoHours">0</b>
                 </div>
-                <div class="usage-mini-bar">
-                    <div id="safeFill" class="usage-mini-fill"></div>
+                <div class="stat-item">
+                    <small>أيام للتجديد</small>
+                    <b id="daysToReset">0</b>
                 </div>
             </div>
+
+            <div class="tip-text" id="resTip"></div>
         </div>
+        <button class="btn-glow" style="background:transparent; border:1px solid var(--primary); margin-top:10px;" onclick="window.location.href='dashboard.html'">العودة للمجرة 🌌</button>
     </div>
 </div>
 
@@ -175,66 +170,62 @@
     }
 
     function analyze() {
-        // سحب البيانات
-        const left = parseFloat(document.getElementById('current_left').value);
-        const resetDay = parseInt(document.getElementById('reset_day').value);
+        const left = parseFloat(document.getElementById('current_left').value) || 0;
+        const resetDay = parseInt(document.getElementById('reset_day').value) || 1;
         const mobs = parseInt(document.getElementById('mobs').innerText);
         const tvs = parseInt(document.getElementById('tvs').innerText);
         const qual = parseFloat(document.getElementById('quality').value);
-        const heavy = parseFloat(document.getElementById('heavy').value);
 
-        // حساب الأيام المتبقية للتجديد
+        // 1. حساب الأيام المتبقية للتجديد
         const now = new Date();
         const today = now.getDate();
         const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
         let daysToReset = resetDay > today ? resetDay - today : (lastDay - today) + resetDay;
 
-        // حساب الاستهلاك اليومي التقديري (معادلة مطورة)
-        // الموبايل المتوسط يستهلك 0.5 جيجا، الشاشة على حسب الجودة
-        const dailyUsage = (mobs * 0.6) + (tvs * (3 * qual)) + heavy;
-        
-        // كم يوم ستصمد الباقة؟
-        let canLast = dailyUsage > 0 ? Math.floor(left / dailyUsage) : 30;
+        // 2. حساب الاستهلاك اليومي
+        const daily = (mobs * 0.5) + (tvs * (3 * qual));
+        let canLast = daily > 0 ? Math.floor(left / daily) : 30;
+        canLast = Math.min(canLast, 60);
 
-        // إظهار اللوحة
-        const panel = document.getElementById('resultsPanel');
-        panel.style.display = 'block';
-        
+        // 3. حساب الساعات التقديرية (يوتيوب)
+        let vHours = qual > 1 ? Math.floor(left / 2.5) : Math.floor(left / 0.8);
+
+        // 4. تحديث الواجهة
+        document.getElementById('resultsPanel').style.display = 'block';
+        document.getElementById('resDays').innerText = canLast + " يوم";
+        document.getElementById('videoHours').innerText = vHours + " س";
+        document.getElementById('daysToReset').innerText = daysToReset + " ي";
+
         const card = document.getElementById('statusCard');
         const icon = document.getElementById('resIcon');
-        const daysLabel = document.getElementById('resDays');
         const msg = document.getElementById('resMsg');
         const tip = document.getElementById('resTip');
         const fill = document.getElementById('safeFill');
 
-        // منطق النتيجة
-        daysLabel.innerText = canLast + " يوم";
-        
-        let safeRatio = Math.min((canLast / daysToReset) * 100, 100);
-        document.getElementById('safePercent').innerText = safeRatio.toFixed(0) + "%";
-        fill.style.width = safeRatio + "%";
+        let safetyScore = Math.min((canLast / daysToReset) * 100, 100);
+        fill.style.width = safetyScore + "%";
 
         if (canLast >= daysToReset) {
-            card.style.borderColor = "var(--success)";
             icon.innerText = "🛡️";
             msg.innerText = "أنت في منطقة الأمان";
             msg.style.color = "var(--success)";
+            card.style.borderColor = "var(--success)";
             fill.style.background = "var(--success)";
-            tip.innerHTML = `💡 <b>نصيحة:</b> باقتك ممتازة، سيفيض معك حوالي ${Math.floor(left - (dailyUsage * daysToReset))} جيجا عند التجديد. يمكنك رفع الجودة قليلاً!`;
+            tip.innerText = "نصيحة: باقتك ستكفيك حتى التجديد وسيفيض معك رصيد جيجا إضافي.";
         } else if (canLast >= daysToReset / 2) {
-            card.style.borderColor = "var(--warning)";
             icon.innerText = "⚠️";
-            msg.innerText = "تحتاج لترشيد الاستهلاك";
+            msg.innerText = "تحذير: استهلاك مرتفع";
             msg.style.color = "var(--warning)";
+            card.style.borderColor = "var(--warning)";
             fill.style.background = "var(--warning)";
-            tip.innerHTML = `💡 <b>نصيحة:</b> الباقة ستنتهي قبل موعدها بـ ${daysToReset - canLast} أيام. يفضل تقليل جودة اليوتيوب لـ 480p وتجنب التحميلات الكبيرة.`;
+            tip.innerText = `نصيحة: الباقة ستنتهي قبل موعدها بـ ${daysToReset - canLast} أيام. قلل جودة الفيديو فوراً.`;
         } else {
-            card.style.borderColor = "var(--danger)";
             icon.innerText = "🚨";
-            msg.innerText = "خطر: الباقة ستنفد فوراً";
+            msg.innerText = "خطر: الباقة ستنفد قريباً";
             msg.style.color = "var(--danger)";
+            card.style.borderColor = "var(--danger)";
             fill.style.background = "var(--danger)";
-            tip.innerHTML = `💡 <b>نصيحة:</b> استهلاكك عالي جداً! الباقة ستكفيك فقط ${canLast} أيام بينما التجديد بعد ${daysToReset} يوم. افصل الشاشات الذكية أو اشحن باقة إضافية الآن.`;
+            tip.innerText = "نصيحة: استهلاكك الحالي سيدمر الباقة خلال أيام. افصل الشاشات الذكية وتجنب التحميل.";
         }
 
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
