@@ -3,227 +3,99 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AM REWARDS | مركز الروابط المختصرة</title>
+  <title>AM REWARDS | مركز المهام</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --bg: #030712; --card: rgba(17, 24, 39, 0.8);
-      --gold: #f5c542; --accent: #00fa9a;
-      --text: #eef2f7; --border: rgba(245, 197, 66, 0.1);
-    }
-
-    body {
-      font-family: 'Cairo', sans-serif; background: var(--bg);
-      color: var(--text); margin: 0; padding: 20px;
-      background-image: radial-gradient(circle at top, #1e293b, #030712);
-      min-height: 100vh; direction: rtl;
-    }
-
+    :root { --bg: #030712; --card: rgba(17, 24, 39, 0.8); --gold: #f5c542; --accent: #00fa9a; --text: #eef2f7; }
+    body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; direction: rtl; background-image: radial-gradient(circle at top, #1e293b, #030712); min-height: 100vh; }
     .header-section { text-align: center; margin-bottom: 30px; }
-    h2 { color: var(--gold); font-size: 1.8rem; font-weight: 900; margin-bottom: 10px; }
-    
-    #user-points {
-      background: var(--card); border: 1px solid var(--gold);
-      padding: 10px 25px; border-radius: 50px; display: inline-flex;
-      align-items: center; gap: 10px; font-weight: 900; color: var(--gold);
-      box-shadow: 0 0 20px rgba(245, 197, 66, 0.1);
-    }
-
-    #status { font-size: 0.9rem; margin: 15px 0; color: var(--accent); opacity: 0.8; }
-    #err { color: #ff5252; font-size: 0.85rem; height: 20px; }
-
-    /* شبكة الروابط */
-    #links-container {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 20px; max-width: 1100px; margin: 0 auto;
-    }
-
-    .link-card {
-      background: var(--card); border: 1px solid var(--border);
-      padding: 25px; border-radius: 24px; position: relative;
-      transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      backdrop-filter: blur(10px); text-align: center;
-    }
-
-    .link-card:hover { transform: translateY(-8px); border-color: var(--gold); }
-
-    .link-card p { margin: 0 0 20px 0; font-weight: 700; font-size: 1.1rem; }
-    
-    .reward-badge {
-      position: absolute; top: -10px; right: 20px; background: var(--gold);
-      color: #000; padding: 2px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 900;
-    }
-
-    .btn-action {
-      width: 100%; padding: 12px; border-radius: 12px; border: none;
-      font-weight: 900; cursor: pointer; transition: 0.3s;
-      background: var(--accent); color: #030712; font-size: 1rem;
-    }
-
-    .btn-action:disabled {
-      background: rgba(255,255,255,0.05); color: #64748b; cursor: not-allowed;
-    }
-
-    .timer-lock {
-      margin-top: 15px; font-size: 0.8rem; color: #94a3b8;
-      display: flex; align-items: center; justify-content: center; gap: 5px;
-    }
-
-    .back-nav {
-      margin-top: 50px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;
-    }
-    .btn-nav {
-      background: transparent; border: 1px solid var(--border);
-      color: var(--text); padding: 10px 20px; border-radius: 12px;
-      cursor: pointer; font-weight: 700; text-decoration: none; font-size: 0.9rem;
-    }
-    .btn-nav:hover { background: var(--card); border-color: var(--gold); }
-
+    #user-points { background: var(--card); border: 1px solid var(--gold); padding: 10px 25px; border-radius: 50px; display: inline-flex; align-items: center; gap: 10px; font-weight: 900; color: var(--gold); box-shadow: 0 0 20px rgba(245, 197, 66, 0.1); }
+    #links-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; max-width: 1100px; margin: 0 auto; }
+    .link-card { background: var(--card); border: 1px solid rgba(255,255,255,0.05); padding: 25px; border-radius: 24px; text-align: center; position: relative; transition: 0.3s; backdrop-filter: blur(10px); }
+    .link-card.completed { opacity: 0.5; filter: grayscale(1); border-color: var(--accent); }
+    .reward-badge { position: absolute; top: -10px; right: 20px; background: var(--gold); color: #000; padding: 2px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 900; }
+    .btn-action { width: 100%; padding: 12px; border-radius: 12px; border: none; font-weight: 900; cursor: pointer; background: var(--accent); color: #030712; transition: 0.3s; }
+    .btn-action:disabled { background: #1e293b; color: #64748b; cursor: not-allowed; }
   </style>
 </head>
 <body>
 
   <div class="header-section">
-    <h2>مركز مهام الروابط المختصرة</h2>
+    <h2 style="color:var(--gold); font-weight:900;">مركز مهام الروابط 🕯️</h2>
     <div id="user-points">🪙 رصيد النقاط: <span id="points-val">0</span></div>
-    <div id="status">جاري تهيئة النظام...</div>
-    <div id="err"></div>
+    <p id="status" style="color:var(--accent); font-size:0.9rem; margin-top:10px;">جاري المزامنة...</p>
   </div>
 
-  <div id="links-container">
-      </div>
-
-  <div class="back-nav">
-    <a href="dashboard.html" class="btn-nav">🔙 العودة للرئيسية</a>
-    <a href="tasks.html" class="btn-nav">🗂️ عرض كل المهام</a>
-  </div>
+  <div id="links-container"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
   authDomain: "am--rewards.firebaseapp.com",
+  databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
   projectId: "am--rewards"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db = getDatabase(app);
 
-const POINTS_PER_LINK = 2; 
-const LINK_COOLDOWN = 24 * 60 * 60 * 1000;
-const MIN_WAIT_TIME = 15000;
-
+// قائمة الـ 15 رابطاً بأسماء مبسطة
 const shortlinks = [
-  {title:"خادم SwiftLnx", url:"https://swiftlnx.com/RRIj1Sni"},
-  {title:"محرك Exe", url:"https://exe.io/ED0ipEN"},
-  {title:"بوابة YShorten", url:"https://yshorten.com/OZpCcW9"},
-  {title:"شبكة OII", url:"https://oii.la/LcWIK3BD"},
-  {title:"جامبو إنك", url:"https://short-jambo.ink/6XeL7"},
-  {title:"بوابة TPI", url:"https://tpi.li/e6TZ8SqRPLi"},
-  {title:"ShrinkMe كليك", url:"https://shrinkme.click/k4EXrq"},
-  {title:"ShortSlug بزنس", url:"https://shrtslug.biz/8xx8c"},
-  {title:"RevLink برو", url:"https://revlink.pro/Egc9E"},
-  {title:"CutWin سريع", url:"https://cutw.in/tFu9b17C"},
-  {title:"LinkJust هب", url:"https://linkjust.com/ooilAAdJ"},
-  {title:"GP Links المطور", url:"https://gplinks.co/XA30n0vz"},
-  {title:"شبكة TMEarn", url:"https://tmearn.net/link/82sq"},
-  {title:"UII IO درع", url:"https://uii.io/INzfKhNW"},
-  {title:"Link4Earn الرئيسي", url:"https://go.link4earn.in/jtXBvLz"},
-  {title:"ShortFly المتميز", url:"https://www.short-fly.com/MTGN"},
-  {title:"LNBZ العالمية", url:"https://lnbz.la/eAUo"},
-  {title:"سحابة DropLink", url:"https://droplink.co/gXE1an"},
-  {title:"XP شورت لينك", url:"https://xpshort.com/oBwyc"},
-  {title:"بوابة Easy4Skip", url:"http://easy4skip.com/TJmg"}
+  {id: "1", title:"رابط رقم 1", url:"https://swiftlnx.com/O9fy5YtU"},
+  {id: "2", title:"رابط رقم 2", url:"https://exe.io/vxcI5"},
+  {id: "3", title:"رابط رقم 3", url:"https://yshorten.com/VXYGS"},
+  {id: "4", title:"رابط رقم 4", url:"https://short-jambo.ink/fswqjuSL"},
+  {id: "5", title:"رابط رقم 5", url:"https://tpi.li/1yhN"},
+  {id: "6", title:"رابط رقم 6", url:"https://shrinkme.click/iMlwz"},
+  {id: "7", title:"رابط رقم 7", url:"https://revlink.pro/KHBXnaU"},
+  {id: "8", title:"رابط رقم 8", url:"https://oii.la/fVqC9YyA"},
+  {id: "9", title:"رابط رقم 9", url:"https://gplinks.co/DXrOS"},
+  {id: "10", title:"رابط رقم 10", url:"https://go.link4earn.in/ixK6H"},
+  {id: "11", title:"رابط رقم 11", url:"https://www.short-fly.com/T0I15Rv"},
+  {id: "12", title:"رابط رقم 12", url:"https://lnbz.la/pD7BbjM6"},
+  {id: "13", title:"رابط رقم 13", url:"https://droplink.co/gVfgtj"},
+  {id: "14", title:"رابط رقم 14", url:"http://easy4skip.com/1xGAnqI4"},
+  {id: "15", title:"رابط رقم 15", url:"https://linkjust.com/4KnViKd6rWvEctQ"}
 ];
 
-let currentUserRef = null;
-let serverTimeOffset = 0;
-
-onAuthStateChanged(auth, async (user) => {
-  if (!user) { location.href = "index.html"; return; }
-  currentUserRef = doc(db, "users", user.uid);
+onAuthStateChanged(auth, (user) => {
+  if (!user) { window.location.href = "login.html"; return; }
   
-  // مزامنة توقيت الخادم لضمان العدالة
-  const nowRef = doc(db, "system", "time");
-  await setDoc(nowRef, { time: serverTimestamp() });
-  const nowSnap = await getDoc(nowRef);
-  serverTimeOffset = (nowSnap.data()?.time?.toMillis() || Date.now()) - Date.now();
+  onValue(ref(db, `users/${user.uid}/points`), (snap) => {
+    document.getElementById("points-val").textContent = snap.val() || 0;
+  });
 
-  await checkPendingReward();
-
-  onSnapshot(currentUserRef, (snap) => {
-    const data = snap.data() || {};
-    document.getElementById("points-val").textContent = data.points || 0;
-    renderUI(data.lastLinks || {});
-    document.getElementById("status").textContent = "📡 النظام متصل وجاهز";
+  onValue(ref(db, `users_tasks/${user.uid}`), (snap) => {
+    renderUI(snap.val() || {});
+    document.getElementById("status").textContent = "📡 النظام متصل";
   });
 });
 
-async function checkPendingReward() {
-  const linkIdx = localStorage.getItem("p_idx");
-  const startTime = localStorage.getItem("p_time");
-  if (!linkIdx || !startTime) return;
-
-  const now = Date.now() + serverTimeOffset;
-  const elapsed = now - Number(startTime);
-
-  if (elapsed >= MIN_WAIT_TIME) {
-    try {
-      await updateDoc(currentUserRef, {
-        points: increment(POINTS_PER_LINK),
-        [`lastLinks.${linkIdx}`]: serverTimestamp()
-      });
-      alert(`🎉 أحسنت! تم إضافة ${POINTS_PER_LINK} نقطة لحسابك.`);
-    } catch (e) { console.error("Reward Error", e); }
-  } else {
-    alert("⚠️ عودة سريعة جداً! يجب البقاء في الرابط لمدة 15 ثانية على الأقل.");
-  }
-  localStorage.removeItem("p_idx");
-  localStorage.removeItem("p_time");
-}
-
-function renderUI(lastLinks) {
+function renderUI(completedTasks) {
   const container = document.getElementById("links-container");
   container.innerHTML = "";
-  const now = Date.now() + serverTimeOffset;
 
-  shortlinks.forEach((item, i) => {
-    const lastTime = lastLinks[i]?.toMillis ? lastLinks[i].toMillis() : (lastLinks[i] || 0);
-    const isLocked = lastTime && (now - lastTime < LINK_COOLDOWN);
+  shortlinks.forEach((item) => {
+    const isDone = completedTasks[item.id] && completedTasks[item.id].status === "completed";
     
     const card = document.createElement("div");
-    card.className = "link-card";
-    
-    let timerHTML = "";
-    if (isLocked) {
-      const diff = LINK_COOLDOWN - (now - lastTime);
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      timerHTML = `<div class="timer-lock">⏳ متاح بعد ${h} ساعة و ${m} دقيقة</div>`;
-    }
-
+    card.className = `link-card ${isDone ? 'completed' : ''}`;
     card.innerHTML = `
-      <div class="reward-badge">+${POINTS_PER_LINK} ن</div>
+      <div class="reward-badge">+2 ن</div>
       <p>${item.title}</p>
-      <button class="btn-action" ${isLocked ? "disabled" : ""} 
-        onclick="window.openLink(${i}, '${item.url}')">
-        ${isLocked ? "مغلق الآن" : "تنفيذ المهمة"}
+      <button class="btn-action" ${isDone ? "disabled" : ""} 
+        onclick="window.open('${item.url}', '_blank')">
+        ${isDone ? "تم الإتمام ✅" : "تنفيذ المهمة"}
       </button>
-      ${timerHTML}
     `;
     container.appendChild(card);
   });
 }
-
-window.openLink = (i, url) => {
-  localStorage.setItem("p_idx", i);
-  localStorage.setItem("p_time", Date.now() + serverTimeOffset);
-  window.location.href = url;
-};
 </script>
 </body>
 </html>
