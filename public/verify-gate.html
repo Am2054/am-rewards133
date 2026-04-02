@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تأكيد المكافأة | GHOST GATE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root { --cyan: #00f2ff; --dark: #020617; }
+        body { background: var(--dark); color: white; font-family: 'Cairo', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .gate-card { padding: 40px; border: 1px solid var(--cyan); border-radius: 30px; background: rgba(255,255,255,0.02); text-align: center; width: 85%; max-width: 400px; box-shadow: 0 0 30px rgba(0, 242, 255, 0.1); }
+        .btn-confirm { background: var(--cyan); color: #000; border: none; padding: 15px 30px; border-radius: 15px; font-weight: 900; font-size: 18px; cursor: pointer; width: 100%; transition: 0.3s; margin-top: 20px; }
+        .btn-confirm:disabled { background: #334155; color: #64748b; }
+    </style>
+</head>
+<body>
+
+    <div class="gate-card">
+        <h2 style="color:var(--cyan)">🔓 تم التخطي بنجاح</h2>
+        <p>اضغط لتأكيد المهمة واستلام 2 نقطة</p>
+        <button id="mainBtn" class="btn-confirm" disabled>انتظر 5 ثوانٍ...</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getDatabase, ref, update, get, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+            authDomain: "am--rewards.firebaseapp.com",
+            databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
+            projectId: "am--rewards"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const taskId = urlParams.get('task') || "0";
+
+        let userUID = null;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) { 
+                userUID = user.uid; 
+                let t = 5;
+                const btn = document.getElementById('mainBtn');
+                const inv = setInterval(() => {
+                    t--; btn.innerText = `انتظر ${t} ثانية...`;
+                    if (t <= 0) { clearInterval(inv); btn.disabled = false; btn.innerText = "تأكيد واستلام النقاط 🕯️"; }
+                }, 1000);
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+
+        document.getElementById('mainBtn').onclick = async () => {
+            const btn = document.getElementById('mainBtn');
+            btn.disabled = true; btn.innerText = "جاري الحفظ...";
+
+            try {
+                const userSnap = await get(ref(db, `users/${userUID}`));
+                const currentPoints = userSnap.val()?.points || 0;
+
+                const updates = {};
+                updates[`users_tasks/${userUID}/${taskId}`] = { status: "completed", time: serverTimestamp() };
+                updates[`users/${userUID}/points`] = currentPoints + 2;
+
+                await update(ref(db), updates);
+
+                Swal.fire('مبروك!', 'تم إضافة 2 نقطة لرصيدك', 'success').then(() => {
+                    window.location.href = "tasks.html";
+                });
+            } catch (e) {
+                Swal.fire('خطأ', 'حاول مجدداً', 'error');
+                btn.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>
