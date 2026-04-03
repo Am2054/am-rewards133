@@ -95,70 +95,57 @@ async function handleVerification() {
     const linkIdx = localStorage.getItem('p_idx');
     if (!correctCode || !linkIdx) return;
 
-    // توليد الأرقام
-    let num1 = correctCode.toString();
-    let num2 = (Math.floor(10 + Math.random() * 89)).toString();
-    let num3 = (Math.floor(10 + Math.random() * 89)).toString();
+    // توليد الأرقام وترتيبها عشوائياً
+    let options = [
+        correctCode.toString(),
+        (Math.floor(10 + Math.random() * 89)).toString(),
+        (Math.floor(10 + Math.random() * 89)).toString()
+    ].sort(() => Math.random() - 0.5);
 
-    // وضعهم في مصفوفة وعمل ترتيب عشوائي
-    let optionsArray = [num1, num2, num3].sort(() => Math.random() - 0.5);
+    // بناء واجهة الأزرار يدوياً بـ HTML
+    let buttonsHtml = `
+        <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
+            ${options.map(opt => `
+                <button onclick="window.submitVerify('${opt}')" 
+                    style="background: #1e293b; color: white; border: 1px solid #00f2ff; 
+                    padding: 15px; border-radius: 12px; font-size: 1.5rem; font-weight: bold; 
+                    cursor: pointer; transition: 0.3s;"
+                    onmouseover="this.style.background='#00f2ff'; this.style.color='#020617';"
+                    onmouseout="this.style.background='#1e293b'; this.style.color='white';">
+                    ${opt}
+                </button>
+            `).join('')}
+        </div>
+    `;
 
-    // بناء كائن الخيارات يدويًا لضمان ظهور النص
-    const inputOptions = {};
-    optionsArray.forEach(option => {
-        inputOptions[option] = option; 
-    });
-
-    const { value: selectedCode } = await Swal.fire({
+    // عرض النافذة بدون Input جاهز، واستخدام الـ HTML بتاعنا
+    Swal.fire({
         title: 'تحقق من الرمز',
-        html: '<p style="color: #cbd5e1;">اختار الرقم اللي ظهرلك في الصفحة السرية:</p>',
-        input: 'radio',
-        inputOptions: inputOptions,
-        // إضافة ستايل إجباري لإظهار النصوص بجانب الدوائر
-        didOpen: () => {
-            const style = document.createElement('style');
-            style.innerHTML = `
-                .swal2-radio label { 
-                    display: inline-block !important; 
-                    color: white !important; 
-                    margin: 0 10px !important; 
-                    font-size: 1.2rem !important; 
-                    font-weight: bold !important;
-                }
-                .swal2-radio input {
-                    margin-left: 5px !important;
-                }
-            `;
-            document.head.appendChild(style);
-        },
-        confirmButtonText: 'تأكيد الرمز 🔓',
+        html: `<p style="color: #cbd5e1;">اضغط على الرقم الذي رأيته في الصفحة السرية:</p> ${buttonsHtml}`,
+        showConfirmButton: false, // هنخفي الزرار الأصلي لأننا عملنا أزرارنا الخاصة
         background: '#0f172a',
         color: '#fff',
-        allowOutsideClick: false,
-        inputValidator: (value) => {
-            if (!value) return 'لازم تختار رقم!';
-        }
+        allowOutsideClick: false
     });
 
-    if (selectedCode === correctCode.toString()) {
-        try {
-            await updateDoc(currentUserRef, {
-                points: increment(2),
-                [`lastLinks.${linkIdx}`]: serverTimestamp()
-            });
-            Swal.fire({
-                title: 'نجاح!',
-                text: 'تم إضافة 2 نقطة لحسابك ✅',
-                icon: 'success'
-            });
-        } catch (e) { console.error(e); }
-    } else {
-        Swal.fire('خطأ', 'الرقم غير صحيح!', 'error');
-    }
-    
-    localStorage.removeItem('gate_token');
-    localStorage.removeItem('p_idx');
-    window.history.replaceState({}, document.title, window.location.pathname);
+    // تعريف دالة الاستقبال عالمياً عشان الأزرار تعرف توصل لها
+    window.submitVerify = async (selectedCode) => {
+        if (selectedCode === correctCode.toString()) {
+            try {
+                await updateDoc(currentUserRef, {
+                    points: increment(2),
+                    [`lastLinks.${linkIdx}`]: serverTimestamp()
+                });
+                Swal.fire({ title: 'نجاح!', text: 'تم إضافة 2 نقطة ✅', icon: 'success' });
+            } catch (e) { console.error(e); }
+        } else {
+            Swal.fire('خطأ', 'الرقم غير صحيح! حاول مجدداً من الرابط.', 'error');
+        }
+        
+        localStorage.removeItem('gate_token');
+        localStorage.removeItem('p_idx');
+        window.history.replaceState({}, document.title, window.location.pathname);
+    };
 }
 
 
