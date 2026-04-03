@@ -3,99 +3,230 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AM REWARDS | مركز المهام</title>
+  <title>AM REWARDS | مركز الروابط المختصرة</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
-    :root { --bg: #030712; --card: rgba(17, 24, 39, 0.8); --gold: #f5c542; --accent: #00fa9a; --text: #eef2f7; }
-    body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; direction: rtl; background-image: radial-gradient(circle at top, #1e293b, #030712); min-height: 100vh; }
-    .header-section { text-align: center; margin-bottom: 30px; }
-    #user-points { background: var(--card); border: 1px solid var(--gold); padding: 10px 25px; border-radius: 50px; display: inline-flex; align-items: center; gap: 10px; font-weight: 900; color: var(--gold); box-shadow: 0 0 20px rgba(245, 197, 66, 0.1); }
-    #links-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; max-width: 1100px; margin: 0 auto; }
-    .link-card { background: var(--card); border: 1px solid rgba(255,255,255,0.05); padding: 25px; border-radius: 24px; text-align: center; position: relative; transition: 0.3s; backdrop-filter: blur(10px); }
-    .link-card.completed { opacity: 0.5; filter: grayscale(1); border-color: var(--accent); }
-    .reward-badge { position: absolute; top: -10px; right: 20px; background: var(--gold); color: #000; padding: 2px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 900; }
-    .btn-action { width: 100%; padding: 12px; border-radius: 12px; border: none; font-weight: 900; cursor: pointer; background: var(--accent); color: #030712; transition: 0.3s; }
-    .btn-action:disabled { background: #1e293b; color: #64748b; cursor: not-allowed; }
+    :root {
+      --bg: #020617; /* لون خلفية أعمق */
+      --card: rgba(15, 23, 42, 0.9);
+      --gold: #f5c542; 
+      --accent: #00f2ff; /* تغيير للسيان لإعطاء مظهر التكنولوجيا */
+      --text: #f8fafc; 
+      --border: rgba(0, 242, 255, 0.1);
+    }
+
+    body {
+      font-family: 'Cairo', sans-serif; background: var(--bg);
+      color: var(--text); margin: 0; padding: 20px;
+      background-image: radial-gradient(circle at top, #1e1b4b, #020617);
+      min-height: 100vh; direction: rtl;
+    }
+
+    .header-section { text-align: center; margin-bottom: 40px; }
+    h2 { color: var(--gold); font-size: 2rem; font-weight: 900; margin-bottom: 15px; text-shadow: 0 0 15px rgba(245, 197, 66, 0.3); }
+    
+    #user-points {
+      background: var(--card); border: 1px solid var(--gold);
+      padding: 12px 30px; border-radius: 50px; display: inline-flex;
+      align-items: center; gap: 10px; font-weight: 900; color: var(--gold);
+      box-shadow: 0 0 25px rgba(245, 197, 66, 0.15);
+    }
+
+    #status { font-size: 0.95rem; margin: 15px 0; color: var(--accent); font-weight: 700; }
+    #err { color: #ff5252; font-size: 0.85rem; height: 20px; }
+
+    /* شبكة الروابط */
+    #links-container {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 25px; max-width: 1200px; margin: 0 auto;
+    }
+
+    .link-card {
+      background: var(--card); border: 1px solid var(--border);
+      padding: 30px 20px; border-radius: 28px; position: relative;
+      transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      backdrop-filter: blur(12px); text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .link-card:hover { transform: translateY(-10px); border-color: var(--accent); box-shadow: 0 15px 35px rgba(0, 242, 255, 0.1); }
+
+    .link-card p { margin: 10px 0 25px 0; font-weight: 800; font-size: 1.2rem; color: var(--text); }
+    
+    .reward-badge {
+      position: absolute; top: -12px; right: 25px; background: var(--gold);
+      color: #000; padding: 4px 15px; border-radius: 10px; font-size: 0.8rem; font-weight: 900;
+      box-shadow: 0 4px 10px rgba(245, 197, 66, 0.3);
+    }
+
+    .btn-action {
+      width: 100%; padding: 14px; border-radius: 15px; border: none;
+      font-weight: 900; cursor: pointer; transition: 0.3s;
+      background: var(--accent); color: #020617; font-size: 1.05rem;
+      box-shadow: 0 5px 15px rgba(0, 242, 255, 0.2);
+    }
+
+    .btn-action:hover { opacity: 0.9; transform: scale(1.02); }
+
+    .btn-action:disabled {
+      background: #1e293b; color: #64748b; cursor: not-allowed; box-shadow: none;
+    }
+
+    .timer-lock {
+      margin-top: 18px; font-size: 0.85rem; color: #94a3b8;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      font-weight: 600;
+    }
+
+    .back-nav {
+      margin-top: 60px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;
+    }
+    .btn-nav {
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      color: var(--text); padding: 12px 25px; border-radius: 15px;
+      cursor: pointer; font-weight: 700; text-decoration: none; font-size: 0.95rem;
+      transition: 0.3s;
+    }
+    .btn-nav:hover { background: var(--card); border-color: var(--gold); color: var(--gold); }
+
   </style>
 </head>
 <body>
 
   <div class="header-section">
-    <h2 style="color:var(--gold); font-weight:900;">مركز مهام الروابط 🕯️</h2>
+    <h2>مركز مهام الروابط المختصرة</h2>
     <div id="user-points">🪙 رصيد النقاط: <span id="points-val">0</span></div>
-    <p id="status" style="color:var(--accent); font-size:0.9rem; margin-top:10px;">جاري المزامنة...</p>
+    <div id="status">جاري تهيئة النظام الرقمي...</div>
+    <div id="err"></div>
   </div>
 
   <div id="links-container"></div>
 
+  <div class="back-nav">
+    <a href="dashboard.html" class="btn-nav">🔙 العودة للرئيسية</a>
+    <a href="tasks.html" class="btn-nav">🗂️ عرض كل المهام</a>
+  </div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
   authDomain: "am--rewards.firebaseapp.com",
-  databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
   projectId: "am--rewards"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getDatabase(app);
+const db = getFirestore(app);
 
-// قائمة الـ 15 رابطاً بأسماء مبسطة
+const POINTS_PER_LINK = 2; 
+const LINK_COOLDOWN = 24 * 60 * 60 * 1000;
+const MIN_WAIT_TIME = 15000;
+
+// تحديث القائمة إلى 15 رابطاً الجدد
 const shortlinks = [
-  {id: "1", title:"رابط رقم 1", url:"https://swiftlnx.com/O9fy5YtU"},
-  {id: "2", title:"رابط رقم 2", url:"https://exe.io/vxcI5"},
-  {id: "3", title:"رابط رقم 3", url:"https://yshorten.com/VXYGS"},
-  {id: "4", title:"رابط رقم 4", url:"https://short-jambo.ink/fswqjuSL"},
-  {id: "5", title:"رابط رقم 5", url:"https://tpi.li/1yhN"},
-  {id: "6", title:"رابط رقم 6", url:"https://shrinkme.click/iMlwz"},
-  {id: "7", title:"رابط رقم 7", url:"https://revlink.pro/KHBXnaU"},
-  {id: "8", title:"رابط رقم 8", url:"https://oii.la/fVqC9YyA"},
-  {id: "9", title:"رابط رقم 9", url:"https://gplinks.co/DXrOS"},
-  {id: "10", title:"رابط رقم 10", url:"https://go.link4earn.in/ixK6H"},
-  {id: "11", title:"رابط رقم 11", url:"https://www.short-fly.com/T0I15Rv"},
-  {id: "12", title:"رابط رقم 12", url:"https://lnbz.la/pD7BbjM6"},
-  {id: "13", title:"رابط رقم 13", url:"https://droplink.co/gVfgtj"},
-  {id: "14", title:"رابط رقم 14", url:"http://easy4skip.com/1xGAnqI4"},
-  {id: "15", title:"رابط رقم 15", url:"https://linkjust.com/4KnViKd6rWvEctQ"}
+  {title:"رابط رقم 1", url:"https://swiftlnx.com/O9fy5YtU"},
+  {title:"رابط رقم 2", url:"https://exe.io/vxcI5"},
+  {title:"رابط رقم 3", url:"https://yshorten.com/VXYGS"},
+  {title:"رابط رقم 4", url:"https://short-jambo.ink/fswqjuSL"},
+  {title:"رابط رقم 5", url:"https://tpi.li/1yhN"},
+  {title:"رابط رقم 6", url:"https://shrinkme.click/iMlwz"},
+  {title:"رابط رقم 7", url:"https://revlink.pro/KHBXnaU"},
+  {title:"رابط رقم 8", url:"https://oii.la/fVqC9YyA"},
+  {title:"رابط رقم 9", url:"https://gplinks.co/DXrOS"},
+  {title:"رابط رقم 10", url:"https://go.link4earn.in/ixK6H"},
+  {title:"رابط رقم 11", url:"https://www.short-fly.com/T0I15Rv"},
+  {title:"رابط رقم 12", url:"https://lnbz.la/pD7BbjM6"},
+  {title:"رابط رقم 13", url:"https://droplink.co/gVfgtj"},
+  {title:"رابط رقم 14", url:"http://easy4skip.com/1xGAnqI4"},
+  {title:"رابط رقم 15", url:"https://linkjust.com/4KnViKd6rWvEctQ"}
 ];
 
-onAuthStateChanged(auth, (user) => {
-  if (!user) { window.location.href = "login.html"; return; }
-  
-  onValue(ref(db, `users/${user.uid}/points`), (snap) => {
-    document.getElementById("points-val").textContent = snap.val() || 0;
-  });
+let currentUserRef = null;
+let serverTimeOffset = 0;
 
-  onValue(ref(db, `users_tasks/${user.uid}`), (snap) => {
-    renderUI(snap.val() || {});
-    document.getElementById("status").textContent = "📡 النظام متصل";
+onAuthStateChanged(auth, async (user) => {
+  if (!user) { location.href = "index.html"; return; }
+  currentUserRef = doc(db, "users", user.uid);
+  
+  const nowRef = doc(db, "system", "time");
+  await setDoc(nowRef, { time: serverTimestamp() });
+  const nowSnap = await getDoc(nowRef);
+  serverTimeOffset = (nowSnap.data()?.time?.toMillis() || Date.now()) - Date.now();
+
+  await checkPendingReward();
+
+  onSnapshot(currentUserRef, (snap) => {
+    const data = snap.data() || {};
+    document.getElementById("points-val").textContent = data.points || 0;
+    renderUI(data.lastLinks || {});
+    document.getElementById("status").textContent = "📡 النظام متصل وجاهز";
   });
 });
 
-function renderUI(completedTasks) {
+async function checkPendingReward() {
+  const linkIdx = localStorage.getItem("p_idx");
+  const startTime = localStorage.getItem("p_time");
+  if (!linkIdx || !startTime) return;
+
+  const now = Date.now() + serverTimeOffset;
+  const elapsed = now - Number(startTime);
+
+  if (elapsed >= MIN_WAIT_TIME) {
+    try {
+      await updateDoc(currentUserRef, {
+        points: increment(POINTS_PER_LINK),
+        [`lastLinks.${linkIdx}`]: serverTimestamp()
+      });
+      // تم استبدال الـ alert بكونسول أو رسالة هادئة لعدم إزعاج المستخدم
+      console.log("Reward Added");
+    } catch (e) { console.error("Reward Error", e); }
+  }
+  localStorage.removeItem("p_idx");
+  localStorage.removeItem("p_time");
+}
+
+function renderUI(lastLinks) {
   const container = document.getElementById("links-container");
   container.innerHTML = "";
+  const now = Date.now() + serverTimeOffset;
 
-  shortlinks.forEach((item) => {
-    const isDone = completedTasks[item.id] && completedTasks[item.id].status === "completed";
+  shortlinks.forEach((item, i) => {
+    const lastTime = lastLinks[i]?.toMillis ? lastLinks[i].toMillis() : (lastLinks[i] || 0);
+    const isLocked = lastTime && (now - lastTime < LINK_COOLDOWN);
     
     const card = document.createElement("div");
-    card.className = `link-card ${isDone ? 'completed' : ''}`;
+    card.className = "link-card";
+    
+    let timerHTML = "";
+    if (isLocked) {
+      const diff = LINK_COOLDOWN - (now - lastTime);
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      timerHTML = `<div class="timer-lock">⏳ متاح بعد ${h} س و ${m} د</div>`;
+    }
+
     card.innerHTML = `
-      <div class="reward-badge">+2 ن</div>
+      <div class="reward-badge">+${POINTS_PER_LINK} ن</div>
       <p>${item.title}</p>
-      <button class="btn-action" ${isDone ? "disabled" : ""} 
-        onclick="window.open('${item.url}', '_blank')">
-        ${isDone ? "تم الإتمام ✅" : "تنفيذ المهمة"}
+      <button class="btn-action" ${isLocked ? "disabled" : ""} 
+        onclick="window.openLink(${i}, '${item.url}')">
+        ${isLocked ? "مهمة مكتملة" : "ابدأ المهمة"}
       </button>
+      ${timerHTML}
     `;
     container.appendChild(card);
   });
 }
+
+window.openLink = (i, url) => {
+  localStorage.setItem("p_idx", i);
+  localStorage.setItem("p_time", Date.now() + serverTimeOffset);
+  window.location.href = url;
+};
 </script>
 </body>
 </html>
