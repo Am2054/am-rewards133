@@ -95,30 +95,41 @@ async function handleVerification() {
     const linkIdx = localStorage.getItem('p_idx');
     if (!correctCode || !linkIdx) return;
 
-    // توليد خيارات عشوائية
-    let optionsArray = [
-        correctCode.toString(),
-        (Math.floor(10 + Math.random() * 89)).toString(),
-        (Math.floor(10 + Math.random() * 89)).toString()
-    ];
+    // توليد الأرقام
+    let num1 = correctCode.toString();
+    let num2 = (Math.floor(10 + Math.random() * 89)).toString();
+    let num3 = (Math.floor(10 + Math.random() * 89)).toString();
 
-    // ترتيب عشوائي عشان الرقم الصح ميكنش في نفس المكان
-    optionsArray.sort(() => Math.random() - 0.5);
+    // وضعهم في مصفوفة وعمل ترتيب عشوائي
+    let optionsArray = [num1, num2, num3].sort(() => Math.random() - 0.5);
 
-    // الحل النهائي: تحويل المصفوفة لكائن بحيث تظهر القيمة كنص (Label)
-    const mappedOptions = {};
-    optionsArray.forEach(val => {
-        mappedOptions[val] = val; // هنا بنخلي المفتاح والقيمة هما الرقم، فبيظهر النص جنب الدايرة
+    // بناء كائن الخيارات يدويًا لضمان ظهور النص
+    const inputOptions = {};
+    optionsArray.forEach(option => {
+        inputOptions[option] = option; 
     });
 
     const { value: selectedCode } = await Swal.fire({
-        title: 'التحقق من الرمز',
-        text: 'اختار الرقم اللي ظهرلك في الصفحة السرية:',
+        title: 'تحقق من الرمز',
+        html: '<p style="color: #cbd5e1;">اختار الرقم اللي ظهرلك في الصفحة السرية:</p>',
         input: 'radio',
-        inputOptions: mappedOptions,
-        // إضافة CSS بسيط للتأكد من ظهور الأرقام باللون الأبيض ووضوحها
-        customClass: {
-            input: 'custom-swal-radio'
+        inputOptions: inputOptions,
+        // إضافة ستايل إجباري لإظهار النصوص بجانب الدوائر
+        didOpen: () => {
+            const style = document.createElement('style');
+            style.innerHTML = `
+                .swal2-radio label { 
+                    display: inline-block !important; 
+                    color: white !important; 
+                    margin: 0 10px !important; 
+                    font-size: 1.2rem !important; 
+                    font-weight: bold !important;
+                }
+                .swal2-radio input {
+                    margin-left: 5px !important;
+                }
+            `;
+            document.head.appendChild(style);
         },
         confirmButtonText: 'تأكيد الرمز 🔓',
         background: '#0f172a',
@@ -136,16 +147,13 @@ async function handleVerification() {
                 [`lastLinks.${linkIdx}`]: serverTimestamp()
             });
             Swal.fire({
-                title: 'أحسنت!',
-                text: 'تم إضافة 2 نقطة لرصيدك ✅',
-                icon: 'success',
-                confirmButtonColor: '#00f2ff'
+                title: 'نجاح!',
+                text: 'تم إضافة 2 نقطة لحسابك ✅',
+                icon: 'success'
             });
-        } catch (e) {
-            console.error(e);
-        }
+        } catch (e) { console.error(e); }
     } else {
-        Swal.fire('خطأ!', 'الرقم غير صحيح، حاول مرة أخرى.', 'error');
+        Swal.fire('خطأ', 'الرقم غير صحيح!', 'error');
     }
     
     localStorage.removeItem('gate_token');
