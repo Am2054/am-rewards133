@@ -93,24 +93,22 @@ onAuthStateChanged(auth, async (user) => {
 async function handleVerification() {
     const correctCode = localStorage.getItem('gate_token');
     const linkIdx = localStorage.getItem('p_idx');
-    
-    // تأكد إن البيانات موجودة فعلاً
-    if (!correctCode || linkIdx === null) return;
+    if (!correctCode || !linkIdx) return;
 
-    // توليد خيارات عشوائية مع التأكد إنها نصوص واضحة
+    // توليد خيارات عشوائية
     let optionsArray = [
         correctCode.toString(),
         (Math.floor(10 + Math.random() * 89)).toString(),
         (Math.floor(10 + Math.random() * 89)).toString()
     ];
 
-    // ترتيب الخيارات عشوائياً عشان الرقم الصح ميبقاش في نفس المكان كل مرة
+    // ترتيب عشوائي عشان الرقم الصح ميكنش في نفس المكان
     optionsArray.sort(() => Math.random() - 0.5);
 
-    // تحويل المصفوفة لكائن (Object) تفهمه SweetAlert
+    // الحل النهائي: تحويل المصفوفة لكائن بحيث تظهر القيمة كنص (Label)
     const mappedOptions = {};
-    optionsArray.forEach(opt => {
-        mappedOptions[opt] = opt; // المفتاح والقيمة هما الرقم نفسه
+    optionsArray.forEach(val => {
+        mappedOptions[val] = val; // هنا بنخلي المفتاح والقيمة هما الرقم، فبيظهر النص جنب الدايرة
     });
 
     const { value: selectedCode } = await Swal.fire({
@@ -118,14 +116,16 @@ async function handleVerification() {
         text: 'اختار الرقم اللي ظهرلك في الصفحة السرية:',
         input: 'radio',
         inputOptions: mappedOptions,
+        // إضافة CSS بسيط للتأكد من ظهور الأرقام باللون الأبيض ووضوحها
+        customClass: {
+            input: 'custom-swal-radio'
+        },
         confirmButtonText: 'تأكيد الرمز 🔓',
         background: '#0f172a',
         color: '#fff',
         allowOutsideClick: false,
         inputValidator: (value) => {
-            if (!value) {
-                return 'لازم تختار رقم عشان تكمل!';
-            }
+            if (!value) return 'لازم تختار رقم!';
         }
     });
 
@@ -136,20 +136,18 @@ async function handleVerification() {
                 [`lastLinks.${linkIdx}`]: serverTimestamp()
             });
             Swal.fire({
-                title: 'نجاح!',
-                text: 'تم إضافة 2 نقطة لرصيدك بنجاح ✅',
+                title: 'أحسنت!',
+                text: 'تم إضافة 2 نقطة لرصيدك ✅',
                 icon: 'success',
                 confirmButtonColor: '#00f2ff'
             });
         } catch (e) {
             console.error(e);
-            Swal.fire('خطأ', 'حدثت مشكلة في الاتصال بالقاعدة', 'error');
         }
     } else {
-        Swal.fire('فشل التحقق', 'الرقم اللي اخترته غلط، حاول مرة تانية من الرابط', 'error');
+        Swal.fire('خطأ!', 'الرقم غير صحيح، حاول مرة أخرى.', 'error');
     }
     
-    // تنظيف البيانات بعد المحاولة
     localStorage.removeItem('gate_token');
     localStorage.removeItem('p_idx');
     window.history.replaceState({}, document.title, window.location.pathname);
