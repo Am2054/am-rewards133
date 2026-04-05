@@ -9,24 +9,31 @@
   <style>
     :root { --bg: #020617; --card: rgba(15, 23, 42, 0.9); --gold: #f5c542; --accent: #00f2ff; --text: #f8fafc; --border: rgba(0, 242, 255, 0.1); }
     body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; background-image: radial-gradient(circle at top, #1e1b4b, #020617); min-height: 100vh; direction: rtl; }
-    .header-section { text-align: center; margin-bottom: 40px; }
+    
+    .header-section { text-align: center; margin-bottom: 30px; }
     h2 { color: var(--gold); font-size: 2rem; font-weight: 900; margin-bottom: 15px; }
     #user-points { background: var(--card); border: 1px solid var(--gold); padding: 12px 30px; border-radius: 50px; display: inline-flex; align-items: center; gap: 10px; font-weight: 900; color: var(--gold); }
+
+    /* ستايل السليكتور (الفلاتر) */
+    .filter-container { display: flex; justify-content: center; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; }
+    .filter-btn { background: var(--card); border: 1px solid var(--border); color: #94a3b8; padding: 10px 20px; border-radius: 12px; cursor: pointer; font-weight: 700; transition: 0.3s; }
+    .filter-btn.active { background: var(--accent); color: #020617; border-color: var(--accent); box-shadow: 0 0 15px rgba(0, 242, 255, 0.4); }
+    .filter-btn:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+
     #links-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; max-width: 1200px; margin: 0 auto; }
     .link-card { background: var(--card); border: 1px solid var(--border); padding: 30px 20px; border-radius: 28px; position: relative; text-align: center; transition: 0.4s; backdrop-filter: blur(12px); overflow: hidden; }
     .link-card:hover { transform: translateY(-10px); border-color: var(--accent); }
     
-    /* ستايلات badges النقاط والمستوى */
     .reward-badge { position: absolute; top: -12px; right: 25px; background: var(--gold); color: #000; padding: 4px 15px; border-radius: 10px; font-size: 0.85rem; font-weight: 900; box-shadow: 0 4px 15px rgba(245, 197, 66, 0.3); }
-    .diff-label { font-size: 0.75rem; font-weight: 700; margin-bottom: 10px; display: block; text-transform: uppercase; }
+    .diff-label { font-size: 0.75rem; font-weight: 700; margin-bottom: 10px; display: block; }
     .easy { color: #4ade80; }
     .medium { color: #facc15; }
     .hard { color: #f87171; animation: blink 1.5s infinite; }
     
     @keyframes blink { 50% { opacity: 0.6; } }
 
-    .btn-action { width: 100%; padding: 14px; border-radius: 15px; border: none; font-weight: 900; cursor: pointer; background: var(--accent); color: #020617; font-size: 1.05rem; box-shadow: 0 4px 15px rgba(0, 242, 255, 0.2); }
-    .btn-action:disabled { background: #1e293b; color: #64748b; cursor: not-allowed; box-shadow: none; }
+    .btn-action { width: 100%; padding: 14px; border-radius: 15px; border: none; font-weight: 900; cursor: pointer; background: var(--accent); color: #020617; font-size: 1.05rem; }
+    .btn-action:disabled { background: #1e293b; color: #64748b; cursor: not-allowed; }
     .timer-lock { margin-top: 18px; font-size: 0.85rem; color: #94a3b8; font-weight: 600; }
     .back-nav { margin-top: 60px; display: flex; justify-content: center; gap: 15px; }
     .btn-nav { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text); padding: 12px 25px; border-radius: 15px; text-decoration: none; font-weight: 700; }
@@ -37,7 +44,13 @@
   <div class="header-section">
     <h2>مركز تحدي الروابط</h2>
     <div id="user-points">🪙 رصيد النقاط: <span id="points-val">0</span></div>
-    <div id="status">📡 النظام جاهز للتحدي...</div>
+  </div>
+
+  <div class="filter-container">
+    <button class="filter-btn active" onclick="filterLinks('all', this)">الكل</button>
+    <button class="filter-btn" onclick="filterLinks('easy', this)">سهل (مضمون) ✅</button>
+    <button class="filter-btn" onclick="filterLinks('medium', this)">متوسط (تحدي) ⚡</button>
+    <button class="filter-btn" onclick="filterLinks('hard', this)">صعب (للمحترفين) 🔥</button>
   </div>
 
   <div id="links-container"></div>
@@ -57,24 +70,25 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 const LINK_COOLDOWN = 24 * 60 * 60 * 1000;
+let currentFilter = 'all';
+let userLastLinks = {};
 
-// تعريف الروابط مع تحديد الصعوبة والنقاط
 const shortlinks = [
-  { id: 1, title: "رابط رقم 1", url: "https://swiftlnx.com/O9fy5YtU", difficulty: "متوسط وهتعمله", points: 2.5, class: "medium" },
-  { id: 2, title: "رابط رقم 2", url: "https://exe.io/vxcI5", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy" },
-  { id: 3, title: "رابط رقم 3", url: "https://uii.io/wyy7xt", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy" },
-  { id: 4, title: "رابط رقم 4", url: "https://short-jambo.ink/fswqjuSL", difficulty: "متوسط وهتعمله", points: 2.5, class: "medium" },
-  { id: 5, title: "رابط رقم 5", url: "https://tpi.li/1yhN", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy" },
-  { id: 6, title: "رابط رقم 6", url: "https://shrinkme.click/iMlwz", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy" },
-  { id: 7, title: "رابط رقم 7", url: "https://revlink.pro/KHBXnaU", difficulty: "صعب ومش هتعرف تعمله 😂", points: 4, class: "hard" },
-  { id: 8, title: "رابط رقم 8", url: "https://oii.la/fVqC9YyA", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy" },
-  { id: 9, title: "رابط رقم 9", url: "https://gplinks.co/DXrOS", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy" },
-  { id: 10, title: "رابط رقم 10", url: "https://nitro-link.com/PVVy", difficulty: "متوسط وهتعمله", points: 2.5, class: "medium" },
-  { id: 11, title: "رابط رقم 11", url: "https://www.short-fly.com/T0I15Rv", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy" },
-  { id: 12, title: "رابط رقم 12", url: "https://lnbz.la/pD7BbjM6", difficulty: "صعب ومش هتعرف تعمله 😂", points: 4, class: "hard" },
-  { id: 13, title: "رابط رقم 13", url: "https://xpshort.com/hBC7", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy" },
-  { id: 14, title: "رابط رقم 14", url: "http://easy4skip.com/1xGAnqI4", difficulty: "صعب ومش هتعرف تعمله 😂", points: 4, class: "hard" },
-  { id: 15, title: "رابط رقم 15", url: "https://linkjust.com/4KnViKd6rWvEctQ", difficulty: "متوسط وهتعمله", points: 2.5, class: "medium" }
+  { id: 0, title: "رابط رقم 1", url: "https://swiftlnx.com/O9fy5YtU", difficulty: "متوسط وهتعمله", points: 2.5, class: "medium", type: "medium" },
+  { id: 1, title: "رابط رقم 2", url: "https://exe.io/vxcI5", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy", type: "easy" },
+  { id: 2, title: "رابط رقم 3", url: "https://uii.io/wyy7xt", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy", type: "easy" },
+  { id: 3, title: "رابط رقم 4", url: "https://short-jambo.ink/fswqjuSL", difficulty: "متوسط وهتعمله", points: 2.5, class: "medium", type: "medium" },
+  { id: 4, title: "رابط رقم 5", url: "https://tpi.li/1yhN", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy", type: "easy" },
+  { id: 5, title: "رابط رقم 6", url: "https://shrinkme.click/iMlwz", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy", type: "easy" },
+  { id: 6, title: "رابط رقم 7", url: "https://revlink.pro/KHBXnaU", difficulty: "صعب ومش هتعرف تعمله 😂", points: 4, class: "hard", type: "hard" },
+  { id: 7, title: "رابط رقم 8", url: "https://oii.la/fVqC9YyA", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy", type: "easy" },
+  { id: 8, title: "رابط رقم 9", url: "https://gplinks.co/DXrOS", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy", type: "easy" },
+  { id: 9, title: "رابط رقم 10", url: "https://nitro-link.com/PVVy", difficulty: "متوسط وهتعمله", points: 2.5, class: "medium", type: "medium" },
+  { id: 10, title: "رابط رقم 11", url: "https://www.short-fly.com/T0I15Rv", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy", type: "easy" },
+  { id: 11, title: "رابط رقم 12", url: "https://lnbz.la/pD7BbjM6", difficulty: "صعب ومش هتعرف تعمله 😂", points: 4, class: "hard", type: "hard" },
+  { id: 12, title: "رابط رقم 13", url: "https://xpshort.com/hBC7", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy", type: "easy" },
+  { id: 13, title: "رابط رقم 14", url: "http://easy4skip.com/1xGAnqI4", difficulty: "صعب ومش هتعرف تعمله 😂", points: 4, class: "hard", type: "hard" },
+  { id: 14, title: "رابط رقم 15", url: "https://linkjust.com/4KnViKd6rWvEctQ", difficulty: "متوسط وهتعمله", points: 2.5, class: "medium", type: "medium" }
 ];
 
 let currentUserRef = null;
@@ -96,70 +110,28 @@ onAuthStateChanged(auth, async (user) => {
   onSnapshot(currentUserRef, (snap) => {
     const data = snap.data() || {};
     document.getElementById("points-val").textContent = data.points || 0;
-    renderUI(data.lastLinks || {});
+    userLastLinks = data.lastLinks || {};
+    renderUI();
   });
 });
 
-async function handleVerification() {
-    const correctCode = localStorage.getItem('gate_token');
-    const linkIdx = localStorage.getItem('p_idx');
-    if (!correctCode || !linkIdx) return;
+// دالة الفلترة
+window.filterLinks = (type, btn) => {
+  currentFilter = type;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderUI();
+};
 
-    // الحصول على بيانات الرابط الحالي لمعرفة عدد النقاط
-    const currentLink = shortlinks[linkIdx];
-    const pointsToGive = currentLink ? currentLink.points : 2;
-
-    let options = [
-        correctCode.toString(),
-        (Math.floor(10 + Math.random() * 89)).toString(),
-        (Math.floor(10 + Math.random() * 89)).toString()
-    ].sort(() => Math.random() - 0.5);
-
-    let buttonsHtml = `
-        <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
-            ${options.map(opt => `
-                <button onclick="window.submitVerify('${opt}', ${pointsToGive})" 
-                    style="background: #1e293b; color: white; border: 1px solid #00f2ff; 
-                    padding: 15px; border-radius: 12px; font-size: 1.5rem; font-weight: bold; 
-                    cursor: pointer; transition: 0.3s;">
-                    ${opt}
-                </button>
-            `).join('')}
-        </div>
-    `;
-
-    Swal.fire({
-        title: 'تحقق من الرمز',
-        html: `<p style="color: #cbd5e1;">اضغط على الرقم الذي رأيته في الصفحة السابقة:</p> ${buttonsHtml}`,
-        showConfirmButton: false,
-        background: '#0f172a', color: '#fff', allowOutsideClick: false
-    });
-
-    window.submitVerify = async (selectedCode, pts) => {
-        if (selectedCode === correctCode.toString()) {
-            try {
-                await updateDoc(currentUserRef, {
-                    points: increment(pts),
-                    [`lastLinks.${linkIdx}`]: serverTimestamp()
-                });
-                Swal.fire({ title: 'كفو!', text: `تم إضافة ${pts} نقطة لرصيدك ✅`, icon: 'success' });
-            } catch (e) { console.error(e); }
-        } else {
-            Swal.fire('فشل!', 'الرقم غلط، ركز المرة الجاية!', 'error');
-        }
-        localStorage.removeItem('gate_token');
-        localStorage.removeItem('p_idx');
-        window.history.replaceState({}, document.title, window.location.pathname);
-    };
-}
-
-function renderUI(lastLinks) {
+function renderUI() {
   const container = document.getElementById("links-container");
   container.innerHTML = "";
   const now = Date.now() + serverTimeOffset;
 
-  shortlinks.forEach((item, i) => {
-    const lastTime = lastLinks[i]?.toMillis ? lastLinks[i].toMillis() : (lastLinks[i] || 0);
+  const filtered = shortlinks.filter(link => currentFilter === 'all' || link.type === currentFilter);
+
+  filtered.forEach((item) => {
+    const lastTime = userLastLinks[item.id]?.toMillis ? userLastLinks[item.id].toMillis() : (userLastLinks[item.id] || 0);
     const isLocked = lastTime && (now - lastTime < LINK_COOLDOWN);
     const card = document.createElement("div");
     card.className = "link-card";
@@ -176,13 +148,52 @@ function renderUI(lastLinks) {
       <div class="reward-badge">+${item.points} ن</div>
       <span class="diff-label ${item.class}">${item.difficulty}</span>
       <p style="font-weight: 700; margin: 10px 0;">${item.title}</p>
-      <button class="btn-action" ${isLocked ? "disabled" : ""} onclick="window.openLink(${i}, '${item.url}')">
+      <button class="btn-action" ${isLocked ? "disabled" : ""} onclick="window.openLink(${item.id}, '${item.url}')">
         ${isLocked ? "تمت بنجاح" : "تحدي الآن"}
       </button>
       ${timerHTML}
     `;
     container.appendChild(card);
   });
+}
+
+// دالة التحقق المعدلة لتعمل مع الـ Selector
+async function handleVerification() {
+    const correctCode = localStorage.getItem('gate_token');
+    const linkIdx = localStorage.getItem('p_idx');
+    if (!correctCode || !linkIdx) return;
+
+    const currentLink = shortlinks.find(l => l.id == linkIdx);
+    const pointsToGive = currentLink ? currentLink.points : 2;
+
+    let options = [correctCode.toString(), (Math.floor(10 + Math.random() * 89)).toString(), (Math.floor(10 + Math.random() * 89)).toString()].sort(() => Math.random() - 0.5);
+
+    let buttonsHtml = `<div style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
+        ${options.map(opt => `<button onclick="window.submitVerify('${opt}', ${pointsToGive}, ${linkIdx})" style="background: #1e293b; color: white; border: 1px solid #00f2ff; padding: 15px; border-radius: 12px; font-size: 1.5rem; font-weight: bold; cursor: pointer;">${opt}</button>`).join('')}
+    </div>`;
+
+    Swal.fire({
+        title: 'تحقق من الرمز',
+        html: `<p style="color: #cbd5e1;">اضغط على الرقم اللي ظهرلك:</p> ${buttonsHtml}`,
+        showConfirmButton: false, background: '#0f172a', color: '#fff', allowOutsideClick: false
+    });
+
+    window.submitVerify = async (selectedCode, pts, idx) => {
+        if (selectedCode === correctCode.toString()) {
+            try {
+                await updateDoc(currentUserRef, {
+                    points: increment(pts),
+                    [`lastLinks.${idx}`]: serverTimestamp()
+                });
+                Swal.fire({ title: 'كفو!', text: `تم إضافة ${pts} نقطة ✅`, icon: 'success' });
+            } catch (e) { console.error(e); }
+        } else {
+            Swal.fire('فشل!', 'الرقم غلط!', 'error');
+        }
+        localStorage.removeItem('gate_token');
+        localStorage.removeItem('p_idx');
+        window.history.replaceState({}, document.title, window.location.pathname);
+    };
 }
 
 window.openLink = (i, url) => {
