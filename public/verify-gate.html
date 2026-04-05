@@ -7,41 +7,58 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&display=swap" rel="stylesheet">
     <style>
         body { background: #020617; color: white; font-family: 'Cairo', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
-        .gate-box { text-align: center; padding: 40px; border: 1px solid #00f2ff; border-radius: 30px; background: rgba(0, 242, 255, 0.05); box-shadow: 0 0 30px rgba(0, 242, 255, 0.1); }
-        .code-display { font-size: 5rem; font-weight: 900; color: #f5c542; margin: 20px 0; letter-spacing: 10px; text-shadow: 0 0 20px rgba(245, 197, 66, 0.4); }
-        .timer-bar { width: 100%; height: 5px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-top: 20px; overflow: hidden; }
-        .progress { width: 100%; height: 100%; background: #00f2ff; transition: linear; }
+        .gate-box { text-align: center; padding: 40px; border: 2px solid #00f2ff; border-radius: 30px; background: rgba(0, 242, 255, 0.05); box-shadow: 0 0 50px rgba(0, 242, 255, 0.2); max-width: 90%; }
+        .code-display { font-size: 6rem; font-weight: 900; color: #f5c542; margin: 15px 0; letter-spacing: 12px; text-shadow: 0 0 30px rgba(245, 197, 66, 0.5); font-family: sans-serif; }
+        .timer-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-top: 25px; overflow: hidden; }
+        .progress { width: 100%; height: 100%; background: linear-gradient(90deg, #00f2ff, #f5c542); transition: 1s linear; }
+        #msg { color: #00f2ff; font-size: 1.5rem; margin-bottom: 5px; }
+        .challenge-text { font-size: 0.9rem; color: #f87171; font-weight: bold; margin-bottom: 20px; display: block; }
     </style>
 </head>
 <body>
 
     <div class="gate-box">
-        <h2 id="msg">احفظ الرقم التالي</h2>
+        <span class="challenge-text" id="challengeNote">تحذير: النظام يتحقق من ذكائك الآن..</span>
+        <h2 id="msg">احفظ الكود السري فوراً</h2>
         <div class="code-display" id="randomCode">--</div>
-        <p style="opacity:0.6">سيتم إعادتك تلقائياً بعد <span id="secs">3</span> ثوانٍ</p>
+        <p style="opacity:0.8">سيتم إعادتك للمكافأة خلال <span id="secs" style="color:#00f2ff; font-weight:900">4</span> ثوانٍ</p>
         <div class="timer-bar"><div class="progress" id="bar"></div></div>
     </div>
 
     <script>
-        // 1. توليد رقم عشوائي من رقمين
+        // 1. توليد رقم عشوائي صخر
         const code = Math.floor(10 + Math.random() * 89); 
         document.getElementById('randomCode').innerText = code;
 
-        // 2. تخزين الرقم في sessionStorage (يختفي بمجرد إغلاق المتصفح)
-        localStorage.setItem('gate_token', code);
+        // 2. تخزين الرقم في localStorage لضمان استرجاعه في صفحة المهام
+        localStorage.setItem('gate_token', code.toString());
 
-        // 3. عداد تنازلي للإرجاع
-        let timeLeft = 3;
+        // 3. تخصيص رسائل الاستفزاز بناءً على الـ Index (لو موجود)
+        const pIdx = localStorage.getItem('p_idx');
+        const msgElement = document.getElementById('challengeNote');
+        
+        // مصفوفة رسائل مستفزة
+        const insults = [
+            "مش قولتلك مش هتعرف تعمله؟ اثبتلي العكس!",
+            "شكلك تعبت.. الرقم ده هو تذكرتك للنقاط",
+            "أخيراً وصلت؟ ركز عشان الرقم ميهربش منك",
+            "الرابط الصعب محتاج ذاكرة حديدية.. حفظت؟"
+        ];
+        msgElement.innerText = insults[Math.floor(Math.random() * insults.length)];
+
+        // 4. عداد تنازلي مطور (4 ثوانٍ لضمان الحفظ)
+        let timeLeft = 4;
+        const totalTime = 4;
         const bar = document.getElementById('bar');
         
         const countdown = setInterval(() => {
             timeLeft--;
             document.getElementById('secs').innerText = timeLeft;
-            bar.style.width = (timeLeft / 3 * 100) + "%";
+            bar.style.width = (timeLeft / totalTime * 100) + "%";
             
             if(timeLeft <= 0) {
                 clearInterval(countdown);
-                // العودة لصفحة المهام (تأكد من كتابة اسم ملف صفحة المهام صح)
+                // العودة لصفحة المهام (تأكد من أن الاسم هو shortlinks.html)
                 window.location.href = "shortlinks.html?verify=true"; 
             }
         }, 1000);
