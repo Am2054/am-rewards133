@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AM REWARDS | مركز الروابط المختصرة</title>
+  <title>AM REWARDS | تحدي الروابط المختصرة</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
@@ -13,11 +13,20 @@
     h2 { color: var(--gold); font-size: 2rem; font-weight: 900; margin-bottom: 15px; }
     #user-points { background: var(--card); border: 1px solid var(--gold); padding: 12px 30px; border-radius: 50px; display: inline-flex; align-items: center; gap: 10px; font-weight: 900; color: var(--gold); }
     #links-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; max-width: 1200px; margin: 0 auto; }
-    .link-card { background: var(--card); border: 1px solid var(--border); padding: 30px 20px; border-radius: 28px; position: relative; text-align: center; transition: 0.4s; backdrop-filter: blur(12px); }
+    .link-card { background: var(--card); border: 1px solid var(--border); padding: 30px 20px; border-radius: 28px; position: relative; text-align: center; transition: 0.4s; backdrop-filter: blur(12px); overflow: hidden; }
     .link-card:hover { transform: translateY(-10px); border-color: var(--accent); }
-    .reward-badge { position: absolute; top: -12px; right: 25px; background: var(--gold); color: #000; padding: 4px 15px; border-radius: 10px; font-size: 0.8rem; font-weight: 900; }
-    .btn-action { width: 100%; padding: 14px; border-radius: 15px; border: none; font-weight: 900; cursor: pointer; background: var(--accent); color: #020617; font-size: 1.05rem; }
-    .btn-action:disabled { background: #1e293b; color: #64748b; cursor: not-allowed; }
+    
+    /* ستايلات badges النقاط والمستوى */
+    .reward-badge { position: absolute; top: -12px; right: 25px; background: var(--gold); color: #000; padding: 4px 15px; border-radius: 10px; font-size: 0.85rem; font-weight: 900; box-shadow: 0 4px 15px rgba(245, 197, 66, 0.3); }
+    .diff-label { font-size: 0.75rem; font-weight: 700; margin-bottom: 10px; display: block; text-transform: uppercase; }
+    .easy { color: #4ade80; }
+    .medium { color: #facc15; }
+    .hard { color: #f87171; animation: blink 1.5s infinite; }
+    
+    @keyframes blink { 50% { opacity: 0.6; } }
+
+    .btn-action { width: 100%; padding: 14px; border-radius: 15px; border: none; font-weight: 900; cursor: pointer; background: var(--accent); color: #020617; font-size: 1.05rem; box-shadow: 0 4px 15px rgba(0, 242, 255, 0.2); }
+    .btn-action:disabled { background: #1e293b; color: #64748b; cursor: not-allowed; box-shadow: none; }
     .timer-lock { margin-top: 18px; font-size: 0.85rem; color: #94a3b8; font-weight: 600; }
     .back-nav { margin-top: 60px; display: flex; justify-content: center; gap: 15px; }
     .btn-nav { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text); padding: 12px 25px; border-radius: 15px; text-decoration: none; font-weight: 700; }
@@ -26,9 +35,9 @@
 <body>
 
   <div class="header-section">
-    <h2>مركز مهام الروابط المختصرة</h2>
+    <h2>مركز تحدي الروابط</h2>
     <div id="user-points">🪙 رصيد النقاط: <span id="points-val">0</span></div>
-    <div id="status">📡 متصل بالنظام...</div>
+    <div id="status">📡 النظام جاهز للتحدي...</div>
   </div>
 
   <div id="links-container"></div>
@@ -48,22 +57,24 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 const LINK_COOLDOWN = 24 * 60 * 60 * 1000;
+
+// تعريف الروابط مع تحديد الصعوبة والنقاط
 const shortlinks = [
-  {title:"رابط رقم 1", url:"https://swiftlnx.com/O9fy5YtU"},
-  {title:"رابط رقم 2", url:"https://exe.io/vxcI5"},
-  {title:"رابط رقم 3", url:"https://yshorten.com/VXYGS"},
-  {title:"رابط رقم 4", url:"https://short-jambo.ink/fswqjuSL"},
-  {title:"رابط رقم 5", url:"https://tpi.li/1yhN"},
-  {title:"رابط رقم 6", url:"https://shrinkme.click/iMlwz"},
-  {title:"رابط رقم 7", url:"https://revlink.pro/KHBXnaU"},
-  {title:"رابط رقم 8", url:"https://oii.la/fVqC9YyA"},
-  {title:"رابط رقم 9", url:"https://gplinks.co/DXrOS"},
-  {title:"رابط رقم 10", url:"https://go.link4earn.in/ixK6H"},
-  {title:"رابط رقم 11", url:"https://www.short-fly.com/T0I15Rv"},
-  {title:"رابط رقم 12", url:"https://lnbz.la/pD7BbjM6"},
-  {title:"رابط رقم 13", url:"https://droplink.co/gVfgtj"},
-  {title:"رابط رقم 14", url:"http://easy4skip.com/1xGAnqI4"},
-  {title:"رابط رقم 15", url:"https://linkjust.com/4KnViKd6rWvEctQ"}
+  { id: 1, title: "رابط رقم 1", url: "https://swiftlnx.com/O9fy5YtU", difficulty: "متوسط وهتعمله", points: 2.5, class: "medium" },
+  { id: 2, title: "رابط رقم 2", url: "https://exe.io/vxcI5", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy" },
+  { id: 3, title: "رابط رقم 3", url: "https://uii.io/wyy7xt", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy" },
+  { id: 4, title: "رابط رقم 4", url: "https://short-jambo.ink/fswqjuSL", difficulty: "متوسط وهتعمله", points: 2.5, class: "medium" },
+  { id: 5, title: "رابط رقم 5", url: "https://tpi.li/1yhN", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy" },
+  { id: 6, title: "رابط رقم 6", url: "https://shrinkme.click/iMlwz", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy" },
+  { id: 7, title: "رابط رقم 7", url: "https://revlink.pro/KHBXnaU", difficulty: "صعب ومش هتعرف تعمله 😂", points: 4, class: "hard" },
+  { id: 8, title: "رابط رقم 8", url: "https://oii.la/fVqC9YyA", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy" },
+  { id: 9, title: "رابط رقم 9", url: "https://gplinks.co/DXrOS", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy" },
+  { id: 10, title: "رابط رقم 10", url: "https://nitro-link.com/PVVy", difficulty: "متوسط وهتعمله", points: 2.5, class: "medium" },
+  { id: 11, title: "رابط رقم 11", url: "https://www.short-fly.com/T0I15Rv", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy" },
+  { id: 12, title: "رابط رقم 12", url: "https://lnbz.la/pD7BbjM6", difficulty: "صعب ومش هتعرف تعمله 😂", points: 4, class: "hard" },
+  { id: 13, title: "رابط رقم 13", url: "https://xpshort.com/hBC7", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy" },
+  { id: 14, title: "رابط رقم 14", url: "http://easy4skip.com/1xGAnqI4", difficulty: "صعب ومش هتعرف تعمله 😂", points: 4, class: "hard" },
+  { id: 15, title: "رابط رقم 15", url: "https://linkjust.com/4KnViKd6rWvEctQ", difficulty: "متوسط وهتعمله", points: 2.5, class: "medium" }
 ];
 
 let currentUserRef = null;
@@ -78,7 +89,6 @@ onAuthStateChanged(auth, async (user) => {
   const nowSnap = await getDoc(nowRef);
   serverTimeOffset = (nowSnap.data()?.time?.toMillis() || Date.now()) - Date.now();
 
-  // التحقق إذا كان عائداً من الصفحة السرية
   if (new URLSearchParams(window.location.search).get('verify')) {
       handleVerification();
   }
@@ -95,59 +105,53 @@ async function handleVerification() {
     const linkIdx = localStorage.getItem('p_idx');
     if (!correctCode || !linkIdx) return;
 
-    // توليد الأرقام وترتيبها عشوائياً
+    // الحصول على بيانات الرابط الحالي لمعرفة عدد النقاط
+    const currentLink = shortlinks[linkIdx];
+    const pointsToGive = currentLink ? currentLink.points : 2;
+
     let options = [
         correctCode.toString(),
         (Math.floor(10 + Math.random() * 89)).toString(),
         (Math.floor(10 + Math.random() * 89)).toString()
     ].sort(() => Math.random() - 0.5);
 
-    // بناء واجهة الأزرار يدوياً بـ HTML
     let buttonsHtml = `
         <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
             ${options.map(opt => `
-                <button onclick="window.submitVerify('${opt}')" 
+                <button onclick="window.submitVerify('${opt}', ${pointsToGive})" 
                     style="background: #1e293b; color: white; border: 1px solid #00f2ff; 
                     padding: 15px; border-radius: 12px; font-size: 1.5rem; font-weight: bold; 
-                    cursor: pointer; transition: 0.3s;"
-                    onmouseover="this.style.background='#00f2ff'; this.style.color='#020617';"
-                    onmouseout="this.style.background='#1e293b'; this.style.color='white';">
+                    cursor: pointer; transition: 0.3s;">
                     ${opt}
                 </button>
             `).join('')}
         </div>
     `;
 
-    // عرض النافذة بدون Input جاهز، واستخدام الـ HTML بتاعنا
     Swal.fire({
         title: 'تحقق من الرمز',
-        html: `<p style="color: #cbd5e1;">اضغط على الرقم الذي رأيته في الصفحة السرية:</p> ${buttonsHtml}`,
-        showConfirmButton: false, // هنخفي الزرار الأصلي لأننا عملنا أزرارنا الخاصة
-        background: '#0f172a',
-        color: '#fff',
-        allowOutsideClick: false
+        html: `<p style="color: #cbd5e1;">اضغط على الرقم الذي رأيته في الصفحة السابقة:</p> ${buttonsHtml}`,
+        showConfirmButton: false,
+        background: '#0f172a', color: '#fff', allowOutsideClick: false
     });
 
-    // تعريف دالة الاستقبال عالمياً عشان الأزرار تعرف توصل لها
-    window.submitVerify = async (selectedCode) => {
+    window.submitVerify = async (selectedCode, pts) => {
         if (selectedCode === correctCode.toString()) {
             try {
                 await updateDoc(currentUserRef, {
-                    points: increment(2),
+                    points: increment(pts),
                     [`lastLinks.${linkIdx}`]: serverTimestamp()
                 });
-                Swal.fire({ title: 'نجاح!', text: 'تم إضافة 2 نقطة ✅', icon: 'success' });
+                Swal.fire({ title: 'كفو!', text: `تم إضافة ${pts} نقطة لرصيدك ✅`, icon: 'success' });
             } catch (e) { console.error(e); }
         } else {
-            Swal.fire('خطأ', 'الرقم غير صحيح! حاول مجدداً من الرابط.', 'error');
+            Swal.fire('فشل!', 'الرقم غلط، ركز المرة الجاية!', 'error');
         }
-        
         localStorage.removeItem('gate_token');
         localStorage.removeItem('p_idx');
         window.history.replaceState({}, document.title, window.location.pathname);
     };
 }
-
 
 function renderUI(lastLinks) {
   const container = document.getElementById("links-container");
@@ -159,18 +163,21 @@ function renderUI(lastLinks) {
     const isLocked = lastTime && (now - lastTime < LINK_COOLDOWN);
     const card = document.createElement("div");
     card.className = "link-card";
+    
     let timerHTML = "";
     if (isLocked) {
       const diff = LINK_COOLDOWN - (now - lastTime);
       const h = Math.floor(diff / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
-      timerHTML = `<div class="timer-lock">⏳ متاح بعد ${h} س و ${m} د</div>`;
+      timerHTML = `<div class="timer-lock">⏳ يعود بعد ${h} س و ${m} د</div>`;
     }
+
     card.innerHTML = `
-      <div class="reward-badge">+2 ن</div>
-      <p>${item.title}</p>
+      <div class="reward-badge">+${item.points} ن</div>
+      <span class="diff-label ${item.class}">${item.difficulty}</span>
+      <p style="font-weight: 700; margin: 10px 0;">${item.title}</p>
       <button class="btn-action" ${isLocked ? "disabled" : ""} onclick="window.openLink(${i}, '${item.url}')">
-        ${isLocked ? "مهمة مكتملة" : "ابدأ المهمة"}
+        ${isLocked ? "تمت بنجاح" : "تحدي الآن"}
       </button>
       ${timerHTML}
     `;
