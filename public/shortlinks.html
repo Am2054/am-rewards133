@@ -157,16 +157,30 @@ function renderUI() {
   });
 }
 
-// دالة التحقق المعدلة لتعمل مع الـ Selector
+// دالة التحقق المعدلة لتعمع الـ Selector
 async function handleVerification() {
-    const correctCode = localStorage.getItem('gate_token');
     const linkIdx = localStorage.getItem('p_idx');
-    if (!correctCode || !linkIdx) return;
+    if (!linkIdx || !auth.currentUser) return;
 
+    // جلب الكود الصحيح من Firebase (الـ Server Controlled)
+    const sessionRef = doc(db, "linkSessions", auth.currentUser.uid + "_" + linkIdx);
+    const snap = await getDoc(sessionRef);
+    
+    if (!snap.exists()) {
+        Swal.fire('خطأ', 'لم يتم العثور على جلسة صالحة، حاول مجدداً!', 'error');
+        return;
+    }
+
+    const correctCode = snap.data().code;
     const currentLink = shortlinks.find(l => l.id == linkIdx);
-    const pointsToGive = currentLink ? currentLink.points : 2;
+    const pointsToGive = currentLink ? currentLink.points : 1.5;
 
-    let options = [correctCode.toString(), (Math.floor(10 + Math.random() * 89)).toString(), (Math.floor(10 + Math.random() * 89)).toString()].sort(() => Math.random() - 0.5);
+    // خيارات عشوائية للتحقق
+    let options = [
+        correctCode.toString(),
+        (Math.floor(10 + Math.random() * 89)).toString(),
+        (Math.floor(10 + Math.random() * 89)).toString()
+    ].sort(() => Math.random() - 0.5);
 
     let buttonsHtml = `<div style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
         ${options.map(opt => `<button onclick="window.submitVerify('${opt}', ${pointsToGive}, ${linkIdx})" style="background: #1e293b; color: white; border: 1px solid #00f2ff; padding: 15px; border-radius: 12px; font-size: 1.5rem; font-weight: bold; cursor: pointer;">${opt}</button>`).join('')}
@@ -174,27 +188,32 @@ async function handleVerification() {
 
     Swal.fire({
         title: 'تحقق من الرمز',
-        html: `<p style="color: #cbd5e1;">اضغط على الرقم اللي ظهرلك:</p> ${buttonsHtml}`,
+        html: `<p style="color: #cbd5e1;">اضغط على الرقم الذي رأيته في الصفحة السابقة:</p> ${buttonsHtml}`,
         showConfirmButton: false, background: '#0f172a', color: '#fff', allowOutsideClick: false
     });
 
     window.submitVerify = async (selectedCode, pts, idx) => {
         if (selectedCode === correctCode.toString()) {
             try {
+                // 1. تحديث النقاط وتاريخ الرابط
                 await updateDoc(currentUserRef, {
                     points: increment(pts),
                     [`lastLinks.${idx}`]: serverTimestamp()
                 });
-                Swal.fire({ title: 'كفو!', text: `تم إضافة ${pts} نقطة ✅`, icon: 'success' });
+                
+                // 2. مسح جلسة التحقق لضمان عدم استخدامها مرة أخرى
+                await setDoc(sessionRef, { used: true }, { merge: true });
+                
+                Swal.fire({ title: 'كفو!', text: `تم إضافة ${pts} نقطة بنجاح ✅`, icon: 'success' });
             } catch (e) { console.error(e); }
         } else {
-            Swal.fire('فشل!', 'الرقم غلط!', 'error');
+            Swal.fire('فشل!', 'الرقم غير صحيح! حاول مرة أخرى.', 'error');
         }
-        localStorage.removeItem('gate_token');
         localStorage.removeItem('p_idx');
         window.history.replaceState({}, document.title, window.location.pathname);
     };
 }
+
 
 window.openLink = (i, url) => {
   localStorage.setItem("p_idx", i);
