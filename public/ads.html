@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AM REWARDS | منجم الذهب</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    :root { --bg: #020617; --card: rgba(15, 23, 42, 0.9); --gold: #f5c542; --accent: #00f2ff; --text: #f8fafc; }
+    body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; text-align: center; direction: rtl; }
+    .header { margin-bottom: 30px; }
+    h2 { color: var(--gold); font-weight: 900; }
+    .stats-container { display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; }
+    .stat-box { background: var(--card); padding: 15px; border-radius: 20px; border: 1px solid var(--gold); min-width: 120px; }
+    .stat-val { display: block; font-size: 1.5rem; font-weight: 900; color: var(--accent); }
+    .main-ad-box { background: var(--card); border: 2px solid var(--accent); padding: 40px 20px; border-radius: 30px; max-width: 400px; margin: 0 auto; }
+    .btn-watch { background: var(--accent); color: #020617; border: none; padding: 18px 40px; border-radius: 15px; font-size: 1.2rem; font-weight: 900; cursor: pointer; width: 100%; transition: 0.3s; }
+    .btn-watch:disabled { background: #1e293b; color: #64748b; cursor: not-allowed; }
+    .progress-container { width: 100%; background: #1e293b; height: 10px; border-radius: 5px; margin-top: 25px; overflow: hidden; }
+    .progress-bar { width: 0%; height: 100%; background: var(--gold); transition: 0.5s; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h2>💰 منجم الذهب (100 فيديو يومياً)</h2>
+    <p>شاهد الإعلانات واجمع النقاط بسهولة</p>
+  </div>
+
+  <div class="stats-container">
+    <div class="stat-box"><span class="stat-val" id="points-val">0</span> رصيدك الحالي</div>
+    <div class="stat-box"><span class="stat-val" id="daily-count">0/100</span> مهام اليوم</div>
+  </div>
+
+  <div class="main-ad-box">
+    <div id="ad-status">جاهز للحصول على مكافأتك؟</div>
+    <div class="progress-container"><div class="progress-bar" id="p-bar"></div></div>
+    <br>
+    <button class="btn-watch" id="watchBtn" onclick="handleAdClick()">🔥 ابدأ المهمة الآن</button>
+  </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, updateDoc, increment, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUserRef = null;
+const dailyLimit = 100;
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) { location.href = "index.html"; return; }
+  currentUserRef = doc(db, "users", user.uid);
+
+  if (new URLSearchParams(window.location.search).get('verify')) {
+      handleVideoVerification();
+  }
+
+  onSnapshot(currentUserRef, (snap) => {
+    const data = snap.data() || {};
+    document.getElementById("points-val").textContent = data.points || 0;
+    const today = new Date().toLocaleDateString();
+    let count = (data.lastAdDate === today) ? (data.dailyAdsCount || 0) : 0;
+    
+    document.getElementById("daily-count").textContent = `${count}/${dailyLimit}`;
+    document.getElementById("p-bar").style.width = (count / dailyLimit * 100) + "%";
+    
+    if (count >= dailyLimit) {
+      document.getElementById("watchBtn").disabled = true;
+      document.getElementById("watchBtn").textContent = "اكتملت مهام اليوم ✅";
+    }
+  });
+});
+
+window.handleAdClick = () => {
+  localStorage.setItem('p_idx', 'video_task');
+  window.location.href = "video_gate.html";
+};
+
+async function handleVideoVerification() {
+    const sessionRef = doc(db, "linkSessions", auth.currentUser.uid + "_video_task");
+    const snap = await getDoc(sessionRef);
+    if (!snap.exists() || snap.data().used) return;
+
+    const correctCode = snap.data().code;
+    const { value: userCode } = await Swal.fire({
+        title: 'أدخل الكود السري',
+        input: 'text',
+        inputPlaceholder: 'الرقم الذي ظهر في صفحة الإعلان...',
+        confirmButtonText: 'تأكيد 💰',
+        background: '#0f172a', color: '#fff'
+    });
+
+    if (userCode === correctCode) {
+        await updateDoc(currentUserRef, {
+            points: increment(1.5),
+            dailyAdsCount: increment(1),
+            lastAdDate: new Date().toLocaleDateString()
+        });
+        await updateDoc(sessionRef, { used: true });
+        Swal.fire('كفو!', 'تم إضافة 1.5 نقطة ✅', 'success');
+    } else {
+        Swal.fire('خطأ!', 'الكود غير صحيح!', 'error');
+    }
+    window.history.replaceState({}, document.title, window.location.pathname);
+}
+</script>
+</body>
+</html>
