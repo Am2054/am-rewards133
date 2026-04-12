@@ -178,9 +178,17 @@
             const loader = document.getElementById('loader');
             const btnAction = document.getElementById('btnAction');
 
-            // التأكد من أن المستخدم أدخل رابطاً
+            // جلب معرف المستخدم (بافتراض استخدام Firebase Auth)
+            // إذا كنت تستخدم نظاماً آخر، قم بتعديل طريقة الحصول على الـ userId هنا
+            const userId = typeof firebase !== 'undefined' ? firebase.auth().currentUser?.uid : null;
+
             if (!url) {
                 alert("برجاء إدخال الرابط أولاً");
+                return;
+            }
+
+            if (!userId) {
+                alert("يجب تسجيل الدخول لاستخدام هذه الخدمة");
                 return;
             }
 
@@ -189,40 +197,41 @@
             btnText.style.display = "none";
             loader.style.display = "block";
             resultBox.style.display = "none";
-// داخل دالة handleScan
-try {
-    const res = await fetch('/api/check-link', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url, userId: userId })
-    });
-    
-    const data = await res.json();
-    
-    if (res.status === 402) {
-        alert("انتهت الفحوصات المجانية. تحتاج إلى 2 نقطة لإتمام الفحص!");
-        return;
-    } 
-    
-    if (res.status === 403) {
-        alert("لقد استنفدت جميع محاولات الفحص لليوم (5/5). عد غداً!");
-        return;
-    }
 
-    if (res.ok) {
-        statusBox.style.display = "block";
-        if (data.safe) {
-            statusBox.className = "safe-result"; // تأكد من وجود الـ Class ده في الـ CSS
-            statusBox.innerHTML = "✅ الرابط آمن للاستخدام.";
-        } else {
-            statusBox.className = "danger-result";
-            statusBox.innerHTML = "⚠️ تحذير: هذا الرابط خطر جداً!";
-        }
-    }
-} catch (err) {
-    console.error(err);
-}
-alert("حدث خطأ أثناء الفحص، تأكد من اتصال الإنترنت");
+            try {
+                const res = await fetch('/api/check-link', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url, userId: userId })
+                });
+                
+                const data = await res.json();
+                
+                if (res.status === 402) {
+                    alert("انتهت الفحوصات المجانية اليوم. تحتاج إلى 2 نقطة لإتمام هذا الفحص!");
+                    return;
+                } 
+                
+                if (res.status === 403) {
+                    alert("لقد استنفدت جميع محاولات الفحص المسموحة لليوم (5/5). عد غداً!");
+                    return;
+                }
+
+                if (res.ok) {
+                    resultBox.style.display = "block";
+                    if (data.safe) {
+                        resultBox.className = "safe-result";
+                        resultBox.innerHTML = "✅ الرابط آمن للاستخدام.";
+                    } else {
+                        resultBox.className = "danger-result";
+                        resultBox.innerHTML = "⚠️ تحذير: هذا الرابط خطر جداً!";
+                    }
+                } else {
+                    throw new Error(data.error || "خطأ غير معروف");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("حدث خطأ أثناء الفحص، تأكد من اتصال الإنترنت أو حاول مجدداً");
             } finally {
                 // إعادة الزرار لحالته الأصلية
                 btnAction.disabled = false;
