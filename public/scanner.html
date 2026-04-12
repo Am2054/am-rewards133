@@ -190,32 +190,40 @@
             loader.style.display = "block";
             resultBox.style.display = "none";
 
-            try {
-                // استدعاء الـ Backend (Vercel Function)
-                const response = await fetch('/api/check-link', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ url: url })
-                });
+            // داخل دالة handleScan
+try {
+    const res = await fetch('/api/check-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url, userId: userId })
+    });
+    
+    const data = await res.json();
+    
+    if (res.status === 402) {
+        alert("انتهت الفحوصات المجانية. تحتاج إلى 2 نقطة لإتمام الفحص!");
+        return;
+    } 
+    
+    if (res.status === 403) {
+        alert("لقد استنفدت جميع محاولات الفحص لليوم (5/5). عد غداً!");
+        return;
+    }
 
-                const data = await response.json();
-
-                // عرض النتيجة
-                resultBox.style.display = "block";
-                
-                if (data.safe) {
-                    resultBox.className = "safe-result";
-                    resultBox.innerHTML = "✅ <b>رابط آمن:</b> جوجل لم تجد أي تهديدات في هذا الموقع. يمكنك تصفحه.";
-                } else {
-                    resultBox.className = "danger-result";
-                    resultBox.innerHTML = "⚠️ <b>تحذير خطير:</b> هذا الرابط قد يحتوي على فيروسات أو صفحات احتيال. لا تفتحه!";
-                }
-
-            } catch (error) {
-                console.error("Error:", error);
-                alert("حدث خطأ أثناء الفحص، تأكد من اتصال الإنترنت");
+    if (res.ok) {
+        statusBox.style.display = "block";
+        if (data.safe) {
+            statusBox.className = "safe-result"; // تأكد من وجود الـ Class ده في الـ CSS
+            statusBox.innerHTML = "✅ الرابط آمن للاستخدام.";
+        } else {
+            statusBox.className = "danger-result";
+            statusBox.innerHTML = "⚠️ تحذير: هذا الرابط خطر جداً!";
+        }
+    }
+} catch (err) {
+    console.error(err);
+    }  
+     alert("حدث خطأ أثناء الفحص، تأكد من اتصال الإنترنت");
             } finally {
                 // إعادة الزرار لحالته الأصلية
                 btnAction.disabled = false;
