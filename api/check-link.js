@@ -30,15 +30,22 @@ export default async function handler(req, res) {
   try {
     const apiEndpoint = `https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${GOOGLE_API_KEY}`;
 
-    const requestBody = {
+        const requestBody = {
       client: { clientId: "Ahmed-Safe-Scan", clientVersion: "1.0.0" },
       threatInfo: {
-        threatTypes: ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE"],
+        // ضفنا هنا كل الأنواع الممكنة (فيروسات، تصيد، برامج غير مرغوبة)
+        threatTypes: [
+          "MALWARE", 
+          "SOCIAL_ENGINEERING", 
+          "UNWANTED_SOFTWARE", 
+          "POTENTIALLY_HARMFUL_APPLICATION"
+        ],
         platformTypes: ["ANY_PLATFORM"],
         threatEntryTypes: ["URL"],
         threatEntries: [{ url: url }]
       }
     };
+
 
     const response = await fetch(apiEndpoint, {
       method: 'POST',
