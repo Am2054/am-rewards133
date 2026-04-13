@@ -7,12 +7,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root { --neon-yellow: #facc15; --neon-purple: #7000ff; --neon-red: #ff4444; --bg-deep: #020617; --glass: rgba(255, 255, 255, 0.05); --cyan: #00f2ff; }
-        body { font-family: 'Tajawal', sans-serif; background: var(--bg-deep); color: #fff; margin: 0; padding: 20px; transition: 0.5s; }
-        .container { max-width: 500px; margin: 0 auto; background: var(--glass); padding: 25px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(15px); box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        body { font-family: 'Tajawal', sans-serif; background: var(--bg-deep); color: #fff; margin: 0; padding: 0; transition: 0.5s; }
+        
+        /* بار النقاط العلوي الثابت */
+        .points-bar {
+            position: sticky; top: 0; z-index: 1000;
+            background: rgba(11, 15, 25, 0.8); backdrop-filter: blur(10px);
+            padding: 10px 20px; border-bottom: 1px solid rgba(250, 204, 21, 0.2);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .points-display { background: rgba(250, 204, 21, 0.1); padding: 5px 15px; border-radius: 50px; border: 1px solid var(--neon-yellow); font-size: 14px; font-weight: 900; color: var(--neon-yellow); }
+
+        .container { max-width: 500px; margin: 20px auto; background: var(--glass); padding: 25px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(15px); box-shadow: 0 20px 50px rgba(0,0,0,0.5); width: 92%; box-sizing: border-box; }
         h1 { text-align: center; color: var(--neon-yellow); font-weight: 900; margin-bottom: 5px; text-shadow: 0 0 15px rgba(250, 204, 21, 0.3); }
         .sub-title { text-align: center; font-size: 12px; color: #94a3b8; margin-bottom: 25px; }
         
-        /* ميزة المقارنة الجديدة */
         #compareBadge { display: none; text-align: center; margin-bottom: 15px; padding: 8px; border-radius: 12px; font-size: 11px; font-weight: 700; animation: slideUp 0.5s ease; }
         .badge-up { background: rgba(255, 68, 68, 0.1); color: var(--neon-red); border: 1px solid var(--neon-red); }
         .badge-down { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid #10b981; }
@@ -37,22 +46,22 @@
         .warn-danger { background: rgba(255, 68, 68, 0.1); color: var(--neon-red); border-color: var(--neon-red); animation: pulse 2s infinite; }
         .warn-safe { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: #10b981; }
 
-        .tips-btn { width: 100%; margin-top: 15px; padding: 12px; background: none; border: 1px solid var(--neon-yellow); color: var(--neon-yellow); border-radius: 12px; font-weight: 700; cursor: pointer; }
-        #tipsContent { display: none; margin-top: 15px; background: rgba(250, 204, 21, 0.05); padding: 15px; border-radius: 15px; border: 1px dotted var(--neon-yellow); font-size: 12px; color: #cbd5e1; }
-        .disclaimer { text-align: center; font-size: 10px; color: #64748b; margin-top: 20px; }
-        
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
 
+<div class="points-bar">
+    <div style="font-size: 12px; font-weight: bold;">المجانية المتبقية: <span id="freeTries">3</span></div>
+    <div class="points-display">🪙 النقاط: <span id="userPoints">0</span></div>
+</div>
+
 <div class="container">
     <h1>⚡ رادار الكهرباء</h1>
     <p class="sub-title">تحليل ذكي ودقيق (تحديث 2026)</p>
     
     <div id="compareBadge"></div>
-
     <div id="errorMsg">⚠️ خطأ: القراءة الحالية يجب أن تكون أكبر من السابقة.</div>
     
     <div class="input-row">
@@ -71,7 +80,7 @@
         <input type="number" id="unitsCount" value="1" min="1" inputmode="numeric">
     </div>
 
-    <button class="calc-btn" onclick="calculateSmartBill()">تحليل الاستهلاك 🔍</button>
+    <button class="calc-btn" onclick="processElectricityAnalysis()">تحليل الاستهلاك 🔍</button>
     <button class="reset-btn" onclick="resetApp()">🔄 حساب جديد / مسح الذاكرة</button>
 
     <div id="resultBox" class="result-box">
@@ -80,19 +89,11 @@
         <span class="total-price" id="totalVal">0.00 ج.م</span>
         
         <div class="unit-money-box" id="unitBox">
-            <span style="font-size: 11px; color: #cbd5e1; display: block; margin-bottom: 5px;">نصيب الوحدة (شامل الرسوم المقسمة)</span>
             <span id="unitMoneyVal" style="font-size: 24px; color: var(--neon-yellow); font-weight: 900;">0.00 ج.م</span>
         </div>
 
         <div id="smartWarning" class="smart-warning"></div>
         
-        <button class="tips-btn" onclick="toggleTips()">💡 نصائح التوفير الذكية</button>
-        <div id="tipsContent">
-            • <b>السخان:</b> اضبط الحرارة على 50.<br>
-            • <b>التكييف:</b> 24 درجة هي المثالية للتوفير.<br>
-            • <b>الأجهزة:</b> افصل الفيش تماماً للأجهزة غير المستخدمة.
-        </div>
-
         <div style="margin-top: 20px; font-size: 13px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px;">
             <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>إجمالي كمية الاستهلاك:</span> <span id="totalKwh" style="color:var(--cyan); font-weight:bold;">0</span></div>
             <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>متوسط الاستهلاك اليومي:</span> <span id="dailyAvg" style="color:var(--cyan)">0</span></div>
@@ -103,12 +104,80 @@
             </div>
         </div>
     </div>
-
-    <p class="disclaimer">
-        * يتم تقسيم رسوم الخدمات بالتساوي على عدد الوحدات.<br>
-        * الحساب يعتمد على اللائحة الجديدة لعام 2026.
-    </p>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, onSnapshot, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let userRef = null;
+    let points = 0;
+    let elecStats = { count: 0, date: "" };
+    let lastElecHash = "";
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            userRef = doc(db, "users", user.uid);
+            onSnapshot(userRef, (snap) => {
+                const data = snap.data();
+                points = data.points || 0;
+                elecStats = data.elecStats || { count: 0, date: "" };
+                const today = new Date().toISOString().split('T')[0];
+                let dailyCount = (elecStats.date === today) ? elecStats.count : 0;
+                document.getElementById('userPoints').innerText = points;
+                document.getElementById('freeTries').innerText = Math.max(0, 3 - dailyCount);
+            });
+        }
+    });
+
+    window.processElectricityAnalysis = async function() {
+        if (!auth.currentUser) return Swal.fire("خطأ", "سجل دخول أولاً", "error");
+
+        const cur = parseFloat(document.getElementById('currentRead').value);
+        const prev = parseFloat(document.getElementById('prevRead').value);
+        const units = document.getElementById('unitsCount').value;
+
+        if (isNaN(cur) || isNaN(prev) || cur < prev) {
+            document.getElementById('errorMsg').style.display = 'block';
+            return;
+        }
+
+        const currentHash = `${cur}-${prev}-${units}`;
+        if (currentHash === lastElecHash) {
+            calculateSmartBill();
+            return;
+        }
+
+        const today = new Date().toISOString().split('T')[0];
+        let dailyCount = (elecStats.date === today) ? elecStats.count : 0;
+
+        if (dailyCount >= 3) {
+            if (points < 1) return Swal.fire("نقاط غير كافية", "المحاولات المجانية انتهت وتحتاج لنقطة واحدة.", "error");
+            const confirm = await Swal.fire({
+                title: 'تأكيد الخصم',
+                text: "سيتم خصم 1 نقطة لإجراء هذا التحليل بعد نفاذ المجاني.",
+                icon: 'info',
+                showCancelButton: true, confirmButtonText: 'اخصم 1 نقطة', cancelButtonText: 'إلغاء'
+            });
+            if (!confirm.isConfirmed) return;
+        }
+
+        try {
+            let updateData = { "elecStats.count": dailyCount + 1, "elecStats.date": today };
+            if (dailyCount >= 3) updateData["points"] = increment(-1);
+            await updateDoc(userRef, updateData);
+            lastElecHash = currentHash;
+            calculateSmartBill();
+        } catch (e) { Swal.fire("خطأ", "فشل تحديث النقاط", "error"); }
+    };
+</script>
 
 <script>
     window.onload = function() {
@@ -119,20 +188,13 @@
     function animateValue(id, start, end, duration) {
         const obj = document.getElementById(id);
         const range = end - start;
-        
-        // --- تحسين 2: حماية من القسمة على صفر في الأنيميشن ---
-        if (range === 0) {
-            obj.innerHTML = end.toFixed(2) + " ج.م";
-            return;
-        }
-
+        if (range === 0) { obj.innerHTML = end.toFixed(2) + " ج.م"; return; }
         const minTimer = 50;
         let stepTime = Math.abs(Math.floor(duration / range));
         stepTime = Math.max(stepTime, minTimer);
         const startTime = new Date().getTime();
         const endTime = startTime + duration;
         let timer;
-
         function run() {
             const now = new Date().getTime();
             const remaining = Math.max((endTime - now) / duration, 0);
@@ -148,17 +210,7 @@
         const previous = parseFloat(document.getElementById('prevRead').value);
         let units = parseInt(document.getElementById('unitsCount').value) || 1;
         
-        // --- تحسين 3: تأمين مدخلات عدد الوحدات ---
         if (units < 1) units = 1;
-        if (units > 999) units = 999; 
-        document.getElementById('unitsCount').value = units;
-
-        if (isNaN(current) || isNaN(previous) || current < previous) {
-            document.getElementById('errorMsg').style.display = 'block'; 
-            window.scrollTo({top: 0, behavior: 'smooth'});
-            return;
-        }
-
         document.getElementById('errorMsg').style.display = 'none';
         const totalKwh = current - previous;
         
@@ -167,79 +219,36 @@
         let serviceFee = 0;
         const cleanFee = 15;
 
-        // خوارزمية الشرائح 2026
         if (totalKwh <= 100) {
-            if (totalKwh <= 50) {
-                totalCost = totalKwh * 0.68;
-                serviceFee = 1;
-                sh = "الأولى (مدعوم)";
-            } else {
-                totalCost = (50 * 0.68) + ((totalKwh - 50) * 0.78);
-                serviceFee = 2;
-                sh = "الثانية (مدعوم)";
-            }
+            if (totalKwh <= 50) { totalCost = totalKwh * 0.68; serviceFee = 1; sh = "الأولى (مدعوم)"; }
+            else { totalCost = (50 * 0.68) + ((totalKwh - 50) * 0.78); serviceFee = 2; sh = "الثانية (مدعوم)"; }
         } else if (totalKwh <= 650) {
-            if (totalKwh <= 200) {
-                totalCost = totalKwh * 0.95;
-                serviceFee = 6;
-                sh = "الثالثة";
-            } else if (totalKwh <= 350) {
-                totalCost = (200 * 0.95) + ((totalKwh - 200) * 1.55);
-                serviceFee = 11;
-                sh = "الرابعة";
-            } else {
-                totalCost = (200 * 0.95) + (150 * 1.55) + ((totalKwh - 350) * 1.65);
-                serviceFee = 15;
-                sh = "الخامسة";
-            }
-        } else if (totalKwh <= 1000) {
-            totalCost = totalKwh * 2.10;
-            serviceFee = 25;
-            sh = "السادسة (موحد)";
-        } else {
-            totalCost = totalKwh * 3.00;
-            serviceFee = 40;
-            sh = "السابعة (كثيف)";
-        }
+            if (totalKwh <= 200) { totalCost = totalKwh * 0.95; serviceFee = 6; sh = "الثالثة"; }
+            else if (totalKwh <= 350) { totalCost = (200 * 0.95) + ((totalKwh - 200) * 1.55); serviceFee = 11; sh = "الرابعة"; }
+            else { totalCost = (200 * 0.95) + (150 * 1.55) + ((totalKwh - 350) * 1.65); serviceFee = 15; sh = "الخامسة"; }
+        } else if (totalKwh <= 1000) { totalCost = totalKwh * 2.10; serviceFee = 25; sh = "السادسة (موحد)"; }
+        else { totalCost = totalKwh * 3.00; serviceFee = 40; sh = "السابعة (كثيف)"; }
 
         const finalTotal = totalCost + serviceFee + cleanFee;
         const moneyPerUnit = finalTotal / units;
-
-        // --- تحسين 4: إضافة متوسط الاستهلاك اليومي ---
         const dailyAvg = (totalKwh / 30).toFixed(1);
         document.getElementById('dailyAvg').innerText = dailyAvg + " ك.و / يوم";
 
-        // --- تحسين 1: حماية المقارنة من القسمة على صفر أو القيم الفارغة ---
         const lastMonthKwh = parseFloat(localStorage.getItem('lastMonthKwh'));
         const badge = document.getElementById('compareBadge');
         if (!isNaN(lastMonthKwh) && lastMonthKwh > 0) {
             const diff = totalKwh - lastMonthKwh;
             const percent = ((Math.abs(diff) / lastMonthKwh) * 100).toFixed(1);
             badge.style.display = 'block';
-            if (diff > 0) {
-                badge.className = 'badge-up';
-                badge.innerHTML = `📈 استهلاكك زاد بنسبة ${percent}%`;
-                document.body.style.background = "#0f0505";
-            } else if (diff < 0) {
-                badge.className = 'badge-down';
-                badge.innerHTML = `📉 استهلاكك قل بنسبة ${percent}%`;
-                document.body.style.background = "#020617";
-            } else {
-                badge.className = 'badge-down';
-                badge.innerHTML = `➖ استهلاكك مساوٍ تماماً للشهر السابق`;
-                document.body.style.background = "#020617";
-            }
-        } else {
-            badge.style.display = 'none';
+            if (diff > 0) { badge.className = 'badge-up'; badge.innerHTML = `📈 استهلاكك زاد بنسبة ${percent}%`; }
+            else if (diff < 0) { badge.className = 'badge-down'; badge.innerHTML = `📉 استهلاكك قل بنسبة ${percent}%`; }
+            else { badge.className = 'badge-down'; badge.innerHTML = `➖ استهلاكك مساوٍ تماماً`; }
         }
 
         localStorage.setItem('lastCurrentRead', current);
         localStorage.setItem('lastMonthKwh', totalKwh);
-
-        // العرض النهائي
         document.getElementById('resultBox').style.display = 'block';
         animateValue("totalVal", 0, finalTotal, 1000);
-        
         document.getElementById('totalKwh').innerText = totalKwh + " ك.و.س";
         document.getElementById('unitKwh').innerText = (totalKwh / units).toFixed(1) + " ك.و.س";
         document.getElementById('shText').innerText = sh;
@@ -253,29 +262,14 @@
         }
 
         const warnBox = document.getElementById('smartWarning');
-        if (totalKwh > 650) {
-            warnBox.className = "smart-warning warn-danger";
-            warnBox.innerHTML = "⚠️ <b>تحذير:</b> فقدت الدعم التراكمي. السعر الآن موحد!";
-        } else {
-            warnBox.className = "smart-warning warn-safe";
-            warnBox.innerHTML = "✅ <b>ممتاز:</b> استهلاكك في النطاق المدعوم.";
-        }
+        if (totalKwh > 650) { warnBox.className = "smart-warning warn-danger"; warnBox.innerHTML = "⚠️ فقدت الدعم التراكمي!"; }
+        else { warnBox.className = "smart-warning warn-safe"; warnBox.innerHTML = "✅ استهلاكك في النطاق المدعوم."; }
         
         document.getElementById('radarStatus').innerText = "✅ اكتمل التحليل بنجاح";
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 
-    function resetApp() {
-        if(confirm("هل تريد مسح سجل القراءات السابق والبدء من جديد؟")) {
-            localStorage.clear();
-            location.reload();
-        }
-    }
-
-    function toggleTips() {
-        const content = document.getElementById('tipsContent');
-        content.style.display = content.style.display === 'block' ? 'none' : 'block';
-    }
+    function resetApp() { if(confirm("هل تريد مسح السجل؟")) { localStorage.clear(); location.reload(); } }
 </script>
 </body>
 </html>
