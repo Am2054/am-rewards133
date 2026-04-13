@@ -176,6 +176,7 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -194,6 +195,7 @@
     let userRef = null;
     let points = 0;
     let scanStats = { count: 0, date: "" };
+    let lastSearchHash = ""; // لحفظ آخر بحث
 
     onAuthStateChanged(auth, (user) => {
         if (user) {
@@ -213,19 +215,47 @@
     });
 
     window.processAnalysis = async function() {
-        if (!auth.currentUser) return alert("سجل دخول أولاً");
+        if (!auth.currentUser) return Swal.fire("خطأ", "سجل دخول أولاً", "error");
+
+        const quota = parseFloat(document.getElementById('quota').value);
+        const left = parseFloat(document.getElementById('current_left').value) || 0;
+        const resetDay = document.getElementById('reset_day').value;
+        const mobs = document.getElementById('mobs').innerText;
+        const tvs = document.getElementById('tvs').innerText;
+        const qual = document.getElementById('quality').value;
+
+        // التحقق: المتبقي لا يمكن أن يكون أكبر من الكلي
+        if (left > quota) {
+            return Swal.fire("بيانات غير منطقية", "الجيجا المتبقية لا يمكن أن تكون أكبر من حجم الباقة الأساسي!", "warning");
+        }
+
+        // منع التكرار: إنشاء بصمة للبحث الحالي
+        const currentSearchHash = `${quota}-${left}-${resetDay}-${mobs}-${tvs}-${qual}`;
+        if (currentSearchHash === lastSearchHash) {
+            analyze(); // شغل التحليل بدون خصم
+            return;
+        }
         
         const today = new Date().toISOString().split('T')[0];
         let dailyCount = (scanStats.date === today) ? scanStats.count : 0;
 
-        // التحقق من النقاط بعد 3 محاولات
-        if (dailyCount >= 3 && points < 1) {
-            alert("نعتذر! انتهت المحاولات المجانية وتحتاج لنقطة واحدة للمتابعة.");
-            return;
+        // طلب تأكيد لو المحاولات المجانية خلصت
+        if (dailyCount >= 3) {
+            if (points < 1) {
+                return Swal.fire("نقاط غير كافية", "انتهت المحاولات المجانية وتحتاج لنقطة واحدة.", "error");
+            }
+            const confirm = await Swal.fire({
+                title: 'تأكيد الخصم',
+                text: "لقد استنفدت محاولاتك المجانية اليوم. سيتم خصم 1 نقطة لإجراء هذا التحليل.",
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'موافق، اخصم نقطة',
+                cancelButtonText: 'إلغاء'
+            });
+            if (!confirm.isConfirmed) return;
         }
 
         try {
-            // الخصم وتحديث العداد
             let updateData = {
                 "scanStats.count": dailyCount + 1,
                 "scanStats.date": today
@@ -235,11 +265,11 @@
             }
             
             await updateDoc(userRef, updateData);
-            analyze(); // تشغيل الكود الأصلي للتحليل
+            lastSearchHash = currentSearchHash; // تحديث آخر بحث ناجح
+            analyze();
 
         } catch (e) {
-            console.error(e);
-            alert("حدث خطأ في النظام");
+            Swal.fire("خطأ", "حدث خطأ في تحديث البيانات", "error");
         }
     }
 </script>
