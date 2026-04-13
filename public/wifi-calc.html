@@ -22,6 +22,15 @@
             background-image: radial-gradient(circle at 10% 20%, rgba(0, 242, 255, 0.05) 0%, transparent 40%);
         }
 
+        /* بار النقاط العلوي */
+        .points-bar {
+            position: sticky; top: 0; z-index: 1000;
+            background: rgba(11, 15, 25, 0.8); backdrop-filter: blur(10px);
+            padding: 10px 20px; border-bottom: 1px solid rgba(0, 242, 255, 0.2);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .points-display { background: rgba(0, 242, 255, 0.1); padding: 5px 15px; border-radius: 50px; border: 1px solid var(--primary); font-size: 14px; font-weight: 900; color: var(--primary); }
+
         .container { width: 92%; max-width: 450px; margin: 20px auto; padding-bottom: 50px; }
 
         .header { text-align: center; padding: 20px 0; }
@@ -74,6 +83,11 @@
     </style>
 </head>
 <body>
+
+<div class="points-bar">
+    <div style="font-size: 12px; font-weight: bold;">المحاولات المجانية: <span id="freeTries">3</span></div>
+    <div class="points-display">🪙 النقاط: <span id="userPoints">0</span></div>
+</div>
 
 <div class="container">
     <div class="header">
@@ -133,7 +147,7 @@
         </div>
     </div>
 
-    <button class="btn-glow" onclick="analyze()">ابدأ التحليل الذكي ⚡</button>
+    <button class="btn-glow" id="mainBtn" onclick="processAnalysis()">ابدأ التحليل الذكي ⚡</button>
 
     <div id="resultsPanel">
         <div class="card result-main" id="statusCard">
@@ -162,6 +176,74 @@
     </div>
 </div>
 
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, onSnapshot, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = { 
+        apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
+        authDomain: "am--rewards.firebaseapp.com", 
+        projectId: "am--rewards" 
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let userRef = null;
+    let points = 0;
+    let scanStats = { count: 0, date: "" };
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            userRef = doc(db, "users", user.uid);
+            onSnapshot(userRef, (snap) => {
+                const data = snap.data();
+                points = data.points || 0;
+                scanStats = data.scanStats || { count: 0, date: "" };
+                
+                const today = new Date().toISOString().split('T')[0];
+                let dailyCount = (scanStats.date === today) ? scanStats.count : 0;
+                
+                document.getElementById('userPoints').innerText = points;
+                document.getElementById('freeTries').innerText = Math.max(0, 3 - dailyCount);
+            });
+        }
+    });
+
+    window.processAnalysis = async function() {
+        if (!auth.currentUser) return alert("سجل دخول أولاً");
+        
+        const today = new Date().toISOString().split('T')[0];
+        let dailyCount = (scanStats.date === today) ? scanStats.count : 0;
+
+        // التحقق من النقاط بعد 3 محاولات
+        if (dailyCount >= 3 && points < 1) {
+            alert("نعتذر! انتهت المحاولات المجانية وتحتاج لنقطة واحدة للمتابعة.");
+            return;
+        }
+
+        try {
+            // الخصم وتحديث العداد
+            let updateData = {
+                "scanStats.count": dailyCount + 1,
+                "scanStats.date": today
+            };
+            if (dailyCount >= 3) {
+                updateData["points"] = increment(-1);
+            }
+            
+            await updateDoc(userRef, updateData);
+            analyze(); // تشغيل الكود الأصلي للتحليل
+
+        } catch (e) {
+            console.error(e);
+            alert("حدث خطأ في النظام");
+        }
+    }
+</script>
+
 <script>
     function change(id, val) {
         const el = document.getElementById(id);
@@ -176,21 +258,17 @@
         const tvs = parseInt(document.getElementById('tvs').innerText);
         const qual = parseFloat(document.getElementById('quality').value);
 
-        // 1. حساب الأيام المتبقية للتجديد
         const now = new Date();
         const today = now.getDate();
         const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
         let daysToReset = resetDay > today ? resetDay - today : (lastDay - today) + resetDay;
 
-        // 2. حساب الاستهلاك اليومي
         const daily = (mobs * 0.5) + (tvs * (3 * qual));
         let canLast = daily > 0 ? Math.floor(left / daily) : 30;
         canLast = Math.min(canLast, 60);
 
-        // 3. حساب الساعات التقديرية (يوتيوب)
         let vHours = qual > 1 ? Math.floor(left / 2.5) : Math.floor(left / 0.8);
 
-        // 4. تحديث الواجهة
         document.getElementById('resultsPanel').style.display = 'block';
         document.getElementById('resDays').innerText = canLast + " يوم";
         document.getElementById('videoHours').innerText = vHours + " س";
