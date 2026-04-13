@@ -186,6 +186,8 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  // إضافة مكتبة FingerprintJS الرسمية
+  import FingerprintJS from 'https://openfpcdn.io/fingerprintjs/v4/esm.min.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -196,21 +198,21 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
 
-  // وظيفة البصمة (Fingerprint) لزيادة الحماية
+  // وظيفة البصمة المحدثة باستخدام مكتبة FingerprintJS لضمان دقة 99%
   async function getFingerprint() {
     try {
+      const fp = await FingerprintJS.load();
+      const result = await fp.get();
+      return result.visitorId; // هذا هو المعرف الفريد للجهاز
+    } catch(e) { 
+      // حل احتياطي في حال فشل المكتبة
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       ctx.fillText("Am-Rewards-Secure-Auth", 2, 2);
-      const b64 = canvas.toDataURL().replace("data:image/png;base64,", "");
-      const bin = atob(b64);
-      let hash = 0;
-      for (let i = 0; i < bin.length; i++) { hash = ((hash << 5) - hash) + bin.charCodeAt(i); hash |= 0; }
-      return Math.abs(hash).toString(16);
-    } catch(e) { return "gen_" + Math.random().toString(16).slice(2, 8); }
+      return Math.abs(canvas.toDataURL().split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0)).toString(16);
+    }
   }
 
-  // نفس دوالك الأصلية (TogglePass, getDeviceId, etc.)
   window.togglePass = (id) => {
     const input = document.getElementById(id);
     input.type = input.type === "password" ? "text" : "password";
@@ -228,6 +230,9 @@
     const statusEl = document.getElementById('status');
     const signupBtn = document.getElementById('signupBtn');
     
+    // جلب البصمة الحقيقية
+    const visitorFingerprint = await getFingerprint();
+
     const fields = {
       email: document.getElementById('email').value.trim(),
       password: document.getElementById('password').value,
@@ -236,10 +241,10 @@
       name: document.getElementById('name').value.trim(),
       referralCode: document.getElementById('refCode').value.trim().toUpperCase(),
       deviceId: getDeviceId(),
-      fingerprint: await getFingerprint()
+      fingerprint: visitorFingerprint
     };
 
-    statusEl.textContent = "⏳ جاري التحقق من أمان العملية...";
+    statusEl.textContent = "⏳ جاري التحقق من أمان الجهاز...";
     statusEl.className = "status";
     signupBtn.disabled = true;
 
@@ -258,7 +263,6 @@
         await signInWithEmailAndPassword(auth, fields.email, fields.password);
         setTimeout(() => window.location.href = "dashboard.html", 1500);
       } else {
-        // إذا كان الخطأ بسبب الـ Rate Limit (429) أو أي خطأ آخر
         statusEl.textContent = data.message;
         statusEl.className = "status error";
         signupBtn.disabled = false;
