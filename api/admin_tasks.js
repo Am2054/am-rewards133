@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       jwt.verify(taskToken, process.env.JWT_SECRET);
 
       if (action === 'get_analytics') {
-        let query = db.collection('tasksCompleted');
+        let query = db.collection('completedLinks');
         let start;
         const nowDate = new Date();
 
