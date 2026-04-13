@@ -25,18 +25,16 @@ export default async function handler(req, res) {
 
   // ======== 0. نظام الـ Rate Limiting (جديد) ========
   try {
-    const rateLimitRef = db.collection("rateLimits").doc(ip.replace(/\./g, "_")); // تحويل النقط لشرطات للـ ID
+    const rateLimitRef = db.collection("rateLimits").doc(ip.replace(/\./g, "_")); 
     const rateSnap = await rateLimitRef.get();
     const now = Date.now();
 
     if (rateSnap.exists) {
       const data = rateSnap.data();
-      // لو حاول يسجل أكثر من 3 مرات في ساعة واحدة
       if (data.count >= 3 && (now - data.lastAttempt < 3600000)) {
         return res.status(429).json({ success: false, message: "❌ محاولات كثيرة جداً. يرجى الانتظار ساعة قبل المحاولة مرة أخرى." });
       }
       
-      // إعادة تعيين العداد لو مر أكتر من ساعة
       if (now - data.lastAttempt > 3600000) {
         await rateLimitRef.set({ count: 1, lastAttempt: now });
       } else {
@@ -47,7 +45,7 @@ export default async function handler(req, res) {
     }
   } catch (e) { console.error("Rate Limit Check Error:", e); }
 
-  // ======== 1. التحقق من صحة البيانات (منطقك الأصلي) ========
+  // ======== 1. التحقق من صحة البيانات ========
   if (!email || !password || !phone || !name || !deviceId) {
     return res.status(400).json({ success: false, message: "❌ يرجى إكمال جميع الحقول المطلوبة." });
   }
@@ -69,7 +67,7 @@ export default async function handler(req, res) {
     if (!fingerprintSnap.empty) return res.status(403).json({ success: false, message: "❌ تم اكتشاف تسجيل مكرر من هذا المتصفح." });
     if (!phoneSnap.empty) return res.status(400).json({ success: false, message: "❌ رقم الهاتف مستخدم بالفعل." });
 
-    // 3. كود الإحالة (منطقك الأصلي)
+    // 3. كود الإحالة
     let referredBy = null;
     let referrerRef = null;
     if (referralCode) {
@@ -92,7 +90,7 @@ export default async function handler(req, res) {
     const uid = userRecord.uid;
     const myReferralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    // 5. Firestore Transaction (حفظ بياناتك الأصلية + البصمة)
+    // 5. Firestore Transaction
     await db.runTransaction(async (tr) => {
       tr.set(db.collection("users").doc(uid), {
         uid, email, name, phone, deviceId,
