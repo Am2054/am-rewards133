@@ -66,7 +66,7 @@
             box-sizing: border-box;
             transition: all 0.3s ease;
             outline: none;
-            text-align: left; /* الروابط دايماً يسار */
+            text-align: left; 
         }
 
         .url-input:focus {
@@ -93,10 +93,6 @@
             box-shadow: 0 5px 15px rgba(33, 136, 255, 0.4);
         }
 
-        .scan-button:active {
-            transform: scale(0.98);
-        }
-
         .scan-button:disabled {
             background: #30363d;
             cursor: not-allowed;
@@ -108,7 +104,7 @@
             margin-top: 25px;
             padding: 15px;
             border-radius: 12px;
-            display: none; /* مخفي حتى تظهر النتيجة */
+            display: none; 
             font-weight: 500;
             line-height: 1.6;
             animation: fadeIn 0.5s ease;
@@ -131,7 +127,6 @@
             border: 1px solid #f85143;
         }
 
-        /* لودر بسيط (Spinner) */
         .loader {
             display: none;
             width: 20px;
@@ -161,7 +156,7 @@
             <input type="text" id="urlInput" class="url-input" placeholder="ضع الرابط هنا (https://...)" dir="ltr">
         </div>
 
-        <button class="scan-button" onclick="startScan()" id="btnAction">
+        <button class="scan-button" id="btnAction">
             <span id="btnText">تحليل الرابط الآن</span>
             <div id="loader" class="loader"></div>
         </button>
@@ -169,8 +164,22 @@
         <div id="resultBox"></div>
     </div>
 
-    <script>
-        async function startScan() {
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        // إعدادات الـ Firebase الخاصة بيك (نفس اللي في الصفحات التانية)
+        const firebaseConfig = { 
+            apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
+            authDomain: "am--rewards.firebaseapp.com", 
+            projectId: "am--rewards" 
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // جعل الدالة متاحة للزرار
+        window.startScan = async function() {
             const urlInput = document.getElementById('urlInput');
             const url = urlInput.value.trim();
             const resultBox = document.getElementById('resultBox');
@@ -178,9 +187,9 @@
             const loader = document.getElementById('loader');
             const btnAction = document.getElementById('btnAction');
 
-            // جلب معرف المستخدم (بافتراض استخدام Firebase Auth)
-            // إذا كنت تستخدم نظاماً آخر، قم بتعديل طريقة الحصول على الـ userId هنا
-            const userId = typeof firebase !== 'undefined' ? firebase.auth().currentUser?.uid : null;
+            // الحصول على الـ userId من الـ Auth مباشرة
+            const user = auth.currentUser;
+            const userId = user ? user.uid : null;
 
             if (!url) {
                 alert("برجاء إدخال الرابط أولاً");
@@ -188,7 +197,7 @@
             }
 
             if (!userId) {
-                alert("يجب تسجيل الدخول لاستخدام هذه الخدمة");
+                alert("يجب تسجيل الدخول لاستخدام هذه الخدمة. جاري التأكد من هويتك...");
                 return;
             }
 
@@ -209,15 +218,9 @@
                 
                 if (res.status === 402) {
                     alert("انتهت الفحوصات المجانية اليوم. تحتاج إلى 2 نقطة لإتمام هذا الفحص!");
-                    return;
-                } 
-                
-                if (res.status === 403) {
+                } else if (res.status === 403) {
                     alert("لقد استنفدت جميع محاولات الفحص المسموحة لليوم (5/5). عد غداً!");
-                    return;
-                }
-
-                if (res.ok) {
+                } else if (res.ok) {
                     resultBox.style.display = "block";
                     if (data.safe) {
                         resultBox.className = "safe-result";
@@ -233,12 +236,23 @@
                 console.error(err);
                 alert("حدث خطأ أثناء الفحص، تأكد من اتصال الإنترنت أو حاول مجدداً");
             } finally {
-                // إعادة الزرار لحالته الأصلية
                 btnAction.disabled = false;
                 btnText.style.display = "block";
                 loader.style.display = "none";
             }
-        }
+        };
+
+        // تفعيل المستمع للضغط على الزرار
+        document.getElementById('btnAction').addEventListener('click', window.startScan);
+
+        // التأكد من حالة تسجيل الدخول عند فتح الصفحة
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                console.log("المستخدم غير مسجل دخول");
+            } else {
+                console.log("مرحباً بك يا " + user.uid);
+            }
+        });
     </script>
 
 </body>
