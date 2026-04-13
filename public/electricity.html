@@ -150,6 +150,7 @@
         }
 
         const currentHash = `${cur}-${prev}-${units}`;
+        // تم تعديل هذا الجزء لضمان الحساب الفوري حتى لو تشابه الـ Hash
         if (currentHash === lastElecHash) {
             calculateSmartBill();
             return;
@@ -174,7 +175,7 @@
             if (dailyCount >= 3) updateData["points"] = increment(-1);
             await updateDoc(userRef, updateData);
             lastElecHash = currentHash;
-            calculateSmartBill();
+            calculateSmartBill(); // استدعاء فوري للنتائج
         } catch (e) { Swal.fire("خطأ", "فشل تحديث النقاط", "error"); }
     };
 </script>
@@ -188,21 +189,19 @@
     function animateValue(id, start, end, duration) {
         const obj = document.getElementById(id);
         const range = end - start;
+        // حماية لمنع التعليق عند تساوي القيم
         if (range === 0) { obj.innerHTML = end.toFixed(2) + " ج.م"; return; }
-        const minTimer = 50;
-        let stepTime = Math.abs(Math.floor(duration / range));
-        stepTime = Math.max(stepTime, minTimer);
-        const startTime = new Date().getTime();
-        const endTime = startTime + duration;
-        let timer;
-        function run() {
-            const now = new Date().getTime();
-            const remaining = Math.max((endTime - now) / duration, 0);
-            const value = (end - (remaining * range)).toFixed(2);
-            obj.innerHTML = value + " ج.م";
-            if (value == end) clearInterval(timer);
-        }
-        timer = setInterval(run, stepTime);
+        
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            obj.innerHTML = (progress * range + start).toFixed(2) + " ج.م";
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
     }
 
     function calculateSmartBill() {
@@ -247,8 +246,15 @@
 
         localStorage.setItem('lastCurrentRead', current);
         localStorage.setItem('lastMonthKwh', totalKwh);
-        document.getElementById('resultBox').style.display = 'block';
-        animateValue("totalVal", 0, finalTotal, 1000);
+        
+        // إظهار البوكس وتحديث القيم فوراً
+        const resultBox = document.getElementById('resultBox');
+        resultBox.style.display = 'block';
+        
+        // تصفير القيمة القديمة قبل الأنيميشن لضمان الشعور بالتحديث
+        document.getElementById('totalVal').innerText = "0.00 ج.م";
+        animateValue("totalVal", 0, finalTotal, 800);
+        
         document.getElementById('totalKwh').innerText = totalKwh + " ك.و.س";
         document.getElementById('unitKwh').innerText = (totalKwh / units).toFixed(1) + " ك.و.س";
         document.getElementById('shText').innerText = sh;
