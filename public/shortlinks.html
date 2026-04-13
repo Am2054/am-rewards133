@@ -14,7 +14,6 @@
     h2 { color: var(--gold); font-size: 2rem; font-weight: 900; margin-bottom: 15px; }
     #user-points { background: var(--card); border: 1px solid var(--gold); padding: 12px 30px; border-radius: 50px; display: inline-flex; align-items: center; gap: 10px; font-weight: 900; color: var(--gold); }
 
-    /* ستايل السليكتور (الفلاتر) */
     .filter-container { display: flex; justify-content: center; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; }
     .filter-btn { background: var(--card); border: 1px solid var(--border); color: #94a3b8; padding: 10px 20px; border-radius: 12px; cursor: pointer; font-weight: 700; transition: 0.3s; }
     .filter-btn.active { background: var(--accent); color: #020617; border-color: var(--accent); box-shadow: 0 0 15px rgba(0, 242, 255, 0.4); }
@@ -115,7 +114,6 @@ onAuthStateChanged(auth, async (user) => {
   });
 });
 
-// دالة الفلترة
 window.filterLinks = (type, btn) => {
   currentFilter = type;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -157,12 +155,10 @@ function renderUI() {
   });
 }
 
-// دالة التحقق المعدلة لتعمع الـ Selector
 async function handleVerification() {
     const linkIdx = localStorage.getItem('p_idx');
     if (!linkIdx || !auth.currentUser) return;
 
-    // جلب الكود الصحيح من Firebase (الـ Server Controlled)
     const sessionRef = doc(db, "linkSessions", auth.currentUser.uid + "_" + linkIdx);
     const snap = await getDoc(sessionRef);
     
@@ -175,7 +171,6 @@ async function handleVerification() {
     const currentLink = shortlinks.find(l => l.id == linkIdx);
     const pointsToGive = currentLink ? currentLink.points : 1.5;
 
-    // خيارات عشوائية للتحقق
     let options = [
         correctCode.toString(),
         (Math.floor(10 + Math.random() * 89)).toString(),
@@ -192,15 +187,13 @@ async function handleVerification() {
         showConfirmButton: false, background: '#0f172a', color: '#fff', allowOutsideClick: false
     });
 
-        window.submitVerify = async (selectedCode, pts, idx) => {
+    window.submitVerify = async (selectedCode, pts, idx) => {
         if (selectedCode === correctCode.toString()) {
             try {
-                // 1. تحديث إجمالي نقاط المستخدم
                 await updateDoc(currentUserRef, {
                     points: increment(pts)
                 });
                 
-                // 2. تسجيل العملية في كولكشن منفصلة باسم completedLinks
                 const taskRef = doc(db, "completedLinks", auth.currentUser.uid + "_" + idx + "_" + Date.now());
                 await setDoc(taskRef, {
                     userId: auth.currentUser.uid,
@@ -210,12 +203,10 @@ async function handleVerification() {
                     type: "shortlink"
                 });
 
-                // 3. تحديث الوقت الأخير للرابط في بيانات المستخدم لضمان عمل العداد (Cooldown)
                 await updateDoc(currentUserRef, {
                     [`lastLinks.${idx}`]: serverTimestamp()
                 });
                 
-                // 4. مسح جلسة التحقق لضمان عدم استخدامها مرة أخرى
                 await setDoc(sessionRef, { used: true }, { merge: true });
                 
                 Swal.fire({ title: 'كفو!', text: `تم إضافة ${pts} نقطة بنجاح ✅`, icon: 'success' });
@@ -226,7 +217,8 @@ async function handleVerification() {
         localStorage.removeItem('p_idx');
         window.history.replaceState({}, document.title, window.location.pathname);
     };
-} 
+}
+
 window.openLink = (i, url) => {
   localStorage.setItem("p_idx", i);
   window.location.href = url;
