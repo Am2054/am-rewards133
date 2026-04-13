@@ -214,64 +214,53 @@
         }
     });
 
-    window.processAnalysis = async function() {
-        if (!auth.currentUser) return Swal.fire("خطأ", "سجل دخول أولاً", "error");
+    // استبدل جزء وظيفة window.processAnalysis بهذا الكود:
+window.processAnalysis = async function() {
+    if (!auth.currentUser) return Swal.fire("خطأ", "سجل دخول أولاً", "error");
 
-        const quota = parseFloat(document.getElementById('quota').value);
-        const left = parseFloat(document.getElementById('current_left').value) || 0;
-        const resetDay = document.getElementById('reset_day').value;
-        const mobs = document.getElementById('mobs').innerText;
-        const tvs = document.getElementById('tvs').innerText;
-        const qual = document.getElementById('quality').value;
+    const quota = parseFloat(document.getElementById('quota').value);
+    const left = parseFloat(document.getElementById('current_left').value) || 0;
+    const resetDay = document.getElementById('reset_day').value;
+    const mobs = document.getElementById('mobs').innerText;
+    const tvs = document.getElementById('tvs').innerText;
+    const qual = document.getElementById('quality').value;
 
-        // التحقق: المتبقي لا يمكن أن يكون أكبر من الكلي
-        if (left > quota) {
-            return Swal.fire("بيانات غير منطقية", "الجيجا المتبقية لا يمكن أن تكون أكبر من حجم الباقة الأساسي!", "warning");
-        }
-
-        // منع التكرار: إنشاء بصمة للبحث الحالي
-        const currentSearchHash = `${quota}-${left}-${resetDay}-${mobs}-${tvs}-${qual}`;
-        if (currentSearchHash === lastSearchHash) {
-            analyze(); // شغل التحليل بدون خصم
-            return;
-        }
-        
-        const today = new Date().toISOString().split('T')[0];
-        let dailyCount = (scanStats.date === today) ? scanStats.count : 0;
-
-        // طلب تأكيد لو المحاولات المجانية خلصت
-        if (dailyCount >= 3) {
-            if (points < 1) {
-                return Swal.fire("نقاط غير كافية", "انتهت المحاولات المجانية وتحتاج لنقطة واحدة.", "error");
-            }
-            const confirm = await Swal.fire({
-                title: 'تأكيد الخصم',
-                text: "لقد استنفدت محاولاتك المجانية اليوم. سيتم خصم 1 نقطة لإجراء هذا التحليل.",
-                icon: 'info',
-                showCancelButton: true,
-                confirmButtonText: 'موافق، اخصم نقطة',
-                cancelButtonText: 'إلغاء'
-            });
-            if (!confirm.isConfirmed) return;
-        }
-
-        try {
-            let updateData = {
-                "scanStats.count": dailyCount + 1,
-                "scanStats.date": today
-            };
-            if (dailyCount >= 3) {
-                updateData["points"] = increment(-1);
-            }
-            
-            await updateDoc(userRef, updateData);
-            lastSearchHash = currentSearchHash; // تحديث آخر بحث ناجح
-            analyze();
-
-        } catch (e) {
-            Swal.fire("خطأ", "حدث خطأ في تحديث البيانات", "error");
-        }
+    if (left > quota) {
+        return Swal.fire("بيانات غير منطقية", "الجيجا المتبقية أكبر من الباقة!", "warning");
     }
+
+    const currentSearchHash = `${quota}-${left}-${resetDay}-${mobs}-${tvs}-${qual}`;
+    if (currentSearchHash === lastSearchHash) {
+        analyze();
+        return;
+    }
+
+    Swal.showLoading();
+
+    try {
+        const response = await fetch('/api/check-link', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: auth.currentUser.uid,
+                type: 'router_scan' // تحديد نوع العملية للـ Backend
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            lastSearchHash = currentSearchHash;
+            Swal.close();
+            analyze();
+        } else {
+            Swal.fire("تنبيه", result.error, "warning");
+        }
+    } catch (e) {
+        Swal.fire("خطأ", "فشل الاتصال بالخادم الذكي", "error");
+    }
+}
+
 </script>
 
 <script>
