@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>رادار المياه الذكي | AM Rewards PRO</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -19,23 +19,32 @@
             font-family: 'Tajawal', sans-serif;
             background: var(--bg-deep);
             color: #fff;
-            margin: 0; padding: 20px;
+            margin: 0; padding: 0;
             transition: background 0.5s ease;
         }
 
+        /* بار النقاط العلوي */
+        .points-bar {
+            position: sticky; top: 0; z-index: 1000;
+            background: rgba(11, 15, 25, 0.8); backdrop-filter: blur(10px);
+            padding: 10px 20px; border-bottom: 1px solid rgba(0, 242, 255, 0.2);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .points-display { background: rgba(0, 242, 255, 0.1); padding: 5px 15px; border-radius: 50px; border: 1px solid var(--neon-blue); font-size: 14px; font-weight: 900; color: var(--neon-blue); }
+
         .container {
-            max-width: 500px; margin: 0 auto;
+            max-width: 500px; margin: 20px auto;
             background: var(--glass);
             padding: 25px; border-radius: 24px;
             border: 1px solid rgba(255,255,255,0.1);
             backdrop-filter: blur(15px);
             box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            width: 92%; box-sizing: border-box;
         }
 
         h1 { text-align: center; color: var(--neon-blue); font-weight: 900; margin-bottom: 5px; text-shadow: 0 0 10px var(--neon-blue); }
         .sub-title { text-align: center; font-size: 12px; color: #94a3b8; margin-bottom: 25px; }
 
-        /* ميزة المقارنة الجديدة */
         #compareBadge { display: none; text-align: center; margin-bottom: 15px; padding: 10px; border-radius: 12px; font-size: 11px; font-weight: 700; animation: slideUp 0.5s ease; }
         .badge-up { background: rgba(255, 68, 68, 0.1); color: var(--neon-red); border: 1px solid var(--neon-red); }
         .badge-down { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid #10b981; }
@@ -57,7 +66,6 @@
             display: none; background: rgba(239, 68, 68, 0.1); color: #ef4444; 
             padding: 10px; border-radius: 10px; border: 1px solid #ef4444; 
             font-size: 12px; text-align: center; margin-bottom: 15px;
-            animation: shake 0.5s ease;
         }
 
         .calc-btn {
@@ -67,308 +75,236 @@
             box-shadow: 0 10px 20px rgba(0, 242, 255, 0.2); transition: 0.3s;
         }
 
-        .reset-link {
-            display: block; text-align: center; margin-top: 10px;
-            color: #64748b; font-size: 11px; text-decoration: underline; cursor: pointer;
-        }
-
         .result-box {
             display: none; margin-top: 25px; padding: 20px;
             border-radius: 18px; background: rgba(255,255,255,0.03);
             border: 1px solid rgba(0, 242, 255, 0.3);
-            animation: slideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: slideUp 0.5s ease;
         }
 
-        #leakAlert { 
-            display: none; background: rgba(249, 115, 22, 0.15); color: var(--neon-orange); 
-            padding: 15px; border-radius: 15px; border: 1px solid var(--neon-orange); 
-            margin-bottom: 15px; font-size: 13px; line-height: 1.5; border-right: 4px solid var(--neon-orange);
-        }
+        .total-price { font-size: 36px; color: var(--neon-blue); text-align: center; margin: 5px 0; display: block; font-weight: 900; }
+        .unit-money-box { background: rgba(112, 0, 255, 0.1); border: 1px solid var(--neon-purple); padding: 12px; border-radius: 15px; margin: 15px 0; text-align: center; }
 
-        .radar-status {
-            text-align: center; font-size: 11px; margin-bottom: 15px; color: var(--neon-blue);
-            background: rgba(0, 242, 255, 0.05); padding: 8px; border-radius: 50px;
-            border: 1px solid rgba(0, 242, 255, 0.1);
-        }
-
-        .total-price { 
-            font-size: 36px; color: var(--neon-blue); text-align: center; 
-            margin: 5px 0; display: block; font-weight: 900;
-        }
-
-        .unit-money-box {
-            background: rgba(112, 0, 255, 0.1);
-            border: 1px solid var(--neon-purple);
-            padding: 12px; border-radius: 15px;
-            margin: 15px 0; text-align: center;
-        }
-
-        .family-fact {
-            background: rgba(0, 242, 255, 0.1); color: var(--neon-blue);
-            padding: 10px; border-radius: 10px; font-size: 11px;
-            text-align: center; margin-top: 15px; border: 1px dashed var(--neon-blue);
-        }
-
-        .details-item { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px; align-items: center;}
-        .sh-label { font-size: 10px; color: #94a3b8; display: block; }
-
-        .smart-alert {
-            margin-top: 15px; padding: 12px; border-radius: 10px;
-            font-size: 12px; line-height: 1.5; border-right: 4px solid;
-        }
-        .alert-danger { background: rgba(255, 68, 68, 0.1); color: var(--neon-red); border-color: var(--neon-red); }
-        .alert-safe { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: #10b981; }
-
-        .tips-btn {
-            width: 100%; margin-top: 15px; padding: 12px; background: none;
-            border: 1px solid var(--neon-blue); color: var(--neon-blue);
-            border-radius: 12px; font-weight: 700; cursor: pointer; font-family: 'Tajawal';
-        }
-        #tipsContent {
-            display: none; margin-top: 15px; background: rgba(0, 242, 255, 0.03);
-            padding: 15px; border-radius: 15px; border: 1px dotted var(--neon-blue);
-            font-size: 12px; line-height: 1.8; color: #cbd5e1;
-        }
-
-        .cross-link {
-            margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);
-            text-align: center;
-        }
-        .link-btn {
-            display: inline-block; padding: 8px 18px; border-radius: 20px;
-            background: rgba(255,255,255,0.05); color: #94a3b8;
-            font-size: 12px; text-decoration: none; border: 1px solid rgba(255,255,255,0.1);
-            transition: 0.3s;
-        }
-        .link-btn:hover { border-color: #facc15; color: #facc15; }
-
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>💧 رادار المياه</h1>
-        <p class="sub-title">تحليل ذكي لاستهلاكك (إصدار 2026)</p>
-        
-        <div id="compareBadge"></div>
+<div class="points-bar">
+    <div style="font-size: 12px; font-weight: bold;">المجانية المتبقية: <span id="freeTries">3</span></div>
+    <div class="points-display">🪙 النقاط: <span id="userPoints">0</span></div>
+</div>
 
-        <div id="errorMsg">⚠️ خطأ: القراءة الحالية يجب أن تكون أكبر من السابقة.</div>
+<div class="container">
+    <h1>💧 رادار المياه</h1>
+    <p class="sub-title">تحليل ذكي لاستهلاكك (إصدار 2026)</p>
+    
+    <div id="compareBadge"></div>
+    <div id="errorMsg">⚠️ خطأ: القراءة الحالية يجب أن تكون أكبر من السابقة.</div>
 
-        <div class="input-row">
-            <div class="input-group">
-                <label>القراءة الحالية</label>
-                <input type="number" id="currentRead" placeholder="0000" inputmode="numeric">
-            </div>
-            <div class="input-group">
-                <label>القراءة السابقة</label>
-                <input type="number" id="prevRead" placeholder="0000" inputmode="numeric">
-            </div>
+    <div class="input-row">
+        <div class="input-group">
+            <label>القراءة الحالية</label>
+            <input type="number" id="currentRead" placeholder="0000" inputmode="numeric">
         </div>
-
-        <div class="input-group" style="margin-bottom: 20px;">
-            <label>عدد الوحدات (الشقق) بالعداد</label>
-            <input type="number" id="unitsCount" value="1" min="1" inputmode="numeric">
+        <div class="input-group">
+            <label>القراءة السابقة</label>
+            <input type="number" id="prevRead" placeholder="0000" inputmode="numeric">
         </div>
-
-        <button class="calc-btn" onclick="calculateWaterBill()">تحليل الفاتورة والبحث عن تسريب 🔍</button>
-        <span class="reset-link" onclick="resetApp()">🔄 مسح البيانات والبدء من جديد</span>
-
-        <div id="resultBox" class="result-box">
-            <div id="leakAlert">
-                ⚠️ <b>احتمالية تسريب خفي:</b> إجمالي الاستهلاك عالٍ جداً مقارنة بعدد الوحدات. يرجى فحص الخطوط الرئيسية والعوامات الأرضية فوراً.
-            </div>
-
-            <div class="radar-status" id="radarStatus">📡 الرادار يرصد تدفق المياه...</div>
-            
-            <div style="text-align: center; font-size: 13px; color: #94a3b8;">إجمالي فاتورة العمارة/المبنى</div>
-            <span class="total-price" id="totalVal">0.00 ج.م</span>
-            
-            <div class="unit-money-box">
-                <span style="font-size: 12px; color: #cbd5e1; display: block; margin-bottom: 5px;">نصيب الوحدة الواحدة من الفاتورة</span>
-                <span id="unitMoneyVal" style="font-size: 24px; color: var(--neon-purple); font-weight: 900;">0.00 ج.م</span>
-            </div>
-
-            <div id="familyFact" class="family-fact"></div>
-
-            <div class="details-item" style="margin-top: 15px;">
-                <span>الشريحة المحسوبة:</span>
-                <div style="text-align: left;">
-                    <span id="shText" style="color:var(--neon-blue); font-weight:bold;">-</span>
-                    <span id="shRange" class="sh-label"></span>
-                </div>
-            </div>
-
-            <div class="details-item"><span>إجمالي الاستهلاك:</span> <span id="totalM3" style="font-weight:bold;">0</span> م³</div>
-            <div class="details-item"><span>نصيب الوحدة من المياه:</span> <span id="unitM3" style="color:var(--neon-blue)">0</span> م³</div>
-            
-            <div id="smartAlert" class="smart-alert"></div>
-
-            <button class="tips-btn" onclick="toggleTips()">💡 ازاي أوفر في فاتورة المياه؟</button>
-            <div id="tipsContent">
-                • <b>كشف التسريب:</b> اقفل كل المحابس وبص على العداد، لو بيلف يبقى عندك تسريب.<br>
-                • <b>سيفون الحمام:</b> تأكد من سلامة "الجلدة" الداخلية، هو أكبر مهدر للمياه.<br>
-                • <b>الفلاتر:</b> ركب قطع توفير المياه على الحنفيات لتوفير 40% من الاستهلاك.
-            </div>
-        </div>
-
-        <div class="cross-link">
-            <a href="electricity.html" class="link-btn">🔌 رادار الكهرباء</a>
-        </div>
-        
-        <p style="text-align: center; font-size: 9px; color: #475569; margin-top: 15px;">
-            * الرسوم والشرائح تقديرية لعام 2026 وتشمل الصرف الصحي (75%).
-        </p>
     </div>
 
-    <script>
-        window.onload = function() {
-            const savedWater = localStorage.getItem('lastWaterRead');
-            if (savedWater) { document.getElementById('prevRead').value = savedWater; }
+    <div class="input-group" style="margin-bottom: 20px;">
+        <label>عدد الوحدات (الشقق) بالعداد</label>
+        <input type="number" id="unitsCount" value="1" min="1" inputmode="numeric">
+    </div>
+
+    <button class="calc-btn" onclick="processWaterAnalysis()">تحليل الفاتورة والبحث عن تسريب 🔍</button>
+    <span style="display: block; text-align: center; margin-top: 10px; color: #64748b; font-size: 11px; text-decoration: underline; cursor: pointer;" onclick="resetApp()">🔄 مسح البيانات والبدء من جديد</span>
+
+    <div id="resultBox" class="result-box">
+        <div id="leakAlert" style="display: none; background: rgba(249, 115, 22, 0.15); color: var(--neon-orange); padding: 15px; border-radius: 15px; border: 1px solid var(--neon-orange); margin-bottom: 15px; font-size: 13px; line-height: 1.5; border-right: 4px solid var(--neon-orange);">
+            ⚠️ <b>احتمالية تسريب خفي:</b> إجمالي الاستهلاك عالٍ جداً مقارنة بعدد الوحدات.
+        </div>
+
+        <div class="radar-status" id="radarStatus" style="text-align: center; font-size: 11px; margin-bottom: 15px; color: var(--neon-blue); background: rgba(0, 242, 255, 0.05); padding: 8px; border-radius: 50px; border: 1px solid rgba(0, 242, 255, 0.1);">📡 الرادار يرصد تدفق المياه...</div>
+        
+        <div style="text-align: center; font-size: 13px; color: #94a3b8;">إجمالي فاتورة المبنى</div>
+        <span class="total-price" id="totalVal">0.00 ج.م</span>
+        
+        <div class="unit-money-box">
+            <span style="font-size: 12px; color: #cbd5e1; display: block; margin-bottom: 5px;">نصيب الوحدة من الفاتورة</span>
+            <span id="unitMoneyVal" style="font-size: 24px; color: var(--neon-purple); font-weight: 900;">0.00 ج.م</span>
+        </div>
+
+        <div id="familyFact" style="background: rgba(0, 242, 255, 0.1); color: var(--neon-blue); padding: 10px; border-radius: 10px; font-size: 11px; text-align: center; margin-top: 15px; border: 1px dashed var(--neon-blue);"></div>
+
+        <div style="margin-top: 15px; font-size: 13px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;"><span>الشريحة:</span> <span id="shText" style="color:var(--neon-blue); font-weight:bold;">-</span></div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;"><span>إجمالي الاستهلاك:</span> <span id="totalM3">0</span> م³</div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;"><span>نصيب الوحدة:</span> <span id="unitM3">0</span> م³</div>
+        </div>
+        
+        <div id="smartAlert" style="margin-top: 15px; padding: 12px; border-radius: 10px; font-size: 12px; line-height: 1.5; border-right: 4px solid;"></div>
+
+        <button style="width: 100%; margin-top: 15px; padding: 12px; background: none; border: 1px solid var(--neon-blue); color: var(--neon-blue); border-radius: 12px; font-weight: 700; cursor: pointer;" onclick="toggleTips()">💡 ازاي أوفر في المياه؟</button>
+        <div id="tipsContent" style="display: none; margin-top: 15px; background: rgba(0, 242, 255, 0.03); padding: 15px; border-radius: 15px; border: 1px dotted var(--neon-blue); font-size: 12px; line-height: 1.8; color: #cbd5e1;">
+            • افحص سيفون الحمام وجلدة المحابس.<br>
+            • ركب قطع توفير المياه لتوفير 40%.
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, onSnapshot, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let userRef = null;
+    let points = 0;
+    let waterStats = { count: 0, date: "" };
+    let lastWaterHash = "";
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            userRef = doc(db, "users", user.uid);
+            onSnapshot(userRef, (snap) => {
+                const data = snap.data();
+                points = data.points || 0;
+                waterStats = data.waterStats || { count: 0, date: "" };
+                const today = new Date().toISOString().split('T')[0];
+                let dailyCount = (waterStats.date === today) ? waterStats.count : 0;
+                document.getElementById('userPoints').innerText = points;
+                document.getElementById('freeTries').innerText = Math.max(0, 3 - dailyCount);
+            });
+        }
+    });
+
+    window.processWaterAnalysis = async function() {
+        if (!auth.currentUser) return Swal.fire("خطأ", "سجل دخول أولاً", "error");
+
+        const cur = parseFloat(document.getElementById('currentRead').value);
+        const prev = parseFloat(document.getElementById('prevRead').value);
+        const units = document.getElementById('unitsCount').value;
+
+        if (isNaN(cur) || isNaN(prev) || cur < prev) {
+            document.getElementById('errorMsg').style.display = 'block';
+            return;
+        }
+
+        const currentHash = `${cur}-${prev}-${units}`;
+        if (currentHash === lastWaterHash) {
+            calculateWaterBill();
+            return;
+        }
+
+        const today = new Date().toISOString().split('T')[0];
+        let dailyCount = (waterStats.date === today) ? waterStats.count : 0;
+
+        if (dailyCount >= 3) {
+            if (points < 1) return Swal.fire("رصيد غير كافٍ", "المحاولات المجانية انتهت.", "error");
+            const confirm = await Swal.fire({
+                title: 'تأكيد الخصم',
+                text: "سيتم خصم 1 نقطة لإجراء هذا التحليل.",
+                icon: 'info',
+                showCancelButton: true, confirmButtonText: 'موافق', cancelButtonText: 'إلغاء'
+            });
+            if (!confirm.isConfirmed) return;
+        }
+
+        try {
+            let updateData = { "waterStats.count": dailyCount + 1, "waterStats.date": today };
+            if (dailyCount >= 3) updateData["points"] = increment(-1);
+            await updateDoc(userRef, updateData);
+            lastWaterHash = currentHash;
+            calculateWaterBill();
+        } catch (e) { Swal.fire("خطأ", "فشل التحديث", "error"); }
+    };
+</script>
+
+<script>
+    window.onload = function() {
+        const savedWater = localStorage.getItem('lastWaterRead');
+        if (savedWater) { document.getElementById('prevRead').value = savedWater; }
+    };
+
+    function animateValue(obj, start, end, duration, suffix = " ج.م") {
+        if (start === end) { obj.innerHTML = end.toFixed(2) + suffix; return; }
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const currentVal = (progress * (end - start) + start).toFixed(2);
+            obj.innerHTML = currentVal + suffix;
+            if (progress < 1) window.requestAnimationFrame(step);
         };
+        window.requestAnimationFrame(step);
+    }
 
-        function animateValue(obj, start, end, duration, suffix = " ج.م") {
-            // --- تحسين 2: حماية من الفروقات الصفرية ---
-            if (start === end) {
-                obj.innerHTML = end.toFixed(2) + suffix;
-                return;
-            }
-            let startTimestamp = null;
-            const step = (timestamp) => {
-                if (!startTimestamp) startTimestamp = timestamp;
-                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                const currentVal = (progress * (end - start) + start).toFixed(2);
-                obj.innerHTML = currentVal + suffix;
-                if (progress < 1) window.requestAnimationFrame(step);
-            };
-            window.requestAnimationFrame(step);
+    function calculateWaterBill() {
+        const current = parseFloat(document.getElementById('currentRead').value);
+        const previous = parseFloat(document.getElementById('prevRead').value);
+        let units = parseInt(document.getElementById('unitsCount').value) || 1;
+        
+        document.getElementById('errorMsg').style.display = 'none';
+        const totalM3 = current - previous;
+        const m3PerUnit = totalM3 / units;
+
+        const leakAlert = document.getElementById('leakAlert');
+        leakAlert.style.display = (totalM3 > (units * 15) && m3PerUnit < 8) ? 'block' : 'none';
+        
+        let unitWaterPrice = 0, shName = "", radarMsg = "";
+        if (m3PerUnit <= 10) { 
+            unitWaterPrice = m3PerUnit * 1.25; shName = "الأولى"; radarMsg = "📡 استهلاك مثالي.";
+        } else if (m3PerUnit <= 20) { 
+            unitWaterPrice = (10 * 1.25) + ((m3PerUnit - 10) * 2.50); shName = "الثانية"; radarMsg = "📡 استهلاك طبيعي.";
+        } else if (m3PerUnit <= 30) { 
+            unitWaterPrice = (10 * 1.25) + (10 * 2.50) + ((m3PerUnit - 20) * 3.50); shName = "الثالثة"; radarMsg = "📡 زيادة في الاستهلاك.";
+        } else { 
+            unitWaterPrice = (10 * 1.25) + (10 * 2.50) + (10 * 3.50) + ((m3PerUnit - 30) * 5.00); shName = "الرابعة فأعلى"; radarMsg = "🚨 إنذار استهلاك عالٍ!";
         }
 
-        function calculateWaterBill() {
-            const current = parseFloat(document.getElementById('currentRead').value);
-            const previous = parseFloat(document.getElementById('prevRead').value);
-            let units = parseInt(document.getElementById('unitsCount').value);
-            
-            // --- تحسين 2: تأمين إضافي للمدخلات ---
-            if (isNaN(units) || units < 1) units = 1;
-            if (units > 100) units = 100; // حد أقصى منطقي لعداد منزلي
-            document.getElementById('unitsCount').value = units;
+        const totalWaterPrice = unitWaterPrice * units;
+        const finalTotal = (totalWaterPrice * 1.75) + (5 * units) + 5; 
+        const moneyPerUnit = finalTotal / units;
 
-            const errorDiv = document.getElementById('errorMsg');
-            const resultBox = document.getElementById('resultBox');
-
-            if (isNaN(current) || isNaN(previous) || current < previous) {
-                errorDiv.style.display = 'block'; resultBox.style.display = 'none'; return;
-            }
-            errorDiv.style.display = 'none';
-
-            const totalM3 = current - previous;
-            const m3PerUnit = totalM3 / units;
-
-            // --- تحسين 1: خوارزمية كشف تسريب ديناميكية أذكى ---
-            const leakAlert = document.getElementById('leakAlert');
-            if (totalM3 > (units * 15) && m3PerUnit < 8) {
-                leakAlert.style.display = 'block';
-            } else {
-                leakAlert.style.display = 'none';
-            }
-            
-            let unitWaterPrice = 0, serviceFeePerUnit = 0, shName = "", shRange = "", radarMsg = "";
-
-            if (m3PerUnit <= 10) { 
-                unitWaterPrice = m3PerUnit * 1.25; serviceFeePerUnit = 5; 
-                shName = "الأولى"; shRange = "(0 - 10 م³)";
-                radarMsg = "📡 استهلاك مثالي للوحدات.";
-            } else if (m3PerUnit <= 20) { 
-                unitWaterPrice = (10 * 1.25) + ((m3PerUnit - 10) * 2.50); serviceFeePerUnit = 10; 
-                shName = "الثانية"; shRange = "(11 - 20 م³)";
-                radarMsg = "📡 استهلاك طبيعي ضمن الحدود.";
-            } else if (m3PerUnit <= 30) { 
-                unitWaterPrice = (10 * 1.25) + (10 * 2.50) + ((m3PerUnit - 20) * 3.50); serviceFeePerUnit = 20; 
-                shName = "الثالثة"; shRange = "(21 - 30 م³)";
-                radarMsg = "📡 رصد زيادة في الاستهلاك.. يرجى الحذر.";
-            } else { 
-                unitWaterPrice = (10 * 1.25) + (10 * 2.50) + (10 * 3.50) + ((m3PerUnit - 30) * 5.00); 
-                serviceFeePerUnit = 40; 
-                shName = "الرابعة فأعلى"; shRange = "(أكثر من 30 م³)";
-                radarMsg = "🚨 إنذار! استهلاك خارج النطاق المدعوم.";
-            }
-
-            const totalWaterPrice = unitWaterPrice * units;
-            const totalSewage = totalWaterPrice * 0.75; 
-            const totalServiceFees = serviceFeePerUnit * units;
-            
-            const adminFees = 5.00; 
-            const finalTotal = totalWaterPrice + totalSewage + totalServiceFees + adminFees;
-            const moneyPerUnit = finalTotal / units;
-
-            // --- تحسين 4: ميزة المقارنة بالشهر السابق (مثل الكهرباء) ---
-            const lastM3 = parseFloat(localStorage.getItem('lastWaterM3'));
-            const badge = document.getElementById('compareBadge');
-            
-            if (!isNaN(lastM3) && lastM3 > 0) {
-                const diff = totalM3 - lastM3;
-                const percent = ((Math.abs(diff) / lastM3) * 100).toFixed(1);
-                badge.style.display = 'block';
-                if (diff > 0) {
-                    badge.className = 'badge-up';
-                    badge.innerHTML = `📈 استهلاك المياه زاد بنسبة ${percent}% عن الشهر السابق`;
-                    document.body.style.background = "#0f0505";
-                } else if (diff < 0) {
-                    badge.className = 'badge-down';
-                    badge.innerHTML = `📉 استهلاك المياه قل بنسبة ${percent}% عن الشهر السابق`;
-                    document.body.style.background = "#020617";
-                } else {
-                    badge.className = 'badge-down';
-                    badge.innerHTML = `➖ الاستهلاك مطابق تماماً للشهر السابق`;
-                    document.body.style.background = "#020617";
-                }
-            } else {
-                badge.style.display = 'none';
-            }
-
-            localStorage.setItem('lastWaterRead', current);
-            localStorage.setItem('lastWaterM3', totalM3);
-            
-            resultBox.style.display = 'block';
-
-            animateValue(document.getElementById('totalVal'), 0, finalTotal, 1000);
-            animateValue(document.getElementById('unitMoneyVal'), 0, moneyPerUnit, 1000);
-
-            document.getElementById('totalM3').innerText = totalM3;
-            document.getElementById('unitM3').innerText = m3PerUnit.toFixed(1);
-            document.getElementById('shText').innerText = shName;
-            document.getElementById('shRange').innerText = shRange;
-            document.getElementById('radarStatus').innerText = radarMsg;
-            
-            const familyDays = Math.floor(totalM3 / 0.6);
-            document.getElementById('familyFact').innerHTML = `💡 هذا الاستهلاك يكفي أسرة من 4 أفراد لمدة <b>${familyDays}</b> يوم تقريباً.`;
-
-            const alertBox = document.getElementById('smartAlert');
-            if (m3PerUnit > 20) {
-                alertBox.className = "smart-alert alert-danger";
-                alertBox.innerHTML = "⚠️ <b>تحذير:</b> تخطيتم حاجز 20 م³ للوحدة. التكلفة أصبحت مرتفعة جداً.";
-            } else {
-                alertBox.className = "smart-alert alert-safe";
-                alertBox.innerHTML = "✅ <b>وضع آمن:</b> الاستهلاك ضمن الشرائح الاجتماعية المدعومة.";
-            }
-            
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        const lastM3 = parseFloat(localStorage.getItem('lastWaterM3'));
+        const badge = document.getElementById('compareBadge');
+        if (!isNaN(lastM3) && lastM3 > 0) {
+            const diff = totalM3 - lastM3;
+            badge.style.display = 'block';
+            badge.className = diff > 0 ? 'badge-up' : 'badge-down';
+            badge.innerHTML = diff > 0 ? `📈 زاد الاستهلاك عن الشهر السابق` : `📉 قل الاستهلاك عن الشهر السابق`;
         }
 
-        function resetApp() {
-            if(confirm("هل تريد مسح سجل القراءات السابق والبدء من جديد؟")) {
-                localStorage.removeItem('lastWaterRead');
-                localStorage.removeItem('lastWaterM3');
-                location.reload();
-            }
-        }
+        localStorage.setItem('lastWaterRead', current);
+        localStorage.setItem('lastWaterM3', totalM3);
+        document.getElementById('resultBox').style.display = 'block';
+        animateValue(document.getElementById('totalVal'), 0, finalTotal, 1000);
+        animateValue(document.getElementById('unitMoneyVal'), 0, moneyPerUnit, 1000);
+        document.getElementById('totalM3').innerText = totalM3;
+        document.getElementById('unitM3').innerText = m3PerUnit.toFixed(1);
+        document.getElementById('shText').innerText = shName;
+        document.getElementById('radarStatus').innerText = radarMsg;
+        document.getElementById('familyFact').innerHTML = `💡 هذا الاستهلاك يكفي أسرة لمدة <b>${Math.floor(totalM3 / 0.6)}</b> يوم تقريباً.`;
+        
+        const alertBox = document.getElementById('smartAlert');
+        alertBox.className = m3PerUnit > 20 ? "smart-alert alert-danger" : "smart-alert alert-safe";
+        alertBox.innerHTML = m3PerUnit > 20 ? "⚠️ تخطيتم حاجز 20 م³ للوحدة." : "✅ الاستهلاك ضمن الشرائح المدعومة.";
+        
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
 
-        function toggleTips() {
-            const content = document.getElementById('tipsContent');
-            content.style.display = content.style.display === 'block' ? 'none' : 'block';
-        }
-    </script>
+    function resetApp() { if(confirm("مسح البيانات؟")) { localStorage.clear(); location.reload(); } }
+    window.toggleTips = function() {
+        const content = document.getElementById('tipsContent');
+        content.style.display = content.style.display === 'block' ? 'none' : 'block';
+    }
+</script>
 </body>
 </html>
