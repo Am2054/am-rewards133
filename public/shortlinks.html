@@ -192,16 +192,30 @@ async function handleVerification() {
         showConfirmButton: false, background: '#0f172a', color: '#fff', allowOutsideClick: false
     });
 
-    window.submitVerify = async (selectedCode, pts, idx) => {
+        window.submitVerify = async (selectedCode, pts, idx) => {
         if (selectedCode === correctCode.toString()) {
             try {
-                // 1. تحديث النقاط وتاريخ الرابط
+                // 1. تحديث إجمالي نقاط المستخدم
                 await updateDoc(currentUserRef, {
-                    points: increment(pts),
-                    [`completedLinks.${idx}`]: serverTimestamp()
+                    points: increment(pts)
                 });
                 
-                // 2. مسح جلسة التحقق لضمان عدم استخدامها مرة أخرى
+                // 2. تسجيل العملية في كولكشن منفصلة باسم completedLinks
+                const taskRef = doc(db, "completedLinks", auth.currentUser.uid + "_" + idx + "_" + Date.now());
+                await setDoc(taskRef, {
+                    userId: auth.currentUser.uid,
+                    linkId: idx,
+                    pointsEarned: pts,
+                    completedAt: serverTimestamp(),
+                    type: "shortlink"
+                });
+
+                // 3. تحديث الوقت الأخير للرابط في بيانات المستخدم لضمان عمل العداد (Cooldown)
+                await updateDoc(currentUserRef, {
+                    [`lastLinks.${idx}`]: serverTimestamp()
+                });
+                
+                // 4. مسح جلسة التحقق لضمان عدم استخدامها مرة أخرى
                 await setDoc(sessionRef, { used: true }, { merge: true });
                 
                 Swal.fire({ title: 'كفو!', text: `تم إضافة ${pts} نقطة بنجاح ✅`, icon: 'success' });
@@ -212,8 +226,6 @@ async function handleVerification() {
         localStorage.removeItem('p_idx');
         window.history.replaceState({}, document.title, window.location.pathname);
     };
-}
-
 
 window.openLink = (i, url) => {
   localStorage.setItem("p_idx", i);
