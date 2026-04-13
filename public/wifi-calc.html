@@ -85,7 +85,7 @@
 <body>
 
 <div class="points-bar">
-    <div style="font-size: 12px; font-weight: bold;">المحاولات المجانية: <span id="freeTries">3</span></div>
+    <div style="font-size: 12px; font-weight: bold;">الخدمة: <span style="color:var(--success)">مجانية بالكامل 🔓</span></div>
     <div class="points-display">🪙 النقاط: <span id="userPoints">0</span></div>
 </div>
 
@@ -147,7 +147,7 @@
         </div>
     </div>
 
-    <button class="btn-glow" id="mainBtn" onclick="processAnalysis()">ابدأ التحليل الذكي ⚡</button>
+    <button class="btn-glow" id="mainBtn" onclick="processAnalysis()">ابدأ التحليل الفوري ⚡</button>
 
     <div id="resultsPanel">
         <div class="card result-main" id="statusCard">
@@ -180,7 +180,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, onSnapshot, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = { 
         apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
@@ -192,75 +192,36 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    let userRef = null;
-    let points = 0;
-    let scanStats = { count: 0, date: "" };
-    let lastSearchHash = ""; // لحفظ آخر بحث
-
     onAuthStateChanged(auth, (user) => {
         if (user) {
-            userRef = doc(db, "users", user.uid);
+            const userRef = doc(db, "users", user.uid);
             onSnapshot(userRef, (snap) => {
-                const data = snap.data();
-                points = data.points || 0;
-                scanStats = data.scanStats || { count: 0, date: "" };
-                
-                const today = new Date().toISOString().split('T')[0];
-                let dailyCount = (scanStats.date === today) ? scanStats.count : 0;
-                
-                document.getElementById('userPoints').innerText = points;
-                document.getElementById('freeTries').innerText = Math.max(0, 3 - dailyCount);
+                if (snap.exists()) {
+                    document.getElementById('userPoints').innerText = snap.data().points || 0;
+                }
             });
         }
     });
 
-    // استبدل جزء وظيفة window.processAnalysis بهذا الكود:
-window.processAnalysis = async function() {
-    if (!auth.currentUser) return Swal.fire("خطأ", "سجل دخول أولاً", "error");
+    // الوظيفة الآن تعمل محلياً بالكامل بدون طلبات Backend
+    window.processAnalysis = function() {
+        const left = parseFloat(document.getElementById('current_left').value) || 0;
+        const quota = parseFloat(document.getElementById('quota').value);
 
-    const quota = parseFloat(document.getElementById('quota').value);
-    const left = parseFloat(document.getElementById('current_left').value) || 0;
-    const resetDay = document.getElementById('reset_day').value;
-    const mobs = document.getElementById('mobs').innerText;
-    const tvs = document.getElementById('tvs').innerText;
-    const qual = document.getElementById('quality').value;
-
-    if (left > quota) {
-        return Swal.fire("بيانات غير منطقية", "الجيجا المتبقية أكبر من الباقة!", "warning");
-    }
-
-    const currentSearchHash = `${quota}-${left}-${resetDay}-${mobs}-${tvs}-${qual}`;
-    if (currentSearchHash === lastSearchHash) {
-        analyze();
-        return;
-    }
-
-    Swal.showLoading();
-
-    try {
-        const response = await fetch('/api/check-link', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                userId: auth.currentUser.uid,
-                type: 'router_scan' // تحديد نوع العملية للـ Backend
-            })
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            lastSearchHash = currentSearchHash;
-            Swal.close();
-            analyze();
-        } else {
-            Swal.fire("تنبيه", result.error, "warning");
+        if (left > quota) {
+            return Swal.fire("بيانات غير منطقية", "الجيجا المتبقية أكبر من الباقة!", "warning");
         }
-    } catch (e) {
-        Swal.fire("خطأ", "فشل الاتصال بالخادم الذكي", "error");
-    }
-}
 
+        // إظهار لودينج وهمي سريع لإعطاء انطباع بالذكاء
+        Swal.fire({
+            title: 'جاري التحليل الرقمي...',
+            timer: 800,
+            timerProgressBar: true,
+            didOpen: () => { Swal.showLoading(); }
+        }).then(() => {
+            analyze(); // تنفيذ الحسابات
+        });
+    }
 </script>
 
 <script>
