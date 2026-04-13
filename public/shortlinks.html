@@ -71,6 +71,7 @@ const db = getFirestore(app);
 const LINK_COOLDOWN = 24 * 60 * 60 * 1000;
 let currentFilter = 'all';
 let userLastLinks = {};
+let isProcessing = false; // متغير لمنع الثغرة
 
 const shortlinks = [
   { id: 0, title: "رابط رقم 1", url: "https://swiftlnx.com/O9fy5YtU", difficulty: "متوسط وهتعمله", points: 2.5, class: "medium", type: "medium" },
@@ -188,7 +189,12 @@ async function handleVerification() {
     });
 
     window.submitVerify = async (selectedCode, pts, idx) => {
+        if (isProcessing) return; // منع التنفيذ المتكرر
+
         if (selectedCode === correctCode.toString()) {
+            isProcessing = true; // تفعيل القفل
+            Swal.showLoading(); // إظهار لودر منعاً للعبث
+
             try {
                 await updateDoc(currentUserRef, {
                     points: increment(pts)
@@ -210,7 +216,10 @@ async function handleVerification() {
                 await setDoc(sessionRef, { used: true }, { merge: true });
                 
                 Swal.fire({ title: 'كفو!', text: `تم إضافة ${pts} نقطة بنجاح ✅`, icon: 'success' });
-            } catch (e) { console.error(e); }
+            } catch (e) { 
+                console.error(e);
+                isProcessing = false; // إعادة التفعيل في حال الخطأ فقط
+            }
         } else {
             Swal.fire('فشل!', 'الرقم غير صحيح! حاول مرة أخرى.', 'error');
         }
