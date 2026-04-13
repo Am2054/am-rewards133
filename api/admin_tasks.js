@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       jwt.verify(taskToken, process.env.JWT_SECRET);
 
       if (action === 'get_analytics') {
-        let query = db.collection('completedLinks');
+        let query = db.collection('completedLinks'); // الكولكشن الجديد
         let start;
         const nowDate = new Date();
 
@@ -67,7 +67,8 @@ export default async function handler(req, res) {
         else if (filter === '7days') start = new Date(nowDate.getTime() - 7*24*60*60*1000);
         else if (filter === '30days') start = new Date(nowDate.getTime() - 30*24*60*60*1000);
         
-        if (start && filter !== 'all') query = query.where('date', '>=', start);
+        // التعديل لاستخدام completedAt بدلاً من date
+        if (start && filter !== 'all') query = query.where('completedAt', '>=', start);
 
         const snap = await query.get();
         const taskCounts = {};
@@ -77,9 +78,13 @@ export default async function handler(req, res) {
         snap.forEach(doc => {
           const d = doc.data();
           totalTasks++;
-          const type = d.taskType || d.taskId || 'غير معروف';
+          
+          // استخدام linkId بدلاً من taskId
+          const type = d.linkId !== undefined ? `رابط ${d.linkId}` : 'غير معروف';
           taskCounts[type] = (taskCounts[type] || 0) + 1;
-          const dDate = d.date?.toDate ? d.date.toDate() : null;
+          
+          // استخدام completedAt للتحقق من تاريخ اليوم
+          const dDate = d.completedAt?.toDate ? d.completedAt.toDate() : null;
           if (dDate && dDate.toDateString() === todayStr) todayCount++;
         });
 
