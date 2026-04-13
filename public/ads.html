@@ -6,6 +6,7 @@
   <title>AM REWARDS | منجم الذهب</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
   <script>(function(s){s.dataset.zone='10872031',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
   
   <style>
@@ -45,7 +46,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, updateDoc, increment, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };
 const app = initializeApp(firebaseConfig);
@@ -54,7 +55,7 @@ const db = getFirestore(app);
 
 let currentUserRef = null;
 const dailyLimit = 100;
-let isProcessing = false; // لمنع الثغرات والضغط المتكرر
+let isProcessing = false;
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) { location.href = "index.html"; return; }
@@ -77,38 +78,43 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 window.handleAdClick = async () => {
-  if (isProcessing) return; // منع الضغط المتكرر
+  if (isProcessing) return;
   
   isProcessing = true;
   const btn = document.getElementById("watchBtn");
   btn.disabled = true;
-  
+
+  // 1. فتح الإعلان في نافذة جديدة (استخدم رابط Direct Link من Monetag لو عندك)
+  // لو مفيش، الكود اللي فوق هيقوم بالمهمة لما المستخدم يرجع للموقع
+  window.open('https://nap5k.com/tag.min.js', '_blank'); // هنا ممكن تحط رابط الـ Direct Ad
+
   Swal.fire({
-    title: 'جاري معالجة الطلب...',
-    allowOutsideClick: false,
+    title: 'جاري إضافة النقاط...',
+    timer: 1500,
+    showConfirmButton: false,
     didOpen: () => { Swal.showLoading(); }
   });
 
   try {
     const today = new Date().toLocaleDateString();
 
-    // إضافة النقاط وتحديث العداد مباشرة
     await updateDoc(currentUserRef, {
         points: increment(1.5),
         dailyAdsCount: increment(1),
         lastAdDate: today
     });
 
-    Swal.fire({
-      title: 'كفو!',
-      text: 'تم إضافة 1.5 نقطة بنجاح ✅',
-      icon: 'success',
-      timer: 2000
-    });
+    setTimeout(() => {
+      Swal.fire({
+        title: 'تمت المهمة!',
+        text: 'تم إضافة 1.5 نقطة ✅',
+        icon: 'success',
+        confirmButtonText: 'ممتاز'
+      });
+    }, 1500);
 
   } catch (e) {
-    console.error(e);
-    Swal.fire('خطأ!', 'حدثت مشكلة أثناء إضافة النقاط', 'error');
+    Swal.fire('خطأ!', 'حدثت مشكلة، جرب مرة أخرى', 'error');
   } finally {
     isProcessing = false;
     btn.disabled = false;
