@@ -7,9 +7,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root { --neon-yellow: #facc15; --neon-purple: #7000ff; --neon-red: #ff4444; --bg-deep: #020617; --glass: rgba(255, 255, 255, 0.05); --cyan: #00f2ff; }
-        body { font-family: 'Tajawal', sans-serif; background: var(--bg-deep); color: #fff; margin: 0; padding: 0; transition: 0.5s; }
+        body { font-family: 'Tajawal', sans-serif; background: var(--bg-deep); color: #fff; margin: 0; padding: 0; transition: background 0.5s ease; }
         
-        /* بار النقاط العلوي الثابت */
         .points-bar {
             position: sticky; top: 0; z-index: 1000;
             background: rgba(11, 15, 25, 0.8); backdrop-filter: blur(10px);
@@ -34,7 +33,6 @@
         
         #errorMsg { display: none; background: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 10px; border-radius: 10px; border: 1px solid #ef4444; font-size: 12px; text-align: center; margin-bottom: 15px; }
         .calc-btn { width: 100%; padding: 16px; border-radius: 12px; border: none; background: linear-gradient(90deg, var(--neon-purple), #4f46e5); color: #fff; font-weight: 900; cursor: pointer; font-size: 18px; box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3); transition: 0.3s; }
-        .calc-btn:active { transform: scale(0.96); }
         .reset-btn { width: 100%; padding: 10px; background: transparent; color: #64748b; border: none; cursor: pointer; font-size: 11px; text-decoration: underline; margin-top: 5px; opacity: 0.7; }
         
         .result-box { display: none; margin-top: 25px; padding: 20px; border-radius: 18px; background: rgba(255,255,255,0.03); border: 1px solid rgba(0, 242, 255, 0.2); animation: slideUp 0.5s ease; }
@@ -45,6 +43,8 @@
         .smart-warning { margin-top: 15px; padding: 12px; border-radius: 10px; font-size: 13px; line-height: 1.6; border-right: 4px solid; }
         .warn-danger { background: rgba(255, 68, 68, 0.1); color: var(--neon-red); border-color: var(--neon-red); animation: pulse 2s infinite; }
         .warn-safe { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: #10b981; }
+
+        #tipsBox { display: none; margin-top: 15px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; font-size: 13px; border: 1px dashed var(--cyan); color: #cbd5e1; line-height: 1.6; }
 
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
@@ -93,11 +93,11 @@
         </div>
 
         <div id="smartWarning" class="smart-warning"></div>
+        <div id="tipsBox"></div>
         
         <div style="margin-top: 20px; font-size: 13px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px;">
             <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>إجمالي كمية الاستهلاك:</span> <span id="totalKwh" style="color:var(--cyan); font-weight:bold;">0</span></div>
             <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>متوسط الاستهلاك اليومي:</span> <span id="dailyAvg" style="color:var(--cyan)">0</span></div>
-            <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>نصيب الوحدة (كمية):</span> <span id="unitKwh" style="color:var(--cyan)">0</span></div>
             <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>الشريحة الحالية:</span> <span id="shText" style="color:var(--neon-yellow)"> - </span></div>
             <div style="display:flex; justify-content:space-between; color: var(--neon-yellow); padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
                 <span>الرسوم (نظافة + خدمة):</span> <span id="feesText">0</span>
@@ -139,7 +139,6 @@
 
     window.processElectricityAnalysis = async function() {
         if (!auth.currentUser) return Swal.fire("خطأ", "سجل دخول أولاً", "error");
-
         const cur = parseFloat(document.getElementById('currentRead').value);
         const prev = parseFloat(document.getElementById('prevRead').value);
         const units = document.getElementById('unitsCount').value;
@@ -150,7 +149,6 @@
         }
 
         const currentHash = `${cur}-${prev}-${units}`;
-        // تم تعديل هذا الجزء لضمان الحساب الفوري حتى لو تشابه الـ Hash
         if (currentHash === lastElecHash) {
             calculateSmartBill();
             return;
@@ -160,12 +158,12 @@
         let dailyCount = (elecStats.date === today) ? elecStats.count : 0;
 
         if (dailyCount >= 3) {
-            if (points < 1) return Swal.fire("نقاط غير كافية", "المحاولات المجانية انتهت وتحتاج لنقطة واحدة.", "error");
+            if (points < 1) return Swal.fire("نقاط غير كافية", "المحاولات المجانية انتهت.", "error");
             const confirm = await Swal.fire({
                 title: 'تأكيد الخصم',
-                text: "سيتم خصم 1 نقطة لإجراء هذا التحليل بعد نفاذ المجاني.",
+                text: "خصم 1 نقطة لإجراء التحليل؟",
                 icon: 'info',
-                showCancelButton: true, confirmButtonText: 'اخصم 1 نقطة', cancelButtonText: 'إلغاء'
+                showCancelButton: true, confirmButtonText: 'اخصم 1 نقطة'
             });
             if (!confirm.isConfirmed) return;
         }
@@ -175,8 +173,8 @@
             if (dailyCount >= 3) updateData["points"] = increment(-1);
             await updateDoc(userRef, updateData);
             lastElecHash = currentHash;
-            calculateSmartBill(); // استدعاء فوري للنتائج
-        } catch (e) { Swal.fire("خطأ", "فشل تحديث النقاط", "error"); }
+            calculateSmartBill();
+        } catch (e) { Swal.fire("خطأ", "فشل التحديث", "error"); }
     };
 </script>
 
@@ -189,17 +187,13 @@
     function animateValue(id, start, end, duration) {
         const obj = document.getElementById(id);
         const range = end - start;
-        // حماية لمنع التعليق عند تساوي القيم
         if (range === 0) { obj.innerHTML = end.toFixed(2) + " ج.م"; return; }
-        
         let startTimestamp = null;
         const step = (timestamp) => {
             if (!startTimestamp) startTimestamp = timestamp;
             const progress = Math.min((timestamp - startTimestamp) / duration, 1);
             obj.innerHTML = (progress * range + start).toFixed(2) + " ج.م";
-            if (progress < 1) {
-                window.requestAnimationFrame(step);
-            }
+            if (progress < 1) window.requestAnimationFrame(step);
         };
         window.requestAnimationFrame(step);
     }
@@ -208,74 +202,77 @@
         const current = parseFloat(document.getElementById('currentRead').value);
         const previous = parseFloat(document.getElementById('prevRead').value);
         let units = parseInt(document.getElementById('unitsCount').value) || 1;
-        
-        if (units < 1) units = 1;
         document.getElementById('errorMsg').style.display = 'none';
         const totalKwh = current - previous;
         
-        let totalCost = 0;
-        let sh = "";
-        let serviceFee = 0;
+        let totalCost = 0, sh = "", serviceFee = 0;
         const cleanFee = 15;
 
+        // خوارزمية الشرائح 2026
         if (totalKwh <= 100) {
-            if (totalKwh <= 50) { totalCost = totalKwh * 0.68; serviceFee = 1; sh = "الأولى (مدعوم)"; }
-            else { totalCost = (50 * 0.68) + ((totalKwh - 50) * 0.78); serviceFee = 2; sh = "الثانية (مدعوم)"; }
+            if (totalKwh <= 50) { totalCost = totalKwh * 0.68; serviceFee = 1; sh = "الأولى"; }
+            else { totalCost = (50 * 0.68) + ((totalKwh - 50) * 0.78); serviceFee = 2; sh = "الثانية"; }
         } else if (totalKwh <= 650) {
             if (totalKwh <= 200) { totalCost = totalKwh * 0.95; serviceFee = 6; sh = "الثالثة"; }
             else if (totalKwh <= 350) { totalCost = (200 * 0.95) + ((totalKwh - 200) * 1.55); serviceFee = 11; sh = "الرابعة"; }
             else { totalCost = (200 * 0.95) + (150 * 1.55) + ((totalKwh - 350) * 1.65); serviceFee = 15; sh = "الخامسة"; }
-        } else if (totalKwh <= 1000) { totalCost = totalKwh * 2.10; serviceFee = 25; sh = "السادسة (موحد)"; }
-        else { totalCost = totalKwh * 3.00; serviceFee = 40; sh = "السابعة (كثيف)"; }
+        } else if (totalKwh <= 1000) { totalCost = totalKwh * 2.10; serviceFee = 25; sh = "السادسة"; }
+        else { totalCost = totalKwh * 3.00; serviceFee = 40; sh = "السابعة (خطر)"; }
 
         const finalTotal = totalCost + serviceFee + cleanFee;
-        const moneyPerUnit = finalTotal / units;
         const dailyAvg = (totalKwh / 30).toFixed(1);
-        document.getElementById('dailyAvg').innerText = dailyAvg + " ك.و / يوم";
 
+        // --- تأثيرات التحليل الذكي (العودة للأصل) ---
+        const warnBox = document.getElementById('smartWarning');
+        const tipsBox = document.getElementById('tipsBox');
+        
+        if (totalKwh > 650) {
+            document.body.style.background = "#1a0505"; // أحمر خطر
+            warnBox.className = "smart-warning warn-danger";
+            warnBox.innerHTML = "🚨 <b>خطر!</b> استهلاكك غير طبيعي وتخطيت الدعم. الكيلو بـ 2.10 ج.م!";
+            tipsBox.innerHTML = "💡 <b>نصيحة:</b> افصل الأجهزة غير الضرورية. السخانات والتكييفات هي السبب الرئيسي غالباً.";
+        } else {
+            document.body.style.background = "#020617"; // طبيعي
+            warnBox.className = "smart-warning warn-safe";
+            warnBox.innerHTML = "✅ <b>ممتاز:</b> أنت الآن داخل النطاق المدعوم.";
+            tipsBox.innerHTML = "💡 <b>نصيحة:</b> حافظ على استهلاك أقل من 200 ك.و لتوفير أكبر في فاتورتك القادمة.";
+        }
+        tipsBox.style.display = "block";
+
+        // مقارنة الشهور
         const lastMonthKwh = parseFloat(localStorage.getItem('lastMonthKwh'));
         const badge = document.getElementById('compareBadge');
         if (!isNaN(lastMonthKwh) && lastMonthKwh > 0) {
             const diff = totalKwh - lastMonthKwh;
-            const percent = ((Math.abs(diff) / lastMonthKwh) * 100).toFixed(1);
             badge.style.display = 'block';
-            if (diff > 0) { badge.className = 'badge-up'; badge.innerHTML = `📈 استهلاكك زاد بنسبة ${percent}%`; }
-            else if (diff < 0) { badge.className = 'badge-down'; badge.innerHTML = `📉 استهلاكك قل بنسبة ${percent}%`; }
-            else { badge.className = 'badge-down'; badge.innerHTML = `➖ استهلاكك مساوٍ تماماً`; }
+            badge.className = diff > 0 ? 'badge-up' : 'badge-down';
+            badge.innerHTML = diff > 0 ? `📈 استهلاكك زاد عن الشهر الماضي` : `📉 وفرت في استهلاكك عن الشهر الماضي`;
         }
 
         localStorage.setItem('lastCurrentRead', current);
         localStorage.setItem('lastMonthKwh', totalKwh);
         
-        // إظهار البوكس وتحديث القيم فوراً
-        const resultBox = document.getElementById('resultBox');
-        resultBox.style.display = 'block';
-        
-        // تصفير القيمة القديمة قبل الأنيميشن لضمان الشعور بالتحديث
+        document.getElementById('resultBox').style.display = 'block';
         document.getElementById('totalVal').innerText = "0.00 ج.م";
         animateValue("totalVal", 0, finalTotal, 800);
         
         document.getElementById('totalKwh').innerText = totalKwh + " ك.و.س";
-        document.getElementById('unitKwh').innerText = (totalKwh / units).toFixed(1) + " ك.و.س";
+        document.getElementById('dailyAvg').innerText = dailyAvg + " ك.و / يوم";
         document.getElementById('shText').innerText = sh;
         document.getElementById('feesText').innerText = (serviceFee + cleanFee).toFixed(2) + " ج.م";
         
         if (units > 1) {
             document.getElementById('unitBox').style.display = 'block';
-            document.getElementById('unitMoneyVal').innerText = moneyPerUnit.toFixed(2) + " ج.م";
+            document.getElementById('unitMoneyVal').innerText = (finalTotal / units).toFixed(2) + " ج.م";
         } else {
             document.getElementById('unitBox').style.display = 'none';
         }
 
-        const warnBox = document.getElementById('smartWarning');
-        if (totalKwh > 650) { warnBox.className = "smart-warning warn-danger"; warnBox.innerHTML = "⚠️ فقدت الدعم التراكمي!"; }
-        else { warnBox.className = "smart-warning warn-safe"; warnBox.innerHTML = "✅ استهلاكك في النطاق المدعوم."; }
-        
-        document.getElementById('radarStatus').innerText = "✅ اكتمل التحليل بنجاح";
+        document.getElementById('radarStatus').innerText = "✅ تم تحديث التحليل بنجاح";
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 
-    function resetApp() { if(confirm("هل تريد مسح السجل؟")) { localStorage.clear(); location.reload(); } }
+    function resetApp() { if(confirm("هل تريد مسح البيانات؟")) { localStorage.clear(); location.reload(); } }
 </script>
 </body>
 </html>
