@@ -6,6 +6,8 @@
   <title>AM REWARDS | منجم الذهب</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>(function(s){s.dataset.zone='10872031',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
+  
   <style>
     :root { --bg: #020617; --card: rgba(15, 23, 42, 0.9); --gold: #f5c542; --accent: #00f2ff; --text: #f8fafc; }
     body { font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; text-align: center; direction: rtl; }
@@ -52,14 +54,11 @@ const db = getFirestore(app);
 
 let currentUserRef = null;
 const dailyLimit = 100;
+let isProcessing = false; // لمنع الثغرات والضغط المتكرر
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) { location.href = "index.html"; return; }
   currentUserRef = doc(db, "users", user.uid);
-
-  if (new URLSearchParams(window.location.search).get('verify')) {
-      handleVideoVerification();
-  }
 
   onSnapshot(currentUserRef, (snap) => {
     const data = snap.data() || {};
@@ -77,38 +76,44 @@ onAuthStateChanged(auth, async (user) => {
   });
 });
 
-window.handleAdClick = () => {
-  localStorage.setItem('p_idx', 'video_task');
-  window.location.href = "video_gate.html";
-};
+window.handleAdClick = async () => {
+  if (isProcessing) return; // منع الضغط المتكرر
+  
+  isProcessing = true;
+  const btn = document.getElementById("watchBtn");
+  btn.disabled = true;
+  
+  Swal.fire({
+    title: 'جاري معالجة الطلب...',
+    allowOutsideClick: false,
+    didOpen: () => { Swal.showLoading(); }
+  });
 
-async function handleVideoVerification() {
-    const sessionRef = doc(db, "linkSessions", auth.currentUser.uid + "_video_task");
-    const snap = await getDoc(sessionRef);
-    if (!snap.exists() || snap.data().used) return;
+  try {
+    const today = new Date().toLocaleDateString();
 
-    const correctCode = snap.data().code;
-    const { value: userCode } = await Swal.fire({
-        title: 'أدخل الكود السري',
-        input: 'text',
-        inputPlaceholder: 'الرقم الذي ظهر في صفحة الإعلان...',
-        confirmButtonText: 'تأكيد 💰',
-        background: '#0f172a', color: '#fff'
+    // إضافة النقاط وتحديث العداد مباشرة
+    await updateDoc(currentUserRef, {
+        points: increment(1.5),
+        dailyAdsCount: increment(1),
+        lastAdDate: today
     });
 
-    if (userCode === correctCode) {
-        await updateDoc(currentUserRef, {
-            points: increment(1.5),
-            dailyAdsCount: increment(1),
-            lastAdDate: new Date().toLocaleDateString()
-        });
-        await updateDoc(sessionRef, { used: true });
-        Swal.fire('كفو!', 'تم إضافة 1.5 نقطة ✅', 'success');
-    } else {
-        Swal.fire('خطأ!', 'الكود غير صحيح!', 'error');
-    }
-    window.history.replaceState({}, document.title, window.location.pathname);
-}
+    Swal.fire({
+      title: 'كفو!',
+      text: 'تم إضافة 1.5 نقطة بنجاح ✅',
+      icon: 'success',
+      timer: 2000
+    });
+
+  } catch (e) {
+    console.error(e);
+    Swal.fire('خطأ!', 'حدثت مشكلة أثناء إضافة النقاط', 'error');
+  } finally {
+    isProcessing = false;
+    btn.disabled = false;
+  }
+};
 </script>
 </body>
 </html>
