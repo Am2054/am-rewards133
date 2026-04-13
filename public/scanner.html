@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>فاحص الروابط الآمن</title>
     <style>
-        /* إعدادات الخط والألوان الأساسية */
         body {
             background-color: #0b0e14;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
+            flex-direction: column; /* للسماح بالبار العلوي */
             justify-content: center;
             align-items: center;
             min-height: 100vh;
@@ -17,7 +17,27 @@
             color: white;
         }
 
-        /* حاوية الخدمة (Card) */
+        /* بار المعلومات العلوي */
+        .info-bar {
+            position: fixed;
+            top: 20px;
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+        .info-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 210, 255, 0.2);
+            padding: 8px 18px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .info-card span { color: #00d2ff; font-weight: bold; }
+
         .service-container {
             width: 90%;
             max-width: 450px;
@@ -28,11 +48,7 @@
             padding: 30px;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
             text-align: center;
-        }
-
-        /* العنوان */
-        .header {
-            margin-bottom: 25px;
+            margin-top: 60px;
         }
 
         .header h2 {
@@ -43,38 +59,18 @@
             -webkit-text-fill-color: transparent;
         }
 
-        .header p {
-            color: #8b949e;
-            font-size: 0.9rem;
-            margin-top: 10px;
-        }
-
-        /* حقل الإدخال */
-        .input-group {
-            position: relative;
-            margin-bottom: 20px;
-        }
-
+        .input-group { position: relative; margin: 25px 0; }
         .url-input {
             width: 100%;
-            padding: 15px 20px;
+            padding: 15px;
             background: #0d1117;
             border: 2px solid #30363d;
             border-radius: 15px;
             color: white;
-            font-size: 14px;
-            box-sizing: border-box;
-            transition: all 0.3s ease;
             outline: none;
-            text-align: left; 
+            text-align: left;
         }
 
-        .url-input:focus {
-            border-color: #58a6ff;
-            box-shadow: 0 0 15px rgba(88, 166, 255, 0.2);
-        }
-
-        /* الزرار */
         .scan-button {
             width: 100%;
             padding: 15px;
@@ -85,75 +81,39 @@
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        .scan-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(33, 136, 255, 0.4);
-        }
-
-        .scan-button:disabled {
-            background: #30363d;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* صندوق النتيجة */
         #resultBox {
             margin-top: 25px;
             padding: 15px;
             border-radius: 12px;
-            display: none; 
-            font-weight: 500;
-            line-height: 1.6;
-            animation: fadeIn 0.5s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .safe-result {
-            background: rgba(46, 160, 67, 0.15);
-            color: #3fb950;
-            border: 1px solid #2ea043;
-        }
-
-        .danger-result {
-            background: rgba(248, 81, 73, 0.15);
-            color: #f85149;
-            border: 1px solid #f85143;
-        }
-
-        .loader {
             display: none;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #3498db;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
         }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .safe-result { background: rgba(46, 160, 67, 0.15); color: #3fb950; border: 1px solid #2ea043; }
+        .danger-result { background: rgba(248, 81, 73, 0.15); color: #f85149; border: 1px solid #f85143; }
+        
+        .loader {
+            display: none; width: 20px; height: 20px; border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;
         }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
+    <div class="info-bar">
+        <div class="info-card">🪙 النقاط: <span id="userPoints">..</span></div>
+        <div class="info-card">📊 محاولات اليوم: <span id="scanCount">0</span>/5</div>
+    </div>
+
     <div class="service-container">
         <div class="header">
             <h2>🛡️ فاحص الروابط الآمن</h2>
-            <p>افحص الروابط المشبوهة قبل فتحها لحماية جهازك من الفيروسات</p>
+            <p>مجاناً لأول فحصين، ثم 2 نقطة لكل فحص إضافي</p>
         </div>
 
         <div class="input-group">
-            <input type="text" id="urlInput" class="url-input" placeholder="ضع الرابط هنا (https://...)" dir="ltr">
+            <input type="text" id="urlInput" class="url-input" placeholder="https://..." dir="ltr">
         </div>
 
         <button class="scan-button" id="btnAction">
@@ -167,8 +127,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // إعدادات الـ Firebase الخاصة بيك (نفس اللي في الصفحات التانية)
         const firebaseConfig = { 
             apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
             authDomain: "am--rewards.firebaseapp.com", 
@@ -177,31 +137,39 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        // جعل الدالة متاحة للزرار
+        // مراقبة النقاط والبيانات لايف
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                onSnapshot(doc(db, "users", user.uid), (snap) => {
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        document.getElementById('userPoints').innerText = data.points || 0;
+                        
+                        // تحديث العداد (لو تاريخ اليوم مطابق)
+                        const today = new Date().toISOString().split('T')[0];
+                        if (data.scanStats && data.scanStats.date === today) {
+                            document.getElementById('scanCount').innerText = data.scanStats.count;
+                        } else {
+                            document.getElementById('scanCount').innerText = 0;
+                        }
+                    }
+                });
+            } else {
+                window.location.href = "login.html"; // توجيه لو مش مسجل
+            }
+        });
+
         window.startScan = async function() {
-            const urlInput = document.getElementById('urlInput');
-            const url = urlInput.value.trim();
-            const resultBox = document.getElementById('resultBox');
-            const btnText = document.getElementById('btnText');
-            const loader = document.getElementById('loader');
+            const url = document.getElementById('urlInput').value.trim();
             const btnAction = document.getElementById('btnAction');
+            const resultBox = document.getElementById('resultBox');
+            const loader = document.getElementById('loader');
+            const btnText = document.getElementById('btnText');
 
-            // الحصول على الـ userId من الـ Auth مباشرة
-            const user = auth.currentUser;
-            const userId = user ? user.uid : null;
-
-            if (!url) {
-                alert("برجاء إدخال الرابط أولاً");
-                return;
-            }
-
-            if (!userId) {
-                alert("يجب تسجيل الدخول لاستخدام هذه الخدمة. جاري التأكد من هويتك...");
-                return;
-            }
-
-            // تجهيز حالة التحميل
+            if (!url) return alert("أدخل الرابط!");
+            
             btnAction.disabled = true;
             btnText.style.display = "none";
             loader.style.display = "block";
@@ -211,30 +179,20 @@
                 const res = await fetch('/api/check-link', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url, userId: userId })
+                    body: JSON.stringify({ url, userId: auth.currentUser.uid })
                 });
-                
+
                 const data = await res.json();
-                
-                if (res.status === 402) {
-                    alert("انتهت الفحوصات المجانية اليوم. تحتاج إلى 2 نقطة لإتمام هذا الفحص!");
-                } else if (res.status === 403) {
-                    alert("لقد استنفدت جميع محاولات الفحص المسموحة لليوم (5/5). عد غداً!");
-                } else if (res.ok) {
+
+                if (res.ok) {
                     resultBox.style.display = "block";
-                    if (data.safe) {
-                        resultBox.className = "safe-result";
-                        resultBox.innerHTML = "✅ الرابط آمن للاستخدام.";
-                    } else {
-                        resultBox.className = "danger-result";
-                        resultBox.innerHTML = "⚠️ تحذير: هذا الرابط خطر جداً!";
-                    }
+                    resultBox.className = data.safe ? "safe-result" : "danger-result";
+                    resultBox.innerHTML = data.safe ? "✅ الرابط آمن." : "⚠️ تحذير: الرابط خطر!";
                 } else {
-                    throw new Error(data.error || "خطأ غير معروف");
+                    alert(data.error);
                 }
             } catch (err) {
-                console.error(err);
-                alert("حدث خطأ أثناء الفحص، تأكد من اتصال الإنترنت أو حاول مجدداً");
+                alert("خطأ في الاتصال بالسيرفر");
             } finally {
                 btnAction.disabled = false;
                 btnText.style.display = "block";
@@ -242,18 +200,7 @@
             }
         };
 
-        // تفعيل المستمع للضغط على الزرار
         document.getElementById('btnAction').addEventListener('click', window.startScan);
-
-        // التأكد من حالة تسجيل الدخول عند فتح الصفحة
-        onAuthStateChanged(auth, (user) => {
-            if (!user) {
-                console.log("المستخدم غير مسجل دخول");
-            } else {
-                console.log("مرحباً بك يا " + user.uid);
-            }
-        });
     </script>
-
 </body>
 </html>
