@@ -3,95 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AM Rewards - منطقة الأرباح</title>
-    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-firestore-compat.js"></script>
+    <title>حائط العروض | Am Rewards</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; background: #0b0e14; font-family: 'Cairo', sans-serif; color: white; overflow: hidden; }
-        
-        /* الهيدر العلوي */
-        .header-bar {
-            position: fixed; top: 0; left: 0; width: 100%; height: 65px;
-            background: rgba(11, 14, 20, 0.95); backdrop-filter: blur(8px);
+        :root { 
+            --neon-purple: #7000ff; 
+            --neon-cyan: #00f2ff; 
+            --dark-space: #020617;
+            --glass-bg: rgba(31, 41, 55, 0.7); 
+        } 
+
+        body { 
+            font-family: 'Tajawal', sans-serif; 
+            background: var(--dark-space); 
+            color: #f9fafb; 
+            margin: 0; 
+            padding: 0; 
+            height: 100vh; 
+            overflow: hidden; 
+        } 
+
+        /* الهيدر العلوي المحسن */
+        header { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 75px;
+            background: linear-gradient(180deg, rgba(112, 0, 255, 0.15) 0%, transparent 100%); 
+            backdrop-filter: blur(15px);
             display: flex; justify-content: space-between; align-items: center;
-            padding: 0 20px; box-sizing: border-box; border-bottom: 2px solid #00f2ff; z-index: 9999;
+            padding: 0 25px; box-sizing: border-box; 
+            border-bottom: 1px solid rgba(0, 242, 255, 0.3);
+            z-index: 1000;
+        } 
+
+        .logo { font-size: 1.4rem; font-weight: 900; color: var(--neon-cyan); text-shadow: 0 0 10px var(--neon-cyan); }
+
+        .points-box { 
+            background: var(--glass-bg); 
+            padding: 10px 20px; 
+            border-radius: 15px; 
+            border: 1px solid var(--neon-purple); 
+            box-shadow: 0 0 15px rgba(112, 0, 255, 0.3);
+            display: flex; flex-direction: column; align-items: center;
         }
 
-        .user-info { display: flex; align-items: center; gap: 10px; }
-        .points-box {
-            background: linear-gradient(135deg, #00c6ff, #00f2ff);
-            color: #000; padding: 6px 15px; border-radius: 50px; font-weight: bold;
-            box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+        #userPoints { font-weight: 900; color: #fff; font-size: 1.1rem; }
+        .points-label { font-size: 0.7rem; color: var(--neon-cyan); }
+
+        /* منطقة الـ Iframe لتغطية الشاشة */
+        #offersContainer { 
+            position: absolute; top: 75px; left: 0; width: 100%; 
+            height: calc(100% - 75px); 
+            background: transparent;
         }
 
-        /* حاوية حائط العروض */
-        .offers-frame {
-            position: absolute; top: 65px; left: 0; width: 100%; height: calc(100% - 65px);
-            border: none;
+        iframe { width: 100%; height: 100%; border: none; }
+
+        /* شاشة التحميل */
+        #loader {
+            position: fixed; inset: 0; background: var(--dark-space);
+            display: flex; justify-content: center; align-items: center; z-index: 2000;
         }
 
-        #loading-screen {
-            position: fixed; inset: 0; background: #0b0e14; 
-            display: flex; justify-content: center; align-items: center; z-index: 10000;
-        }
+        .spinner { width: 40px; height: 40px; border: 4px solid var(--neon-purple); border-top-color: var(--neon-cyan); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div id="loading-screen">جاري تأمين الاتصال بالمجرة...</div>
+<div id="loader"><div class="spinner"></div></div>
 
-<div class="header-bar">
-    <div style="font-weight: bold; color: #00f2ff; letter-spacing: 1px;">AM REWARDS</div>
-    <div class="user-info">
-        <div class="points-box">رصيدك: <span id="user-points">0</span> 💰</div>
+<header>
+    <div class="logo">AM REWARDS 🌌</div>
+    <div class="points-box">
+        <span id="userPoints">جاري التحميل...</span>
+        <span class="points-label">نقاطك الحالية</span>
     </div>
-</div>
+</header>
 
-<div id="offers-container" style="height: 100%;">
+<div id="offersContainer">
     </div>
 
 <script>
-    // --- بيانات مشروعك في Firebase (انقلها من الـ Console) ---
-    const firebaseConfig = {
-        apiKey: "AIzaSy...",
-        authDomain: "am-rewards.firebaseapp.com",
-        projectId: "am-rewards",
-        storageBucket: "am-rewards.appspot.com",
-        messagingSenderId: "...",
-        appId: "..."
-    };
-    firebase.initializeApp(firebaseConfig);
+    // إعدادات الـ Firebase الخاصة بك
+    const firebaseConfig = { 
+        apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
+        authDomain: "am--rewards.firebaseapp.com", 
+        projectId: "am--rewards" 
+    }; 
+    firebase.initializeApp(firebaseConfig); 
+    const auth = firebase.auth(); 
+    const db = firebase.firestore(); 
 
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            // تحديث النقاط لايف
-            db.collection("users").doc(user.uid).onSnapshot(doc => {
-                if (doc.exists) {
-                    document.getElementById("user-points").innerText = doc.data().referralPoints || 0;
-                }
-                document.getElementById("loading-screen").style.display = "none";
+    auth.onAuthStateChanged(user => { 
+        if (user) { 
+            // مراقبة النقاط في الوقت الفعلي
+            db.collection("users").doc(user.uid).onSnapshot(doc => { 
+                if (doc.exists) { 
+                    // تأكد إن اسم الحقل في الـ Firestore هو 'points' أو 'referralPoints'
+                    document.getElementById("userPoints").textContent = Math.floor(doc.data().points || 0);
+                } 
+                document.getElementById("loader").style.display = "none";
             });
-
-            // تحميل الـ Locker وربطه بـ UID المستخدم
-            loadLocker(user.uid);
-        } else {
-            // لو مش مسجل دخول يطرده برا
-            window.location.href = "login.html";
-        }
+            
+            // تحميل حائط العروض مع تمرير ID المستخدم لربط الـ Postback
+            displayOffers(user.uid);
+        } else { 
+            window.location.replace("index.html"); 
+        } 
     });
 
-    function loadLocker(uid) {
-        const lockerUrl = `https://bestreward.eu/iframe/e41fe138-380c-11f1-9c7f-129a1c289511&s1=${uid}`;
-        const container = document.getElementById("offers-container");
+    function displayOffers(uid) {
+        // رابط الـ Iframe الخاص بك من MyLead
+        // تم إضافة ml_sub1=${uid} لضمان وصول النقاط لحسابك الشخصي
+        const lockerUrl = `https://bestreward.eu/iframe/e41fe138-380c-11f1-9c7f-129a1c289511?ml_sub1=${uid}`;
         
-        container.innerHTML = `
+        document.getElementById("offersContainer").innerHTML = `
             <iframe src="${lockerUrl}" 
-                    class="offers-frame"
                     sandbox="allow-top-navigation allow-scripts allow-same-origin allow-popups allow-forms">
             </iframe>`;
     }
