@@ -14,11 +14,9 @@
         body { font-family: 'Tajawal', sans-serif; display: flex; flex-direction: column; background: #020617 url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1500') no-repeat center center fixed; background-size: cover; user-select: none; position: relative; } 
         body::before { content: ""; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: -1; transition: 0.5s; } 
         
-        /* 1. تأثير التلاشي التدريجي للرسائل القديمة (الميزة 1.2.4) */
         .msg { transition: opacity 15s linear, transform 0.3s; position: relative; }
         .msg-old { opacity: 0.4 !important; filter: blur(0.5px); }
 
-        /* 2. تأثير الصدى البصري عند التفاعل (Spectral Echo) */
         @keyframes spectralEcho {
             0% { transform: scale(1); filter: hue-rotate(0deg); }
             50% { transform: scale(1.02); filter: hue-rotate(180deg) brightness(1.5); }
@@ -29,7 +27,8 @@
         #chatBox::before { content: ""; position: fixed; top: 50%; left: 50%; width: 200%; height: 200%; background: radial-gradient(circle, var(--purple) 0%, transparent 70%); opacity: 0.05; z-index: -1; animation: ghostFloat 20s infinite linear; pointer-events: none; } 
         @keyframes ghostFloat { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } } 
         
-        #rulesOverlay { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.98); backdrop-filter: blur(20px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1); } 
+        /* تعديل الميثاق ليغطي الشاشة بالكامل بقوة */
+        #rulesOverlay { position: fixed; inset: 0; background: #020617; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; } 
         .rules-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(0, 242, 255, 0.3); border-radius: 30px; padding: 30px; max-width: 480px; width: 100%; text-align: center; box-shadow: 0 0 50px rgba(0, 242, 255, 0.1); max-height: 90vh; overflow-y: auto; } 
         .intro-line { color: var(--cyan); font-weight: 900; font-size: 18px; margin-bottom: 20px; display: block; } 
         .rules-card h3 { color: #fff; margin: 0 0 20px; font-weight: 900; font-size: 22px; } 
@@ -57,11 +56,9 @@
         .online-dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; display: inline-block; margin-left: 5px; box-shadow: 0 0 5px var(--success); } 
         .text { word-wrap: break-word; } 
         .msg-deleted { font-style: italic; opacity: 0.6; font-size: 13px; } 
-        .edited-tag { font-size: 9px; opacity: 0.5; margin-right: 5px; color: var(--cyan); } 
         
         .reply-quote { background: rgba(255, 255, 255, 0.1); border-right: 3px solid var(--cyan); padding: 6px 12px; margin-bottom: 8px; border-radius: 8px; font-size: 12px; color: #cbd5e1; display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } 
         .reply-preview { display: none; background: rgba(15, 23, 42, 0.95); border-top: 1px solid var(--cyan); padding: 10px 20px; animation: slideUp 0.3s ease; position: relative; } 
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } } 
         
         .input-area { padding: 0; background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.08); padding-bottom: calc(15px + env(safe-area-inset-bottom)); } 
         .input-wrapper { display: flex; gap: 12px; align-items: center; max-width: 700px; margin: 0 auto; padding: 15px; } 
@@ -71,7 +68,7 @@
         #actionModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; } 
         .modal-content { background: var(--dark); border: 1px solid var(--cyan); padding: 20px; border-radius: 20px; width: 80%; max-width: 300px; } 
         .modal-btn { width: 100%; padding: 12px; margin: 5px 0; border: none; border-radius: 10px; font-family: 'Tajawal'; font-weight: bold; cursor: pointer; } 
-        .system-msg { text-align: center; color: var(--cyan); font-weight: 900; font-size: 13px; padding: 10px; background: rgba(0, 242, 255, 0.05); border-radius: 10px; margin: 10px 0; border: 1px dashed rgba(0, 242, 255, 0.2); animation: fadeIn 1s; }
+        .system-msg { text-align: center; color: var(--cyan); font-weight: 900; font-size: 13px; padding: 10px; background: rgba(0, 242, 255, 0.05); border-radius: 10px; margin: 10px 0; border: 1px dashed rgba(0, 242, 255, 0.2); }
     </style>
 </head>
 <body>
@@ -108,10 +105,10 @@
         <div id="replyContainer" class="reply-preview">
             <span class="reply-close" onclick="cancelReply()">✕</span>
             <div class="target-name" id="replyTargetName"></div>
-            <div style="font-size: 11px; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="replyTargetText"></div>
+            <div id="replyTargetText"></div>
         </div>
         <div class="input-wrapper">
-            <input type="text" id="msgInput" placeholder="اهمس أو اعترف بـ #..." maxlength="200" autocomplete="off" disabled>
+            <input type="text" id="msgInput" placeholder="اهمس أو اعترف بـ #..." maxlength="200" disabled>
             <button class="send-btn" id="sendBtn" disabled>✦</button>
         </div>
     </div>
@@ -134,43 +131,13 @@
         let currentReplyTo = null;
         let lastSend = 0; 
         const renderedMsgIds = new Set();
-        let resetListenerAttached = false;
         let activeDay = ""; 
         let messagesRef = null;
-
-        // 🔊 صوت الرياح عند الظهور (الميزة 1.2.4)
-        const playGhostSound = () => {
-            const audio = new Audio('https://www.assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
-            audio.volume = 0.1;
-            audio.play().catch(() => {});
-        };
 
         window.cancelReply = () => {
             currentReplyTo = null;
             document.getElementById('replyContainer').style.display = 'none';
-            document.getElementById('msgInput').placeholder = "اهمس أو اعترف بـ #...";
         };
-
-        function listenForChatReset() {
-            if (resetListenerAttached) return;
-            resetListenerAttached = true;
-            const lastResetRef = ref(db, 'system/last_reset_date');
-            onValue(lastResetRef, (snap) => {
-                const serverResetDate = snap.val();
-                if (serverResetDate && activeDay && serverResetDate !== activeDay) {
-                    activeDay = serverResetDate;
-                    document.getElementById('chatBox').innerHTML = "<div class='system-msg'>🌅 يوم جديد بدأ! تم عزل رسائل الأمس..</div>";
-                    renderedMsgIds.clear();
-                    initMessages(); 
-                }
-            });
-        }
-
-        onMessage(messaging, (payload) => {
-            if (Notification.permission === "granted" && document.hidden) {
-                new Notification(payload.notification.title, { body: payload.notification.body, icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png', tag: 'ghost-chat-msg', renotify: true });
-            }
-        });
 
         const getDailyIdentity = async () => {
             try {
@@ -185,25 +152,13 @@
                     activeDay = data.activeDay;
                     myGhostName = data.ghostName;
                     document.getElementById('status').innerHTML = `<span class="online-dot"></span> هويتك: ${myGhostName} <span class="rank-badge">${data.rank || 'روح عابرة'}</span>`;
-
+                    
                     if (data.welcomeCard && data.welcomeCard.show) {
-                        playGhostSound();
                         Swal.fire({
                             title: data.welcomeCard.title,
-                            html: `
-                                <div style="text-align:center; font-family:'Tajawal'">
-                                    <p style="font-size:15px; line-height:1.6; color:#cbd5e1">${data.welcomeCard.message}</p>
-                                    <div style="background: linear-gradient(135deg, rgba(0,242,255,0.1), rgba(112,0,255,0.1)); 
-                                                padding:20px; border-radius:24px; border:1px solid ${data.welcomeCard.accentColor || '#7000ff'}; 
-                                                margin:20px 0; box-shadow: 0 0 20px rgba(112,0,255,0.2);">
-                                        <h2 style="color:#fff; margin:0; font-weight:900;">${data.welcomeCard.nameTag}</h2>
-                                    </div>
-                                    <p style="font-size:12px; opacity:0.6;">${data.welcomeCard.footer}</p>
-                                </div>`,
-                            background: '#020617', color: '#fff', confirmButtonText: 'تلاشى الآن 🕯️', confirmButtonColor: '#7000ff'
+                            html: `<p>${data.welcomeCard.message}</p><h2>${data.welcomeCard.nameTag}</h2>`,
+                            background: '#020617', color: '#fff', confirmButtonColor: '#7000ff'
                         });
-                        document.getElementById('chatBox').innerHTML = "";
-                        renderedMsgIds.clear();
                     }
                     initPresence();
                     initMessages(); 
@@ -212,97 +167,73 @@
         };
 
         const initPresence = () => {
-            if (!currentUser || !myGhostName) return;
             const onlineRef = ref(db, `users_online/${currentUser.uid}`);
-            const typingRef = ref(db, `typing/global/${currentUser.uid}`);
             set(onlineRef, { name: myGhostName, status: 'online' });
             onDisconnect(onlineRef).remove();
-            onDisconnect(typingRef).remove();
-            onValue(ref(db, 'typing/global'), (snap) => {
-                const typers = snap.val();
-                const indicator = document.getElementById('typingIndicator');
-                if (typers) {
-                    const names = Object.values(typers).filter(t => t.uid !== currentUser.uid).map(t => t.name);
-                    indicator.innerText = names.length > 0 ? `${names.join(', ')} يهمس الآن...` : "";
-                } else { indicator.innerText = ""; }
-            });
-            document.getElementById('msgInput').oninput = (e) => {
-                if (e.target.value.length > 0) {
-                    set(typingRef, { name: myGhostName, uid: currentUser.uid });
-                    clearTimeout(window.typingTimer);
-                    window.typingTimer = setTimeout(() => remove(typingRef), 2000);
-                } else { remove(typingRef); }
-            };
         };
 
         async function requestNotificationPermission() {
-            if (!('serviceWorker' in navigator) || !currentUser) return;
             try {
                 const permission = await Notification.requestPermission();
-                if (permission !== 'granted') return;
-                const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
-                const token = await getToken(messaging, { vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws', serviceWorkerRegistration: registration });
-                if (token) { await set(ref(db, `users_tokens/${currentUser.uid}`), { token: token, ghostName: myGhostName, lastUpdated: Date.now() }); }
+                if (permission === 'granted') {
+                    const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+                    const token = await getToken(messaging, { 
+                        vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
+                        serviceWorkerRegistration: registration 
+                    });
+                    if (token) {
+                        await set(ref(db, `users_tokens/${currentUser.uid}`), { token, ghostName: myGhostName });
+                    }
+                }
             } catch (err) { console.warn("FCM Error", err); }
         }
 
-        setPersistence(auth, browserLocalPersistence).then(() => signInAnonymously(auth));
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
                 getDailyIdentity();
-                document.getElementById('msgInput').disabled = false;
-                document.getElementById('sendBtn').disabled = false;
-                listenForChatReset(); 
-                if(localStorage.getItem('ghost_rules_v5') === 'true') { requestNotificationPermission(); }
+                if(localStorage.getItem('ghost_rules_accepted') === 'true') {
+                    document.getElementById('msgInput').disabled = false;
+                    document.getElementById('sendBtn').disabled = false;
+                    requestNotificationPermission();
+                }
             }
         });
 
         window.acceptRules = () => {
-            localStorage.setItem('ghost_rules_v5', 'true');
-            document.getElementById('rulesOverlay').style.opacity = '0';
-            setTimeout(() => { document.getElementById('rulesOverlay').style.display = 'none'; requestNotificationPermission(); }, 800);
+            localStorage.setItem('ghost_rules_accepted', 'true');
+            document.getElementById('rulesOverlay').style.display = 'none';
+            document.getElementById('msgInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+            requestNotificationPermission();
         };
-        if(localStorage.getItem('ghost_rules_v5') === 'true') { document.getElementById('rulesOverlay').style.display = 'none'; }
+
+        if(localStorage.getItem('ghost_rules_accepted') === 'true') {
+            document.getElementById('rulesOverlay').style.display = 'none';
+        }
 
         async function send() {
             if (Date.now() - lastSend < 3000) return;
             const input = document.getElementById('msgInput');
-            const btn = document.getElementById('sendBtn');
             let text = input.value.trim();
-            if(!text || text.length > 200 || !activeDay) return; 
+            if(!text || !activeDay) return;
             lastSend = Date.now();
-            btn.disabled = true;
             try {
                 const token = await auth.currentUser.getIdToken();
-                if (currentReplyTo) { text = `رد على @${currentReplyTo.sender}: ${text}`; }
+                if (currentReplyTo) text = `رد على @${currentReplyTo.sender}: ${text}`;
                 const payload = editingMsgId ? 
                     { action: "EDIT", msgId: editingMsgId, text, uid: currentUser.uid, token, day: activeDay } : 
                     { text, uid: currentUser.uid, token, day: activeDay };
-                const res = await fetch('/api/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (res.ok) { input.value = ""; cancelReply(); if (editingMsgId) { editingMsgId = null; btn.innerText = "✦"; } }
-            } catch(e) { console.error("API Error"); }
-            setTimeout(() => { btn.disabled = false; }, 1000);
+                await fetch('/api/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                input.value = ""; cancelReply(); editingMsgId = null;
+            } catch(e) { console.error("Send Error"); }
         }
 
         function initMessages() {
-            if (!activeDay) return; 
             const msgRef = ref(db, `messages/global/${activeDay}`);
-            if (messagesRef) off(messagesRef);
-            messagesRef = msgRef;
-            const q = query(msgRef, orderByChild("timestamp"), limitToLast(100));
+            const q = query(msgRef, limitToLast(100));
             onChildAdded(q, (snap) => {
-                if (renderedMsgIds.has(snap.key)) return;
-                renderMsg(snap.key, snap.val());
-            });
-            onChildChanged(q, (snap) => {
-                const data = snap.val();
-                const msgEl = document.getElementById(`msg-${snap.key}`);
-                if (msgEl) {
-                    const textDiv = msgEl.querySelector('.text');
-                    if (data.deleted) { textDiv.innerHTML = "هذه الهمسة تلاشت في العدم... (محذوفة)"; textDiv.classList.add('msg-deleted'); }
-                    else { textDiv.textContent = data.text; }
-                }
+                if (!renderedMsgIds.has(snap.key)) renderMsg(snap.key, snap.val());
             });
         }
 
@@ -311,50 +242,28 @@
             const div = document.createElement('div');
             div.id = `msg-${id}`;
             const isMe = data.uid === currentUser.uid;
-            let msgClass = isMe ? 'msg-me' : 'msg-remote';
-            if(data.isSecret) msgClass += ' msg-secret';
-            if(data.isConfession) msgClass += ' msg-confession';
-            div.className = `msg ${msgClass}`;
-
-            // ⚡ التفاعل: صدى عند الضغط (الميزة 1.2.4)
+            div.className = `msg ${isMe ? 'msg-me' : 'msg-remote'} ${data.isSecret ? 'msg-secret' : ''} ${data.isConfession ? 'msg-confession' : ''}`;
+            
             div.onclick = () => {
                 div.classList.add('echo-active');
                 setTimeout(() => div.classList.remove('echo-active'), 800);
-                if (isMe) { showMsgActions(id); } 
+                if (isMe) showMsgActions(id);
                 else {
-                    if(data.deleted) return;
                     currentReplyTo = data;
                     document.getElementById('replyTargetName').innerText = data.sender;
                     document.getElementById('replyTargetText').innerText = data.text;
                     document.getElementById('replyContainer').style.display = 'block';
-                    document.getElementById('msgInput').placeholder = "اكتب ردك هنا...";
-                    document.getElementById('msgInput').focus();
                 }
             };
 
-            const senderDiv = document.createElement('div');
-            senderDiv.className = 'sender';
-            senderDiv.innerHTML = `<span>${isMe ? 'أنت' : data.sender}</span>`;
-            
-            const textDiv = document.createElement('div');
-            textDiv.className = 'text';
-            if (data.deleted) { textDiv.textContent = "هذه الهمسة تلاشت... (محذوفة)"; textDiv.classList.add('msg-deleted'); } 
-            else { textDiv.textContent = data.text; }
-
-            div.appendChild(senderDiv);
-            div.appendChild(textDiv);
+            div.innerHTML = `<div class="sender"><span>${isMe ? 'أنت' : data.sender}</span></div><div class="text">${data.text}</div>`;
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
             renderedMsgIds.add(id);
-
-            // ⏳ التلاشي التلقائي (الميزة 1.2.4)
-            setTimeout(() => { div.classList.add('msg-old'); }, 40000);
+            setTimeout(() => div.classList.add('msg-old'), 40000);
         }
 
         async function showMsgActions(id) {
-            const snap = await get(ref(db, `messages/global/${activeDay}/${id}`));
-            const data = snap.val();
-            if (!data || data.deleted) return;
             const modal = document.getElementById('actionModal');
             modal.style.display = 'flex';
             document.getElementById('deleteBtn').onclick = async () => {
@@ -362,18 +271,11 @@
                 await fetch('/api/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: "DELETE", msgId: id, uid: currentUser.uid, token, day: activeDay }) });
                 modal.style.display = 'none';
             };
-            document.getElementById('editBtn').onclick = () => {
-                const input = document.getElementById('msgInput');
-                input.value = data.text.replace(/^رد على @.+?: /, "");
-                editingMsgId = id;
-                document.getElementById('sendBtn').innerText = "تعديل";
-                input.focus();
-                modal.style.display = 'none';
-            };
         }
 
         document.getElementById('sendBtn').onclick = send;
         document.getElementById('msgInput').onkeypress = (e) => e.key === 'Enter' && send();
+        signInAnonymously(auth);
     </script>
 </body>
 </html>
