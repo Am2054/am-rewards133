@@ -24,17 +24,21 @@ const db = getDatabase();
 const auth = getAuth();
 const messaging = getMessaging();
 
-// دالة لتوليد صيغة اليوم الموحدة بتوقيت مصر
+// ... (نفس الـ imports)
+
 function getFormattedDate() {
-    const d = new Date();
-    const egyptTime = d.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }).replace(/-/g, '');
-    return egyptTime;
+    // تثبيت التوقيت لمنع تغير الاسم عند الـ Refresh
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Africa/Cairo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(new Date()).replace(/-/g, '');
 }
 
-// توليد اسم الشبح اليومي بناءً على الـ UID والتاريخ
 function generateDailyGhostName(uid) {
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
-    const hash = crypto.createHash('md5').update(uid + today).digest('hex');
+    const egyptDate = getFormattedDate(); // استخدام الدالة الموحدة
+    const hash = crypto.createHash('md5').update(uid + egyptDate).digest('hex');
     const index = parseInt(hash.substring(0, 8), 16);
     const adjs = ["الغامض", "الثائر", "الهادئ", "المحارب", "العابر", "الصامت", "التائه", "المراقب", "المنسي", "الخفي"];
     const names = ["طيف", "كيان", "سراب", "ظل", "نور", "صدى", "برق", "نجم", "وهم", "شبح"];
@@ -43,6 +47,7 @@ function generateDailyGhostName(uid) {
     const pin = (index % 9000) + 1000;
     return `${name} ${adj} #${pin}`;
 }
+
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', 'https://am-rewards.vercel.app');
