@@ -30,26 +30,22 @@ export default async function handler(req, res) {
     let stats = userData.scanStats || { date: today, count: 0 };
     let currentPoints = userData.points || 0;
 
-    // تصفير العداد لو اليوم جديد
     if (stats.date !== today) {
       stats = { date: today, count: 0 };
     }
 
-    // 1. شرط الحد الأقصى (5 فحوصات)
     if (stats.count >= 5) {
       return res.status(403).json({ error: "وصلت للحد الأقصى اليوم (5 فحوصات). انتظر للغد!" });
     }
 
-    // 2. شرط خصم النقاط (بعد فحصين مجانيين)
     if (stats.count >= 2) {
       if (currentPoints < 2) {
         return res.status(402).json({ error: "تحتاج لـ 2 نقطة لإتمام هذا الفحص" });
       }
       await userRef.update({ points: FieldValue.increment(-2) });
-      currentPoints -= 2; // تحديث القيمة محلياً لإرسالها للـ Frontend
+      currentPoints -= 2; 
     }
 
-    // 3. فحص جوجل للرابط
     const apiEndpoint = `https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${GOOGLE_API_KEY}`;
     const requestBody = {
       client: { clientId: "Ahmed-Safe-Scan", clientVersion: "1.0.0" },
@@ -68,14 +64,12 @@ export default async function handler(req, res) {
     });
     const data = await response.json();
 
-    // 4. تحديث البيانات في Firestore
     const newCount = stats.count + 1;
     await userRef.update({
       "scanStats.date": today,
       "scanStats.count": newCount
     });
 
-    // 5. الرد بكل البيانات المحدثة
     return res.status(200).json({ 
       safe: !data.matches, 
       count: newCount,
