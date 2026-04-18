@@ -24,8 +24,6 @@ const db = getDatabase();
 const auth = getAuth();
 const messaging = getMessaging();
 
-// ... (نفس الـ imports)
-
 function getFormattedDate() {
     // تثبيت التوقيت لمنع تغير الاسم عند الـ Refresh
     return new Intl.DateTimeFormat('en-CA', {
@@ -193,8 +191,16 @@ export default async function handler(req, res) {
                             body: isSecret ? "اهمس بشيء غامض..." : (finalDisplayContent.length > 50 ? finalDisplayContent.substring(0, 47) + "..." : finalDisplayContent),    
                         },    
                         data: { url: "https://am-rewards.vercel.app/ghost-chat.html" },
-                        android: { priority: 'high', notification: { tag: 'ghost-chat-msg' } },
-                        webpush: { notification: { tag: 'ghost-chat-msg', renotify: true } }
+                        // التعديل هنا لضمان السرعة القصوى (Real-time)
+                        android: { 
+                            priority: 'high', 
+                            ttl: 0, 
+                            notification: { tag: 'ghost-chat-msg', priority: 'max', visibility: 'public' } 
+                        },
+                        webpush: { 
+                            headers: { "Urgency": "high", "TTL": "0" }, 
+                            notification: { tag: 'ghost-chat-msg', renotify: true } 
+                        }
                     };    
                     
                     for (let i = 0; i < targetTokens.length; i += 500) {
