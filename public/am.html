@@ -3,27 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة AM Rewards للاختبارات</title>
+    <title>AM Rewards | اختيار الاختبار</title>
     <style>
-        body { font-family: sans-serif; background: #0b0e14; color: white; padding: 20px; }
-        .main-title { text-align: center; margin-bottom: 30px; }
-        .category-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 40px; }
-        .category-card { background: #1c222d; padding: 30px; border-radius: 20px; text-align: center; cursor: pointer; border: 2px solid #007bff; transition: 0.3s; }
-        .category-card:hover { background: #007bff; }
-        .job-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .job-card { background: #252d3d; padding: 20px; border-radius: 15px; text-align: center; cursor: pointer; border: 1px solid #444; }
+        body { font-family: sans-serif; background: #0b0e14; color: white; padding: 15px; }
+        .search-bar { width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 10px; border: none; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .card { background: #1c222d; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid #007bff; cursor: pointer; }
+        .hidden { display: none; }
+        .level-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; background: #28a745; border: none; border-radius: 10px; color: white; font-size: 18px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <h1 class="main-title">AM Rewards</h1>
-
-    <div class="category-grid">
-        <div class="category-card" onclick="fetchData('jobs')"><h3>الوظائف التقنية</h3></div>
-        <div class="category-card" onclick="fetchData('interview_general')"><h3>أسئلة الإنترفيو</h3></div>
+    <div id="homeScreen">
+        <input type="text" id="searchInput" class="search-bar" placeholder="ابحث عن وظيفتك..." onkeyup="filterJobs()">
+        <div id="jobGrid" class="grid"></div>
     </div>
 
-    <div id="displayArea" class="job-grid"></div>
+    <div id="levelScreen" class="hidden">
+        <h2 id="selectedJobTitle"></h2>
+        <button class="level-btn" onclick="startQuiz('easy')">سهل</button>
+        <button class="level-btn" onclick="startQuiz('medium')">متوسط</button>
+        <button class="level-btn" onclick="startQuiz('hard')">صعب</button>
+        <button class="level-btn" onclick="startQuiz('expert')">محترف</button>
+        <button class="level-btn" style="background: #6c757d;" onclick="goBack()">عودة</button>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -33,27 +37,48 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        window.fetchData = async (collectionName) => {
-            const displayArea = document.getElementById('displayArea');
-            displayArea.innerHTML = "جاري التحميل...";
-            
-            const querySnapshot = await getDocs(collection(db, collectionName));
-            displayArea.innerHTML = ""; // مسح القديم
-            
+        let currentJob = null;
+
+        // جلب الوظائف
+        async function loadJobs() {
+            const querySnapshot = await getDocs(collection(db, "jobs"));
+            const grid = document.getElementById('jobGrid');
             querySnapshot.forEach((doc) => {
-                const item = doc.data();
+                const job = doc.data();
                 const card = document.createElement('div');
-                card.className = 'job-card';
-                card.innerHTML = `<h3>${item.title}</h3>`;
-                card.onclick = () => startQuiz(item);
-                displayArea.appendChild(card);
+                card.className = 'card';
+                card.innerHTML = `<div>${job.title}</div>`;
+                card.onclick = () => showLevels(job);
+                grid.appendChild(card);
+            });
+        }
+
+        window.showLevels = (job) => {
+            currentJob = job;
+            document.getElementById('homeScreen').classList.add('hidden');
+            document.getElementById('levelScreen').classList.remove('hidden');
+            document.getElementById('selectedJobTitle').innerText = job.title;
+        };
+
+        window.goBack = () => {
+            document.getElementById('homeScreen').classList.remove('hidden');
+            document.getElementById('levelScreen').classList.add('hidden');
+        };
+
+        window.filterJobs = () => {
+            const input = document.getElementById('searchInput').value.toLowerCase();
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.style.display = card.innerText.toLowerCase().includes(input) ? "" : "none";
             });
         };
 
-        function startQuiz(item) {
-            console.log("بدء اختبار: ", item.title);
-            // هنا سينتقل الكود لشاشة الأسئلة
-        }
+        window.startQuiz = (level) => {
+            alert("بدء اختبار " + level + " لوظيفة " + currentJob.title);
+            // هنا ستنتقل لشاشة الأسئلة وتجلب البيانات من currentJob.levels[level]
+        };
+
+        loadJobs();
     </script>
 </body>
 </html>
