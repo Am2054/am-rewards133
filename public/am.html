@@ -2,70 +2,58 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>رفع أسئلة الإنترفيو العامة</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة AM Rewards للاختبارات</title>
+    <style>
+        body { font-family: sans-serif; background: #0b0e14; color: white; padding: 20px; }
+        .main-title { text-align: center; margin-bottom: 30px; }
+        .category-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 40px; }
+        .category-card { background: #1c222d; padding: 30px; border-radius: 20px; text-align: center; cursor: pointer; border: 2px solid #007bff; transition: 0.3s; }
+        .category-card:hover { background: #007bff; }
+        .job-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .job-card { background: #252d3d; padding: 20px; border-radius: 15px; text-align: center; cursor: pointer; border: 1px solid #444; }
+    </style>
 </head>
-<body style="display: flex; justify-content: center; align-items: center; height: 100vh; background: #0b0e14;">
+<body>
 
-    <button id="uploadBtn" style="padding: 20px; font-size: 18px; background: #ff9800; color: white; border: none; border-radius: 10px; cursor: pointer;">
-        اضغط لرفع الـ 25 سؤالاً عاماً للإنترفيو
-    </button>
+    <h1 class="main-title">AM Rewards</h1>
+
+    <div class="category-grid">
+        <div class="category-card" onclick="fetchData('jobs')"><h3>الوظائف التقنية</h3></div>
+        <div class="category-card" onclick="fetchData('interview_general')"><h3>أسئلة الإنترفيو</h3></div>
+    </div>
+
+    <div id="displayArea" class="job-grid"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        const firebaseConfig = { 
-            apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
-            authDomain: "am--rewards.firebaseapp.com", 
-            projectId: "am--rewards" 
-        };
-
+        const firebaseConfig = { /* بياناتك هنا */ };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        async function uploadInterviewData() {
-            const data = {
-                title: "أسئلة إنترفيو عامة",
-                category: "Interview",
-                questions: [
-                    { q: "حدثني عن نفسك؟", tip: "ركز على خبراتك وإنجازاتك ذات الصلة بالوظيفة." },
-                    { q: "لماذا تريد العمل معنا؟", tip: "أظهر معرفتك بالشركة وشغفك بمجالهم." },
-                    { q: "ما هي أكبر نقاط قوتك؟", tip: "اختر مهارات يحتاجها الدور الوظيفي فعلاً." },
-                    { q: "ما هي أكبر نقاط ضعفك؟", tip: "اذكر نقطة حقيقية وكيف تعمل على تحسينها." },
-                    { q: "كيف تتعامل مع ضغوط العمل؟", tip: "اذكر مثالاً واقعياً لتنظيمك للوقت." },
-                    { q: "أين ترى نفسك بعد 5 سنوات؟", tip: "أظهر طموحاً يتماشى مع نمو الشركة." },
-                    { q: "لماذا يجب أن نوظفك أنت تحديداً؟", tip: "ركز على القيمة المضافة التي ستقدمها." },
-                    { q: "كيف تتعامل مع زميل عمل صعب الطباع؟", tip: "أظهر مهارتك في التواصل والاحترافية." },
-                    { q: "ما هو أكبر إنجاز حققته في عملك السابق؟", tip: "استخدم لغة الأرقام والنتائج الملموسة." },
-                    { q: "ماذا تفعل إذا أخطأت في عملك؟", tip: "أظهر الصدق والقدرة على التعلم من الخطأ." },
-                    { q: "كيف تصف أسلوبك في العمل؟", tip: "هل أنت منظم؟ متعاون؟ مبادر؟" },
-                    { q: "ما هو دافعك الأساسي للعمل؟", tip: "الإنجاز، التعلم، أو بناء المسيرة المهنية." },
-                    { q: "ماذا تعرف عن شركتنا؟", tip: "يجب أن تكون قد بحثت عن الشركة جيداً." },
-                    { q: "كيف تتعامل مع النقد البناء؟", tip: "أظهر تقبلك للتطور والنمو." },
-                    { q: "ما هو أهم شيء تبحث عنه في وظيفتك الجديدة؟", tip: "التطور المهني وبيئة العمل." },
-                    { q: "كيف تتصرف إذا لم توافق على قرار مديرك؟", tip: "اللباقة والمهنية في عرض وجهة نظرك." },
-                    { q: "هل تفضل العمل الجماعي أم الفردي؟", tip: "أظهر القدرة على التكيف مع الاثنين." },
-                    { q: "ماذا تفعل إذا كان لديك موعد تسليم نهائي ضيق؟", tip: "التركيز، ترتيب الأولويات، والعمل بذكاء." },
-                    { q: "ما هو الراتب المتوقع؟", tip: "كن واقعياً وابنِ توقعك على خبراتك." },
-                    { q: "كيف تتعلم مهارات جديدة؟", tip: "أظهر شغفك بالتعلم الذاتي والمستمر." },
-                    { q: "هل لديك أي أسئلة لنا؟", tip: "دائماً اسأل سؤالاً ذكياً عن الشركة." },
-                    { q: "كيف تتعامل مع الفشل؟", tip: "أظهر المرونة والقدرة على النهوض مجدداً." },
-                    { q: "ما الذي يحفزك للعمل يومياً؟", tip: "التحديات الجديدة والإنجاز." },
-                    { q: "كيف تقيم نجاحك؟", tip: "بمدى تحقيق الأهداف والتعلم." },
-                    { q: "لماذا تركت وظيفتك السابقة؟", tip: "حافظ على إيجابيتك ولا تذم أحداً." }
-                ]
-            };
+        window.fetchData = async (collectionName) => {
+            const displayArea = document.getElementById('displayArea');
+            displayArea.innerHTML = "جاري التحميل...";
+            
+            const querySnapshot = await getDocs(collection(db, collectionName));
+            displayArea.innerHTML = ""; // مسح القديم
+            
+            querySnapshot.forEach((doc) => {
+                const item = doc.data();
+                const card = document.createElement('div');
+                card.className = 'job-card';
+                card.innerHTML = `<h3>${item.title}</h3>`;
+                card.onclick = () => startQuiz(item);
+                displayArea.appendChild(card);
+            });
+        };
 
-            try {
-                await setDoc(doc(db, "interview_general", "all_questions"), data);
-                alert("تم رفع الـ 25 سؤالاً عاماً للإنترفيو بنجاح! 🚀");
-            } catch (e) {
-                alert("خطأ: " + e.message);
-                console.error(e);
-            }
+        function startQuiz(item) {
+            console.log("بدء اختبار: ", item.title);
+            // هنا سينتقل الكود لشاشة الأسئلة
         }
-
-        document.getElementById('uploadBtn').addEventListener('click', uploadInterviewData);
     </script>
 </body>
 </html>
