@@ -65,7 +65,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };
         
@@ -85,24 +85,51 @@
         let currentJob = null, questions = [], currentIndex = 0, score = 0, wrongQuestions = [];
 
         async function loadJobs() {
-            const querySnapshot = await getDocs(collection(db, "jobs"));
             const grid = document.getElementById('jobGrid');
-            querySnapshot.forEach((doc) => {
+            // تحميل الوظائف
+            const jobSnapshot = await getDocs(collection(db, "jobs"));
+            jobSnapshot.forEach((doc) => {
                 const jobData = doc.data();
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `<div>${jobTranslations[doc.id] || doc.id}</div>`;
-                card.onclick = () => showLevels(doc.id, jobData);
+                card.onclick = () => showLevels(doc.id, jobData, false);
                 grid.appendChild(card);
             });
+            // تحميل الأسئلة العامة
+            const genCard = document.createElement('div');
+            genCard.className = 'card';
+            genCard.innerHTML = `<div>أسئلة عامة</div>`;
+            genCard.onclick = () => showLevels("General_Interview", null, true);
+            grid.appendChild(genCard);
         }
 
-        window.showLevels = (id, jobData) => {
-            currentJob = jobData;
-            document.getElementById('homeScreen').classList.add('hidden');
-            document.getElementById('levelScreen').classList.remove('hidden');
-            document.getElementById('selectedJobTitle').innerText = jobTranslations[id] || id;
+        window.showLevels = (id, jobData, isGeneral) => {
+            if (isGeneral) {
+                startGeneralQuiz();
+            } else {
+                currentJob = jobData;
+                document.getElementById('homeScreen').classList.add('hidden');
+                document.getElementById('levelScreen').classList.remove('hidden');
+                document.getElementById('selectedJobTitle').innerText = jobTranslations[id] || id;
+            }
         };
+
+        async function startGeneralQuiz() {
+            const docSnap = await getDoc(doc(db, "interview_general", "all_questions"));
+            if (docSnap.exists()) {
+                questions = docSnap.data().questions;
+                initQuiz();
+            }
+        }
+
+        function initQuiz() {
+            currentIndex = 0; score = 0; wrongQuestions = [];
+            document.getElementById('homeScreen').classList.add('hidden');
+            document.getElementById('levelScreen').classList.add('hidden');
+            document.getElementById('quizScreen').classList.remove('hidden');
+            showQuestion();
+        }
 
         window.goBack = () => {
             document.getElementById('homeScreen').classList.remove('hidden');
@@ -113,10 +140,7 @@
         window.startQuiz = (level) => {
             questions = currentJob.levels ? currentJob.levels[level] : [];
             if (questions.length === 0) { alert("لا توجد أسئلة"); return; }
-            currentIndex = 0; score = 0; wrongQuestions = [];
-            document.getElementById('levelScreen').classList.add('hidden');
-            document.getElementById('quizScreen').classList.remove('hidden');
-            showQuestion();
+            initQuiz();
         };
 
         function showQuestion() {
@@ -125,18 +149,30 @@
             document.getElementById('questionBox').innerText = q.q;
             const optionsBox = document.getElementById('optionsBox');
             optionsBox.innerHTML = "";
-            q.options.forEach((opt, index) => {
+            // الأسئلة العامة قد لا تحتوي على خيارات (مفتوحة)، لذا نتحقق
+            if (q.options) {
+                q.options.forEach((opt, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.innerText = opt;
+                    btn.onclick = () => handleAnswer(index, q);
+                    optionsBox.appendChild(btn);
+                });
+            } else {
+                document.getElementById('questionBox').innerHTML += `<br><small style="color:#aaa">سؤال مفتوح - فكر في الإجابة ثم اضغط متابعة</small>`;
                 const btn = document.createElement('button');
                 btn.className = 'option-btn';
-                btn.innerText = opt;
-                btn.onclick = () => handleAnswer(index, q);
+                btn.innerText = "التالي";
+                btn.onclick = () => handleAnswer(null, q);
                 optionsBox.appendChild(btn);
-            });
+            }
         }
 
         function handleAnswer(selectedIndex, q) {
-            if (selectedIndex === q.answer) score++;
-            else wrongQuestions.push({ ...q, selected: q.options[selectedIndex] });
+            if (q.options) {
+                if (selectedIndex === q.answer) score++;
+                else wrongQuestions.push({ ...q, selected: q.options[selectedIndex] });
+            }
             currentIndex++;
             if (currentIndex < questions.length) showQuestion();
             else showResult();
