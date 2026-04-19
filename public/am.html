@@ -84,17 +84,20 @@
 
         let currentJob = null, questions = [], currentIndex = 0, score = 0, wrongQuestions = [];
 
-        async function loadJobs() {
+                async function loadJobs() {
             const grid = document.getElementById('jobGrid');
-            const jobSnapshot = await getDocs(collection(db, "joobs"));
-            grid.innerHTML = ""; // تأكيد مسح الشبكة قبل الإضافة
+            const jobSnapshot = await getDocs(collection(db, "jobs"));
+            grid.innerHTML = ""; // مسح أي محتوى سابق
             jobSnapshot.forEach((doc) => {
-                const jobData = doc.data();
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `<div>${jobTranslations[doc.id] || doc.id}</div>`;
-                card.onclick = () => showLevels(doc.id, jobData, false);
-                grid.appendChild(card);
+                // هذا الشرط يمنع ظهور أي كارت يحمل اسم General_Interview
+                if (doc.id !== "General_Interview") {
+                    const jobData = doc.data();
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `<div>${jobTranslations[doc.id] || doc.id}</div>`;
+                    card.onclick = () => showLevels(doc.id, jobData, false);
+                    grid.appendChild(card);
+                }
             });
         }
 
