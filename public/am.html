@@ -33,6 +33,7 @@
         .option-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; background: #1c222d; border: 1px solid #444; border-radius: 12px; color: white; cursor: pointer; transition: 0.3s; }
         .option-btn:hover { background: var(--primary); }
         .progress { text-align: center; margin-bottom: 10px; color: var(--primary); font-weight: bold; }
+        .tip-box { background: rgba(0,123,255,0.1); padding: 15px; border-radius: 15px; margin-top: 20px; border-right: 4px solid var(--primary); font-size: 14px; line-height: 1.6; }
     </style>
 </head>
 <body>
@@ -75,16 +76,13 @@
             "Frontend_Developer": "مطور واجهات", "Graphic_Designer": "مصمم جرافيك", "HR": "موارد بشرية",
             "Order_Picker": "تجهيز طلبات", "Packaging_Worker": "عمال تغليف", "Receptionist": "استقبال",
             "Sales_Representative": "مندوب مبيعات", "Social_Media_Moderator": "مشرف وسائل التواصل", 
-            "Translator": "مترجم", "Warehouse_Keeper": "أمين مخزن", "General_Interview": "أسئلة عامة"
+            "Translator": "مترجم", "Warehouse_Keeper": "أمين مخزن", "General_Interview": "أسئلة عامة", "Technical_Support": "دعم فني"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        let currentJob = null;
-        let questions = [];
-        let currentIndex = 0;
-        let score = 0;
+        let currentJob = null, questions = [], currentIndex = 0, score = 0, wrongQuestions = [];
 
         async function loadJobs() {
             const querySnapshot = await getDocs(collection(db, "jobs"));
@@ -115,9 +113,7 @@
         window.startQuiz = (level) => {
             questions = currentJob.levels ? currentJob.levels[level] : [];
             if (questions.length === 0) { alert("لا توجد أسئلة"); return; }
-            
-            currentIndex = 0;
-            score = 0;
+            currentIndex = 0; score = 0; wrongQuestions = [];
             document.getElementById('levelScreen').classList.add('hidden');
             document.getElementById('quizScreen').classList.remove('hidden');
             showQuestion();
@@ -133,26 +129,34 @@
                 const btn = document.createElement('button');
                 btn.className = 'option-btn';
                 btn.innerText = opt;
-                btn.onclick = () => handleAnswer(index, q.answer);
+                btn.onclick = () => handleAnswer(index, q);
                 optionsBox.appendChild(btn);
             });
         }
 
-        function handleAnswer(selectedIndex, correctIndex) {
-            if (selectedIndex === correctIndex) score++;
+        function handleAnswer(selectedIndex, q) {
+            if (selectedIndex === q.answer) score++;
+            else wrongQuestions.push({ ...q, selected: q.options[selectedIndex] });
             currentIndex++;
-            if (currentIndex < questions.length) {
-                showQuestion();
-            } else {
-                showResult();
-            }
+            if (currentIndex < questions.length) showQuestion();
+            else showResult();
         }
 
         function showResult() {
-            const percentage = (score / questions.length) * 100;
-            const msg = percentage >= 60 ? "تهانينا! أنت جاهز للمقابلة 🎉" : "تحتاج لمزيد من التدريب، حاول مرة أخرى 🛠️";
+            let html = `<h3>نتيجتك: ${score} من ${questions.length}</h3>`;
+            if (wrongQuestions.length > 0) {
+                html += `<h4>أسئلة تحتاج مراجعة:</h4>`;
+                wrongQuestions.forEach(q => html += `<p style="font-size:14px">❌ ${q.q}<br>الصحيح: <b>${q.options[q.answer]}</b></p>`);
+            }
+            html += `<div class="tip-box">
+                <b>نصائح ذهبية للمقابلة:</b><br>
+                1. <b>احكي عن نفسك:</b> ركّز على المهارات لا الحياة الشخصية.<br>
+                2. <b>نقاط الضعف:</b> اذكر ضعفاً حقيقياً وتحدث عن خطواتك لتطويره.<br>
+                3. <b>الأسئلة:</b> اسأل عن طبيعة يوم العمل، هذا يُظهر اهتمامك الجاد.<br>
+                4. <b>الثقة:</b> لا تقل "مش عارف"، قل "هذا مجال جديد عليّ لكن أستطيع تعلمه بسرعة".
+            </div>`;
             document.getElementById('quizProgress').innerText = "نتائج الاختبار";
-            document.getElementById('questionBox').innerHTML = `<h3>حصلت على ${score} من ${questions.length}</h3><p>${msg}</p>`;
+            document.getElementById('questionBox').innerHTML = html;
             document.getElementById('optionsBox').innerHTML = `<button class="option-btn" onclick="goBack()">العودة للرئيسية</button>`;
         }
 
