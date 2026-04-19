@@ -71,7 +71,7 @@
         
         const jobTranslations = {
             "Accountant": "محاسب", "Assistant": "مساعد", "Biomedical_Tech": "فني أجهزة طبية",
-            "Call_Center": "كول سنتر ", "Content_Writer": "كتابة محتوى", "Customer_Service": "خدمة عملاء",
+            "Call_Center": "خدمة عملاء", "Content_Writer": "كتابة محتوى", "Customer_Service": "خدمة عملاء",
             "Data_Entry": "إدخال بيانات", "Digital_Marketing": "تسويق رقمي", "Electronics_Tech": "فني إلكترونيات",
             "Frontend_Developer": "مطور واجهات", "Graphic_Designer": "مصمم جرافيك", "HR": "موارد بشرية",
             "Order_Picker": "تجهيز طلبات", "Packaging_Worker": "عمال تغليف", "Receptionist": "استقبال",
@@ -86,7 +86,6 @@
 
         async function loadJobs() {
             const grid = document.getElementById('jobGrid');
-            // تحميل الوظائف
             const jobSnapshot = await getDocs(collection(db, "jobs"));
             jobSnapshot.forEach((doc) => {
                 const jobData = doc.data();
@@ -96,7 +95,6 @@
                 card.onclick = () => showLevels(doc.id, jobData, false);
                 grid.appendChild(card);
             });
-            // تحميل الأسئلة العامة
             const genCard = document.createElement('div');
             genCard.className = 'card';
             genCard.innerHTML = `<div>أسئلة عامة</div>`;
@@ -116,10 +114,17 @@
         };
 
         async function startGeneralQuiz() {
-            const docSnap = await getDoc(doc(db, "interview_general", "all_questions"));
-            if (docSnap.exists()) {
-                questions = docSnap.data().questions;
-                initQuiz();
+            try {
+                const docSnap = await getDoc(doc(db, "interview_general", "all_questions"));
+                if (docSnap.exists()) {
+                    questions = docSnap.data().questions;
+                    initQuiz();
+                } else {
+                    alert("الأسئلة غير موجودة في قاعدة البيانات!");
+                }
+            } catch (e) {
+                console.error("خطأ:", e);
+                alert("حدث خطأ في الاتصال");
             }
         }
 
@@ -149,7 +154,6 @@
             document.getElementById('questionBox').innerText = q.q;
             const optionsBox = document.getElementById('optionsBox');
             optionsBox.innerHTML = "";
-            // الأسئلة العامة قد لا تحتوي على خيارات (مفتوحة)، لذا نتحقق
             if (q.options) {
                 q.options.forEach((opt, index) => {
                     const btn = document.createElement('button');
@@ -159,7 +163,7 @@
                     optionsBox.appendChild(btn);
                 });
             } else {
-                document.getElementById('questionBox').innerHTML += `<br><small style="color:#aaa">سؤال مفتوح - فكر في الإجابة ثم اضغط متابعة</small>`;
+                document.getElementById('questionBox').innerHTML += `<br><small style="color:#aaa">فكر في الإجابة ثم اضغط التالي</small>`;
                 const btn = document.createElement('button');
                 btn.className = 'option-btn';
                 btn.innerText = "التالي";
