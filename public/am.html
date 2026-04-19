@@ -2,20 +2,19 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AM Rewards | حضر نفسك</title>
     <style>
-        :root { --primary: #00f2ff; --bg: #0b0e14; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; padding: 20px; }
-        .header { text-align: center; font-size: 24px; margin-bottom: 30px; background: linear-gradient(to right, var(--primary), #fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); padding: 20px; border-radius: 20px; text-align: center; cursor: pointer; transition: 0.4s; }
-        .card:hover { border-color: var(--primary); transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,242,255,0.2); }
-
-        .level-container { display: flex; overflow-x: auto; gap: 10px; padding: 10px; }
-        .level-card { min-width: 80px; padding: 15px; background: #1c222d; border-radius: 15px; text-align: center; border: 1px solid #444; cursor: pointer; }
-        .level-card:active { background: var(--primary); color: #000; }
-        
+        :root { --primary: #007bff; --bg: #0b0e14; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; padding: 15px; }
+        .header { text-align: center; margin: 20px 0; font-size: 22px; color: var(--primary); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--primary); cursor: pointer; transition: 0.3s; }
+        .card:hover { background: var(--primary); transform: translateY(-3px); }
         .hidden { display: none; }
+        .levels-container { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; justify-content: center; }
+        .level-btn { min-width: 70px; padding: 12px; background: #28a745; border: none; border-radius: 10px; color: white; font-size: 14px; cursor: pointer; }
+        .back-btn { display: block; width: 100%; padding: 15px; margin-top: 20px; background: #6c757d; border: none; border-radius: 10px; color: white; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -26,21 +25,29 @@
     </div>
 
     <div id="levelScreen" class="hidden">
-        <h2 id="jobTitle" class="header"></h2>
-        <div id="levels" class="level-container">
-            <div class="level-card" onclick="startQuiz('easy')">سهل</div>
-            <div class="level-card" onclick="startQuiz('medium')">متوسط</div>
-            <div class="level-card" onclick="startQuiz('hard')">صعب</div>
-            <div class="level-card" onclick="startQuiz('expert')">محترف</div>
+        <h2 id="selectedJobTitle" class="header"></h2>
+        <div id="levelsBox" class="levels-container">
+            <button class="level-btn" onclick="startQuiz('easy')">سهل</button>
+            <button class="level-btn" onclick="startQuiz('medium')">متوسط</button>
+            <button class="level-btn" onclick="startQuiz('hard')">صعب</button>
+            <button class="level-btn" onclick="startQuiz('expert')">محترف</button>
         </div>
-        <button onclick="goBack()" style="margin-top:20px; background:none; border:1px solid #555; color:white; padding:10px 20px; border-radius:10px;">رجوع</button>
+        <button class="back-btn" onclick="goBack()">عودة</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        
-        const db = getFirestore(initializeApp({ /* بياناتك */ }));
+
+        const firebaseConfig = { 
+            apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
+            authDomain: "am--rewards.firebaseapp.com", 
+            projectId: "am--rewards" 
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
         let currentJob = null;
 
         async function loadJobs() {
@@ -51,23 +58,23 @@
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `<div>${job.title}</div>`;
-                card.onclick = () => {
-                    if (job.title === "أسئلة عامة") { // افتراض أن هذا هو الاسم في Firebase
-                        startQuiz('general');
-                    } else {
-                        showLevels(job);
-                    }
-                };
+                card.onclick = () => showLevels(job);
                 grid.appendChild(card);
             });
         }
 
-        function showLevels(job) {
+        window.showLevels = (job) => {
             currentJob = job;
-            document.getElementById('homeScreen').classList.add('hidden');
-            document.getElementById('levelScreen').classList.remove('hidden');
-            document.getElementById('jobTitle').innerText = job.title;
-        }
+            // التحقق إذا كانت الوظيفة هي أسئلة عامة (بدون مستويات)
+            if (job.title === "أسئلة عامة") {
+                startQuiz('general');
+            } else {
+                document.getElementById('homeScreen').classList.add('hidden');
+                document.getElementById('levelScreen').classList.remove('hidden');
+                document.getElementById('selectedJobTitle').innerText = job.title;
+                document.getElementById('levelsBox').style.display = 'flex';
+            }
+        };
 
         window.goBack = () => {
             document.getElementById('homeScreen').classList.remove('hidden');
@@ -75,7 +82,7 @@
         };
 
         window.startQuiz = (level) => {
-            alert("بدء: " + level + " - " + (currentJob ? currentJob.title : "أسئلة عامة"));
+            alert("بدء اختبار المستوى: " + level + " لوظيفة " + currentJob.title);
         };
 
         loadJobs();
