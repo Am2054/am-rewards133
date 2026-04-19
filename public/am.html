@@ -1,34 +1,60 @@
-<button onclick="uploadBiomedicalData()" style="padding: 20px; font-size: 18px; background: #007bff; color: white; border: none; border-radius: 10px;">
-    اضغط لرفع أسئلة فني أجهزة طبية
-</button>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة رفع الأسئلة</title>
+</head>
+<body style="display: flex; justify-content: center; align-items: center; height: 100vh; background: #0b0e14;">
 
-<script>
-async function uploadBiomedicalData() {
-    const db = firebase.firestore();
-    const data = {
-        title: "فني أجهزة طبية",
-        category: "Tech",
-        levels: {
-            easy: [
-                { q: "ما هو الجهاز المستخدم لمراقبة نبضات القلب؟", options: ["ECG", "Ventilator", "Syringe Pump"], answer: 0, tip: "جهاز الـ ECG هو المختص بتخطيط ومراقبة النشاط الكهربائي للقلب." },
-                { q: "ما هي الوحدة المستخدمة لقياس المقاومة الكهربائية؟", options: ["Volt", "Ohm", "Ampere"], answer: 1, tip: "الأوم (Ohm) هو وحدة قياس المقاومة." },
-                { q: "كيف نتأكد من سلامة كابلات الجهاز؟", options: ["بالنظر فقط", "باستخدام الملتيميتر", "بتغيير الجهاز"], answer: 1, tip: "الملتيميتر هو الأداة الصحيحة لفحص استمرارية الكابلات." },
-                { q: "ما هو دور الـ Sensor في الأجهزة الطبية؟", options: ["تحويل الإشارة", "تخزين الطاقة", "تبريد الجهاز"], answer: 0, tip: "الحساس (Sensor) يقوم بتحويل المتغيرات الفيزيائية لإشارات كهربائية." },
-                { q: "ما هو لون سلك التأريض (Ground) عادةً؟", options: ["أحمر", "أصفر وأخضر", "أزرق"], answer: 1, tip: "سلك التأريض (Ground) غالباً ما يكون باللون الأصفر والأخضر." },
-                { q: "كيف يتم تعقيم الأدوات الطبية؟", options: ["بالماء فقط", "بالأوتوكلاف", "بالميكروويف"], answer: 1, tip: "الأوتوكلاف (Autoclave) هو الجهاز القياسي للتعقيم." },
-                { q: "أي جهاز يستخدم لمساعدة المريض على التنفس؟", options: ["Ventilator", "Defibrillator", "Monitor"], answer: 0, tip: "جهاز التنفس الصناعي (Ventilator) يوفر المساعدة في عملية التنفس." },
-                { q: "ما هو الـ LCD؟", options: ["جهاز قياس", "شاشة عرض", "مضخة"], answer: 1, tip: "شاشة الكريستال السائل (LCD) تُستخدم لعرض بيانات الجهاز للمستخدم." },
-                { q: "ماذا يعني وجود إنذار على الـ Monitor؟", options: ["فصل الكهرباء", "خروج القراءة عن النطاق", "تحديث البرنامج"], answer: 1, tip: "الإنذار يخبرك أن القراءات الحيوية للمريض قد تجاوزت الحدود الطبيعية." },
-                { q: "ما أهمية صيانة الأجهزة دورياً؟", options: ["زيادة السعر", "ضمان دقة القراءات", "تغيير الشكل"], answer: 1, tip: "الصيانة الدورية تضمن دقة القراءات وسلامة المريض والجهاز." }
-            ]
+    <button id="uploadBtn" style="padding: 20px; font-size: 18px; background: #007bff; color: white; border: none; border-radius: 10px; cursor: pointer;">
+        اضغط لرفع أسئلة فني أجهزة طبية
+    </button>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // إعدادات المشروع الخاص بك
+        const firebaseConfig = { 
+            apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
+            authDomain: "am--rewards.firebaseapp.com", 
+            projectId: "am--rewards" 
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        async function uploadBiomedicalData() {
+            const data = {
+                title: "فني أجهزة طبية",
+                category: "Tech",
+                levels: {
+                    easy: [
+                        { q: "ما هو الجهاز المستخدم لمراقبة نبضات القلب؟", options: ["ECG", "Ventilator", "Syringe Pump"], answer: 0, tip: "جهاز الـ ECG هو المختص بتخطيط ومراقبة النشاط الكهربائي للقلب." },
+                        { q: "ما هي الوحدة المستخدمة لقياس المقاومة الكهربائية؟", options: ["Volt", "Ohm", "Ampere"], answer: 1, tip: "الأوم (Ohm) هو وحدة قياس المقاومة." },
+                        { q: "كيف نتأكد من سلامة كابلات الجهاز؟", options: ["بالنظر فقط", "باستخدام الملتيميتر", "بتغيير الجهاز"], answer: 1, tip: "الملتيميتر هو الأداة الصحيحة لفحص استمرارية الكابلات." },
+                        { q: "ما هو دور الـ Sensor في الأجهزة الطبية؟", options: ["تحويل الإشارة", "تخزين الطاقة", "تبريد الجهاز"], answer: 0, tip: "الحساس (Sensor) يقوم بتحويل المتغيرات الفيزيائية لإشارات كهربائية." },
+                        { q: "ما هو لون سلك التأريض (Ground) عادةً؟", options: ["أحمر", "أصفر وأخضر", "أزرق"], answer: 1, tip: "سلك التأريض (Ground) غالباً ما يكون باللون الأصفر والأخضر." },
+                        { q: "كيف يتم تعقيم الأدوات الطبية؟", options: ["بالماء فقط", "بالأوتوكلاف", "بالميكروويف"], answer: 1, tip: "الأوتوكلاف (Autoclave) هو الجهاز القياسي للتعقيم." },
+                        { q: "أي جهاز يستخدم لمساعدة المريض على التنفس؟", options: ["Ventilator", "Defibrillator", "Monitor"], answer: 0, tip: "جهاز التنفس الصناعي (Ventilator) يوفر المساعدة في عملية التنفس." },
+                        { q: "ما هو الـ LCD؟", options: ["جهاز قياس", "شاشة عرض", "مضخة"], answer: 1, tip: "شاشة الكريستال السائل (LCD) تُستخدم لعرض بيانات الجهاز للمستخدم." },
+                        { q: "ماذا يعني وجود إنذار على الـ Monitor؟", options: ["فصل الكهرباء", "خروج القراءة عن النطاق", "تحديث البرنامج"], answer: 1, tip: "الإنذار يخبرك أن القراءات الحيوية للمريض قد تجاوزت الحدود الطبيعية." },
+                        { q: "ما أهمية صيانة الأجهزة دورياً؟", options: ["زيادة السعر", "ضمان دقة القراءات", "تغيير الشكل"], answer: 1, tip: "الصيانة الدورية تضمن دقة القراءات وسلامة المريض والجهاز." }
+                    ]
+                }
+            };
+
+            try {
+                // نستخدم doc و setDoc بدلاً من set القديمة
+                await setDoc(doc(db, "jobs", "Biomedical_Tech"), data);
+                alert("تم رفع الـ 10 أسئلة بنجاح! مبروك أول وظيفة.");
+            } catch (e) {
+                alert("خطأ: " + e.message);
+                console.error(e);
+            }
         }
-    };
 
-    try {
-        await db.collection("jobs").doc("Biomedical_Tech").set(data);
-        alert("تم رفع الـ 10 أسئلة بنجاح! مبروك أول وظيفة.");
-    } catch (e) {
-        alert("خطأ: " + e.message);
-    }
-}
-</script>
+        document.getElementById('uploadBtn').addEventListener('click', uploadBiomedicalData);
+    </script>
+</body>
+</html>
