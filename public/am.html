@@ -34,8 +34,9 @@
 
         /* تصميم شاشة الأسئلة الجديدة */
         .quiz-container { animation: fadeIn 0.6s ease; padding: 10px; }
-        .question-box { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; margin-bottom: 20px; text-align: center; font-size: 18px; border: 1px solid var(--primary); }
-        .option-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; background: #1c222d; border: 1px solid #444; border-radius: 12px; color: white; cursor: pointer; transition: 0.3s; }
+        .question-wrapper { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid var(--primary); }
+        .question-text { font-size: 18px; margin-bottom: 15px; display: block; }
+        .option-btn { display: block; width: 100%; padding: 12px; margin: 8px 0; background: #1c222d; border: 1px solid #444; border-radius: 10px; color: white; cursor: pointer; transition: 0.3s; }
         .option-btn:hover { background: var(--primary); }
     </style>
 </head>
@@ -59,16 +60,13 @@
 
     <div id="quizScreen" class="hidden">
         <h2 class="header">الاختبار</h2>
-        <div class="quiz-container">
-            <div id="questionBox" class="question-box"></div>
-            <div id="optionsBox"></div>
-        </div>
+        <div id="allQuestionsContainer" class="quiz-container"></div>
         <button class="back-btn" onclick="goBack()">عودة للرئيسية</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = { 
             apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
@@ -76,11 +74,20 @@
             projectId: "am--rewards" 
         };
 
+        const jobTranslations = {
+            "Accountant": "محاسب", "Assistant": "مساعد", "Biomedical__": "أجهزة طبية",
+            "Call_Center": "خدمة عملاء", "Content_Writing": "كتابة محتوى", "Customer_Service": "خدمة عملاء",
+            "Data_Entry": "إدخال بيانات", "Digital_Marketing": "تسويق رقمي", "Electronics": "إلكترونيات",
+            "Frontend_Developer": "مطور واجهات", "Graphic_Designer": "مصمم جرافيك", "HR": "موارد بشرية",
+            "Order_Picker": "تجهيز طلبات", "Packaging_Worker": "عمال تغليف", "Receptionist": "استقبال",
+            "Sales_Representative": "مندوب مبيعات", "Social_Media": "سوشيال ميديا", "Translator": "مترجم",
+            "Warehouse_Keeper": "أمين مخزن"
+        };
+
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
         let currentJob = null;
-        let jobDocId = null;
 
         async function loadJobs() {
             const querySnapshot = await getDocs(collection(db, "jobs"));
@@ -89,18 +96,18 @@
                 const jobData = doc.data();
                 const card = document.createElement('div');
                 card.className = 'card';
-                card.innerHTML = `<div>${doc.id}</div>`;
+                // استخدام الترجمة إذا وجدت، وإلا عرض الاسم كما هو
+                card.innerHTML = `<div>${jobTranslations[doc.id] || doc.id}</div>`;
                 card.onclick = () => showLevels(doc.id, jobData);
                 grid.appendChild(card);
             });
         }
 
         window.showLevels = (id, jobData) => {
-            jobDocId = id;
             currentJob = jobData;
             document.getElementById('homeScreen').classList.add('hidden');
             document.getElementById('levelScreen').classList.remove('hidden');
-            document.getElementById('selectedJobTitle').innerText = id;
+            document.getElementById('selectedJobTitle').innerText = jobTranslations[id] || id;
         };
 
         window.goBack = () => {
@@ -116,20 +123,30 @@
             document.getElementById('levelScreen').classList.add('hidden');
             document.getElementById('quizScreen').classList.remove('hidden');
             
-            const q = levels[level][0]; // عرض السؤال الأول كمثال
-            document.getElementById('questionBox').innerText = q.q;
+            const container = document.getElementById('allQuestionsContainer');
+            container.innerHTML = "";
             
-            const optionsBox = document.getElementById('optionsBox');
-            optionsBox.innerHTML = "";
-            q.options.forEach((opt, index) => {
-                const btn = document.createElement('button');
-                btn.className = 'option-btn';
-                btn.innerText = opt;
-                btn.onclick = () => {
-                    if(index === q.answer) alert("إجابة صحيحة! 🎉");
-                    else alert("إجابة خاطئة! ❌");
-                };
-                optionsBox.appendChild(btn);
+            // عرض كل الأسئلة
+            levels[level].forEach((q, qIndex) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'question-wrapper';
+                
+                const qText = document.createElement('span');
+                qText.className = 'question-text';
+                qText.innerText = (qIndex + 1) + "- " + q.q;
+                wrapper.appendChild(qText);
+                
+                q.options.forEach((opt, optIndex) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.innerText = opt;
+                    btn.onclick = () => {
+                        if(optIndex === q.answer) alert("صح! 🎉");
+                        else alert("خطأ، الإجابة الصحيحة هي: " + q.options[q.answer]);
+                    };
+                    wrapper.appendChild(btn);
+                });
+                container.appendChild(wrapper);
             });
         };
 
