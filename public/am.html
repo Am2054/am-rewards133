@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AM Rewards | اختيار الاختبار</title>
+    <title>AM Rewards | حضر نفسك</title>
     <style>
         body { font-family: sans-serif; background: #0b0e14; color: white; padding: 15px; }
-        .search-bar { width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 10px; border: none; }
+        .header { text-align: center; margin: 20px 0; font-size: 22px; color: #007bff; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .card { background: #1c222d; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid #007bff; cursor: pointer; }
+        .card { background: #1c222d; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid #007bff; cursor: pointer; transition: 0.3s; }
+        .card:hover { background: #007bff; }
         .hidden { display: none; }
         .level-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; background: #28a745; border: none; border-radius: 10px; color: white; font-size: 18px; cursor: pointer; }
     </style>
@@ -16,12 +17,12 @@
 <body>
 
     <div id="homeScreen">
-        <input type="text" id="searchInput" class="search-bar" placeholder="ابحث عن وظيفتك..." onkeyup="filterJobs()">
+        <h2 class="header">حضر نفسك لاي سؤال</h2>
         <div id="jobGrid" class="grid"></div>
     </div>
 
     <div id="levelScreen" class="hidden">
-        <h2 id="selectedJobTitle"></h2>
+        <h2 id="selectedJobTitle" class="header"></h2>
         <button class="level-btn" onclick="startQuiz('easy')">سهل</button>
         <button class="level-btn" onclick="startQuiz('medium')">متوسط</button>
         <button class="level-btn" onclick="startQuiz('hard')">صعب</button>
@@ -33,13 +34,17 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        const firebaseConfig = { /* بياناتك هنا */ };
+        const firebaseConfig = { 
+            apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
+            authDomain: "am--rewards.firebaseapp.com", 
+            projectId: "am--rewards" 
+        };
+
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
         let currentJob = null;
 
-        // جلب الوظائف
         async function loadJobs() {
             const querySnapshot = await getDocs(collection(db, "jobs"));
             const grid = document.getElementById('jobGrid');
@@ -65,17 +70,8 @@
             document.getElementById('levelScreen').classList.add('hidden');
         };
 
-        window.filterJobs = () => {
-            const input = document.getElementById('searchInput').value.toLowerCase();
-            const cards = document.querySelectorAll('.card');
-            cards.forEach(card => {
-                card.style.display = card.innerText.toLowerCase().includes(input) ? "" : "none";
-            });
-        };
-
         window.startQuiz = (level) => {
-            alert("بدء اختبار " + level + " لوظيفة " + currentJob.title);
-            // هنا ستنتقل لشاشة الأسئلة وتجلب البيانات من currentJob.levels[level]
+            alert("بدء اختبار المستوى: " + level + " لوظيفة " + currentJob.title);
         };
 
         loadJobs();
