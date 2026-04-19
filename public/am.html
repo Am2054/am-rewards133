@@ -7,24 +7,20 @@
     <style>
         :root { --primary: #007bff; --bg: #0b0e14; }
         * { will-change: transform; }
-        /* إضافة خاصية السلاسة في الحركة وزخم اللمس */
         html { scroll-behavior: smooth; }
         body { font-family: 'Segoe UI', sans-serif; background: radial-gradient(circle at 50% 50%, #1a1f2e, #0b0e14); min-height: 100vh; color: white; padding: 15px; margin: 0; -webkit-overflow-scrolling: touch; overflow-y: auto; overscroll-behavior: contain; }
         
-        /* إضافة حركة دخول سلسة */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         .header { text-align: center; margin: 20px 0; font-size: 22px; color: var(--primary); text-shadow: 0 0 10px rgba(0,123,255,0.5); }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; animation: fadeIn 0.6s ease; contain: content; }
         
-        /* كروت احترافية محسنة للأداء */
         .card { background: rgba(255, 255, 255, 0.04); padding: 15px; border-radius: 15px; text-align: center; border: 1px solid rgba(0, 123, 255, 0.2); cursor: pointer; transition: 0.2s; position: relative; overflow: hidden; -webkit-tap-highlight-color: transparent; }
         .card:hover { border-color: var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.2); transform: scale(1.02); }
         .card::before { content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(0,123,255,0.1), transparent); transition: 0.5s; }
         
         .hidden { display: none; }
         
-        /* تصميم الـ Selector الأفقي احترافي */
         .levels-container { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; justify-content: center; animation: fadeIn 0.6s ease; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; }
         .level-btn { min-width: 80px; padding: 15px; background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; border-radius: 15px; color: white; font-size: 14px; cursor: pointer; transition: 0.4s; scroll-snap-align: center; }
         .level-btn:hover { background: #28a745; transform: translateY(-5px); box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3); }
@@ -32,12 +28,11 @@
         .back-btn { display: block; width: 100%; padding: 15px; margin-top: 20px; background: rgba(255,255,255,0.1); border: 1px solid #6c757d; border-radius: 10px; color: white; cursor: pointer; transition: 0.3s; }
         .back-btn:hover { background: rgba(255,255,255,0.2); }
 
-        /* تصميم شاشة الأسئلة الجديدة */
         .quiz-container { animation: fadeIn 0.6s ease; padding: 10px; }
-        .question-wrapper { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid var(--primary); }
-        .question-text { font-size: 18px; margin-bottom: 15px; display: block; }
-        .option-btn { display: block; width: 100%; padding: 12px; margin: 8px 0; background: #1c222d; border: 1px solid #444; border-radius: 10px; color: white; cursor: pointer; transition: 0.3s; }
+        .question-box { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid var(--primary); }
+        .option-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; background: #1c222d; border: 1px solid #444; border-radius: 12px; color: white; cursor: pointer; transition: 0.3s; }
         .option-btn:hover { background: var(--primary); }
+        .progress { text-align: center; margin-bottom: 10px; color: var(--primary); font-weight: bold; }
     </style>
 </head>
 <body>
@@ -59,35 +54,37 @@
     </div>
 
     <div id="quizScreen" class="hidden">
-        <h2 class="header">الاختبار</h2>
-        <div id="allQuestionsContainer" class="quiz-container"></div>
-        <button class="back-btn" onclick="goBack()">عودة للرئيسية</button>
+        <div id="quizProgress" class="progress"></div>
+        <div class="quiz-container">
+            <div id="questionBox" class="question-box"></div>
+            <div id="optionsBox"></div>
+        </div>
+        <button class="back-btn" onclick="goBack()">إلغاء الاختبار</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        const firebaseConfig = { 
-            apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
-            authDomain: "am--rewards.firebaseapp.com", 
-            projectId: "am--rewards" 
-        };
-
+        const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };
+        
         const jobTranslations = {
-            "Accountant": "محاسب", "Assistant": "مساعد", "Biomedical__": "أجهزة طبية",
-            "Call_Center": "خدمة عملاء", "Content_Writing": "كتابة محتوى", "Customer_Service": "خدمة عملاء",
-            "Data_Entry": "إدخال بيانات", "Digital_Marketing": "تسويق رقمي", "Electronics": "إلكترونيات",
+            "Accountant": "محاسب", "Assistant": "مساعد", "Biomedical_Tech": "فني أجهزة طبية",
+            "Call_Center": "خدمة عملاء", "Content_Writer": "كتابة محتوى", "Customer_Service": "خدمة عملاء",
+            "Data_Entry": "إدخال بيانات", "Digital_Marketing": "تسويق رقمي", "Electronics_Tech": "فني إلكترونيات",
             "Frontend_Developer": "مطور واجهات", "Graphic_Designer": "مصمم جرافيك", "HR": "موارد بشرية",
             "Order_Picker": "تجهيز طلبات", "Packaging_Worker": "عمال تغليف", "Receptionist": "استقبال",
-            "Sales_Representative": "مندوب مبيعات", "Social_Media": "سوشيال ميديا", "Translator": "مترجم",
-            "Warehouse_Keeper": "أمين مخزن"
+            "Sales_Representative": "مندوب مبيعات", "Social_Media_Moderator": "مشرف وسائل التواصل", 
+            "Translator": "مترجم", "Warehouse_Keeper": "أمين مخزن", "General_Interview": "أسئلة عامة"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
         let currentJob = null;
+        let questions = [];
+        let currentIndex = 0;
+        let score = 0;
 
         async function loadJobs() {
             const querySnapshot = await getDocs(collection(db, "jobs"));
@@ -96,7 +93,6 @@
                 const jobData = doc.data();
                 const card = document.createElement('div');
                 card.className = 'card';
-                // استخدام الترجمة إذا وجدت، وإلا عرض الاسم كما هو
                 card.innerHTML = `<div>${jobTranslations[doc.id] || doc.id}</div>`;
                 card.onclick = () => showLevels(doc.id, jobData);
                 grid.appendChild(card);
@@ -117,38 +113,48 @@
         };
 
         window.startQuiz = (level) => {
-            const levels = currentJob.levels;
-            if (!levels || !levels[level]) { alert("لا توجد أسئلة لهذا المستوى"); return; }
+            questions = currentJob.levels ? currentJob.levels[level] : [];
+            if (questions.length === 0) { alert("لا توجد أسئلة"); return; }
             
+            currentIndex = 0;
+            score = 0;
             document.getElementById('levelScreen').classList.add('hidden');
             document.getElementById('quizScreen').classList.remove('hidden');
-            
-            const container = document.getElementById('allQuestionsContainer');
-            container.innerHTML = "";
-            
-            // عرض كل الأسئلة
-            levels[level].forEach((q, qIndex) => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'question-wrapper';
-                
-                const qText = document.createElement('span');
-                qText.className = 'question-text';
-                qText.innerText = (qIndex + 1) + "- " + q.q;
-                wrapper.appendChild(qText);
-                
-                q.options.forEach((opt, optIndex) => {
-                    const btn = document.createElement('button');
-                    btn.className = 'option-btn';
-                    btn.innerText = opt;
-                    btn.onclick = () => {
-                        if(optIndex === q.answer) alert("صح! 🎉");
-                        else alert("خطأ، الإجابة الصحيحة هي: " + q.options[q.answer]);
-                    };
-                    wrapper.appendChild(btn);
-                });
-                container.appendChild(wrapper);
-            });
+            showQuestion();
         };
+
+        function showQuestion() {
+            const q = questions[currentIndex];
+            document.getElementById('quizProgress').innerText = `سؤال ${currentIndex + 1} من ${questions.length}`;
+            document.getElementById('questionBox').innerText = q.q;
+            const optionsBox = document.getElementById('optionsBox');
+            optionsBox.innerHTML = "";
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt;
+                btn.onclick = () => handleAnswer(index, q.answer);
+                optionsBox.appendChild(btn);
+            });
+        }
+
+        function handleAnswer(selectedIndex, correctIndex) {
+            if (selectedIndex === correctIndex) score++;
+            currentIndex++;
+            if (currentIndex < questions.length) {
+                showQuestion();
+            } else {
+                showResult();
+            }
+        }
+
+        function showResult() {
+            const percentage = (score / questions.length) * 100;
+            const msg = percentage >= 60 ? "تهانينا! أنت جاهز للمقابلة 🎉" : "تحتاج لمزيد من التدريب، حاول مرة أخرى 🛠️";
+            document.getElementById('quizProgress').innerText = "نتائج الاختبار";
+            document.getElementById('questionBox').innerHTML = `<h3>حصلت على ${score} من ${questions.length}</h3><p>${msg}</p>`;
+            document.getElementById('optionsBox').innerHTML = `<button class="option-btn" onclick="goBack()">العودة للرئيسية</button>`;
+        }
 
         loadJobs();
     </script>
