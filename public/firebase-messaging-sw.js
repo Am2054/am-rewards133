@@ -13,17 +13,19 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// استبدل الـ onBackgroundMessage بهذا:
 messaging.onBackgroundMessage((payload) => {
-    const notificationTitle = payload.notification.title;
     const notificationOptions = {
         body: payload.notification.body,
         icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
+        badge: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
         tag: 'ghost-chat-msg', 
         renotify: true,
-        data: { url: payload.data.url || '/' }
+        data: { url: payload.data.url }
     };
-    self.registration.showNotification(notificationTitle, notificationOptions);
+    self.registration.showNotification(payload.notification.title, notificationOptions);
 });
+
 
 self.addEventListener('notificationclick', function(event) {
     event.notification.close();
