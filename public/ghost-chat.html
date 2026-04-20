@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <link rel="manifest" href="manifest.json">
     <title>شات الأشباح PRO | الإصدار السابع</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -115,7 +114,7 @@
     </div>
 
     <script type="module">
-                import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, onChildAdded, onValue, query, limitToLast, set, onDisconnect, remove, update, onChildChanged, get, orderByChild, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
@@ -134,33 +133,6 @@
         const renderedMsgIds = new Set();
         let activeDay = ""; 
         let messagesRef = null;
-        
-        let unreadCount = 0;
-        let firstUnreadId = null;
-        let pageVisible = true;
-        let typingTimeout;
-
-        document.addEventListener("visibilitychange", () => {
-            pageVisible = !document.hidden;
-            if (pageVisible) {
-                unreadCount = 0;
-                document.title = "GHOST CHAT PRO";
-            }
-        });
-
-        window.scrollToFirstUnread = () => {
-            if (firstUnreadId) {
-                document.getElementById(`msg-${firstUnreadId}`)?.scrollIntoView({ behavior: 'smooth' });
-                firstUnreadId = null;
-            }
-        };
-
-        window.onload = () => {
-            setTimeout(scrollToFirstUnread, 1000);
-            if (window.location.search.includes('unread')) {
-                setTimeout(scrollToFirstUnread, 1500);
-            }
-        };
 
         window.cancelReply = () => {
             currentReplyTo = null;
@@ -204,14 +176,6 @@
             try {
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'تم تفعيل الإشعارات 🔔',
-                        text: 'هيوصلك كل جديد دلوقتي',
-                        background: '#020617',
-                        color: '#fff',
-                        confirmButtonColor: '#00f2ff'
-                    });
                     const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
                     const token = await getToken(messaging, { 
                         vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
@@ -220,14 +184,6 @@
                     if (token) {
                         await set(ref(db, `users_tokens/${currentUser.uid}`), { token, ghostName: myGhostName });
                     }
-                } else if (permission !== 'granted') {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'الإشعارات مقفولة ⚠️',
-                        text: 'فعّلها من إعدادات المتصفح',
-                        background: '#020617',
-                        color: '#fff'
-                    });
                 }
             } catch (err) { console.warn("FCM Error", err); }
         }
@@ -265,16 +221,9 @@
             try {
                 const token = await auth.currentUser.getIdToken();
                 if (currentReplyTo) text = `رد على @${currentReplyTo.sender}: ${text}`;
-                
-                let replyData = null;
-                if (currentReplyTo) {
-                    replyData = { text: currentReplyTo.text, sender: currentReplyTo.sender };
-                }
-
                 const payload = editingMsgId ? 
                     { action: "EDIT", msgId: editingMsgId, text, uid: currentUser.uid, token, day: activeDay } : 
-                    { text, uid: currentUser.uid, token, day: activeDay, reply: replyData };
-                
+                    { text, uid: currentUser.uid, token, day: activeDay };
                 await fetch('/api/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 input.value = ""; cancelReply(); editingMsgId = null;
             } catch(e) { console.error("Send Error"); }
@@ -307,39 +256,12 @@
                 }
             };
 
-            if (!pageVisible && data.uid !== currentUser.uid) {
-                unreadCount++;
-                if (!firstUnreadId) firstUnreadId = id;
-                document.title = `(${unreadCount}) رسائل جديدة`;
-            }
-
-            let replyHtml = '';
-            if (data.reply) {
-                replyHtml = `<div class="reply-quote">@${data.reply.sender}: ${data.reply.text}</div>`;
-            }
-
-            div.innerHTML = `<div class="sender"><span>${isMe ? 'أنت' : data.sender}</span></div>${replyHtml}<div class="text">${data.text}</div>`;
+            div.innerHTML = `<div class="sender"><span>${isMe ? 'أنت' : data.sender}</span></div><div class="text">${data.text}</div>`;
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
             renderedMsgIds.add(id);
             setTimeout(() => div.classList.add('msg-old'), 40000);
         }
-
-        document.getElementById('msgInput').addEventListener('input', () => {
-            const typingRef = ref(db, `typing/${activeDay}/${currentUser.uid}`);
-            set(typingRef, { name: myGhostName });
-            clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(() => { remove(typingRef); }, 2000);
-        });
-
-        const typingRef = ref(db, `typing/${activeDay}`);
-        onValue(typingRef, (snap) => {
-            const data = snap.val();
-            const indicator = document.getElementById('typingIndicator');
-            if (!data) { indicator.innerText = ""; return; }
-            const names = Object.values(data).map(u => u.name).filter(name => name !== myGhostName);
-            indicator.innerText = names.length ? `${names.join(' و ')} يكتب...` : "";
-        });
 
         async function showMsgActions(id) {
             const modal = document.getElementById('actionModal');
@@ -354,7 +276,6 @@
         document.getElementById('sendBtn').onclick = send;
         document.getElementById('msgInput').onkeypress = (e) => e.key === 'Enter' && send();
         signInAnonymously(auth);
-
-  </script>
+    </script>
 </body>
 </html>
