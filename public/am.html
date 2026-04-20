@@ -20,7 +20,7 @@
         .hidden { display: none; }
         
         .levels-container { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; justify-content: center; animation: fadeIn 0.6s ease; }
-        .level-btn { min-width: 80px; padding: 15px; background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; border-radius: 15px; color: white; cursor: pointer; transition: 0.4s; }
+        .level-btn { min-width: 80px; padding: 15px; background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; border-radius: 15px; color: white; font-size: 14px; cursor: pointer; transition: 0.4s; }
         
         .back-btn { display: block; width: 100%; padding: 15px; margin-top: 20px; background: rgba(255,255,255,0.1); border: 1px solid #6c757d; border-radius: 10px; color: white; cursor: pointer; }
         
@@ -30,7 +30,7 @@
         
         .bar { height: 6px; background: #222; border-radius: 10px; margin-bottom: 20px; overflow: hidden; }
         #barFill { height: 100%; background: #007bff; width: 0%; transition: 0.3s; }
-        .tip-box { background: rgba(0,123,255,0.1); padding: 15px; border-radius: 15px; margin-top: 20px; border-right: 4px solid var(--primary); font-size: 14px; }
+        .tip-box { background: rgba(0,123,255,0.1); padding: 15px; border-radius: 15px; margin-top: 20px; border-right: 4px solid var(--primary); font-size: 14px; line-height: 1.6; }
     </style>
 </head>
 <body>
@@ -62,13 +62,23 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        
+        const jobTranslations = {
+            "Accountant": "محاسب", "Assistant": "مساعد", "Biomedical_Tech": "فني أجهزة طبية",
+            "Call_Center": "كول سنتر ", "Content_Writer": "كتابة محتوى", "Customer_Service": "خدمة عملاء",
+            "Data_Entry": "إدخال بيانات", "Digital_Marketing": "تسويق رقمي", "Electronics_Tech": "فني إلكترونيات",
+            "Frontend_Developer": "مطور واجهات", "Graphic_Designer": "مصمم جرافيك", "HR": "موارد بشرية",
+            "Order_Picker": "تجهيز طلبات", "Packaging_Worker": "عمال تغليف", "Receptionist": "استقبال",
+            "Sales_Representative": "مندوب مبيعات", "Social_Media_Moderator": "مشرف وسائل التواصل", 
+            "Translator": "مترجم", "Warehouse_Keeper": "أمين مخزن", "Technical_Support": "دعم فني"
+        };
 
-        let currentJob = null, questions = [], currentIndex = 0, score = 0, wrongQuestions = [], answered = false;
+        let currentJob = null, currentLevel = "", questions = [], currentIndex = 0, score = 0, wrongQuestions = [], answered = false;
 
         async function loadJobs() {
             const grid = document.getElementById('jobGrid');
@@ -79,14 +89,15 @@
                     const jobData = doc.data();
                     const card = document.createElement('div');
                     card.className = 'card';
-                    card.innerHTML = `<div>${doc.id}</div>`;
-                    card.onclick = () => { currentJob = jobData; document.getElementById('homeScreen').classList.add('hidden'); document.getElementById('levelScreen').classList.remove('hidden'); document.getElementById('selectedJobTitle').innerText = doc.id; };
+                    card.innerHTML = `<div>${jobTranslations[doc.id] || doc.id}</div>`;
+                    card.onclick = () => { currentJob = jobData; document.getElementById('homeScreen').classList.add('hidden'); document.getElementById('levelScreen').classList.remove('hidden'); document.getElementById('selectedJobTitle').innerText = jobTranslations[doc.id] || doc.id; };
                     grid.appendChild(card);
                 }
             });
         }
 
         window.startQuiz = (level) => {
+            currentLevel = level;
             questions = currentJob.levels ? currentJob.levels[level] : [];
             if (questions.length === 0) { alert("لا توجد أسئلة"); return; }
             initQuiz();
@@ -135,7 +146,24 @@
 
         window.showResult = () => {
             document.getElementById("barFill").style.width = "100%";
-            let html = `<h3>نتيجتك: ${score} من ${questions.length}</h3>`;
+            let feedback = "";
+            const percentage = (score / questions.length) * 100;
+            
+            if (currentLevel === 'easy') feedback = "مبروك! أنت جاهز في الأساسيات.";
+            else if (currentLevel === 'medium') feedback = percentage >= 50 ? "أنت جاهز بنسبة 50% تقريباً، استمر!" : "تحتاج لمزيد من المراجعة في المستوى المتوسط.";
+            else if (currentLevel === 'hard') feedback = "مستوى متقدم! أنت في الطريق الصحيح للاحتراف.";
+            else if (currentLevel === 'expert') feedback = "أنت محترف حقيقي! جاهز تماماً للمقابلات الكبرى.";
+
+            let html = `<h3>نتيجتك: ${score} من ${questions.length}</h3><p>${feedback}</p>`;
+            
+            html += `<div class="tip-box">
+                <b>نصائح ذهبية للمقابلة:</b><br>
+                1. <b>احكي عن نفسك:</b> ركّز على المهارات لا الحياة الشخصية.<br>
+                2. <b>نقاط الضعف:</b> اذكر ضعفاً حقيقياً وتحدث عن خطواتك لتطويره.<br>
+                3. <b>الأسئلة:</b> اسأل عن طبيعة يوم العمل، هذا يُظهر اهتمامك الجاد.<br>
+                4. <b>الثقة:</b> لا تقل "مش عارف"، قل "هذا مجال جديد عليّ لكن أستطيع تعلمه بسرعة".
+            </div>`;
+
             if (wrongQuestions.length > 0) {
                 const retryBtn = document.createElement('button');
                 retryBtn.className = 'option-btn';
@@ -153,6 +181,7 @@
         window.goBack = () => {
             document.getElementById('homeScreen').classList.remove('hidden');
             document.getElementById('levelScreen').classList.add('hidden');
+            document.getElementById('quizScreen').classList.remove('hidden');
             document.getElementById('quizScreen').classList.add('hidden');
         };
 
