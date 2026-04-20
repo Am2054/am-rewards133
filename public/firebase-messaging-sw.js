@@ -20,7 +20,7 @@ messaging.onBackgroundMessage((payload) => {
         icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
         tag: 'ghost-chat-msg', 
         renotify: true,
-        data: { url: payload.data.url || '/', unread: true }
+        data: { url: payload.data.url || '/' }
     };
     self.registration.showNotification(notificationTitle, notificationOptions);
 });
