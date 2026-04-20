@@ -166,7 +166,6 @@ export default async function handler(req, res) {
         await dailyCountRef.set(count + 1);
         await db.ref(`userStats/${uid}/totalMessages`).transaction(c => (c || 0) + 1);
 
- // في الـ Backend، استبدل فقط جزء الـ Push Notifications بهذا الجزء:
         // 🔔 نظام الإشعارات المتكامل (Push Notifications)
         try {    
             const tokensSnap = await db.ref('users_tokens').once('value');    
@@ -175,20 +174,24 @@ export default async function handler(req, res) {
                 const myTokenSnap = await db.ref(`users_tokens/${uid}/token`).once('value');
                 const myToken = myTokenSnap.val();
 
-                let targetTokens = Object.values(tokensData)
-                    .map(u => u.token)
-                    .filter(t => typeof t === 'string' && t.length > 10 && t !== myToken);
+                let targetTokens = [];    
+                if (replyToName) {    
+                    const targetUser = Object.values(tokensData).find(u => u.ghostName === replyToName);    
+                    if (targetUser && targetUser.token) targetTokens = [targetUser.token];    
+                } else {    
+                    targetTokens = Object.values(tokensData)  
+                        .map(u => u.token)  
+                        .filter(t => typeof t === 'string' && t.length > 10 && t !== myToken);    
+                }    
 
                 if (targetTokens.length > 0) {    
                     const payload = {    
                         notification: {    
-                            title: replyToName ? `💬 رد من ${serverGhostName}` : `👻 همسة جديدة في الشات`,    
-                            body: finalDisplayContent, // إرسال النص كاملاً
+                            title: replyToName ? `💬 رد من ${serverGhostName}` : (isConfession ? `🕯️ اعتراف جديد` : `👻 همسة جديدة`),    
+                            body: isSecret ? "اهمس بشيء غامض..." : (finalDisplayContent.length > 50 ? finalDisplayContent.substring(0, 47) + "..." : finalDisplayContent),    
                         },    
-                        data: { 
-                            url: "https://am-rewards.vercel.app/ghost-chat.html",
-                            click_action: "FLUTTER_NOTIFICATION_CLICK"
-                        },
+                        data: { url: "https://am-rewards.vercel.app/ghost-chat.html" },
+                        // التعديل هنا لضمان السرعة القصوى (Real-time)
                         android: { 
                             priority: 'high', 
                             ttl: 0, 
@@ -206,8 +209,7 @@ export default async function handler(req, res) {
                     }
                 }    
             }    
-        } catch (e) { console.error("Push Error", e); } 
-
+        } catch (e) { console.error("Push Error", e); }    
 
         return res.status(200).json({ success: true, ghostName: serverGhostName, activeDay });    
     } catch (error) { return res.status(500).json({ error: error.message }); }
