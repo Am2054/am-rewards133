@@ -27,7 +27,6 @@
         #chatBox::before { content: ""; position: fixed; top: 50%; left: 50%; width: 200%; height: 200%; background: radial-gradient(circle, var(--purple) 0%, transparent 70%); opacity: 0.05; z-index: -1; animation: ghostFloat 20s infinite linear; pointer-events: none; } 
         @keyframes ghostFloat { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } } 
         
-        /* تعديل الميثاق ليغطي الشاشة بالكامل بقوة */
         #rulesOverlay { position: fixed; inset: 0; background: #020617; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; } 
         .rules-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(0, 242, 255, 0.3); border-radius: 30px; padding: 30px; max-width: 480px; width: 100%; text-align: center; box-shadow: 0 0 50px rgba(0, 242, 255, 0.1); max-height: 90vh; overflow-y: auto; } 
         .intro-line { color: var(--cyan); font-weight: 900; font-size: 18px; margin-bottom: 20px; display: block; } 
@@ -276,6 +275,23 @@
         document.getElementById('sendBtn').onclick = send;
         document.getElementById('msgInput').onkeypress = (e) => e.key === 'Enter' && send();
         signInAnonymously(auth);
+
+        // إضافة منطق التمرير للرسالة عند الضغط على إشعار
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const msgId = urlParams.get('msgId');
+            if (msgId) {
+                const checkExist = setInterval(() => {
+                    const targetMsg = document.getElementById('msg-' + msgId);
+                    if (targetMsg) {
+                        targetMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        targetMsg.style.border = '2px solid #00f2ff';
+                        clearInterval(checkExist);
+                    }
+                }, 500);
+                setTimeout(() => clearInterval(checkExist), 10000);
+            }
+        });
     </script>
 </body>
 </html>
