@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <link rel="manifest" href="manifest.json">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Ghost Chat">
-  <title>شات الأشباح PRO | الإصدار السابع</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ghost Chat">
+    <title>شات الأشباح PRO | الإصدار السابع</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -122,6 +122,21 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
+        // كود التثبيت المضاف
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            console.log('جاهز للتثبيت');
+        });
+        async function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+            }
+        }
+
         const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", databaseURL: "https://am--rewards-default-rtdb.firebaseio.com", projectId: "am--rewards", storageBucket: "am--rewards.firebasestorage.app", messagingSenderId: "744783579735", appId: "1:744783579735:web:45e00de9998893bbc9b112" };
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
@@ -222,7 +237,6 @@
         function initMessages() {
             const msgRef = ref(db, `messages/global/${activeDay}`);
             
-            // تحديث الرسائل للجميع (حذف أو تعديل)
             onChildChanged(msgRef, (snap) => {
                 const data = snap.val();
                 const el = document.getElementById(`msg-${snap.key}`);
@@ -243,7 +257,7 @@
 
         function renderMsg(id, data) {
             const chatBox = document.getElementById('chatBox');
-            if (data.deleted) return; // لا تعرض المحذوف فوراً
+            if (data.deleted) return;
             const div = document.createElement('div');
             div.id = `msg-${id}`;
             const isMe = data.uid === currentUser.uid;
@@ -294,3 +308,5 @@
         document.getElementById('msgInput').onkeypress = (e) => e.key === 'Enter' && send();
         signInAnonymously(auth);
     </script>
+</body>
+</html>
