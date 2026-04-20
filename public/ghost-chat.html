@@ -18,6 +18,9 @@
         body { font-family: 'Tajawal', sans-serif; display: flex; flex-direction: column; background: #020617 url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1500') no-repeat center center fixed; background-size: cover; user-select: none; position: relative; } 
         body::before { content: ""; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: -1; transition: 0.5s; } 
         
+        /* زر التثبيت */
+        #installBtn { display: none; background: linear-gradient(135deg, var(--cyan), var(--purple)); color: #000; border: none; padding: 10px 20px; border-radius: 20px; margin: 10px auto; cursor: pointer; font-weight: 900; font-size: 14px; box-shadow: 0 0 15px rgba(0, 242, 255, 0.3); }
+
         .msg { transition: opacity 15s linear, transform 0.3s; position: relative; }
         .msg-old { opacity: 0.4 !important; filter: blur(0.5px); }
 
@@ -98,6 +101,7 @@
 
     <header id="appHeader">
         <h2 style="margin:0; font-weight:900; font-size:18px; letter-spacing: 1.5px;">GHOST CHAT <span style="color:var(--cyan)">PRO</span></h2>
+        <button id="installBtn">تثبيت التطبيق على جهازك 📱</button>
         <span id="status">جاري استحضار هويتك اليومية...</span>
         <div id="typingIndicator"></div>
     </header>
@@ -117,25 +121,31 @@
     </div>
 
     <script type="module">
-         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, onChildAdded, onValue, query, limitToLast, set, onDisconnect, remove, update, onChildChanged, get, orderByChild, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
-        // كود التثبيت المضاف
+        // منطق التثبيت
         let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            console.log('جاهز للتثبيت');
+            installBtn.style.display = 'block';
         });
-        async function installApp() {
+
+        installBtn.addEventListener('click', async () => {
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    installBtn.style.display = 'none';
+                }
                 deferredPrompt = null;
             }
-        }
+        });
 
         const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", databaseURL: "https://am--rewards-default-rtdb.firebaseio.com", projectId: "am--rewards", storageBucket: "am--rewards.firebasestorage.app", messagingSenderId: "744783579735", appId: "1:744783579735:web:45e00de9998893bbc9b112" };
         const app = initializeApp(firebaseConfig);
