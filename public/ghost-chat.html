@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <link rel="manifest" href="manifest.json">
     <title>شات الأشباح PRO | الإصدار السابع</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -162,6 +163,16 @@
                     }
                     initPresence();
                     initMessages(); 
+                    
+                    const typingRef = ref(db, `typing/${activeDay}`);
+                    document.getElementById('msgInput').oninput = () => {
+                        set(ref(db, `typing/${activeDay}/${currentUser.uid}`), { name: myGhostName });
+                    };
+                    onValue(typingRef, (snap) => {
+                        const typingUsers = [];
+                        snap.forEach(s => { if(s.key !== currentUser.uid) typingUsers.push(s.val().name); });
+                        document.getElementById('typingIndicator').innerText = typingUsers.length ? `${typingUsers.join(', ')} يكتبون...` : '';
+                    });
                 }
             } catch (e) { console.error("Identity Failed", e); }
         };
@@ -205,7 +216,13 @@
             document.getElementById('rulesOverlay').style.display = 'none';
             document.getElementById('msgInput').disabled = false;
             document.getElementById('sendBtn').disabled = false;
-            requestNotificationPermission();
+            if (Notification.permission !== 'granted') {
+                Swal.fire({
+                    title: 'تفعيل التنبيهات؟',
+                    text: 'لتعرف عندما يهمس أحد باسمك، فعل التنبيهات.',
+                    confirmButtonText: 'تفعيل'
+                }).then((result) => { if (result.isConfirmed) requestNotificationPermission(); });
+            }
         };
 
         if(localStorage.getItem('ghost_rules_accepted') === 'true') {
@@ -249,7 +266,7 @@
                 setTimeout(() => div.classList.remove('echo-active'), 800);
                 if (isMe) showMsgActions(id);
                 else {
-                    currentReplyTo = data;
+                    currentReplyTo = { sender: data.sender, text: data.text };
                     document.getElementById('replyTargetName').innerText = data.sender;
                     document.getElementById('replyTargetText').innerText = data.text;
                     document.getElementById('replyContainer').style.display = 'block';
