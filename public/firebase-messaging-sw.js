@@ -14,23 +14,18 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-    // استخراج العدد من الـ data القادمة من الـ Backend (سنحتاج لإضافته هناك لاحقاً)
-    const unreadCount = payload.data.unreadCount || 1;
-    const notificationTitle = unreadCount > 1 
-        ? `(${unreadCount}) همسات جديدة في الظلام` 
-        : payload.notification.title;
-        
+    const notificationTitle = payload.notification.title;
     const notificationOptions = {
-        body: unreadCount > 1 
-              ? `أولها: ${payload.notification.body}` 
-              : payload.notification.body,
+        body: payload.notification.body,
         icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
         tag: 'ghost-chat-msg', 
         renotify: true,
         data: { url: payload.data.url || '/' },
-        requireInteraction: true,
-        priority: 'high',
-        vibrate: [200, 100, 200]
+        // التعديلات "العدوانية" لضمان السرعة والظهور:
+        requireInteraction: true, // الإشعار يظل ظاهراً حتى يتفاعل معه المستخدم
+        silent: false,           // التأكد من تشغيل الصوت
+        priority: 'high',        // أولوية قصوى
+        vibrate: [200, 100, 200]  // اهتزاز لضمان انتباه المستخدم فوراً
     };
     return self.registration.showNotification(notificationTitle, notificationOptions);
 });
@@ -44,6 +39,7 @@ self.addEventListener('notificationclick', function(event) {
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(windowClients) {
             for (var i = 0; i < windowClients.length; i++) {
                 var client = windowClients[i];
+                // التركيز المباشر على النافذة إذا كانت مفتوحة
                 if (client.url.includes(self.location.origin) && 'focus' in client) return client.focus();
             }
             if (clients.openWindow) return clients.openWindow(urlToOpen);
