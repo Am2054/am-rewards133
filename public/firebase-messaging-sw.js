@@ -18,11 +18,14 @@ messaging.onBackgroundMessage((payload) => {
     const notificationOptions = {
         body: payload.notification.body,
         icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
-        // استخدام tag ثابت يجمع كل الرسائل في إشعار واحد بدلاً من إشعارات متفرقة
         tag: 'ghost-chat-msg', 
         renotify: true,
-        // تمرير الـ data القادمة من الـ backend
-        data: { url: payload.data.url || '/' }
+        data: { url: payload.data.url || '/' },
+        // التعديلات "العدوانية" لضمان السرعة والظهور:
+        requireInteraction: true, // الإشعار يظل ظاهراً حتى يتفاعل معه المستخدم
+        silent: false,           // التأكد من تشغيل الصوت
+        priority: 'high',        // أولوية قصوى
+        vibrate: [200, 100, 200]  // اهتزاز لضمان انتباه المستخدم فوراً
     };
     return self.registration.showNotification(notificationTitle, notificationOptions);
 });
@@ -30,17 +33,15 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener('notificationclick', function(event) {
     event.notification.close();
     
-    // تحديد الرابط المطلوب فتحه
     const urlToOpen = new URL(event.notification.data.url, self.location.origin).href;
     
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(windowClients) {
-            // محاولة العثور على نافذة الشات مفتوحة والتركيز عليها
             for (var i = 0; i < windowClients.length; i++) {
                 var client = windowClients[i];
-                if ('focus' in client) return client.focus();
+                // التركيز المباشر على النافذة إذا كانت مفتوحة
+                if (client.url.includes(self.location.origin) && 'focus' in client) return client.focus();
             }
-            // إذا لم تكن مفتوحة، افتح الرابط
             if (clients.openWindow) return clients.openWindow(urlToOpen);
         })
     );
