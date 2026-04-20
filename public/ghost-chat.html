@@ -113,6 +113,7 @@
     </div>
 
     <script type="module">
+        <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, onChildAdded, onValue, query, limitToLast, set, onDisconnect, remove, update, onChildChanged, get, orderByChild, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -131,7 +132,6 @@
         let lastSend = 0; 
         const renderedMsgIds = new Set();
         let activeDay = ""; 
-        let messagesRef = null;
 
         window.cancelReply = () => {
             currentReplyTo = null;
@@ -151,14 +151,6 @@
                     activeDay = data.activeDay;
                     myGhostName = data.ghostName;
                     document.getElementById('status').innerHTML = `<span class="online-dot"></span> هويتك: ${myGhostName} <span class="rank-badge">${data.rank || 'روح عابرة'}</span>`;
-                    
-                    if (data.welcomeCard && data.welcomeCard.show) {
-                        Swal.fire({
-                            title: data.welcomeCard.title,
-                            html: `<p>${data.welcomeCard.message}</p><h2>${data.welcomeCard.nameTag}</h2>`,
-                            background: '#020617', color: '#fff', confirmButtonColor: '#7000ff'
-                        });
-                    }
                     initPresence();
                     initMessages(); 
                 }
@@ -180,9 +172,7 @@
                         vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
                         serviceWorkerRegistration: registration 
                     });
-                    if (token) {
-                        await set(ref(db, `users_tokens/${currentUser.uid}`), { token, ghostName: myGhostName });
-                    }
+                    if (token) await set(ref(db, `users_tokens/${currentUser.uid}`), { token, ghostName: myGhostName });
                 }
             } catch (err) { console.warn("FCM Error", err); }
         }
@@ -207,9 +197,7 @@
             requestNotificationPermission();
         };
 
-        if(localStorage.getItem('ghost_rules_accepted') === 'true') {
-            document.getElementById('rulesOverlay').style.display = 'none';
-        }
+        if(localStorage.getItem('ghost_rules_accepted') === 'true') document.getElementById('rulesOverlay').style.display = 'none';
 
         async function send() {
             if (Date.now() - lastSend < 3000) return;
@@ -230,22 +218,35 @@
 
         function initMessages() {
             const msgRef = ref(db, `messages/global/${activeDay}`);
-            const q = query(msgRef, limitToLast(100));
-            onChildAdded(q, (snap) => {
+            
+            // تحديث الرسائل للجميع (حذف أو تعديل)
+            onChildChanged(msgRef, (snap) => {
+                const data = snap.val();
+                const el = document.getElementById(`msg-${snap.key}`);
+                if (el) {
+                    if (data.deleted) {
+                        el.className = 'msg msg-deleted';
+                        el.innerHTML = '<div class="text">تم حذف الهمسة</div>';
+                    } else if (data.edited) {
+                        el.querySelector('.text').innerText = data.text;
+                    }
+                }
+            });
+
+            onChildAdded(query(msgRef, limitToLast(100)), (snap) => {
                 if (!renderedMsgIds.has(snap.key)) renderMsg(snap.key, snap.val());
             });
         }
 
         function renderMsg(id, data) {
             const chatBox = document.getElementById('chatBox');
+            if (data.deleted) return; // لا تعرض المحذوف فوراً
             const div = document.createElement('div');
             div.id = `msg-${id}`;
             const isMe = data.uid === currentUser.uid;
             div.className = `msg ${isMe ? 'msg-me' : 'msg-remote'} ${data.isSecret ? 'msg-secret' : ''} ${data.isConfession ? 'msg-confession' : ''}`;
             
             div.onclick = () => {
-                div.classList.add('echo-active');
-                setTimeout(() => div.classList.remove('echo-active'), 800);
                 if (isMe) showMsgActions(id);
                 else {
                     currentReplyTo = data;
@@ -259,62 +260,34 @@
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
             renderedMsgIds.add(id);
-            setTimeout(() => div.classList.add('msg-old'), 40000);
         }
 
-                async function showMsgActions(id) {
+        async function showMsgActions(id) {
             const modal = document.getElementById('actionModal');
             modal.style.display = 'flex';
             
-            // زر الحذف
             document.getElementById('deleteBtn').onclick = async () => {
                 const token = await auth.currentUser.getIdToken();
-                const res = await fetch('/api/sendMessage', { 
+                await fetch('/api/sendMessage', { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'application/json' }, 
                     body: JSON.stringify({ action: "DELETE", msgId: id, uid: currentUser.uid, token, day: activeDay }) 
                 });
-                if (res.ok) {
-                    const el = document.getElementById(`msg-${id}`);
-                    if (el) el.remove(); // إزالة الرسالة من الشاشة فوراً
-                }
                 modal.style.display = 'none';
             };
 
-            // زر التعديل (هذا الجزء كان مفقوداً أو غير مفعل)
             document.getElementById('editBtn').onclick = () => {
                 const msgEl = document.getElementById(`msg-${id}`);
                 const currentText = msgEl.querySelector('.text').innerText;
                 const input = document.getElementById('msgInput');
-                
-                input.value = currentText; // وضع النص في خانة الإدخال
-                editingMsgId = id;        // تفعيل وضع التعديل
+                input.value = currentText;
+                editingMsgId = id;
                 modal.style.display = 'none';
                 input.focus();
             };
         }
 
-
         document.getElementById('sendBtn').onclick = send;
         document.getElementById('msgInput').onkeypress = (e) => e.key === 'Enter' && send();
         signInAnonymously(auth);
-
-        // إضافة منطق التمرير للرسالة عند الضغط على إشعار
-        window.addEventListener('load', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const msgId = urlParams.get('msgId');
-            if (msgId) {
-                const checkExist = setInterval(() => {
-                    const targetMsg = document.getElementById('msg-' + msgId);
-                    if (targetMsg) {
-                        targetMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        targetMsg.style.border = '2px solid #00f2ff';
-                        clearInterval(checkExist);
-                    }
-                }, 500);
-                setTimeout(() => clearInterval(checkExist), 10000);
-            }
-        });
     </script>
-</body>
-</html>
