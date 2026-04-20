@@ -184,15 +184,20 @@ export default async function handler(req, res) {
                         .filter(t => typeof t === 'string' && t.length > 10 && t !== myToken);    
                 }    
 
-                if (targetTokens.length > 0) {    
+                if (targetTokens.length > 0) {
+                    // حساب العدد التراكمي للرسائل في اليوم الحالي
+                    const messagesSnap = await db.ref(`messages/global/${activeDay}`).once('value');
+                    const messagesObj = messagesSnap.val();
+                    const unreadCount = messagesObj ? Object.keys(messagesObj).length : 1;
+
                     const payload = {    
                         notification: {    
                             title: replyToName ? `💬 رد من ${serverGhostName}` : (isConfession ? `🕯️ اعتراف جديد` : `👻 همسة جديدة`),    
                             body: isSecret ? "اهمس بشيء غامض..." : (finalDisplayContent.length > 50 ? finalDisplayContent.substring(0, 47) + "..." : finalDisplayContent),    
                         },    
-                        // التعديل هنا: تمرير معرف الرسالة الجديدة لكي نستخدمه في الـ Frontend
                         data: { 
-                            url: `https://am-rewards.vercel.app/ghost-chat.html?msgId=${msgRef.key}` 
+                            url: `https://am-rewards.vercel.app/ghost-chat.html?msgId=${msgRef.key}`,
+                            unreadCount: unreadCount.toString() // إرسال العدد للـ Service Worker
                         },
                         android: { 
                             priority: 'high', 
@@ -211,8 +216,7 @@ export default async function handler(req, res) {
                     }
                 }    
             }    
-        } catch (e) { console.error("Push Error", e); }    
-
+        } catch (e) { console.error("Push Error", e); }
 
         return res.status(200).json({ success: true, ghostName: serverGhostName, activeDay });    
     } catch (error) { return res.status(500).json({ error: error.message }); }
