@@ -262,15 +262,38 @@
             setTimeout(() => div.classList.add('msg-old'), 40000);
         }
 
-        async function showMsgActions(id) {
+                async function showMsgActions(id) {
             const modal = document.getElementById('actionModal');
             modal.style.display = 'flex';
+            
+            // زر الحذف
             document.getElementById('deleteBtn').onclick = async () => {
                 const token = await auth.currentUser.getIdToken();
-                await fetch('/api/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: "DELETE", msgId: id, uid: currentUser.uid, token, day: activeDay }) });
+                const res = await fetch('/api/sendMessage', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ action: "DELETE", msgId: id, uid: currentUser.uid, token, day: activeDay }) 
+                });
+                if (res.ok) {
+                    const el = document.getElementById(`msg-${id}`);
+                    if (el) el.remove(); // إزالة الرسالة من الشاشة فوراً
+                }
                 modal.style.display = 'none';
             };
+
+            // زر التعديل (هذا الجزء كان مفقوداً أو غير مفعل)
+            document.getElementById('editBtn').onclick = () => {
+                const msgEl = document.getElementById(`msg-${id}`);
+                const currentText = msgEl.querySelector('.text').innerText;
+                const input = document.getElementById('msgInput');
+                
+                input.value = currentText; // وضع النص في خانة الإدخال
+                editingMsgId = id;        // تفعيل وضع التعديل
+                modal.style.display = 'none';
+                input.focus();
+            };
         }
+
 
         document.getElementById('sendBtn').onclick = send;
         document.getElementById('msgInput').onkeypress = (e) => e.key === 'Enter' && send();
