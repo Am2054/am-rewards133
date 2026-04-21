@@ -240,18 +240,16 @@
             lastSend = Date.now();
             try {
                 const token = await auth.currentUser.getIdToken();
-                const payload = {
-                    text: currentReplyTo ? `رد على @${currentReplyTo.sender}: ${text}` : text,
-                    uid: currentUser.uid,
-                    token,
-                    day: activeDay,
-                    isReply: currentReplyTo ? true : false,
-                    targetGhostName: currentReplyTo ? currentReplyTo.sender : null
-                };
-                if(editingMsgId) { payload.action = "EDIT"; payload.msgId = editingMsgId; }
+                // العودة للصيغة القديمة البسيطة
+                let textToSend = currentReplyTo ? `رد على @${currentReplyTo.sender}: ${text}` : text;
+                
+                const payload = editingMsgId ? 
+                    { action: "EDIT", msgId: editingMsgId, text: textToSend, uid: currentUser.uid, token, day: activeDay } : 
+                    { text: textToSend, uid: currentUser.uid, token, day: activeDay };
+
                 await fetch('/api/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 input.value = ""; cancelReply(); editingMsgId = null;
-            } catch(e) { console.error("Send Error"); }
+            } catch(e) { console.error("Send Error", e); }
         }
 
         function initMessages() {
