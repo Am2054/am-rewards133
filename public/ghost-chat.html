@@ -18,11 +18,15 @@
         body { font-family: 'Tajawal', sans-serif; display: flex; flex-direction: column; background: #020617 url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1500') no-repeat center center fixed; background-size: cover; user-select: none; position: relative; } 
         body::before { content: ""; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: -1; transition: 0.5s; } 
         
-        /* زر التثبيت */
-        #installBtn { display: none; background: linear-gradient(135deg, var(--cyan), var(--purple)); color: #000; border: none; padding: 10px 20px; border-radius: 20px; margin: 10px auto; cursor: pointer; font-weight: 900; font-size: 14px; box-shadow: 0 0 15px rgba(0, 242, 255, 0.3); }
+        /* زر التثبيت المعدل */
+        #installBtn { display: none; background: rgba(0, 242, 255, 0.1); color: var(--cyan); border: 1px solid var(--cyan); padding: 6px 15px; border-radius: 20px; margin: 8px auto; cursor: pointer; font-weight: bold; font-size: 11px; transition: 0.3s; }
+        #installBtn:active { transform: scale(0.95); }
 
         .msg { transition: opacity 15s linear, transform 0.3s; position: relative; }
         .msg-old { opacity: 0.4 !important; filter: blur(0.5px); }
+
+        /* تصميم الرد */
+        .reply-bubble { background: rgba(255, 255, 255, 0.05); border-right: 3px solid var(--cyan); padding: 8px 12px; margin-bottom: 8px; border-radius: 12px; font-size: 12px; color: var(--cyan); display: block; backdrop-filter: blur(5px); }
 
         @keyframes spectralEcho {
             0% { transform: scale(1); filter: hue-rotate(0deg); }
@@ -44,7 +48,7 @@
         .rules-list li b { color: var(--cyan); display: inline-block; margin-bottom: 2px; } 
         .agree-btn { width: 100%; background: linear-gradient(135deg, var(--cyan), var(--purple)); color: #fff; border: none; padding: 18px; border-radius: 50px; font-weight: 900; cursor: pointer; transition: 0.3s; font-size: 16px; } 
         
-        header { padding: env(safe-area-inset-top, 15px) 15px 15px; text-align: center; background: var(--glass); backdrop-filter: blur(15px); border-bottom: 1px solid rgba(0, 242, 255, 0.1); z-index: 100; } 
+        header { padding: env(safe-area-inset-top, 15px) 15px 15px; text-align: center; background: rgba(2, 6, 23, 0.8); backdrop-filter: blur(10px); border-bottom: none; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 100; } 
         #status { font-size: 11px; color: var(--cyan); display: block; margin-top: 5px; font-weight: 900; letter-spacing: 0.5px; } 
         #typingIndicator { font-size: 10px; color: var(--success); height: 15px; margin-top: 2px; font-style: italic; } 
         
@@ -63,7 +67,6 @@
         .text { word-wrap: break-word; } 
         .msg-deleted { font-style: italic; opacity: 0.6; font-size: 13px; } 
         
-        .reply-quote { background: rgba(255, 255, 255, 0.1); border-right: 3px solid var(--cyan); padding: 6px 12px; margin-bottom: 8px; border-radius: 8px; font-size: 12px; color: #cbd5e1; display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } 
         .reply-preview { display: none; background: rgba(15, 23, 42, 0.95); border-top: 1px solid var(--cyan); padding: 10px 20px; animation: slideUp 0.3s ease; position: relative; } 
         
         .input-area { padding: 0; background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.08); padding-bottom: calc(15px + env(safe-area-inset-bottom)); } 
@@ -126,7 +129,6 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
-        // منطق التثبيت
         let deferredPrompt;
         const installBtn = document.getElementById('installBtn');
 
@@ -140,9 +142,7 @@
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    installBtn.style.display = 'none';
-                }
+                if (outcome === 'accepted') installBtn.style.display = 'none';
                 deferredPrompt = null;
             }
         });
@@ -169,11 +169,7 @@
         const getDailyIdentity = async () => {
             try {
                 const token = await auth.currentUser.getIdToken();
-                const res = await fetch('/api/sendMessage', { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ action: "GET_IDENTITY", uid: currentUser.uid, token }) 
-                });
+                const res = await fetch('/api/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: "GET_IDENTITY", uid: currentUser.uid, token }) });
                 const data = await res.json();
                 if (data.ghostName) {
                     activeDay = data.activeDay;
@@ -196,10 +192,7 @@
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
                     const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
-                    const token = await getToken(messaging, { 
-                        vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
-                        serviceWorkerRegistration: registration 
-                    });
+                    const token = await getToken(messaging, { vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws', serviceWorkerRegistration: registration });
                     if (token) await set(ref(db, `users_tokens/${currentUser.uid}`), { token, ghostName: myGhostName });
                 }
             } catch (err) { console.warn("FCM Error", err); }
@@ -236,9 +229,7 @@
             try {
                 const token = await auth.currentUser.getIdToken();
                 if (currentReplyTo) text = `رد على @${currentReplyTo.sender}: ${text}`;
-                const payload = editingMsgId ? 
-                    { action: "EDIT", msgId: editingMsgId, text, uid: currentUser.uid, token, day: activeDay } : 
-                    { text, uid: currentUser.uid, token, day: activeDay };
+                const payload = editingMsgId ? { action: "EDIT", msgId: editingMsgId, text, uid: currentUser.uid, token, day: activeDay } : { text, uid: currentUser.uid, token, day: activeDay };
                 await fetch('/api/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 input.value = ""; cancelReply(); editingMsgId = null;
             } catch(e) { console.error("Send Error"); }
@@ -246,23 +237,15 @@
 
         function initMessages() {
             const msgRef = ref(db, `messages/global/${activeDay}`);
-            
             onChildChanged(msgRef, (snap) => {
                 const data = snap.val();
                 const el = document.getElementById(`msg-${snap.key}`);
                 if (el) {
-                    if (data.deleted) {
-                        el.className = 'msg msg-deleted';
-                        el.innerHTML = '<div class="text">تم حذف الهمسة</div>';
-                    } else if (data.edited) {
-                        el.querySelector('.text').innerText = data.text;
-                    }
+                    if (data.deleted) { el.className = 'msg msg-deleted'; el.innerHTML = '<div class="text">تم حذف الهمسة</div>'; }
+                    else if (data.edited) { el.querySelector('.text').innerText = data.text; }
                 }
             });
-
-            onChildAdded(query(msgRef, limitToLast(100)), (snap) => {
-                if (!renderedMsgIds.has(snap.key)) renderMsg(snap.key, snap.val());
-            });
+            onChildAdded(query(msgRef, limitToLast(100)), (snap) => { if (!renderedMsgIds.has(snap.key)) renderMsg(snap.key, snap.val()); });
         }
 
         function renderMsg(id, data) {
@@ -283,7 +266,18 @@
                 }
             };
 
-            div.innerHTML = `<div class="sender"><span>${isMe ? 'أنت' : data.sender}</span></div><div class="text">${data.text}</div>`;
+            const isReply = data.text.startsWith('رد على @');
+            let displayHTML = `<div class="sender"><span>${isMe ? 'أنت' : data.sender}</span></div>`;
+            if (isReply) {
+                const parts = data.text.split(': ');
+                const quote = parts[0]; 
+                const actualText = parts.slice(1).join(': ');
+                displayHTML += `<div class="reply-bubble">${quote}</div><div class="text">${actualText}</div>`;
+            } else {
+                displayHTML += `<div class="text">${data.text}</div>`;
+            }
+
+            div.innerHTML = displayHTML;
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
             renderedMsgIds.add(id);
@@ -292,17 +286,11 @@
         async function showMsgActions(id) {
             const modal = document.getElementById('actionModal');
             modal.style.display = 'flex';
-            
             document.getElementById('deleteBtn').onclick = async () => {
                 const token = await auth.currentUser.getIdToken();
-                await fetch('/api/sendMessage', { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ action: "DELETE", msgId: id, uid: currentUser.uid, token, day: activeDay }) 
-                });
+                await fetch('/api/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: "DELETE", msgId: id, uid: currentUser.uid, token, day: activeDay }) });
                 modal.style.display = 'none';
             };
-
             document.getElementById('editBtn').onclick = () => {
                 const msgEl = document.getElementById(`msg-${id}`);
                 const currentText = msgEl.querySelector('.text').innerText;
