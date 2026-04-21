@@ -22,6 +22,8 @@
         #installBtn:active { transform: scale(0.95); }
 
         .msg { transition: opacity 15s linear, transform 0.3s; position: relative; }
+
+        /* التعديل الفخم للأسود/الأحمر المشتعل (Ember Mode) - مُصحح للعرض */
         .msg-reply {
             background: linear-gradient(135deg, #020617 0%, #0a0101 50%, #1a0202 100%) !important;
             border: 1px solid rgba(255, 68, 68, 0.4) !important;
@@ -145,19 +147,7 @@
     </div>
 
     <script type="module">
-        if (!window.matchMedia('(display-mode: standalone)').matches) {
-            const header = document.getElementById('appHeader');
-            header.style.paddingTop = "15px"; 
-            const chatBox = document.getElementById('chatBox');
-            chatBox.style.paddingTop = "5px";
-        }
-
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onChildAdded, onValue, query, limitToLast, set, onDisconnect, remove, update, onChildChanged, get, orderByChild, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
-
-        // كود زر التثبيت
+        // منطق زر التثبيت
         let deferredPrompt;
         const installBtn = document.getElementById('installBtn');
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -173,6 +163,18 @@
                 deferredPrompt = null;
             }
         });
+
+        if (!window.matchMedia('(display-mode: standalone)').matches) {
+            const header = document.getElementById('appHeader');
+            header.style.paddingTop = "15px"; 
+            const chatBox = document.getElementById('chatBox');
+            chatBox.style.paddingTop = "5px";
+        }
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onChildAdded, onValue, query, limitToLast, set, onDisconnect, remove, update, onChildChanged, get, orderByChild, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
         const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", databaseURL: "https://am--rewards-default-rtdb.firebaseio.com", projectId: "am--rewards", storageBucket: "am--rewards.firebasestorage.app", messagingSenderId: "744783579735", appId: "1:744783579735:web:45e00de9998893bbc9b112" };
         const app = initializeApp(firebaseConfig);
@@ -255,7 +257,9 @@
             lastSend = Date.now();
             try {
                 const token = await auth.currentUser.getIdToken();
+                // العودة للصيغة القديمة البسيطة
                 let textToSend = currentReplyTo ? `رد على @${currentReplyTo.sender}: ${text}` : text;
+                
                 const payload = editingMsgId ? 
                     { action: "EDIT", msgId: editingMsgId, text: textToSend, uid: currentUser.uid, token, day: activeDay } : 
                     { text: textToSend, uid: currentUser.uid, token, day: activeDay };
