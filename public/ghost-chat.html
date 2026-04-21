@@ -22,19 +22,32 @@
         #installBtn:active { transform: scale(0.95); }
 
         .msg { transition: opacity 15s linear, transform 0.3s; position: relative; }
-        .msg-old { opacity: 0.4 !important; filter: blur(0.5px); }
-
-        /* تنسيق الأسود المشتعل للردود */
+        
+        /* التعديل الجديد للأسود المشتعل */
         .msg-reply {
-            background: linear-gradient(135deg, rgba(2, 6, 23, 0.9), rgba(15, 23, 42, 0.95)) !important;
-            border: 1px solid rgba(0, 242, 255, 0.25) !important;
-            border-radius: 18px !important;
+            background: #020617 !important; 
+            border: 1px solid rgba(0, 242, 255, 0.5) !important;
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.3), inset 0 0 10px rgba(0, 242, 255, 0.1) !important;
+            border-radius: 20px !important;
             border-bottom-right-radius: 4px !important;
-            box-shadow: 0 0 15px rgba(0, 242, 255, 0.15) !important;
-            padding: 10px 14px !important;
+            position: relative;
         }
-        .reply-target { font-size: 11px; color: var(--cyan); font-weight: 700; margin-bottom: 4px; }
-        .reply-text { font-size: 14px; color: #fff; border-right: 2px solid var(--cyan); padding-right: 8px; margin-top: 2px; }
+        .msg-reply::after {
+            content: "";
+            position: absolute;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            border-radius: 20px;
+            border: 1px solid var(--cyan);
+            opacity: 0.3;
+            pointer-events: none;
+            animation: flamePulse 2s infinite alternate;
+        }
+        @keyframes flamePulse {
+            from { opacity: 0.2; transform: scale(1); }
+            to { opacity: 0.6; transform: scale(1.01); }
+        }
+        .reply-target { font-size: 10px !important; color: var(--cyan) !important; text-transform: uppercase; margin-bottom: 5px; display: block; text-shadow: 0 0 5px var(--cyan); }
+        .reply-text { font-size: 14px; color: #fff; padding-right: 8px; margin-top: 2px; }
 
         @keyframes spectralEcho {
             0% { transform: scale(1); filter: hue-rotate(0deg); }
@@ -134,6 +147,7 @@
     </div>
 
     <script type="module">
+        // ... (باقي كود الـ JavaScript كما هو)
         if (!window.matchMedia('(display-mode: standalone)').matches) {
             const header = document.getElementById('appHeader');
             header.style.paddingTop = "15px"; 
@@ -146,7 +160,6 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
-        // ... (باقي منطق Firebase و Auth كما هو) ...
         const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", databaseURL: "https://am--rewards-default-rtdb.firebaseio.com", projectId: "am--rewards", storageBucket: "am--rewards.firebasestorage.app", messagingSenderId: "744783579735", appId: "1:744783579735:web:45e00de9998893bbc9b112" };
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
@@ -220,7 +233,6 @@
 
         if(localStorage.getItem('ghost_rules_accepted') === 'true') document.getElementById('rulesOverlay').style.display = 'none';
 
-        // دالة الإرسال المعدلة لدعم إشعارات الرد الموجهة
         async function send() {
             if (Date.now() - lastSend < 3000) return;
             const input = document.getElementById('msgInput');
@@ -264,7 +276,6 @@
             const isMe = data.uid === currentUser.uid;
             const isReply = data.text.startsWith('رد على @');
             
-            // إضافة الكلاس .msg-reply
             div.className = `msg ${isMe ? 'msg-me' : 'msg-remote'} ${isReply ? 'msg-reply' : ''} ${data.isSecret ? 'msg-secret' : ''} ${data.isConfession ? 'msg-confession' : ''}`;
             
             div.onclick = () => {
