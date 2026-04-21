@@ -95,7 +95,7 @@ export default async function handler(req, res) {
                 const cleanText = text.replace(/(010|011|012|015|019|٠١٠|٠١١|٠١٢|٠١٥|٠١٩)[\s-]*\d{8}/g, "[محجوب]");  
                 await msgRef.update({   
                     text: cleanText.replace(/#اعتراف|#سر|سر|^#|^\*/g, '').trim(),   
-                    edited: true,   
+                    edited: true,  
                     timestamp: now   
                 });  
                 return res.status(200).json({ success: true });  
@@ -174,44 +174,45 @@ export default async function handler(req, res) {
                 const myTokenSnap = await db.ref(`users_tokens/${uid}/token`).once('value');
                 const myToken = myTokenSnap.val();
 
-                // التعديل هنا: إذا كان رد، نرسل للمستهدف فقط. إذا كان عام، نرسل للجميع.
-                if (replyToName) {
-                    const targetUser = Object.values(tokensData).find(u => u.ghostName === replyToName);
-                    if (targetUser && targetUser.token) {
-                        await messaging.send({
-                            token: targetUser.token,
-                            notification: {    
-                                title: `💬 رد من ${serverGhostName}`,    
-                                body: isSecret ? "اهمس بشيء غامض..." : (finalDisplayContent.length > 50 ? finalDisplayContent.substring(0, 47) + "..." : finalDisplayContent),    
-                            },    
-                            data: { url: `https://am-rewards.vercel.app/ghost-chat.html?msgId=${msgRef.key}` },
-                            android: { priority: 'high', ttl: 0, notification: { tag: 'ghost-chat-msg', priority: 'max', visibility: 'public' } },
-                            webpush: { headers: { "Urgency": "high", "TTL": "0" }, notification: { tag: 'ghost-chat-msg', renotify: true } }
-                        });
-                    }
-                } else {
-                    const targetTokens = Object.values(tokensData)  
+                let targetTokens = [];    
+                if (replyToName) {    
+                    const targetUser = Object.values(tokensData).find(u => u.ghostName === replyToName);    
+                    if (targetUser && targetUser.token) targetTokens = [targetUser.token];    
+                } else {    
+                    targetTokens = Object.values(tokensData)  
                         .map(u => u.token)  
                         .filter(t => typeof t === 'string' && t.length > 10 && t !== myToken);    
+                }    
 
-                    if (targetTokens.length > 0) {    
-                        const payload = {    
-                            notification: {    
-                                title: isConfession ? `🕯️ اعتراف جديد` : `👻 همسة جديدة`,    
-                                body: isSecret ? "اهمس بشيء غامض..." : (finalDisplayContent.length > 50 ? finalDisplayContent.substring(0, 47) + "..." : finalDisplayContent),    
-                            },    
-                            data: { url: `https://am-rewards.vercel.app/ghost-chat.html?msgId=${msgRef.key}` },
-                            android: { priority: 'high', ttl: 0, notification: { tag: 'ghost-chat-msg', priority: 'max', visibility: 'public' } },
-                            webpush: { headers: { "Urgency": "high", "TTL": "0" }, notification: { tag: 'ghost-chat-msg', renotify: true } }
-                        };    
-                        for (let i = 0; i < targetTokens.length; i += 500) {
-                            const chunk = targetTokens.slice(i, i + 500);
-                            await messaging.sendEachForMulticast({ tokens: chunk, ...payload });
+                if (targetTokens.length > 0) {    
+                    const payload = {    
+                        notification: {    
+                            title: replyToName ? `💬 رد من ${serverGhostName}` : (isConfession ? `🕯️ اعتراف جديد` : `👻 همسة جديدة`),    
+                            body: isSecret ? "اهمس بشيء غامض..." : (finalDisplayContent.length > 50 ? finalDisplayContent.substring(0, 47) + "..." : finalDisplayContent),    
+                        },    
+                        // التعديل هنا: تمرير معرف الرسالة الجديدة لكي نستخدمه في الـ Frontend
+                        data: { 
+                            url: `https://am-rewards.vercel.app/ghost-chat.html?msgId=${msgRef.key}` 
+                        },
+                        android: { 
+                            priority: 'high', 
+                            ttl: 0, 
+                            notification: { tag: 'ghost-chat-msg', priority: 'max', visibility: 'public' } 
+                        },
+                        webpush: { 
+                            headers: { "Urgency": "high", "TTL": "0" }, 
+                            notification: { tag: 'ghost-chat-msg', renotify: true } 
                         }
+                    };    
+                    
+                    for (let i = 0; i < targetTokens.length; i += 500) {
+                        const chunk = targetTokens.slice(i, i + 500);
+                        await messaging.sendEachForMulticast({ tokens: chunk, ...payload });
                     }
-                }
+                }    
             }    
         } catch (e) { console.error("Push Error", e); }    
+
 
         return res.status(200).json({ success: true, ghostName: serverGhostName, activeDay });    
     } catch (error) { return res.status(500).json({ error: error.message }); }
