@@ -18,45 +18,40 @@
         body { font-family: 'Tajawal', sans-serif; display: flex; flex-direction: column; background: #020617 url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1500') no-repeat center center fixed; background-size: cover; user-select: none; position: relative; } 
         body::before { content: ""; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: -1; transition: 0.5s; } 
         
+        /* تأثير الأفعى */
+        #snakeLayer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
+        .snake-path { stroke: var(--cyan); stroke-width: 2; fill: none; stroke-dasharray: 8; animation: snakeMove 1.5s infinite linear; filter: drop-shadow(0 0 5px var(--cyan)); }
+        @keyframes snakeMove { from { stroke-dashoffset: 20; } to { stroke-dashoffset: 0; } }
+
         #installBtn { display: none; background: rgba(0, 242, 255, 0.1); color: var(--cyan); border: 1px solid var(--cyan); padding: 6px 15px; border-radius: 20px; margin: 4px auto; cursor: pointer; font-weight: bold; font-size: 10px; transition: 0.3s; }
         #installBtn:active { transform: scale(0.95); }
 
         .msg { transition: opacity 15s linear, transform 0.3s; position: relative; }
 
-        /* التعديل الجديد: تصميم "الصدع الرقمي" للردود */
         .msg-reply {
-            background: #010107 !important;
-            border: none !important;
-            border-radius: 0 !important;
-            position: relative;
-            padding: 24px 30px !important;
-            overflow: visible !important;
-            max-width: 90%;
-            align-self: flex-start;
+            background: linear-gradient(135deg, #020617 0%, #0a0101 50%, #1a0202 100%) !important;
+            border: 1px solid rgba(255, 68, 68, 0.4) !important;
+            border-radius: 18px !important;
             border-bottom-right-radius: 4px !important;
+            box-shadow: 0 0 15px rgba(255, 68, 68, 0.2), inset 0 0 10px rgba(139, 0, 0, 0.1) !important;
+            padding: 14px 18px !important;
+            position: relative;
+            overflow: visible !important;
         }
-        .msg-reply::after {
+        .msg-reply::before {
             content: "";
             position: absolute;
-            top: -2px; left: -2px; right: -2px; bottom: -2px;
-            background: #010107;
-            clip-path: polygon(0% 15%, 12% 8%, 25% 18%, 35% 5%, 50% 12%, 60% 0%, 75% 15%, 90% 5%, 100% 20%, 98% 80%, 85% 90%, 70% 85%, 55% 95%, 45% 85%, 30% 100%, 15% 90%, 5% 95%, 0% 80%);
+            inset: -5px;
+            background: radial-gradient(circle at center, rgba(255, 68, 68, 0.08) 0%, transparent 70%);
             z-index: -1;
-            border: 1px solid rgba(255, 68, 68, 0.4);
-            box-shadow: 0 0 25px rgba(255, 68, 68, 0.3) !important;
-            pointer-events: none;
-            animation: embersGlow 3s infinite ease-in-out alternate;
+            animation: embersGlow 5s infinite ease-in-out alternate;
         }
-        @keyframes embersGlow { from { opacity: 0.4; } to { opacity: 0.9; } }
-        .reply-target { font-size: 11px !important; color: #ffcccc !important; font-weight: 700; margin-bottom: 6px; display: block; text-shadow: 0 0 5px rgba(255, 68, 68, 0.5); }
-        .reply-text { font-size: 15px !important; color: #fff !important; border-right: 2px solid #ff4444; padding-right: 8px; margin-top: 2px; display: block; }
-
-        @keyframes spectralEcho {
-            0% { transform: scale(1); filter: hue-rotate(0deg); }
-            50% { transform: scale(1.02); filter: hue-rotate(180deg) brightness(1.5); }
-            100% { transform: scale(1); filter: hue-rotate(360deg); }
+        @keyframes embersGlow {
+            from { opacity: 0.3; transform: scale(1); }
+            to { opacity: 0.7; transform: scale(1.05); }
         }
-        .echo-active { animation: spectralEcho 0.8s ease-in-out; }
+        .reply-target { font-size: 10px !important; color: #ffcccc !important; font-weight: 700; margin-bottom: 5px; display: block !important; text-shadow: 0 0 5px rgba(255, 68, 68, 0.5); }
+        .reply-text { font-size: 15px !important; color: #fff !important; border-right: 2px solid #ff4444; padding-right: 8px; margin-top: 2px; display: block !important; }
 
         #chatBox::before { content: ""; position: fixed; top: 50%; left: 50%; width: 200%; height: 200%; background: radial-gradient(circle, var(--purple) 0%, transparent 70%); opacity: 0.05; z-index: -1; animation: ghostFloat 20s infinite linear; pointer-events: none; } 
         @keyframes ghostFloat { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } } 
@@ -134,7 +129,9 @@
         <div id="typingIndicator"></div>
     </header>
 
-    <div id="chatBox"></div>
+    <div id="chatBox">
+        <svg id="snakeLayer"></svg>
+    </div>
 
     <div class="input-area">
         <div id="replyContainer" class="reply-preview">
@@ -174,6 +171,28 @@
         let lastSend = 0; 
         const renderedMsgIds = new Set();
         let activeDay = ""; 
+
+        // دالة رسم الأفعى
+        function drawSnakeLink(targetId, replyId) {
+            const targetEl = document.getElementById(`msg-${targetId}`);
+            const replyEl = document.getElementById(`msg-${replyId}`);
+            if (!targetEl || !replyEl) return;
+            const svg = document.getElementById('snakeLayer');
+            const targetRect = targetEl.getBoundingClientRect();
+            const replyRect = replyEl.getBoundingClientRect();
+            const chatBox = document.getElementById('chatBox');
+            const chatRect = chatBox.getBoundingClientRect();
+            
+            const x1 = targetRect.left - chatRect.left + targetRect.width / 2;
+            const y1 = targetRect.top - chatRect.top + targetRect.height / 2;
+            const x2 = replyRect.left - chatRect.left + replyRect.width / 2;
+            const y2 = replyRect.top - chatRect.top + replyRect.height / 2;
+            
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", `M ${x1} ${y1} Q ${x1} ${y2}, ${x2} ${y2}`);
+            path.setAttribute("class", "snake-path");
+            svg.appendChild(path);
+        }
 
         window.cancelReply = () => {
             currentReplyTo = null;
@@ -248,7 +267,7 @@
                     token,
                     day: activeDay,
                     isReply: currentReplyTo ? true : false,
-                    targetGhostName: currentReplyTo ? currentReplyTo.sender : null
+                    targetId: currentReplyTo ? currentReplyTo.id : null // تأكد من إرسال الـ ID هنا
                 };
                 if(editingMsgId) { payload.action = "EDIT"; payload.msgId = editingMsgId; }
                 await fetch('/api/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -266,7 +285,7 @@
                     else if (data.edited) { el.querySelector('.text').innerText = data.text; }
                 }
             });
-            onChildAdded(query(msgRef, limitToLast(100)), (snap) => { if (!renderedMsgIds.has(snap.key)) renderMsg(snap.key, snap.val()); });
+            onChildAdded(query(msgRef, limitToLast(100)), (snap) => { if (!renderedMsgIds.has(snap.key)) renderMsg(snap.key, { ...snap.val(), id: snap.key }); });
         }
 
         function renderMsg(id, data) {
@@ -282,7 +301,7 @@
             div.onclick = () => {
                 if (isMe) showMsgActions(id);
                 else {
-                    currentReplyTo = data;
+                    currentReplyTo = { ...data, id: id };
                     document.getElementById('replyTargetName').innerText = data.sender;
                     document.getElementById('replyTargetText').innerText = data.text;
                     document.getElementById('replyContainer').style.display = 'block';
@@ -293,6 +312,11 @@
                 const parts = data.text.split(': ');
                 const targetName = parts[0].replace('رد على @', '');
                 div.innerHTML = `<div class="sender"><span>${isMe ? 'أنت' : data.sender}</span></div><div class="reply-target">رد على @${targetName}</div><div class="reply-text">${parts.slice(1).join(': ')}</div>`;
+                
+                // رسم الأفعى إذا كان الـ targetId موجوداً
+                if (data.targetId) {
+                    setTimeout(() => drawSnakeLink(data.targetId, id), 200);
+                }
             } else {
                 div.innerHTML = `<div class="sender"><span>${isMe ? 'أنت' : data.sender}</span></div><div class="text">${data.text}</div>`;
             }
