@@ -195,15 +195,28 @@
             document.getElementById('replyContainer').style.display = 'none';
         };
 
-        const getDailyIdentity = async () => {
+                const getDailyIdentity = async () => {
             try {
                 const token = await auth.currentUser.getIdToken();
                 const res = await fetch('/api/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: "GET_IDENTITY", uid: currentUser.uid, token }) });
                 const data = await res.json();
+                
                 if (data.ghostName) {
                     activeDay = data.activeDay;
                     myGhostName = data.ghostName;
                     document.getElementById('status').innerHTML = `<span class="online-dot"></span> هويتك: ${myGhostName} <span class="rank-badge">${data.rank || 'روح عابرة'}</span>`;
+                    
+                    // التعديل هنا: فحص الـ welcomeCard وعرض الرسالة في الشات
+                    if (data.welcomeCard && data.welcomeCard.show) {
+                        const chatBox = document.getElementById('chatBox');
+                        const sysDiv = document.createElement('div');
+                        sysDiv.className = 'system-msg';
+                        // نقوم بعرض الرسالة المرسلة من الـ Backend
+                        sysDiv.innerText = data.welcomeCard.message;
+                        chatBox.appendChild(sysDiv);
+                        chatBox.scrollTop = chatBox.scrollHeight;
+                    }
+
                     initPresence();
                     initMessages(); 
                 }
