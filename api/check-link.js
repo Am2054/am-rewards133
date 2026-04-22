@@ -1,6 +1,16 @@
 import { getApps, initializeApp, cert } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
+// دالة للتحقق من أن النص هو رابط صحيح
+function isValidUrl(string) {
+  try {
+    const newUrl = new URL(string);
+    return newUrl.protocol === 'http:' || newUrl.protocol === 'https:';
+  } catch (err) {
+    return false;
+  }
+}
+
 if (!getApps().length) {
   try {
     const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY.trim());
@@ -18,6 +28,9 @@ export default async function handler(req, res) {
   const GOOGLE_API_KEY = process.env.SAFE_BROWSING_API_KEY;
 
   if (!url || !userId) return res.status(400).json({ error: "بيانات ناقصة" });
+  
+  // 🛡️ إضافة الفلترة هنا
+  if (!isValidUrl(url)) return res.status(400).json({ error: "الرابط غير صالح، يرجى التأكد من كتابة الرابط بشكل صحيح" });
 
   try {
     const today = new Date().toISOString().split('T')[0];
@@ -38,7 +51,6 @@ export default async function handler(req, res) {
 
     // لو مكرر، نرسل النتيجة فوراً بدون خصم أو زيادة عداد
     if (isRepeated) {
-        // تنفيذ فحص جوجل (أو إرسال نتيجة ثابتة لو أردت توفير كوتا جوجل أيضاً)
         const response = await fetch(`https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${GOOGLE_API_KEY}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
