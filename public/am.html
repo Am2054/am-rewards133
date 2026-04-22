@@ -79,6 +79,8 @@
         };
 
         let currentJob = null, currentLevel = "", questions = [], currentIndex = 0, score = 0, wrongQuestions = [], answered = false;
+        let timer = null;
+        const TIME_LIMIT = 10;
 
         async function loadJobs() {
             const grid = document.getElementById('jobGrid');
@@ -113,10 +115,23 @@
 
         function showQuestion() {
             answered = false;
-            const q = questions[currentIndex];
-            document.getElementById("barFill").style.width = ((currentIndex + 1) / questions.length * 100) + "%";
-            document.getElementById('questionBox').innerText = q.q;
+            let timeLeft = TIME_LIMIT;
             const optionsBox = document.getElementById('optionsBox');
+            optionsBox.style.pointerEvents = 'auto';
+            document.getElementById("barFill").style.width = "100%";
+            
+            clearInterval(timer);
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById("barFill").style.width = (timeLeft / TIME_LIMIT * 100) + "%";
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    handleAnswer(-1, questions[currentIndex], null);
+                }
+            }, 1000);
+
+            const q = questions[currentIndex];
+            document.getElementById('questionBox').innerText = q.q;
             optionsBox.innerHTML = "";
             q.options.forEach((opt, index) => {
                 const btn = document.createElement('button');
@@ -130,15 +145,19 @@
         function handleAnswer(selectedIndex, q, btn) {
             if (answered) return;
             answered = true;
+            clearInterval(timer);
             const optionsBox = document.getElementById('optionsBox');
+            optionsBox.style.pointerEvents = 'none';
+            
             if (selectedIndex === q.answer) {
-                btn.style.background = "green";
+                if(btn) btn.style.background = "green";
                 score++;
             } else {
-                btn.style.background = "red";
+                if(btn) btn.style.background = "red";
                 optionsBox.children[q.answer].style.background = "green";
                 wrongQuestions.push(q);
             }
+            
             setTimeout(() => {
                 currentIndex++;
                 if (currentIndex < questions.length) showQuestion();
@@ -181,6 +200,7 @@
         };
 
         window.goBack = () => {
+            clearInterval(timer);
             document.getElementById('homeScreen').classList.remove('hidden');
             document.getElementById('levelScreen').classList.add('hidden');
             document.getElementById('quizScreen').classList.add('hidden');
