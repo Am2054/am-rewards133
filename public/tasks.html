@@ -13,7 +13,6 @@
         body { font-family: 'Tajawal', sans-serif; background: #020617; color: #f9fafb; margin: 0; padding: 0; min-height: 100vh; overflow-x: hidden; } 
         .stars-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.3; } 
         
-        /* التعديل: إخفاء الحاوية الرئيسية افتراضياً لتأمين الصفحة */
         .main-box { 
             display: none; 
             opacity: 0; 
@@ -55,8 +54,8 @@
         .skeleton::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent); animation: shimmer 1.5s infinite; }
         @keyframes shimmer { 100% { transform: translateX(100%); } }
 
-        /* التعديل الجديد: إخفاء المهام التي لم تبدأ بعد */
         .coming-soon-task { display: none !important; }
+        .soon-msg { text-align: center; color: #64748b; font-size: 0.9rem; margin-top: 20px; font-style: italic; }
     </style>
 </head>
 <body>
@@ -72,34 +71,11 @@
         </div>
 
         <div class="tabs-nav"> 
-            <button class="tab-btn active" onclick="switchTab('tasks', this)">🚀 المهام</button> 
-            <button class="tab-btn" onclick="switchTab('services', this)">🛠️ الخدمات</button> 
+            <button class="tab-btn active" onclick="switchTab('services', this)">🛠️ الخدمات</button> 
+            <button class="tab-btn" onclick="switchTab('tasks', this)">🚀 المهام</button> 
         </div> 
 
-        <div id="tasks" class="task-container active"> 
-            <div class="task-card"> 
-                <div class="task-info"><span class="task-icon">🔗</span><div><span class="task-name">روابط مختصرة</span><span class="task-reward">اربح نقاطاً مقابل كل تخطّي</span></div></div> 
-                <button class="start-btn" onclick="location.href='shortlinks.html'">إبدأ</button> 
-            </div> 
-            <div class="task-card coming-soon-task"> 
-                <div class="task-info"><span class="task-icon">🎬</span><div><span class="task-name">فيديوهات قصيرة</span><span class="task-reward">مكافآت يومية عند المشاهدة</span></div></div> 
-                <button class="start-btn" onclick="location.href='videos.html'">إبدأ</button> 
-            </div> 
-            <div class="task-card coming-soon-task"> 
-                <div class="task-info"><span class="task-icon">📊</span><div><span class="task-name">استطلاعات الرأي</span><span class="task-reward">جوائز كبرى مقابل رأيك</span></div></div> 
-                <button class="start-btn" onclick="location.href='surveys.html'">إبدأ</button> 
-            </div> 
-            <div class="task-card coming-soon-task"> 
-                <div class="task-info"><span class="task-icon">📱</span><div><span class="task-name">تثبيت تطبيقات</span><span class="task-reward">أعلى قيمة نقاط في التطبيق</span></div></div> 
-                <button class="start-btn" onclick="location.href='apps.html'">إبدأ</button> 
-            </div> 
-            <div class="task-card coming-soon-task"> 
-                <div class="task-info"><span class="task-icon">🎮</span><div><span class="task-name">الألعاب</span><span class="task-reward">حوّل وقت تسليتك إلى أرباح</span></div></div> 
-                <button class="start-btn" onclick="location.href='games.html'">إبدأ</button> 
-            </div> 
-        </div> 
-
-        <div id="services" class="task-container"> 
+        <div id="services" class="task-container active"> 
             <div class="task-card"> 
                 <div class="task-info"><span class="task-icon">🌐</span><div><span class="task-name">محلل الإنترنت</span><span class="task-reward">حساب استهلاك الباقة</span></div></div> 
                 <button class="start-btn service-btn" onclick="location.href='wifi-calc.html'">فتح الأداة</button> 
@@ -130,21 +106,29 @@
             </div>
         </div> 
 
+        <div id="tasks" class="task-container"> 
+            <div class="task-card"> 
+                <div class="task-info"><span class="task-icon">🔗</span><div><span class="task-name">روابط مختصرة</span><span class="task-reward">اربح نقاطاً مقابل كل تخطّي</span></div></div> 
+                <button class="start-btn" onclick="location.href='shortlinks.html'">إبدأ</button> 
+            </div> 
+            <p class="soon-msg">سيتم إضافة العديد من المهام قريباً، تابعنا!</p>
+        </div> 
+
         <button class="back-btn" onclick="window.location.href='dashboard.html'">⬅️ العودة للرئيسية</button> 
     </div>
 
     <script>
+        // (الكود البرمجي كما هو دون تغيير)
         const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" }; 
         firebase.initializeApp(firebaseConfig); 
         const auth = firebase.auth(); 
         const db = firebase.firestore(); 
 
         let currentPoints = 0;
-        let contentShown = false; // متغير للتحكم في ظهور الصفحة
+        let contentShown = false; 
 
         auth.onAuthStateChanged(user => { 
             if (user) { 
-                // إظهار الصفحة للمستخدم المسجل فقط
                 if (!contentShown) {
                     const mainBox = document.getElementById('galaxyMainBox');
                     mainBox.style.display = 'block';
@@ -153,7 +137,6 @@
                 }
                 listenToPoints(user.uid); 
             } else { 
-                // تحويل المستخدم غير المسجل ومنعه من الرجوع
                 window.location.replace("index.html"); 
             } 
         }); 
@@ -164,9 +147,7 @@
                     const newPoints = Math.floor(doc.data().points || 0);
                     const pointsElement = document.getElementById("userPoints");
                     const pointsBox = document.getElementById("pointsBox");
-                    
                     pointsElement.classList.remove('skeleton');
-
                     if (newPoints !== currentPoints) {
                         animateValue(pointsElement, currentPoints, newPoints, 1000);
                         pointsBox.classList.remove('points-glow');
@@ -186,9 +167,7 @@
                 if (!startTimestamp) startTimestamp = timestamp;
                 const progress = Math.min((timestamp - startTimestamp) / duration, 1);
                 obj.innerHTML = Math.floor(progress * (end - start) + start);
-                if (progress < 1) {
-                    window.requestAnimationFrame(step);
-                }
+                if (progress < 1) window.requestAnimationFrame(step);
             };
             window.requestAnimationFrame(step);
         }
