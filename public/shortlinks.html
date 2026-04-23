@@ -61,7 +61,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };
 const app = initializeApp(firebaseConfig);
@@ -71,7 +71,7 @@ const db = getFirestore(app);
 const LINK_COOLDOWN = 24 * 60 * 60 * 1000;
 let currentFilter = 'all';
 let userLastLinks = {};
-let isProcessing = false; // متغير لمنع الثغرة
+let isProcessing = false;
 
 const shortlinks = [
   { id: 0, title: "رابط رقم 1", url: "https://swiftlnx.com/O9fy5YtU", difficulty: "متوسط وهتعمله", points: 2.5, class: "medium", type: "medium" },
@@ -85,7 +85,7 @@ const shortlinks = [
   { id: 8, title: "رابط رقم 9", url: "https://gplinks.co/DXrOS", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy", type: "easy" },
   { id: 9, title: "رابط رقم 10", url: "https://nitro-link.com/PVVy", difficulty: "متوسط وهتعمله", points: 2.5, class: "medium", type: "medium" },
   { id: 10, title: "رابط رقم 11", url: "https://www.short-fly.com/T0I15Rv", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy", type: "easy" },
-   { id: 12, title: "رابط رقم 12", url: "https://xpshort.com/hBC7", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy", type: "easy" },
+  { id: 12, title: "رابط رقم 12", url: "https://xpshort.com/hBC7", difficulty: "سهل وهتعرف تعمله", points: 1.5, class: "easy", type: "easy" },
   { id: 13, title: "رابط رقم 13", url: "http://easy4skip.com/1xGAnqI4", difficulty: "صعب ومش هتعرف تعمله 😂", points: 4, class: "hard", type: "hard" },
   { id: 14, title: "رابط رقم 14", url: "https://linkjust.com/4KnViKd6rWvEctQ", difficulty: "متوسط وهتعمله", points: 2.5, class: "medium", type: "medium" }
 ];
@@ -186,46 +186,40 @@ async function handleVerification() {
         html: `<p style="color: #cbd5e1;">اضغط على الرقم الذي رأيته في الصفحة السابقة:</p> ${buttonsHtml}`,
         showConfirmButton: false, background: '#0f172a', color: '#fff', allowOutsideClick: false
     });
+}
 
-        window.submitVerify = async (selectedCode, pts, idx) => {
-        if (isProcessing) return; // منع التنفيذ المتكرر
-        isProcessing = true; // تفعيل القفل
-        Swal.showLoading(); // إظهار لودر
+// الدالة الجديدة للـ Backend
+window.submitVerify = async (selectedCode, pts, idx) => {
+    if (isProcessing) return;
+    isProcessing = true;
+    Swal.showLoading();
 
-        try {
-            // إرسال البيانات للـ Backend للتحقق وإضافة النقاط
-            const response = await fetch('/api/verify-link', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    userId: auth.currentUser.uid, 
-                    linkIdx: idx, 
-                    selectedCode: selectedCode 
-                })
-            });
+    try {
+        const response = await fetch('/api/verify-link', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                userId: auth.currentUser.uid, 
+                linkIdx: idx, 
+                selectedCode: selectedCode 
+            })
+        });
 
-            const data = await response.json();
+        const data = await response.json();
 
-            if (response.ok) {
-                // النجاح: الـ Backend قام بكل شيء (التحقق + إضافة النقاط + تسجيل الجلسة)
-                Swal.fire({ 
-                    title: 'كفو!', 
-                    text: `تم إضافة ${data.points} نقطة بنجاح ✅`, 
-                    icon: 'success' 
-                });
-            } else {
-                // الفشل: (الرمز غير صحيح أو الجلسة مستخدمة)
-                Swal.fire('فشل!', data.error || 'حدث خطأ ما.', 'error');
-            }
-        } catch (e) { 
-            console.error(e);
-            Swal.fire('خطأ', 'تعذر الاتصال بالخادم، حاول مجدداً', 'error');
-        } finally {
-            isProcessing = false; // فك القفل
-            localStorage.removeItem('p_idx');
-            window.history.replaceState({}, document.title, window.location.pathname);
+        if (response.ok) {
+            Swal.fire({ title: 'كفو!', text: `تم إضافة ${data.points} نقطة بنجاح ✅`, icon: 'success' });
+        } else {
+            Swal.fire('فشل!', data.error || 'حدث خطأ ما.', 'error');
         }
-    };
+    } catch (e) {
+        Swal.fire('خطأ', 'تعذر الاتصال بالخادم', 'error');
+    } finally {
+        isProcessing = false;
+        localStorage.removeItem('p_idx');
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+};
 
 window.openLink = (i, url) => {
   localStorage.setItem("p_idx", i);
