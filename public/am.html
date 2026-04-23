@@ -71,14 +71,14 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, onSnapshot, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        let currentUser = null, isProcessing = false;
+        let currentUser = null, isProcessing = false, unlockedLevels = [];
         const jobTranslations = { "Accountant": "محاسب", "Assistant": "مساعد", "Biomedical_Tech": "فني أجهزة طبية", "Call_Center": "كول سنتر ", "Content_Writer": "كتابة محتوى", "Customer_Service": "خدمة عملاء", "Data_Entry": "إدخال بيانات", "Digital_Marketing": "تسويق رقمي", "Electronics_Tech": "فني إلكترونيات", "Frontend_Developer": "مطور واجهات", "Graphic_Designer": "مصمم جرافيك", "HR": "موارد بشرية", "Order_Picker": "تجهيز طلبات", "Packaging_Worker": "عمال تغليف", "Receptionist": "استقبال", "Sales_Representative": "مندوب مبيعات", "Social_Media_Moderator": "مشرف وسائل التواصل", "Translator": "مترجم", "Warehouse_Keeper": "أمين مخزن", "Technical_Support": "دعم فني" };
 
         let currentJob = null, currentLevel = "", questions = [], currentIndex = 0, score = 0, wrongQuestions = [], answered = false, timer = null;
@@ -89,7 +89,11 @@
             if (user) {
                 currentUser = user;
                 onSnapshot(doc(db, "users", user.uid), (snap) => {
-                    if (snap.exists()) document.getElementById('userPoints').innerText = snap.data().points || 0;
+                    if (snap.exists()) {
+                        const userData = snap.data();
+                        document.getElementById('userPoints').innerText = userData.points || 0;
+                        unlockedLevels = userData.unlockedLevels || [];
+                    }
                 });
                 loadJobs();
             } else { window.location.href = "login.html"; }
@@ -114,8 +118,9 @@
         window.startQuiz = async (level, btn) => {
             if (isProcessing) return;
             
+            const isUnlocked = unlockedLevels.includes(level);
             const costs = { "easy": 0, "medium": 2, "hard": 3, "expert": 5 };
-            const cost = costs[level];
+            const cost = isUnlocked ? 0 : costs[level];
             
             if (cost > 0) {
                 const confirmed = confirm(`بدء هذا المستوى سيكلفك ${cost} نقطة. هل أنت موافق؟`);
@@ -128,13 +133,19 @@
             btn.disabled = true;
 
             try {
-                const res = await fetch('/api/quiz-cost', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: currentUser.uid, level: level })
-                });
-                const data = await res.json();
-                if (!res.ok) { alert(data.error); resetAllBtns(); return; }
+                if (!isUnlocked && cost > 0) {
+                    const res = await fetch('/api/quiz-cost', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: currentUser.uid, level: level })
+                    });
+                    if (!res.ok) { alert("حدث خطأ في الدفع"); resetAllBtns(); return; }
+                    
+                    // تسجيل المستوى كمفتوح في قاعدة البيانات
+                    await updateDoc(doc(db, "users", currentUser.uid), {
+                        unlockedLevels: arrayUnion(level)
+                    });
+                }
                 
                 currentLevel = level;
                 questions = currentJob.levels ? currentJob.levels[level] : [];
@@ -153,7 +164,7 @@
         }
 
         function initQuiz() {
-            resetAllBtns(); // إعادة الأزرار لحالتها الطبيعية
+            resetAllBtns();
             currentIndex = 0; score = 0; wrongQuestions = [];
             document.getElementById('homeScreen').classList.add('hidden');
             document.getElementById('levelScreen').classList.add('hidden');
@@ -161,6 +172,7 @@
             showQuestion();
         }
 
+        // باقي الدوال (showQuestion, handleAnswer, showResult, goBack) تبقى كما هي...
         function showQuestion() {
             answered = false;
             let timeLeft = TIME_LIMIT;
