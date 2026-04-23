@@ -187,45 +187,45 @@ async function handleVerification() {
         showConfirmButton: false, background: '#0f172a', color: '#fff', allowOutsideClick: false
     });
 
-    window.submitVerify = async (selectedCode, pts, idx) => {
+        window.submitVerify = async (selectedCode, pts, idx) => {
         if (isProcessing) return; // منع التنفيذ المتكرر
+        isProcessing = true; // تفعيل القفل
+        Swal.showLoading(); // إظهار لودر
 
-        if (selectedCode === correctCode.toString()) {
-            isProcessing = true; // تفعيل القفل
-            Swal.showLoading(); // إظهار لودر منعاً للعبث
+        try {
+            // إرسال البيانات للـ Backend للتحقق وإضافة النقاط
+            const response = await fetch('/api/verify-link', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    userId: auth.currentUser.uid, 
+                    linkIdx: idx, 
+                    selectedCode: selectedCode 
+                })
+            });
 
-            try {
-                await updateDoc(currentUserRef, {
-                    points: increment(pts)
-                });
-                
-                const taskRef = doc(db, "completedLinks", auth.currentUser.uid + "_" + idx + "_" + Date.now());
-                await setDoc(taskRef, {
-                    userId: auth.currentUser.uid,
-                    linkId: idx,
-                    pointsEarned: pts,
-                    completedAt: serverTimestamp(),
-                    type: "shortlink"
-                });
+            const data = await response.json();
 
-                await updateDoc(currentUserRef, {
-                    [`lastLinks.${idx}`]: serverTimestamp()
+            if (response.ok) {
+                // النجاح: الـ Backend قام بكل شيء (التحقق + إضافة النقاط + تسجيل الجلسة)
+                Swal.fire({ 
+                    title: 'كفو!', 
+                    text: `تم إضافة ${data.points} نقطة بنجاح ✅`, 
+                    icon: 'success' 
                 });
-                
-                await setDoc(sessionRef, { used: true }, { merge: true });
-                
-                Swal.fire({ title: 'كفو!', text: `تم إضافة ${pts} نقطة بنجاح ✅`, icon: 'success' });
-            } catch (e) { 
-                console.error(e);
-                isProcessing = false; // إعادة التفعيل في حال الخطأ فقط
+            } else {
+                // الفشل: (الرمز غير صحيح أو الجلسة مستخدمة)
+                Swal.fire('فشل!', data.error || 'حدث خطأ ما.', 'error');
             }
-        } else {
-            Swal.fire('فشل!', 'الرقم غير صحيح! حاول مرة أخرى.', 'error');
+        } catch (e) { 
+            console.error(e);
+            Swal.fire('خطأ', 'تعذر الاتصال بالخادم، حاول مجدداً', 'error');
+        } finally {
+            isProcessing = false; // فك القفل
+            localStorage.removeItem('p_idx');
+            window.history.replaceState({}, document.title, window.location.pathname);
         }
-        localStorage.removeItem('p_idx');
-        window.history.replaceState({}, document.title, window.location.pathname);
     };
-}
 
 window.openLink = (i, url) => {
   localStorage.setItem("p_idx", i);
