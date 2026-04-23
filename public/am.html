@@ -83,6 +83,7 @@
 
         let currentJob = null, currentLevel = "", questions = [], currentIndex = 0, score = 0, wrongQuestions = [], answered = false, timer = null;
         const TIME_LIMIT = 10;
+        const levelNames = { 'easy': 'سهل', 'medium': 'متوسط', 'hard': 'صعب', 'expert': 'محترف' };
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -133,19 +134,26 @@
                     body: JSON.stringify({ userId: currentUser.uid, level: level })
                 });
                 const data = await res.json();
-                if (!res.ok) { alert(data.error); resetBtn(btn, originalText); return; }
+                if (!res.ok) { alert(data.error); resetAllBtns(); return; }
                 
                 currentLevel = level;
                 questions = currentJob.levels ? currentJob.levels[level] : [];
-                if (questions.length === 0) { alert("لا توجد أسئلة"); resetBtn(btn, originalText); return; }
+                if (questions.length === 0) { alert("لا توجد أسئلة"); resetAllBtns(); return; }
                 initQuiz();
-            } catch (e) { alert("حدث خطأ، حاول مرة أخرى"); resetBtn(btn, originalText); }
+            } catch (e) { alert("حدث خطأ، حاول مرة أخرى"); resetAllBtns(); }
         };
 
-        function resetBtn(btn, text) { btn.innerText = text; btn.disabled = false; isProcessing = false; }
+        function resetAllBtns() {
+            isProcessing = false;
+            document.querySelectorAll('.level-btn').forEach((b, idx) => {
+                const keys = ['easy', 'medium', 'hard', 'expert'];
+                b.innerText = levelNames[keys[idx]];
+                b.disabled = false;
+            });
+        }
 
         function initQuiz() {
-            isProcessing = false;
+            resetAllBtns(); // إعادة الأزرار لحالتها الطبيعية
             currentIndex = 0; score = 0; wrongQuestions = [];
             document.getElementById('homeScreen').classList.add('hidden');
             document.getElementById('levelScreen').classList.add('hidden');
