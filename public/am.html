@@ -15,9 +15,9 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         .header { text-align: center; margin: 20px 0; font-size: 22px; color: var(--primary); text-shadow: 0 0 10px rgba(0,123,255,0.5); }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; animation: fadeIn 0.6s ease; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 10px; margin-bottom: 50px; animation: fadeIn 0.6s ease; }
         
-        .card { background: rgba(255, 255, 255, 0.04); padding: 15px; border-radius: 15px; text-align: center; border: 1px solid rgba(0, 123, 255, 0.2); cursor: pointer; transition: 0.2s; position: relative; overflow: hidden; -webkit-tap-highlight-color: transparent; will-change: transform; }
+        .card { background: rgba(255, 255, 255, 0.04); padding: 15px 10px; border-radius: 15px; text-align: center; border: 1px solid rgba(0, 123, 255, 0.2); cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; min-height: 50px; font-size: 0.95rem; }
         .card:hover { border-color: var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.2); transform: scale(1.02); }
         
         .hidden { display: none; }
@@ -29,7 +29,7 @@
         
         .quiz-container { animation: fadeIn 0.6s ease; padding: 10px; }
         .question-box { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid var(--primary); }
-        .option-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; background: #1c222d; border: 1px solid #444; border-radius: 12px; color: white; cursor: pointer; transition: 0.3s; will-change: transform; }
+        .option-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; background: #1c222d; border: 1px solid #444; border-radius: 12px; color: white; cursor: pointer; transition: 0.3s; }
         
         .bar { height: 6px; background: #222; border-radius: 10px; margin-bottom: 20px; overflow: hidden; }
         #barFill { height: 100%; background: #007bff; width: 0%; transition: 0.3s; }
@@ -77,32 +77,21 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        const jobTranslations = {
-            "Accountant": "محاسب", "Assistant": "مساعد", "Biomedical_Tech": "فني أجهزة طبية",
-            "Call_Center": "كول سنتر ", "Content_Writer": "كتابة محتوى", "Customer_Service": "خدمة عملاء",
-            "Data_Entry": "إدخال بيانات", "Digital_Marketing": "تسويق رقمي", "Electronics_Tech": "فني إلكترونيات",
-            "Frontend_Developer": "مطور واجهات", "Graphic_Designer": "مصمم جرافيك", "HR": "موارد بشرية",
-            "Order_Picker": "تجهيز طلبات", "Packaging_Worker": "عمال تغليف", "Receptionist": "استقبال",
-            "Sales_Representative": "مندوب مبيعات", "Social_Media_Moderator": "مشرف وسائل التواصل", 
-            "Translator": "مترجم", "Warehouse_Keeper": "أمين مخزن", "Technical_Support": "دعم فني"
-        };
+        let currentUser = null;
+        const jobTranslations = { "Accountant": "محاسب", "Assistant": "مساعد", "Biomedical_Tech": "فني أجهزة طبية", "Call_Center": "كول سنتر ", "Content_Writer": "كتابة محتوى", "Customer_Service": "خدمة عملاء", "Data_Entry": "إدخال بيانات", "Digital_Marketing": "تسويق رقمي", "Electronics_Tech": "فني إلكترونيات", "Frontend_Developer": "مطور واجهات", "Graphic_Designer": "مصمم جرافيك", "HR": "موارد بشرية", "Order_Picker": "تجهيز طلبات", "Packaging_Worker": "عمال تغليف", "Receptionist": "استقبال", "Sales_Representative": "مندوب مبيعات", "Social_Media_Moderator": "مشرف وسائل التواصل", "Translator": "مترجم", "Warehouse_Keeper": "أمين مخزن", "Technical_Support": "دعم فني" };
 
         let currentJob = null, currentLevel = "", questions = [], currentIndex = 0, score = 0, wrongQuestions = [], answered = false;
         let timer = null;
         const TIME_LIMIT = 10;
 
-        // التحقق من تسجيل الدخول وجلب البيانات
         onAuthStateChanged(auth, (user) => {
             if (user) {
+                currentUser = user;
                 onSnapshot(doc(db, "users", user.uid), (snap) => {
-                    if (snap.exists()) {
-                        document.getElementById('userPoints').innerText = snap.data().points || 0;
-                    }
+                    if (snap.exists()) document.getElementById('userPoints').innerText = snap.data().points || 0;
                 });
                 loadJobs();
-            } else {
-                window.location.href = "login.html"; 
-            }
+            } else { window.location.href = "login.html"; }
         });
 
         async function loadJobs() {
@@ -121,11 +110,22 @@
             });
         }
 
-        window.startQuiz = (level) => {
-            currentLevel = level;
-            questions = currentJob.levels ? currentJob.levels[level] : [];
-            if (questions.length === 0) { alert("لا توجد أسئلة"); return; }
-            initQuiz();
+        // تم التعديل هنا للاتصال بالـ Backend قبل بدء الاختبار
+        window.startQuiz = async (level) => {
+            try {
+                const res = await fetch('/api/quiz-cost', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: currentUser.uid, level: level })
+                });
+                const data = await res.json();
+                if (!res.ok) { alert(data.error); return; }
+                
+                currentLevel = level;
+                questions = currentJob.levels ? currentJob.levels[level] : [];
+                if (questions.length === 0) { alert("لا توجد أسئلة"); return; }
+                initQuiz();
+            } catch (e) { alert("حدث خطأ، حاول مرة أخرى"); }
         };
 
         function initQuiz() {
@@ -142,15 +142,11 @@
             const optionsBox = document.getElementById('optionsBox');
             optionsBox.style.pointerEvents = 'auto';
             document.getElementById("barFill").style.width = "100%";
-            
             clearInterval(timer);
             timer = setInterval(() => {
                 timeLeft--;
                 document.getElementById("barFill").style.width = (timeLeft / TIME_LIMIT * 100) + "%";
-                if (timeLeft <= 0) {
-                    clearInterval(timer);
-                    handleAnswer(-1, questions[currentIndex], null);
-                }
+                if (timeLeft <= 0) { clearInterval(timer); handleAnswer(-1, questions[currentIndex], null); }
             }, 1000);
 
             const q = questions[currentIndex];
@@ -171,43 +167,21 @@
             clearInterval(timer);
             const optionsBox = document.getElementById('optionsBox');
             optionsBox.style.pointerEvents = 'none';
-            
-            if (selectedIndex === q.answer) {
-                if(btn) btn.style.background = "green";
-                score++;
-            } else {
-                if(btn) btn.style.background = "red";
-                optionsBox.children[q.answer].style.background = "green";
-                wrongQuestions.push(q);
-            }
-            
-            setTimeout(() => {
-                currentIndex++;
-                if (currentIndex < questions.length) showQuestion();
-                else showResult();
-            }, 800);
+            if (selectedIndex === q.answer) { if(btn) btn.style.background = "green"; score++; } 
+            else { if(btn) btn.style.background = "red"; optionsBox.children[q.answer].style.background = "green"; wrongQuestions.push(q); }
+            setTimeout(() => { currentIndex++; if (currentIndex < questions.length) showQuestion(); else showResult(); }, 800);
         }
 
         window.showResult = () => {
             document.getElementById("barFill").style.width = "100%";
             let feedback = "";
             const percentage = (score / questions.length) * 100;
-            
             if (currentLevel === 'easy') feedback = "مبروك! أنت جاهز في الأساسيات.";
             else if (currentLevel === 'medium') feedback = percentage >= 50 ? "أنت جاهز بنسبة 50% تقريباً، استمر!" : "تحتاج لمزيد من المراجعة في المستوى المتوسط.";
             else if (currentLevel === 'hard') feedback = "مستوى متقدم! أنت في الطريق الصحيح للاحتراف.";
             else if (currentLevel === 'expert') feedback = "أنت محترف حقيقي! جاهز تماماً للمقابلات الكبرى.";
-
             let html = `<h3>نتيجتك: ${score} من ${questions.length}</h3><p>${feedback}</p>`;
-            
-            html += `<div class="tip-box">
-                <b>نصائح ذهبية للمقابلة:</b><br>
-                1. <b>احكي عن نفسك:</b> ركّز على المهارات لا الحياة الشخصية.<br>
-                2. <b>نقاط الضعف:</b> اذكر ضعفاً حقيقياً وتحدث عن خطواتك لتطويره.<br>
-                3. <b>الأسئلة:</b> اسأل عن طبيعة يوم العمل، هذا يُظهر اهتمامك الجاد.<br>
-                4. <b>الثقة:</b> لا تقل "مش عارف"، قل "هذا مجال جديد عليّ لكن أستطيع تعلمه بسرعة".
-            </div>`;
-
+            html += `<div class="tip-box"><b>نصائح ذهبية للمقابلة:</b><br>1. <b>احكي عن نفسك:</b> ركّز على المهارات لا الحياة الشخصية.<br>2. <b>نقاط الضعف:</b> اذكر ضعفاً حقيقياً وتحدث عن خطواتك لتطويره.<br>3. <b>الأسئلة:</b> اسأل عن طبيعة يوم العمل، هذا يُظهر اهتمامك الجاد.<br>4. <b>الثقة:</b> لا تقل "مش عارف"، قل "هذا مجال جديد عليّ لكن أستطيع تعلمه بسرعة".</div>`;
             if (wrongQuestions.length > 0) {
                 const retryBtn = document.createElement('button');
                 retryBtn.className = 'option-btn';
