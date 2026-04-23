@@ -24,6 +24,7 @@
         
         .levels-container { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; justify-content: center; animation: fadeIn 0.6s ease; }
         .level-btn { min-width: 80px; padding: 15px; background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; border-radius: 15px; color: white; font-size: 14px; cursor: pointer; transition: 0.4s; }
+        .level-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         
         .back-btn { display: block; width: 100%; padding: 15px; margin-top: 20px; background: rgba(255,255,255,0.1); border: 1px solid #6c757d; border-radius: 10px; color: white; cursor: pointer; }
         
@@ -50,10 +51,10 @@
     <div id="levelScreen" class="hidden">
         <h2 id="selectedJobTitle" class="header"></h2>
         <div id="levelsBox" class="levels-container">
-            <button class="level-btn" onclick="startQuiz('easy')">سهل</button>
-            <button class="level-btn" onclick="startQuiz('medium')">متوسط</button>
-            <button class="level-btn" onclick="startQuiz('hard')">صعب</button>
-            <button class="level-btn" onclick="startQuiz('expert')">محترف</button>
+            <button class="level-btn" onclick="startQuiz('easy', this)">سهل</button>
+            <button class="level-btn" onclick="startQuiz('medium', this)">متوسط</button>
+            <button class="level-btn" onclick="startQuiz('hard', this)">صعب</button>
+            <button class="level-btn" onclick="startQuiz('expert', this)">محترف</button>
         </div>
         <button class="back-btn" onclick="goBack()">عودة</button>
     </div>
@@ -77,11 +78,10 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        let currentUser = null;
+        let currentUser = null, isProcessing = false;
         const jobTranslations = { "Accountant": "محاسب", "Assistant": "مساعد", "Biomedical_Tech": "فني أجهزة طبية", "Call_Center": "كول سنتر ", "Content_Writer": "كتابة محتوى", "Customer_Service": "خدمة عملاء", "Data_Entry": "إدخال بيانات", "Digital_Marketing": "تسويق رقمي", "Electronics_Tech": "فني إلكترونيات", "Frontend_Developer": "مطور واجهات", "Graphic_Designer": "مصمم جرافيك", "HR": "موارد بشرية", "Order_Picker": "تجهيز طلبات", "Packaging_Worker": "عمال تغليف", "Receptionist": "استقبال", "Sales_Representative": "مندوب مبيعات", "Social_Media_Moderator": "مشرف وسائل التواصل", "Translator": "مترجم", "Warehouse_Keeper": "أمين مخزن", "Technical_Support": "دعم فني" };
 
-        let currentJob = null, currentLevel = "", questions = [], currentIndex = 0, score = 0, wrongQuestions = [], answered = false;
-        let timer = null;
+        let currentJob = null, currentLevel = "", questions = [], currentIndex = 0, score = 0, wrongQuestions = [], answered = false, timer = null;
         const TIME_LIMIT = 10;
 
         onAuthStateChanged(auth, (user) => {
@@ -110,7 +110,9 @@
             });
         }
 
-        window.startQuiz = async (level) => {
+        window.startQuiz = async (level, btn) => {
+            if (isProcessing) return;
+            
             const costs = { "easy": 0, "medium": 2, "hard": 3, "expert": 5 };
             const cost = costs[level];
             
@@ -119,6 +121,11 @@
                 if (!confirmed) return;
             }
 
+            isProcessing = true;
+            const originalText = btn.innerText;
+            btn.innerText = "جاري التحميل...";
+            btn.disabled = true;
+
             try {
                 const res = await fetch('/api/quiz-cost', {
                     method: 'POST',
@@ -126,16 +133,19 @@
                     body: JSON.stringify({ userId: currentUser.uid, level: level })
                 });
                 const data = await res.json();
-                if (!res.ok) { alert(data.error); return; }
+                if (!res.ok) { alert(data.error); resetBtn(btn, originalText); return; }
                 
                 currentLevel = level;
                 questions = currentJob.levels ? currentJob.levels[level] : [];
-                if (questions.length === 0) { alert("لا توجد أسئلة"); return; }
+                if (questions.length === 0) { alert("لا توجد أسئلة"); resetBtn(btn, originalText); return; }
                 initQuiz();
-            } catch (e) { alert("حدث خطأ، حاول مرة أخرى"); }
+            } catch (e) { alert("حدث خطأ، حاول مرة أخرى"); resetBtn(btn, originalText); }
         };
 
+        function resetBtn(btn, text) { btn.innerText = text; btn.disabled = false; isProcessing = false; }
+
         function initQuiz() {
+            isProcessing = false;
             currentIndex = 0; score = 0; wrongQuestions = [];
             document.getElementById('homeScreen').classList.add('hidden');
             document.getElementById('levelScreen').classList.add('hidden');
