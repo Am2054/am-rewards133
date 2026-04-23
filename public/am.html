@@ -9,6 +9,9 @@
         html { scroll-behavior: smooth; }
         body { font-family: 'Segoe UI', sans-serif; background: radial-gradient(circle at 50% 50%, #1a1f2e, #0b0e14); min-height: 100vh; color: white; padding: 15px; margin: 0; -webkit-overflow-scrolling: touch; overflow-y: auto; overscroll-behavior: contain; }
         
+        .info-bar { display: flex; justify-content: center; margin-bottom: 20px; }
+        .points-card { background: rgba(0, 123, 255, 0.15); padding: 8px 20px; border-radius: 50px; border: 1px solid var(--primary); color: #00d2ff; font-weight: bold; }
+
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         .header { text-align: center; margin: 20px 0; font-size: 22px; color: var(--primary); text-shadow: 0 0 10px rgba(0,123,255,0.5); }
@@ -34,6 +37,10 @@
     </style>
 </head>
 <body>
+
+    <div class="info-bar">
+        <div class="points-card">🪙 النقاط: <span id="userPoints">0</span></div>
+    </div>
 
     <div id="homeScreen">
         <h2 class="header">استعد لاقتناص فرصتك المهنية الآن</h2>
@@ -62,10 +69,12 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
         const db = getFirestore(app);
         
         const jobTranslations = {
@@ -81,6 +90,20 @@
         let currentJob = null, currentLevel = "", questions = [], currentIndex = 0, score = 0, wrongQuestions = [], answered = false;
         let timer = null;
         const TIME_LIMIT = 10;
+
+        // التحقق من تسجيل الدخول وجلب البيانات
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                onSnapshot(doc(db, "users", user.uid), (snap) => {
+                    if (snap.exists()) {
+                        document.getElementById('userPoints').innerText = snap.data().points || 0;
+                    }
+                });
+                loadJobs();
+            } else {
+                window.location.href = "login.html"; 
+            }
+        });
 
         async function loadJobs() {
             const grid = document.getElementById('jobGrid');
@@ -205,8 +228,6 @@
             document.getElementById('levelScreen').classList.add('hidden');
             document.getElementById('quizScreen').classList.add('hidden');
         };
-
-        loadJobs();
     </script>
 </body>
 </html>
