@@ -15,14 +15,12 @@ const db = getFirestore();
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-  // إضافة level للبيانات المستلمة
   const { userId, level } = req.body;
 
   if (!userId || !level) return res.status(400).json({ error: "بيانات ناقصة" });
 
-  // تحديد تكلفة النقاط بناءً على المستوى
   const costs = {
-    "easy": 0,    // المستوى السهل مجاني (حسب رغبتك)
+    "easy": 0,
     "medium": 2,
     "hard": 3,
     "expert": 5
@@ -38,22 +36,29 @@ export default async function handler(req, res) {
     if (!userDoc.exists) return res.status(404).json({ error: "المستخدم غير موجود" });
 
     const userData = userDoc.data();
+    const unlockedLevels = userData.unlockedLevels || [];
+
+    // التحقق: هل المستوى مفتوح بالفعل؟
+    const isUnlocked = unlockedLevels.includes(level);
     const currentPoints = userData.points || 0;
 
-    // التحقق من الرصيد
-    if (currentPoints < cost) {
-      return res.status(402).json({ error: `رصيدك غير كافٍ. تحتاج إلى ${cost} نقطة.` });
-    }
+    // إذا لم يكن المستوى مفتوحاً، نتحقق من الرصيد ونخصم النقاط
+    if (!isUnlocked && cost > 0) {
+      if (currentPoints < cost) {
+        return res.status(402).json({ error: `رصيدك غير كافٍ. تحتاج إلى ${cost} نقطة.` });
+      }
 
-    // خصم النقاط
-    await userRef.update({
-      points: FieldValue.increment(-cost)
-    });
+      // خصم النقاط وإضافة المستوى لقائمة المفتوحين
+      await userRef.update({
+        points: FieldValue.increment(-cost),
+        unlockedLevels: FieldValue.arrayUnion(level)
+      });
+    }
 
     return res.status(200).json({ 
       success: true, 
-      message: "تم خصم النقاط بنجاح", 
-      newPoints: currentPoints - cost 
+      message: isUnlocked ? "تم الدخول للمستوى (مفتوح مسبقاً)" : "تم خصم النقاط وفتح المستوى بنجاح", 
+      newPoints: isUnlocked ? currentPoints : currentPoints - cost 
     });
 
   } catch (error) {
