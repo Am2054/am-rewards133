@@ -1,6 +1,5 @@
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { getAuth } from "firebase-admin/auth";
 
 // تهيئة Firebase Admin
 if (!getApps().length) {
@@ -24,29 +23,31 @@ export default async function handler(req, res) {
 
     try {
         const sessionRef = db.collection("linkSessions").doc(`${userId}_${linkIdx}`);
-        const snap = await getDoc(sessionRef);
+        // تصحيح: استخدام .get() في Admin SDK
+        const snap = await sessionRef.get();
 
-        if (!snap.exists() || snap.data().used) return res.status(400).json({ error: "جلسة غير صالحة أو تم استخدامها" });
+        if (!snap.exists || snap.data().used) return res.status(400).json({ error: "جلسة غير صالحة أو تم استخدامها" });
 
-        if (snap.data().code !== selectedCode.toString()) {
+        // مطابقة الكود
+        if (snap.data().code.toString() !== selectedCode.toString()) {
             return res.status(401).json({ error: "الرمز غير صحيح" });
         }
 
-        // تحديد النقاط (يجب أن تكون متطابقة مع مصفوفة shortlinks في الفرونت)
         const pointsMap = { 0: 2.5, 1: 1.5, 2: 1.5, 3: 2.5, 4: 1.5, 5: 1.5, 6: 4, 7: 1.5, 8: 1.5, 9: 2.5, 10: 1.5, 12: 1.5, 13: 4, 14: 2.5 };
         const pts = pointsMap[linkIdx] || 1.5;
 
-        // تنفيذ العمليات في Batch للضمان
+        // تنفيذ التحديث باستخدام FieldValue.increment و FieldValue.serverTimestamp
         const userRef = db.collection("users").doc(userId);
         await userRef.update({
-            points: increment(pts),
-            [`lastLinks.${linkIdx}`]: serverTimestamp()
+            points: FieldValue.increment(pts),
+            [`lastLinks.${linkIdx}`]: FieldValue.serverTimestamp()
         });
 
         await sessionRef.set({ used: true }, { merge: true });
 
         return res.status(200).json({ success: true, points: pts });
     } catch (e) {
+        console.error("Server Error:", e);
         return res.status(500).json({ error: "حدث خطأ في الخادم" });
     }
 }
