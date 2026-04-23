@@ -12,13 +12,13 @@
         .timer-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-top: 25px; overflow: hidden; }
         .progress { width: 100%; height: 100%; background: linear-gradient(90deg, #00f2ff, #f5c542); transition: 1s linear; }
         #msg { color: #00f2ff; font-size: 1.5rem; margin-bottom: 5px; }
-        .challenge-text { font-size: 0.9rem; color: #f87171; font-weight: bold; margin-bottom: 20px; display: block; }
+        .challenge-text { font-size: 0.9rem; color: #f87171; font-weight: bold; margin-bottom: 20px; display: none; }
     </style>
 </head>
 <body>
 
     <div class="gate-box">
-        <span class="challenge-text" id="challengeNote">جاري تأمين الجلسة...</span>
+        <span class="challenge-text" id="challengeNote"></span>
         <h2 id="msg">احفظ الكود السري فوراً</h2>
         <div class="code-display" id="randomCode">--</div>
         <p style="opacity:0.8">سيتم إعادتك للمكافأة خلال <span id="secs" style="color:#00f2ff; font-weight:900">4</span> ثوانٍ</p>
@@ -42,14 +42,10 @@
         if (user) {
             const pIdx = localStorage.getItem('p_idx');
             if (pIdx !== null) {
-                // تخزين الكود في Firebase بدلاً من localStorage
                 await setDoc(doc(db, "linkSessions", user.uid + "_" + pIdx), {
                     code: code.toString(),
                     createdAt: serverTimestamp()
                 });
-                
-                const insults = ["مش قولتلك مش هتعرف تعمله؟ اثبتلي العكس!", "شكلك تعبت.. الرقم ده هو تذكرتك للنقاط", "أخيراً وصلت؟ ركز عشان الرقم ميهربش منك", "الرابط الصعب محتاج ذاكرة حديدية.. حفظت؟"];
-                document.getElementById('challengeNote').innerText = insults[Math.floor(Math.random() * insults.length)];
                 startTimer();
             }
         } else {
