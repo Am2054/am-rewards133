@@ -23,7 +23,6 @@ export default async function handler(req, res) {
 
     try {
         const sessionRef = db.collection("linkSessions").doc(`${userId}_${linkIdx}`);
-        // تصحيح: استخدام .get() في Admin SDK
         const snap = await sessionRef.get();
 
         if (!snap.exists || snap.data().used) return res.status(400).json({ error: "جلسة غير صالحة أو تم استخدامها" });
@@ -33,10 +32,14 @@ export default async function handler(req, res) {
             return res.status(401).json({ error: "الرمز غير صحيح" });
         }
 
-        const pointsMap = { 0: 2.5, 1: 1.5, 2: 1.5, 3: 2.5, 4: 1.5, 5: 1.5, 6: 4, 7: 1.5, 8: 1.5, 9: 2.5, 10: 1.5, 12: 1.5, 13: 4, 14: 2.5 };
+        // تم إضافة 11 و 15 للمصفوفة لتتطابق مع الـ Frontend
+        const pointsMap = { 
+            0: 2.5, 1: 1.5, 2: 1.5, 3: 2.5, 4: 1.5, 5: 1.5, 6: 4, 7: 1.5, 8: 1.5, 
+            9: 2.5, 10: 1.5, 11: 2.5, 12: 1.5, 13: 4, 14: 2.5, 15: 1.5 
+        };
         const pts = pointsMap[linkIdx] || 1.5;
 
-        // تنفيذ التحديث باستخدام FieldValue.increment و FieldValue.serverTimestamp
+        // تنفيذ التحديث
         const userRef = db.collection("users").doc(userId);
         await userRef.update({
             points: FieldValue.increment(pts),
