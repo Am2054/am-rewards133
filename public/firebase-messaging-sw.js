@@ -14,9 +14,9 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-    const notificationTitle = payload.notification.title;
-    const notificationOptions = {
-        body: payload.notification.body,
+    const notificationTitle = payload.data.title;
+const notificationOptions = {
+    body: payload.data.body,
         icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
         tag: 'ghost-chat-msg', 
         renotify: true,
