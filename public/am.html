@@ -209,35 +209,51 @@
             setTimeout(() => { currentIndex++; if (currentIndex < questions.length) showQuestion(); else showResult(); }, 800);
         }
 
-        window.showResult = () => {
+                window.showResult = () => {
             document.getElementById("barFill").style.width = "100%";
-            let feedback = "";
             const percentage = (score / questions.length) * 100;
-            if (currentLevel === 'easy') feedback = "مبروك! أنت جاهز في الأساسيات.";
-            else if (currentLevel === 'medium') feedback = percentage >= 50 ? "أنت جاهز بنسبة 50% تقريباً، استمر!" : "تحتاج لمزيد من المراجعة في المستوى المتوسط.";
-            else if (currentLevel === 'hard') feedback = "مستوى متقدم! أنت في الطريق الصحيح للاحتراف.";
-            else if (currentLevel === 'expert') feedback = "أنت محترف حقيقي! جاهز تماماً للمقابلات الكبرى.";
-            let html = `<h3>نتيجتك: ${score} من ${questions.length}</h3><p>${feedback}</p>`;
-            html += `<div class="tip-box"><b>نصائح ذهبية للمقابلة:</b><br>1. <b>احكي عن نفسك:</b> ركّز على المهارات لا الحياة الشخصية.<br>2. <b>نقاط الضعف:</b> اذكر ضعفاً حقيقياً وتحدث عن خطواتك لتطويره.<br>3. <b>الأسئلة:</b> اسأل عن طبيعة يوم العمل، هذا يُظهر اهتمامك الجاد.<br>4. <b>الثقة:</b> لا تقل "مش عارف"، قل "هذا مجال جديد عليّ لكن أستطيع تعلمه بسرعة".</div>`;
-            if (wrongQuestions.length > 0) {
+            let feedback = "";
+            let color = percentage >= 50 ? "#28a745" : "#dc3545";
+
+            // منطق الرسائل بناءً على النسبة
+            if (percentage === 100) {
+                feedback = "أداء أسطوري! أنت متمكن جداً من هذا المستوى. 🔥";
+            } else if (percentage >= 70) {
+                feedback = "أداء ممتاز! أنت مستعد بنسبة كبيرة للمقابلات. 🚀";
+            } else if (percentage >= 50) {
+                feedback = "أداء جيد، لكن تحتاج لبعض المراجعة لتكون أكثر ثقة. 👍";
+            } else if (percentage > 0) {
+                feedback = "أداء ضعيف.. هذه الأسئلة توضح الفجوات في معلوماتك، اقرأ عنها مجدداً. ⚠️";
+            } else {
+                feedback = "للأسف لم توفق في أي إجابة. لا تحبط، ابدأ بمراجعة المفاهيم الأساسية وحاول مرة أخرى. 🛑";
+            }
+
+            let html = `<h3 style="color: ${color}">نتيجتك: ${score} من ${questions.length} (${percentage}%)</h3>
+                        <p style="font-size: 1.1rem;">${feedback}</p>`;
+            
+            html += `<div class="tip-box"><b>نصائح ذهبية للمقابلة:</b><br>1. <b>الثقة:</b> لا تقل "لا أعرف"، قل "سأبحث عنها وأتعلمها".<br>2. <b>التنظيم:</b> اجعل إجاباتك مرتبة (خطوة 1، خطوة 2).<br>3. <b>الأسئلة:</b> اسأل دائماً عن الفريق الذي ستنضم إليه.</div>`;
+            
+            document.getElementById('questionBox').innerHTML = html;
+            document.getElementById('optionsBox').innerHTML = "";
+
+            // زر إعادة المحاولة إذا النسبة أقل من 100%
+            if (percentage < 100) {
                 const retryBtn = document.createElement('button');
                 retryBtn.className = 'option-btn';
-                retryBtn.innerText = "راجع أخطائك (إعادة الاختبار)";
-                retryBtn.onclick = () => { questions = wrongQuestions; initQuiz(); };
-                document.getElementById('questionBox').innerHTML = html;
-                document.getElementById('optionsBox').innerHTML = "";
+                retryBtn.style.background = "var(--primary)";
+                retryBtn.innerText = percentage === 0 ? "ابدأ الاختبار من جديد" : "راجع أخطائك وأعد الاختبار";
+                retryBtn.onclick = () => { 
+                    questions = percentage === 0 ? questions : wrongQuestions; 
+                    initQuiz(); 
+                };
                 document.getElementById('optionsBox').appendChild(retryBtn);
-            } else {
-                document.getElementById('questionBox').innerHTML = html;
-                document.getElementById('optionsBox').innerHTML = `<button class="option-btn" onclick="goBack()">العودة للرئيسية</button>`;
             }
-        };
-
-        window.goBack = () => {
-            clearInterval(timer);
-            document.getElementById('homeScreen').classList.remove('hidden');
-            document.getElementById('levelScreen').classList.add('hidden');
-            document.getElementById('quizScreen').classList.add('hidden');
+            
+            const homeBtn = document.createElement('button');
+            homeBtn.className = 'option-btn';
+            homeBtn.innerText = "العودة للرئيسية";
+            homeBtn.onclick = () => goBack();
+            document.getElementById('optionsBox').appendChild(homeBtn);
         };
     </script>
 </body>
