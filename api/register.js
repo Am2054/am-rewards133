@@ -160,15 +160,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // ======== 3. فحص VPN ========
-    const isVPN = await checkVPN(ip);
-    if (isVPN) {
-      console.warn(`[VPN DETECTED] Signup attempt from VPN: ${ip}`);
-      return res.status(403).json({ 
-        error: "VPN usage is not allowed. Please disable VPN and try again." 
-      });
-    }
-
     // ======== 4. Rate Limiting ========
     const rateLimitRef = db.collection("rateLimits").doc(ip.replace(/\./g, "_"));
     const rateLimitSnap = await rateLimitRef.get();
