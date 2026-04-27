@@ -1,3 +1,4 @@
+<!-- signup.html - النسخة النهائية المحسّنة -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -10,7 +11,7 @@
       --neon-cyan: #00f2ff; --neon-purple: #7000ff; --bg-deep: #020617;
       --glass-bg: rgba(15, 23, 42, 0.7); --glass-border: rgba(255, 255, 255, 0.1);
       --text-main: #f1f5f9; --muted: #94a3b8;
-      --success: #22c55e; --danger: #f87171;
+      --success: #22c55e; --danger: #f87171; --warning: #facc15;
     }
 
     * { box-sizing: border-box; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -65,6 +66,7 @@
       color: #fff; font-family: 'Cairo'; outline: none; font-size: 15px;
     }
     input:focus { border-color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); background: rgba(0,0,0,0.5); }
+    input:invalid { border-color: var(--danger); }
 
     .input-wrapper { position: relative; }
     .toggle-pass {
@@ -72,6 +74,14 @@
       cursor: pointer; opacity: 0.6; font-size: 18px; z-index: 5;
     }
     .toggle-pass:hover { opacity: 1; color: var(--neon-cyan); }
+
+    .password-strength {
+      height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-top: 8px;
+      overflow: hidden;
+    }
+    .password-strength-bar {
+      height: 100%; width: 0%; transition: width 0.3s, background-color 0.3s;
+    }
 
     .btn-submit {
       width: 100%; padding: 14px; margin-top: 15px; border-radius: 15px;
@@ -84,6 +94,7 @@
     .status { text-align: center; margin-top: 15px; font-size: 14px; font-weight: 700; min-height: 20px; }
     .error { color: var(--danger); }
     .success { color: var(--success); }
+    .warning { color: var(--warning); }
 
     .login-link { text-align: center; margin-top: 20px; font-size: 14px; }
     .login-link a { color: var(--neon-cyan); text-decoration: none; font-weight: 900; }
@@ -96,6 +107,11 @@
       background: var(--bg-deep); border: 1px solid var(--glass-border);
       border-radius: 25px; padding: 30px; max-width: 600px; max-height: 80vh; overflow-y: auto;
     }
+
+    .alert { padding: 12px; border-radius: 10px; margin-bottom: 15px; font-size: 12px; display: none; }
+    .alert.show { display: block; }
+    .alert-error { background: rgba(248, 113, 113, 0.1); border: 1px solid var(--danger); color: var(--danger); }
+    .alert-warning { background: rgba(250, 204, 21, 0.1); border: 1px solid var(--warning); color: var(--warning); }
 
     @media (max-width: 850px) {
       .main-wrapper { grid-template-columns: 1fr; }
@@ -118,10 +134,13 @@
     <h2>إنشاء حساب</h2>
     <p class="sub">ابدأ رحلتك في ربح المكافآت اليوم</p>
 
+    <div id="errorAlert" class="alert alert-error"></div>
+    <div id="warningAlert" class="alert alert-warning"></div>
+
     <form onsubmit="event.preventDefault(); window.signup();">
       <div class="input-group">
         <label>الاسم الكامل</label>
-        <input id="name" type="text" placeholder="مثال: أحمد محمد" required />
+        <input id="name" type="text" placeholder="مثال: أحمد محمد" minlength="3" maxlength="50" required />
       </div>
 
       <div class="input-group">
@@ -131,28 +150,31 @@
 
       <div class="input-group">
         <label>البريد الإلكتروني</label>
-        <input id="email" type="email" placeholder="name@example.com" required />
+        <input id="email" type="email" placeholder="name@example.com" maxlength="100" required />
       </div>
 
       <div class="input-group">
         <label>كلمة المرور</label>
         <div class="input-wrapper">
-          <input id="password" type="password" placeholder="••••••••" required />
+          <input id="password" type="password" placeholder="••••••••" minlength="6" maxlength="50" required oninput="checkPasswordStrength()" />
           <span class="toggle-pass" onclick="togglePass('password')">👁️</span>
+        </div>
+        <div class="password-strength">
+          <div class="password-strength-bar" id="strengthBar"></div>
         </div>
       </div>
 
       <div class="input-group">
         <label>تأكيد كلمة المرور</label>
         <div class="input-wrapper">
-          <input id="confirmPassword" type="password" placeholder="أعد كتابة كلمة المرور" required />
+          <input id="confirmPassword" type="password" placeholder="أعد كتابة كلمة المرور" minlength="6" maxlength="50" required />
           <span class="toggle-pass" onclick="togglePass('confirmPassword')">👁️</span>
         </div>
       </div>
 
       <div class="input-group">
         <label>كود الإحالة (اختياري)</label>
-        <input id="refCode" type="text" placeholder="أدخل الكود إن وجد" style="text-transform: uppercase; color: var(--neon-cyan); font-weight: 700;">
+        <input id="refCode" type="text" placeholder="أدخل الكود إن وجد" style="text-transform: uppercase; color: var(--neon-cyan); font-weight: 700;" maxlength="6">
       </div>
 
       <div style="font-size: 12px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
@@ -178,6 +200,8 @@
       <li>يُسمح بحساب واحد فقط لكل هاتف/شخص.</li>
       <li>الحد الأدنى للسحب هو 20 جنيه مصري.</li>
       <li>يتم مراجعة الطلبات خلال 24 ساعة من الطلب.</li>
+      <li>في حالة محاولة احتيال، سيتم حظر الحساب فوراً.</li>
+      <li>جميع البيانات محمية بموجب قانون حماية البيانات.</li>
     </ul>
     <button class="btn-submit" onclick="closePolicy()">فهمت ذلك</button>
   </div>
@@ -185,9 +209,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  // إضافة مكتبة FingerprintJS الرسمية
-  import FingerprintJS from 'https://openfpcdn.io/fingerprintjs/v4/esm.min.js';
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -198,7 +220,76 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
 
-  // وظيفة لملء كود الإحالة تلقائياً من الرابط
+  // ✅ وظيفة محسّنة للحصول على البصمة
+  async function getFingerprint() {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.textBaseline = "top";
+      ctx.font = '14px "Arial"';
+      ctx.textBaseline = "alphabetic";
+      ctx.fillStyle = "#f60";
+      ctx.fillRect(125, 1, 62, 20);
+      ctx.fillStyle = "#069";
+      ctx.fillText("Browser Fingerprint", 2, 15);
+      
+      const canvasHash = btoa(canvas.toDataURL()).substring(0, 32);
+      const screen_hash = btoa(`${screen.width}x${screen.height}x${navigator.language}x${navigator.plugins.length}`).substring(0, 32);
+      const ua_hash = btoa(navigator.userAgent).substring(0, 32);
+      
+      return btoa(canvasHash + screen_hash + ua_hash).substring(0, 32);
+    } catch(e) { 
+      return generateFallbackFingerprint();
+    }
+  }
+
+  function generateFallbackFingerprint() {
+    return btoa(
+      `${navigator.userAgent}${new Date().getTimezoneOffset()}${Math.random()}${new Date().getTime()}`
+    ).substring(0, 32);
+  }
+
+  // ✅ فحص قوة كلمة المرور
+  window.checkPasswordStrength = function() {
+    const password = document.getElementById('password').value;
+    const bar = document.getElementById('strengthBar');
+    let strength = 0;
+
+    if (password.length >= 6) strength += 25;
+    if (password.length >= 10) strength += 25;
+    if (/[A-Z]/.test(password) && /[a-z]/.test(password)) strength += 25;
+    if (/[0-9]/.test(password) && /[!@#$%^&*]/.test(password)) strength += 25;
+
+    bar.style.width = strength + '%';
+    bar.style.backgroundColor = 
+      strength < 50 ? '#f87171' : 
+      strength < 75 ? '#facc15' : '#22c55e';
+  };
+
+  window.togglePass = (id) => {
+    const input = document.getElementById(id);
+    input.type = input.type === "password" ? "text" : "password";
+  };
+
+  window.showPolicy = () => {
+    document.getElementById('policyModal').style.display = 'flex';
+  };
+
+  window.closePolicy = () => {
+    document.getElementById('policyModal').style.display = 'none';
+  };
+
+  // ✅ الحصول على معرّف الجهاز
+  function getDeviceId() {
+    let id = localStorage.getItem('appDeviceId');
+    if (!id) { 
+      id = 'device_' + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('appDeviceId', id); 
+    }
+    return id;
+  }
+
+  // ✅ تحميل كود الإحالة من الـ URL
   window.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const referral = urlParams.get('ref');
@@ -207,54 +298,57 @@
     }
   });
 
-  // وظيفة البصمة المحدثة باستخدام مكتبة FingerprintJS لضمان دقة 99%
-  async function getFingerprint() {
-    try {
-      const fp = await FingerprintJS.load();
-      const result = await fp.get();
-      return result.visitorId; // هذا هو المعرف الفريد للجهاز
-    } catch(e) { 
-      // حل احتياطي في حال فشل المكتبة
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      ctx.fillText("Am-Rewards-Secure-Auth", 2, 2);
-      return Math.abs(canvas.toDataURL().split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0)).toString(16);
-    }
-  }
-
-  window.togglePass = (id) => {
-    const input = document.getElementById(id);
-    input.type = input.type === "password" ? "text" : "password";
-  };
-  window.showPolicy = () => document.getElementById('policyModal').style.display = 'flex';
-  window.closePolicy = () => document.getElementById('policyModal').style.display = 'none';
-
-  function getDeviceId() {
-    let id = localStorage.getItem('appDeviceId');
-    if (!id) { id = crypto.randomUUID(); localStorage.setItem('appDeviceId', id); }
-    return id;
-  }
-
+  // ✅ دالة التسجيل المحسّنة
   window.signup = async function() {
     const statusEl = document.getElementById('status');
     const signupBtn = document.getElementById('signupBtn');
+    const errorAlert = document.getElementById('errorAlert');
+    const warningAlert = document.getElementById('warningAlert');
     
-    // جلب البصمة الحقيقية
-    const visitorFingerprint = await getFingerprint();
-
+    // تفريغ التنبيهات
+    errorAlert.innerHTML = '';
+    errorAlert.classList.remove('show');
+    warningAlert.innerHTML = '';
+    warningAlert.classList.remove('show');
+    
     const fields = {
-      email: document.getElementById('email').value.trim(),
+      email: document.getElementById('email').value.trim().toLowerCase(),
       password: document.getElementById('password').value,
       confirmPassword: document.getElementById('confirmPassword').value,
       phone: document.getElementById('phone').value.trim(),
       name: document.getElementById('name').value.trim(),
       referralCode: document.getElementById('refCode').value.trim().toUpperCase(),
       deviceId: getDeviceId(),
-      fingerprint: visitorFingerprint
+      fingerprint: await getFingerprint()
     };
 
+    // ✅ التحقق من صحة البيانات في الـ Frontend
+    if (fields.name.length < 3) {
+      errorAlert.innerHTML = '❌ الاسم يجب أن يكون 3 أحرف على الأقل';
+      errorAlert.classList.add('show');
+      return;
+    }
+
+    if (!/^01[0256]\d{8}$/.test(fields.phone)) {
+      errorAlert.innerHTML = '❌ رقم الهاتف غير صحيح (يجب أن يبدأ بـ 01)';
+      errorAlert.classList.add('show');
+      return;
+    }
+
+    if (fields.password.length < 6) {
+      errorAlert.innerHTML = '❌ كلمة المرور ضعيفة جداً (الحد الأدنى 6 أحرف)';
+      errorAlert.classList.add('show');
+      return;
+    }
+
+    if (fields.password !== fields.confirmPassword) {
+      errorAlert.innerHTML = '❌ كلمات المرور غير متطابقة';
+      errorAlert.classList.add('show');
+      return;
+    }
+
     statusEl.textContent = "⏳ جاري التحقق من أمان الجهاز...";
-    statusEl.className = "status";
+    statusEl.className = "status warning";
     signupBtn.disabled = true;
 
     try {
@@ -267,21 +361,33 @@
       const data = await response.json();
 
       if (response.ok) {
-        statusEl.textContent = "✅ نجح التسجيل! جاري الدخول...";
+        statusEl.textContent = "✅ تم التحقق! جاري إنشاء الحساب...";
         statusEl.className = "status success";
-        await signInWithEmailAndPassword(auth, fields.email, fields.password);
-        setTimeout(() => window.location.href = "dashboard.html", 1500);
+        
+        setTimeout(() => {
+          statusEl.textContent = "🔄 جاري تسجيل الدخول...";
+          signInWithEmailAndPassword(auth, fields.email, fields.password)
+            .then(() => {
+              statusEl.textContent = "✅ تم! جاري التوجيه...";
+              setTimeout(() => window.location.href = "dashboard.html", 1000);
+            })
+            .catch(err => {
+              statusEl.textContent = "❌ خطأ في التسجيل: " + err.message;
+              statusEl.className = "status error";
+              signupBtn.disabled = false;
+            });
+        }, 800);
       } else {
-        statusEl.textContent = data.message;
-        statusEl.className = "status error";
+        errorAlert.innerHTML = `❌ ${data.message || data.error || 'حدث خطأ'}`;
+        errorAlert.classList.add('show');
         signupBtn.disabled = false;
       }
     } catch (err) {
-      statusEl.textContent = "❌ خطأ في الاتصال بالسيرفر";
-      statusEl.className = "status error";
+      errorAlert.innerHTML = "❌ خطأ في الاتصال بالسيرفر: " + err.message;
+      errorAlert.classList.add('show');
       signupBtn.disabled = false;
     }
   };
 </script>
 </body>
-</html>
+        </html>
