@@ -167,51 +167,75 @@ export default async function handler(req, res) {
         await db.ref(`userStats/${uid}/totalMessages`).transaction(c => (c || 0) + 1);
 
          // 🔔 نظام الإشعارات المتكامل (Push Notifications)
-        try {    
-            const tokensSnap = await db.ref('users_tokens').once('value');    
-            if (tokensSnap.exists()) {    
-                const tokensData = tokensSnap.val();    
-                const myTokenSnap = await db.ref(`users_tokens/${uid}/token`).once('value');
-                const myToken = myTokenSnap.val();
+        // ✅ استبدل دالة الإشعارات بهذي:
+try {
+    const tokensSnap = await db.ref('users_tokens').once('value');
+    if (tokensSnap.exists()) {
+        const tokensData = tokensSnap.val();
+        const myTokenSnap = await db.ref(`users_tokens/${uid}/token`).once('value');
+        const myToken = myTokenSnap.val();
 
-                let targetTokens = [];    
-                if (replyToName) {    
-                    const targetUser = Object.values(tokensData).find(u => u.ghostName === replyToName);    
-                    if (targetUser && targetUser.token) targetTokens = [targetUser.token];    
-                } else {    
-                    targetTokens = Object.values(tokensData)  
-                        .map(u => u.token)  
-                        .filter(t => typeof t === 'string' && t.length > 10 && t !== myToken);    
-                }    
+        let targetTokens = [];
+        if (replyToName) {
+            const targetUser = Object.values(tokensData).find(u => u.ghostName === replyToName);
+            if (targetUser?.token) targetTokens = [targetUser.token];
+        } else {
+            targetTokens = Object.values(tokensData)
+                .map(u => u.token)
+                .filter(t => typeof t === 'string' && t.length > 10 && t !== myToken);
+        }
 
-                if (targetTokens.length > 0) {    
-                   const payload = {
-  data: {
-    title: replyToName ? `💬 رد من ${serverGhostName}` : "👻 همسة جديدة",
-    body: finalDisplayContent,
-    url: `https://am-rewards.vercel.app/ghost-chat.html?msgId=${msgRef.key}`
-  },
-  android: {
-    priority: 'high',
-    ttl: 0
-  },
-  webpush: {
-    headers: {
-      Urgency: "high",
-      TTL: "0"
+        if (targetTokens.length > 0) {
+            const payload = {
+                notification: {
+                    title: replyToName ? `💬 رد من ${serverGhostName}` : 
+                           (isConfession ? `🕯️ اعتراف جديد` : `👻 همسة جديدة`),
+                    body: isSecret ? "اهمس بشيء غامض..." : 
+                          (finalDisplayContent.length > 50 ? 
+                           finalDisplayContent.substring(0, 47) + "..." : 
+                           finalDisplayContent),
+                },
+                data: {
+                    url: `https://am-rewards.vercel.app/ghost-chat.html?msgId=${msgRef.key}`,
+                    ghostName: serverGhostName,
+                    timestamp: String(now)
+                },
+                android: {
+                    priority: 'high',
+                    ttl: 0,
+                    notification: { 
+                        tag: 'ghost-chat-msg', 
+                        priority: 'max', 
+                        visibility: 'public',
+                        sound: 'default',
+                        click_action: 'FLUTTER_NOTIFICATION_CLICK'
+                    }
+                },
+                webpush: {
+                    headers: { "Urgency": "high", "TTL": "0" },
+                    notification: { 
+                        tag: 'ghost-chat-msg', 
+                        renotify: true,
+                        badge: '/badge-icon.png'
+                    }
+                }
+            };
+
+            // 🚀 أرسل الكل بالتوازي (الفرق الكبير!)
+            const chunks = [];
+            for (let i = 0; i < targetTokens.length; i += 500) {
+                chunks.push(targetTokens.slice(i, i + 500));
+            }
+            
+            await Promise.all(chunks.map(chunk =>
+                messaging.sendEachForMulticast({ tokens: chunk, ...payload })
+                    .catch(err => console.error('Multicast error:', err))
+            ));
+        }
     }
-  }
-}; 
-                    // ✅ الحل السريع:
-const chunks = [];
-for (let i = 0; i < targetTokens.length; i += 500) {
-    chunks.push(targetTokens.slice(i, i + 500));
+} catch (e) {
+    console.error("Push Error", e);
 }
-
-// أرسل الكل في نفس الوقت
-await Promise.all(chunks.map(chunk => 
-    messaging.sendEachForMulticast({ tokens: chunk, ...payload })
-));
         return res.status(200).json({ success: true, ghostName: serverGhostName, activeDay });    
     } catch (error) { return res.status(500).json({ error: error.message }); }
 }
