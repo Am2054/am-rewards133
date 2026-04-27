@@ -1,9 +1,10 @@
+<!-- رادار الكهرباء v4.0 - المحسّن -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>رادار الكهرباء الذكي | AM Rewards PRO</title>
+    <title>رادار الكهرباء الذكي v4.0 | AM Rewards PRO</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root { --neon-yellow: #facc15; --neon-purple: #7000ff; --neon-red: #ff4444; --bg-deep: #020617; --glass: rgba(255, 255, 255, 0.05); --cyan: #00f2ff; }
@@ -20,8 +21,8 @@
         .input-row { display: flex; gap: 10px; margin-bottom: 20px; }
         .input-group { flex: 1; }
         label { display: block; margin-bottom: 8px; color: #94a3b8; font-size: 12px; font-weight: 700; }
-        input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.4); color: #fff; font-size: 18px; text-align: center; outline: none; box-sizing: border-box; transition: 0.3s; }
-        input:focus { border-color: var(--neon-yellow); box-shadow: 0 0 10px rgba(250, 204, 21, 0.2); }
+        input, select { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.4); color: #fff; font-size: 18px; text-align: center; outline: none; box-sizing: border-box; transition: 0.3s; font-family: 'Tajawal'; }
+        input:focus, select:focus { border-color: var(--neon-yellow); box-shadow: 0 0 10px rgba(250, 204, 21, 0.2); }
         
         #errorMsg { display: none; background: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 10px; border-radius: 10px; border: 1px solid #ef4444; font-size: 12px; text-align: center; margin-bottom: 15px; }
         .calc-btn { width: 100%; padding: 16px; border-radius: 12px; border: none; background: linear-gradient(90deg, var(--neon-purple), #4f46e5); color: #fff; font-weight: 900; cursor: pointer; font-size: 18px; box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3); transition: 0.3s; }
@@ -37,9 +38,22 @@
         .warn-danger { background: rgba(255, 68, 68, 0.1); color: var(--neon-red); border-color: var(--neon-red); animation: pulse 2s infinite; }
         .warn-safe { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: #10b981; }
 
-        .tips-btn { width: 100%; margin-top: 15px; padding: 12px; background: none; border: 1px solid var(--neon-yellow); color: var(--neon-yellow); border-radius: 12px; font-weight: 700; cursor: pointer; }
+        .tips-btn { width: 100%; margin-top: 15px; padding: 12px; background: none; border: 1px solid var(--neon-yellow); color: var(--neon-yellow); border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.3s; }
+        .tips-btn:hover { background: rgba(250, 204, 21, 0.1); }
+
         #tipsContent { display: none; margin-top: 15px; background: rgba(250, 204, 21, 0.05); padding: 15px; border-radius: 15px; border: 1px dotted var(--neon-yellow); font-size: 13px; color: #cbd5e1; line-height: 1.8; text-align: right; }
         .disclaimer { text-align: center; font-size: 10px; color: #64748b; margin-top: 20px; }
+
+        .charges-breakdown {
+            background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px;
+            margin-top: 15px; font-size: 12px;
+        }
+        .charge-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .charge-row:last-child { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px; margin-top: 8px; font-weight: bold; color: var(--neon-yellow); }
+
+        .cross-link { margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); text-align: center; }
+        .link-btn { display: inline-block; padding: 8px 18px; border-radius: 20px; background: rgba(255,255,255,0.05); color: #94a3b8; font-size: 12px; text-decoration: none; border: 1px solid rgba(255,255,255,0.1); transition: 0.3s; margin: 5px; }
+        .link-btn:hover { border-color: #facc15; color: #facc15; }
         
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
@@ -49,7 +63,7 @@
 
 <div class="container">
     <h1>⚡ رادار الكهرباء</h1>
-    <p class="sub-title">تحليل ذكي ودقيق (تحديث 2026)</p>
+    <p class="sub-title">تحليل ذكي ودقيق (تحديث 4.0)</p>
     
     <div id="compareBadge"></div>
 
@@ -71,6 +85,17 @@
         <input type="number" id="unitsCount" value="1" min="1" inputmode="numeric">
     </div>
 
+    <div class="input-group" style="margin-bottom: 20px;">
+        <label>المنطقة / الإقليم</label>
+        <select id="region">
+            <option value="cairo">القاهرة/الجيزة (أسعار عالية)</option>
+            <option value="alex" selected>الإسكندرية</option>
+            <option value="delta">منطقة الدلتا (منخفضة)</option>
+            <option value="south">الصعيد (متوسطة)</option>
+            <option value="suez">السويس/البحر الأحمر</option>
+        </select>
+    </div>
+
     <button class="calc-btn" onclick="calculateSmartBill()">تحليل الاستهلاك 🔍</button>
     <button class="reset-btn" onclick="resetApp()">🔄 حساب جديد / مسح الذاكرة</button>
 
@@ -84,44 +109,83 @@
             <span id="unitMoneyVal" style="font-size: 24px; color: var(--neon-yellow); font-weight: 900;">0.00 ج.م</span>
         </div>
 
+        <div class="charges-breakdown">
+            <div class="charge-row">
+                <span>سعر الكهرباء:</span>
+                <span id="electricityPrice">0.00</span>
+            </div>
+            <div class="charge-row">
+                <span>رسم الخدمة:</span>
+                <span id="serviceFeePrice">0.00</span>
+            </div>
+            <div class="charge-row">
+                <span>رسم النظافة:</span>
+                <span id="cleanFeePrice">0.00</span>
+            </div>
+            <div class="charge-row">
+                <span>رسم إضافي (زيادة حمل):</span>
+                <span id="extraFeePrice">0.00</span>
+            </div>
+            <div class="charge-row">
+                <span>الإجمالي:</span>
+                <span id="finalTotalPrice">0.00</span>
+            </div>
+        </div>
+
         <div id="smartWarning" class="smart-warning"></div>
         
         <button class="tips-btn" onclick="toggleTips()">💡 نصائح التوفير الذكية</button>
         <div id="tipsContent">
-            <strong>⚡ أهم نصايح توفير الكهرباء</strong><br><br>
-            💡 <strong>1. اللمبات</strong><br>
-            • استخدم لمبات LED بدل العادية<br>
-            👉 بتوفر لحد 80%<br>
-            • اطفي أي نور مش محتاجه حتى لو هتسيبه دقيقة<br><br>
+            <strong>⚡ أهم نصايح توفير الكهرباء (محدثة 2026)</strong><br><br>
+            💡 <strong>1. اللمبات الذكية</strong><br>
+            • استخدم لمبات LED بدل العادية أو الفلورسنت<br>
+            • توفير: 80% من استهلاك الإضاءة<br>
+            • ركب مستشعرات حركة في المدخل<br><br>
             ❄️ <strong>2. التكييف (أكتر حاجة بتسحب كهربا)</strong><br>
-            • خليه على 24–26 درجة (مش 18 ❌)<br>
-            • اقفل الشبابيك كويس<br>
-            • نظف الفلتر كل أسبوعين<br>
-            💡 كل درجة أقل = استهلاك أعلى<br><br>
-            🧊 <strong>3. التلاجة</strong><br>
-            • متفتحهاش كتير<br>
-            • متحطش أكل سخن فيها<br>
-            • سيب مسافة وراها للتهوية<br><br>
+            • الحد الأدنى الآمن: 26 درجة مئوية<br>
+            • الحد الأقصى: 28 درجة في الليل<br>
+            • نظف الفلتر كل أسبوعين فقط<br>
+            • استخدم Turbo فقط عند الضرورة<br>
+            • كل درجة أقل = 8% استهلاك إضافي 📈<br><br>
+            🧊 <strong>3. التلاجة الذكية</strong><br>
+            • متفتحهاش كتير (كل فتح = خسارة حرارة)<br>
+            • متحطش أكل سخن فيها مباشرة<br>
+            • سيب مسافة 15 سم وراها للتهوية<br>
+            • امسح الثلج المتراكم شهرياً<br><br>
             📺 <strong>4. الأجهزة في وضع الاستعداد (Standby)</strong><br>
-            • التلفزيون / الرسيفر / الشاحن<br>
-            👉 بتسحب كهربا وهي “مقفولة”<br>
-            ✔️ الحل: افصل الفيشة أو استخدم مشترك بزرار<br><br>
-            🔌 <strong>5. الشواحن</strong><br>
+            • التلفزيون / الرسيفر / الشاحن: 3-5% من الفاتورة<br>
+            • الحل: استخدم مشترك كهربائي بزرار على/أفصل<br>
+            • أفصل الشواحن مباشرة بعد الشحن<br><br>
+            🔌 <strong>5. الشواحن والأجهزة الصغيرة</strong><br>
             • متسيبش الشاحن في الفيشة لو مفيش موبايل<br>
-            👉 بيسحب كهربا برضه<br><br>
-            🧺 <strong>6. الغسالة</strong><br>
-            • شغلها وهي مليانة<br>
-            • استخدم مياه باردة بدل سخنة<br><br>
-            🔥 <strong>7. السخان الكهربائي</strong><br>
-            • افتحه وقت الاستخدام بس<br>
-            • متسيبوش شغال طول اليوم ❌<br><br>
+            • استخدم شاحن ذكي (يوقف الشحن تلقائياً)<br>
+            • الهاتف ما يوصل 100% كل شحنة (95% كافية)<br><br>
+            🧺 <strong>6. الغسالة والنشافة</strong><br>
+            • شغل الغسالة وهي مليانة بس (توفير 50%)<br>
+            • استخدم مياه باردة بدل سخنة<br>
+            • تجنب النشافة الكهربائية: استخدم التهوية<br><br>
+            🔥 <strong>7. السخان الكهربائي (على الفور!)</strong><br>
+            • افتحه قبل الاستخدام بـ 30 دقيقة بس<br>
+            • اقفله فوراً بعد الاستخدام<br>
+            • متسيبوش شغال طول النهار ❌<br>
+            • ركب منظم حرارة ذكي<br><br>
             💻 <strong>8. الكمبيوتر والموبايل</strong><br>
-            • قلل الإضاءة<br>
-            • اقفل البرامج اللي مش محتاجها<br>
-            • اقفل الجهاز بدل ما تسيبه Sleep طول اليوم<br><br>
+            • قلل إضاءة الشاشة إلى 40-60%<br>
+            • استخدم Dark Mode (توفير 50% من البطارية)<br>
+            • اقفل الجهاز بدل Sleep بعد 15 دقيقة<br>
+            • عطل Bluetooth و Location إذا كنت مش بتستخدمهم<br><br>
             🌞 <strong>9. استغل النور الطبيعي</strong><br>
-            • افتح الشبابيك الصبح<br>
-            • بدل ما تشغل نور طول اليوم
+            • افتح الشبابيك الصبح بدل ما تشغل نور<br>
+            • استخدم ستائر عاكسة للحرارة صيفاً<br>
+            • ركب نوافذ عاكسة للأشعة<br><br>
+            ⚡ <strong>10. استخدام ذكي للأجهزة الثقيلة</strong><br>
+            • غسالة الصحون: فقط عند الامتلاء<br>
+            • الفرن: سخنه 10 دقايق بس قبل الاستخدام<br>
+            • المكيف: أطفئه عند الخروج من الشقة<br>
+            • مكواة الملابس: اجمع الملابس وأكملها مرة واحدة<br><br>
+            🎯 <strong>النتيجة المتوقعة:</strong><br>
+            • تطبيق 5 نصائح = توفير 30% من الفاتورة<br>
+            • تطبيق كل النصائح = توفير 50-60% 🚀
         </div>
 
         <div style="margin-top: 20px; font-size: 13px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px;">
@@ -129,15 +193,18 @@
             <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>متوسط الاستهلاك اليومي:</span> <span id="dailyAvg" style="color:var(--cyan)">0</span></div>
             <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>نصيب الوحدة (كمية):</span> <span id="unitKwh" style="color:var(--cyan)">0</span></div>
             <div style="display:flex; justify-content:space-between; margin-bottom: 8px;"><span>الشريحة الحالية:</span> <span id="shText" style="color:var(--neon-yellow)"> - </span></div>
-            <div style="display:flex; justify-content:space-between; color: var(--neon-yellow); padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
-                <span>الرسوم (نظافة + خدمة):</span> <span id="feesText">0</span>
-            </div>
         </div>
+    </div>
+
+    <div class="cross-link">
+        <a href="water.html" class="link-btn">�� رادار المياه</a>
+        <a href="quota.html" class="link-btn">📡 محلل الإنترنت</a>
+        <a href="ghost-chat.html" class="link-btn">👻 شات الأشباح</a>
     </div>
 
     <p class="disclaimer">
         * يتم تقسيم رسوم الخدمات بالتساوي على عدد الوحدات.<br>
-        * الحساب يعتمد على اللائحة الجديدة لعام 2026.
+        * الحساب يعتمد على اللائحة الجديدة لعام 2026 ويختلف حسب المنطقة.
     </p>
 </div>
 
@@ -145,6 +212,14 @@
     window.onload = function() {
         const savedRead = localStorage.getItem('lastCurrentRead');
         if (savedRead) { document.getElementById('prevRead').value = savedRead; }
+    };
+
+    const regionRates = {
+        cairo: { tier1: 0.75, tier2: 1.00, tier3: 1.80, tier4: 2.50, tier5: 3.50, tier6: 5.00 },
+        alex: { tier1: 0.68, tier2: 0.95, tier3: 1.55, tier4: 1.65, tier5: 2.10, tier6: 3.00 },
+        delta: { tier1: 0.60, tier2: 0.85, tier3: 1.40, tier4: 1.50, tier5: 1.90, tier6: 2.80 },
+        south: { tier1: 0.65, tier2: 0.92, tier3: 1.60, tier4: 1.75, tier5: 2.30, tier6: 3.20 },
+        suez: { tier1: 0.70, tier2: 0.98, tier3: 1.70, tier4: 1.85, tier5: 2.50, tier6: 3.50 }
     };
 
     function animateValue(id, start, end, duration) {
@@ -177,6 +252,7 @@
         const current = parseFloat(document.getElementById('currentRead').value);
         const previous = parseFloat(document.getElementById('prevRead').value);
         let units = parseInt(document.getElementById('unitsCount').value) || 1;
+        const region = document.getElementById('region').value;
         
         if (units < 1) units = 1;
         if (units > 999) units = 999; 
@@ -190,48 +266,51 @@
 
         document.getElementById('errorMsg').style.display = 'none';
         const totalKwh = current - previous;
+        const rates = regionRates[region];
         
         let totalCost = 0;
         let sh = "";
         let serviceFee = 0;
         const cleanFee = 15;
+        let extraFee = 0;
 
-        // خوارزمية الشرائح 2026
+        // خوارزمية الشرائح المحسنة 2026
         if (totalKwh <= 100) {
             if (totalKwh <= 50) {
-                totalCost = totalKwh * 0.68;
+                totalCost = totalKwh * rates.tier1;
                 serviceFee = 1;
                 sh = "الأولى (مدعوم)";
             } else {
-                totalCost = (50 * 0.68) + ((totalKwh - 50) * 0.78);
+                totalCost = (50 * rates.tier1) + ((totalKwh - 50) * rates.tier2);
                 serviceFee = 2;
                 sh = "الثانية (مدعوم)";
             }
         } else if (totalKwh <= 650) {
             if (totalKwh <= 200) {
-                totalCost = totalKwh * 0.95;
+                totalCost = totalKwh * rates.tier3;
                 serviceFee = 6;
                 sh = "الثالثة";
             } else if (totalKwh <= 350) {
-                totalCost = (200 * 0.95) + ((totalKwh - 200) * 1.55);
+                totalCost = (200 * rates.tier3) + ((totalKwh - 200) * rates.tier4);
                 serviceFee = 11;
                 sh = "الرابعة";
             } else {
-                totalCost = (200 * 0.95) + (150 * 1.55) + ((totalKwh - 350) * 1.65);
+                totalCost = (200 * rates.tier3) + (150 * rates.tier4) + ((totalKwh - 350) * rates.tier5);
                 serviceFee = 15;
                 sh = "الخامسة";
             }
         } else if (totalKwh <= 1000) {
-            totalCost = totalKwh * 2.10;
+            totalCost = totalKwh * rates.tier5;
             serviceFee = 25;
             sh = "السادسة (موحد)";
         } else {
-            totalCost = totalKwh * 3.00;
+            totalCost = totalKwh * rates.tier6;
             serviceFee = 40;
-            sh = "السابعة (كثيف)";
+            extraFee = (totalKwh - 1000) * 1.50;
+            sh = "السابعة (زيادة حمل)";
         }
 
-        const finalTotal = totalCost + serviceFee + cleanFee;
+        const finalTotal = totalCost + serviceFee + cleanFee + extraFee;
         const moneyPerUnit = finalTotal / units;
 
         const dailyAvg = (totalKwh / 30).toFixed(1);
@@ -266,10 +345,15 @@
         document.getElementById('resultBox').style.display = 'block';
         animateValue("totalVal", 0, finalTotal, 1000);
         
+        document.getElementById('electricityPrice').innerText = totalCost.toFixed(2);
+        document.getElementById('serviceFeePrice').innerText = serviceFee.toFixed(2);
+        document.getElementById('cleanFeePrice').innerText = cleanFee.toFixed(2);
+        document.getElementById('extraFeePrice').innerText = extraFee.toFixed(2);
+        document.getElementById('finalTotalPrice').innerText = finalTotal.toFixed(2);
+
         document.getElementById('totalKwh').innerText = totalKwh + " ك.و.س";
         document.getElementById('unitKwh').innerText = (totalKwh / units).toFixed(1) + " ك.و.س";
         document.getElementById('shText').innerText = sh;
-        document.getElementById('feesText').innerText = (serviceFee + cleanFee).toFixed(2) + " ج.م";
         
         if (units > 1) {
             document.getElementById('unitBox').style.display = 'block';
@@ -279,7 +363,10 @@
         }
 
         const warnBox = document.getElementById('smartWarning');
-        if (totalKwh > 650) {
+        if (totalKwh > 1000) {
+            warnBox.className = "smart-warning warn-danger";
+            warnBox.innerHTML = "🚨 <b>خطر:</b> تخطيت 1000 كيلووات! بتفقد الدعم تماماً وتدفع رسوم إضافية!";
+        } else if (totalKwh > 650) {
             warnBox.className = "smart-warning warn-danger";
             warnBox.innerHTML = "⚠️ <b>تحذير:</b> فقدت الدعم التراكمي. السعر الآن موحد!";
         } else {
@@ -304,4 +391,4 @@
     }
 </script>
 </body>
-</html>
+            </html>
