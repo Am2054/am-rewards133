@@ -1,5 +1,3 @@
-// api/sendMessage.js - بدون تقييمات ، إشعار واحد فقط
-
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getDatabase } from "firebase-admin/database";
 import { getAuth } from "firebase-admin/auth";
@@ -20,7 +18,7 @@ if (!getApps().length) {
             });
         }
     } catch (error) { 
-        console.error("Firebase Init Error:", error.message); 
+        console.error("❌ Firebase Init Error:", error.message); 
     }
 }
 
@@ -28,7 +26,6 @@ const db = getDatabase();
 const auth = getAuth();
 const messaging = getMessaging();
 
-// ✅ دالة التاريخ بتوقيت مصر
 function getFormattedDate() {
     return new Intl.DateTimeFormat('en-CA', {
         timeZone: 'Africa/Cairo',
@@ -38,7 +35,6 @@ function getFormattedDate() {
     }).format(new Date()).replace(/-/g, '');
 }
 
-// ✅ إنشاء اسم يومي فريد
 function generateDailyGhostName(uid) {
     const egyptDate = getFormattedDate();
     const hash = crypto.createHash('md5').update(uid + egyptDate).digest('hex');
@@ -51,16 +47,13 @@ function generateDailyGhostName(uid) {
     return `${name} ${adj} #${pin}`;
 }
 
-// 🛡️ نظام الكلمات المحظورة
 const bannedWords = [
     'الإرهاب', 'تفجير', 'مخدرات', 'بيع',
     'الرقم القومي', 'بطاقة الرقم', 'كود البنك',
-    'تمويل الإرهاب', 'قمار', 'خمر',
 ];
 
 const mentalHealthKeywords = [
     'انتحار', 'موت', 'أقتل نفسي', 'حياتي انتهت',
-    'لا أستطيع', 'يأس', 'اكتئاب شديد', 'وحيد'
 ];
 
 function isContentBanned(text) {
@@ -73,11 +66,8 @@ function hasMentalHealthKeywords(text) {
     return mentalHealthKeywords.some(word => lowerText.includes(word));
 }
 
-// ✅ تسجيل الإشعارات المرسلة لمنع التكرار
-const sentNotifications = new Map(); // msgId -> timestamp
-
 export default async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Origin', 'https://am-rewards.vercel.app');
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
@@ -157,8 +147,6 @@ export default async function handler(req, res) {
                     show: isNewSession,  
                     title: "تجلّي جديد.. روح جديدة 🕯️",  
                     message: `لقد تلاشت أرواح الأمس. رتبتك الحالية: ${rank}`,  
-                    accentColor: "#7000ff",  
-                    footer: "كل شيء هنا عابر.. إلا الأثر."  
                 }  
             });    
         }    
@@ -174,7 +162,6 @@ export default async function handler(req, res) {
                 lastReportReason: reason
             });
 
-            // حذف تلقائي عند 3 تقارير
             if ((snap.val().reports || 0) + 1 >= 3) {
                 await msgRef.update({ deleted: true, autoDeleted: true });
             }
@@ -199,25 +186,16 @@ export default async function handler(req, res) {
         if (rawInput.length > 300) return res.status(400).json({ error: "الهمسة طويلة جداً" });  
         if (/(.)\1{7,}/.test(rawInput)) return res.status(400).json({ error: "توقف عن الضجيج!" });  
 
-        // 🛡️ فحص المحتوى المحظور
         if (isContentBanned(rawInput)) {
-            return res.status(400).json({ 
-                error: "المحتوى يحتوي على كلمات غير مسموحة"
-            });
+            return res.status(400).json({ error: "المحتوى يحتوي على كلمات غير مسموحة" });
         }
 
         const cleanText = rawInput.replace(/((\d[\s-]?){11})/g, "[محجوب]");      
-        const isConfession = rawInput.startsWith('#') || rawInput.includes('#اعتراف');      
-        const isSecret = rawInput.startsWith('*') || rawInput.includes('#سر');      
-        let finalDisplayContent = cleanText.replace(/^#|^\*|#اعتراف|#سر|سر/g, '').trim();  
+        const isConfession = rawInput.startsWith('#');      
+        let finalDisplayContent = cleanText.replace(/^#|^\*/g, '').trim();  
 
-        // 🆘 فحص الصحة النفسية
-        let hasMentalHealthIssue = false;
-        if (hasMentalHealthKeywords(finalDisplayContent)) {
-            hasMentalHealthIssue = true;
-        }
+        let hasMentalHealthIssue = hasMentalHealthKeywords(finalDisplayContent);
 
-        // ✅ الرد على الرسائل
         const replyMatch = finalDisplayContent.match(/^رد على @(.+?):/);      
         const replyToName = replyMatch ? replyMatch[1].trim() : null;      
 
@@ -228,8 +206,7 @@ export default async function handler(req, res) {
             sender: serverGhostName, 
             text: finalDisplayContent,     
             timestamp: now, 
-            isConfession, 
-            isSecret,
+            isConfession,
             reports: 0
         });      
           
@@ -243,88 +220,72 @@ export default async function handler(req, res) {
             await systemMsgRef.set({
                 uid: "SYSTEM",
                 sender: "🆘 نظام الدعم",
-                text: `نحن نقلق عليك 💜\n\nإذا كنت تمر بوقت عصيب:\n📞 مصر: +20100123456\n🌍 عالمياً: www.iasp.info`,
+                text: `نحن نقلق عليك 💜\n\nإذا كنت تمر بوقت عصيب:\n📞 مصر: +20100123456`,
                 timestamp: now + 1,
                 isSystem: true,
                 type: "mentalHealth"
             });
         }
 
-        // ✅ الإشعارات - إشعار واحد فقط
+        // ✅ الإشعارات التراكمية
         try {      
             const tokensSnap = await db.ref('users_tokens').once('value');      
             if (tokensSnap.exists()) {      
-                const tokensData = tokensSnap.val();      
-                const myTokenSnap = await db.ref(`users_tokens/${uid}/token`).once('value');  
-                const myToken = myTokenSnap.val();  
-
-                let targetTokens = [];      
-                if (replyToName) {      
-                    const targetUser = Object.values(tokensData).find(u => u.ghostName === replyToName);      
-                    if (targetUser && targetUser.token) targetTokens = [targetUser.token];      
-                } else {      
-                    // ✅ إرسال لمستخدم واحد عشوائي فقط (بدل الكل)
-                    const allTokens = Object.values(tokensData)
-                        .map(u => u.token)
-                        .filter(t => typeof t === 'string' && t.length > 10 && t !== myToken);
-                    
-                    if (allTokens.length > 0) {
-                        targetTokens = [allTokens[Math.floor(Math.random() * allTokens.length)]];
+                const tokensData = tokensSnap.val();
+                
+                // ✅ جمع جميع التوكنات
+                let targetTokens = [];
+                Object.values(tokensData).forEach(userData => {
+                    if (userData && userData.token && typeof userData.token === 'string' && userData.token.length > 10) {
+                        targetTokens.push(userData.token);
                     }
-                }      
+                });
 
                 if (targetTokens.length > 0) {      
-                    // ✅ تجنب الإ��عارات المكررة
-                    const notificationKey = `${uid}-${now}`;
-                    if (sentNotifications.has(notificationKey)) {
-                        console.log("⏭️ تم تخطي إشعار مكرر");
-                        return res.status(200).json({ success: true });
-                    }
-                    sentNotifications.set(notificationKey, now);
-                    
-                    // تنظيف الإشعارات القديمة (أكثر من ساعة)
-                    for (const [key, timestamp] of sentNotifications) {
-                        if (now - timestamp > 3600000) {
-                            sentNotifications.delete(key);
-                        }
-                    }
-
                     const payload = {      
                         notification: {      
-                            title: replyToName ? `💬 ${serverGhostName} رد عليك` : (isConfession ? `🕯️ اعتراف جديد` : `👻 ${serverGhostName}`),      
-                            body: finalDisplayContent.substring(0, 100),
+                            title: isConfession ? `🕯️ اعتراف جديد` : `👻 ${serverGhostName}`,      
+                            body: finalDisplayContent.substring(0, 150),
                         },      
                         data: {   
                             url: `https://am-rewards.vercel.app/ghost-chat.html`,
                             ghostName: serverGhostName,
-                            timestamp: String(now),
                         },  
                         android: {   
                             priority: 'high',   
                             notification: { 
-                                tag: 'ghost-chat-msg', 
-                                priority: 'max', 
-                                sound: 'default'
+                                tag: 'ghost-chat-msg',
+                                priority: 'max',
                             }   
                         },  
                         webpush: {   
                             headers: { "Urgency": "high" },   
                             notification: { 
-                                tag: 'ghost-chat-msg', 
-                                badge: '/badge-icon.png'
+                                tag: 'ghost-chat-msg',
                             }   
                         }  
                     };      
                     
-                    // ✅ إرسال إشعار واحد فقط
-                    await messaging.send({
-                        token: targetTokens[0],
-                        ...payload
-                    }).catch(err => console.error('Notification error:', err));
+                    // ✅ إرسال لجميع المستخدمين (تراكمي)
+                    console.log(`📢 Sending notifications to ${targetTokens.length} users`);
+                    
+                    const chunks = [];
+                    for (let i = 0; i < targetTokens.length; i += 500) {
+                        chunks.push(targetTokens.slice(i, i + 500));
+                    }
+                    
+                    for (const chunk of chunks) {
+                        await messaging.sendEachForMulticast({ 
+                            tokens: chunk, 
+                            ...payload 
+                        }).catch(err => console.error('❌ Multicast error:', err));
+                    }
+                    
+                    console.log('✅ Notifications sent');
                 }      
             }      
         } catch (e) { 
-            console.error("Push Error", e); 
+            console.error("❌ Push Error", e); 
         }      
 
         return res.status(200).json({ 
@@ -333,6 +294,7 @@ export default async function handler(req, res) {
             activeDay
         });      
     } catch (error) { 
+        console.error('❌ Handler Error:', error);
         return res.status(500).json({ error: error.message }); 
     }
-                         }
+                    }
