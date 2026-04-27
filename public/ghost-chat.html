@@ -1,4 +1,4 @@
-<!-- ghost-chat.html - مع إشعارات تراكمية و تثبيت محسّن -->
+<!-- ghost-chat.html - النسخة النهائية مع تثبيت دائم -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -34,11 +34,9 @@
             animation: pulse 2s infinite;
         }
         
-        #installBtn:hover {
-            background: linear-gradient(135deg, rgba(0, 242, 255, 0.3), rgba(112, 0, 255, 0.3));
-            box-shadow: 0 0 20px rgba(0, 242, 255, 0.3);
-        }
-
+        #installBtn:hover { background: linear-gradient(135deg, rgba(0, 242, 255, 0.3), rgba(112, 0, 255, 0.3)); }
+        #installBtn.hidden { display: none !important; }
+        
         @keyframes pulse {
             0%, 100% { opacity: 0.9; }
             50% { opacity: 1; }
@@ -111,9 +109,9 @@
 
     <div id="actionModal" onclick="this.style.display='none'">
         <div class="modal-content" onclick="event.stopPropagation()">
-            <button class="modal-btn" style="background:var(--cyan); color:#000" id="editBtn">تعديل الهمسة</button>
-            <button class="modal-btn" style="background:var(--danger); color:#fff" id="deleteBtn">حذف الرسالة</button>
-            <button class="modal-btn" style="background:#3b82f6; color:#fff" id="reportBtn">الإبلاغ 🚨</button>
+            <button class="modal-btn" style="background:var(--cyan); color:#000" id="editBtn">✏️ تعديل الهمسة</button>
+            <button class="modal-btn" style="background:var(--danger); color:#fff" id="deleteBtn">🗑️ حذف الرسالة</button>
+            <button class="modal-btn" style="background:#3b82f6; color:#fff" id="reportBtn">🚨 الإبلاغ</button>
         </div>
     </div>
 
@@ -138,43 +136,89 @@
     </div>
 
     <script type="module">
-        // ✅ نظام التثبيت المحسّن
+        // ✅ نظام التثبيت المحسّن (ثابت نهائياً)
         let deferredPrompt;
         const installBtn = document.getElementById('installBtn');
         
-        // ✅ التحقق من حالة التطبيق المثبت
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                           window.navigator.standalone === true;
-        
-        if (isStandalone || localStorage.getItem('app_installed') === 'true') {
-            installBtn.style.display = 'none';
+        // ✅ التحقق من حالة التطبيق عند التحميل
+        function checkInstallationStatus() {
+            console.log('🔍 Checking installation status...');
+            
+            // 1. التحقق من localStorage
+            const isInstalled = localStorage.getItem('ghost_app_installed') === 'true';
+            
+            // 2. التحقق من Standalone mode (التطبيق مثبت فعلاً)
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                               window.navigator.standalone === true;
+            
+            // 3. التحقق من appinstalled event السابق
+            const appInstalledBefore = sessionStorage.getItem('app_install_event_fired') === 'true';
+            
+            console.log(`localStorage: ${isInstalled}, Standalone: ${isStandalone}, Event fired: ${appInstalledBefore}`);
+            
+            if (isInstalled || isStandalone || appInstalledBefore) {
+                console.log('✅ App is already installed, hiding button');
+                installBtn.classList.add('hidden');
+            }
         }
 
+        checkInstallationStatus();
+
+        // ✅ استماع لحدث beforeinstallprompt
         window.addEventListener('beforeinstallprompt', (e) => {
             console.log('✅ beforeinstallprompt triggered');
             e.preventDefault();
             deferredPrompt = e;
-            installBtn.style.display = 'block';
-        });
-
-        installBtn.addEventListener('click', async () => {
-            console.log('🔧 Install button clicked');
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                console.log(`User response: ${outcome}`);
-                if (outcome === 'accepted') {
-                    localStorage.setItem('app_installed', 'true');
-                    installBtn.style.display = 'none';
-                }
-                deferredPrompt = null;
+            
+            // فقط أظهر الزر إذا لم يتم التثبيت من قبل
+            const isInstalled = localStorage.getItem('ghost_app_installed') === 'true';
+            if (!isInstalled) {
+                installBtn.classList.remove('hidden');
             }
         });
 
+        // ✅ معالج الضغط على الزر
+        installBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            console.log('🔧 Install button clicked');
+            
+            if (!deferredPrompt) {
+                console.warn('⚠️ deferredPrompt is not available');
+                return;
+            }
+
+            // ✅ إظهار الـ prompt
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            
+            console.log(`User choice: ${outcome}`);
+            
+            if (outcome === 'accepted') {
+                console.log('✅ User accepted installation');
+                // ✅ حفظ في localStorage و sessionStorage
+                localStorage.setItem('ghost_app_installed', 'true');
+                sessionStorage.setItem('app_install_event_fired', 'true');
+                // ✅ إخفاء الزر نهائياً
+                installBtn.classList.add('hidden');
+            } else {
+                console.log('❌ User dismissed installation');
+            }
+            
+            deferredPrompt = null;
+        });
+
+        // ✅ استماع لحدث appinstalled (من قبل النظام)
         window.addEventListener('appinstalled', () => {
-            console.log('✅ App installed successfully');
-            localStorage.setItem('app_installed', 'true');
-            installBtn.style.display = 'none';
+            console.log('✅ App installed event fired by system');
+            localStorage.setItem('ghost_app_installed', 'true');
+            sessionStorage.setItem('app_install_event_fired', 'true');
+            installBtn.classList.add('hidden');
+        });
+
+        // ✅ حل للـ iPhone (حفظ في Home Screen)
+        window.addEventListener('beforebeforeinstallprompt', (e) => {
+            e.preventDefault();
+            console.log('📱 beforebeforeinstallprompt (iOS)');
         });
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -201,7 +245,6 @@
             document.getElementById('replyContainer').style.display = 'none';
         };
 
-        // ✅ الحصول على الهوية اليومية
         const getDailyIdentity = async () => {
             try {
                 const token = await auth.currentUser.getIdToken();
@@ -225,14 +268,12 @@
             }
         };
 
-        // ✅ تهيئة الحضور
         const initPresence = () => {
             const onlineRef = ref(db, `users_online/${currentUser.uid}`);
             set(onlineRef, { name: myGhostName, status: 'online' });
             onDisconnect(onlineRef).remove();
         };
 
-        // ✅ طلب تصريح الإشعارات
         async function requestNotificationPermission() {
             try {
                 console.log('🔔 Requesting notification permission...');
@@ -240,20 +281,17 @@
                 console.log(`📢 Notification permission: ${permission}`);
                 
                 if (permission === 'granted') {
-                    console.log('✅ Permission granted, registering service worker...');
-                    
-                    // ✅ تسجيل Service Worker
                     if ('serviceWorker' in navigator) {
                         navigator.serviceWorker.register('./firebase-messaging-sw.js')
                             .then(registration => {
-                                console.log('✅ Service Worker registered:', registration);
+                                console.log('✅ Service Worker registered');
                                 return getToken(messaging, { 
                                     vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
                                     serviceWorkerRegistration: registration
                                 });
                             })
                             .then(token => {
-                                console.log('✅ FCM Token:', token);
+                                console.log('✅ FCM Token obtained');
                                 if (token) {
                                     return set(ref(db, `users_tokens/${currentUser.uid}`), { 
                                         token, 
@@ -265,18 +303,8 @@
                             .catch(err => console.error('❌ FCM setup error:', err));
                     }
                     
-                    // ✅ الاستماع للإشعارات الأمامية
                     onMessage(messaging, (payload) => {
-                        console.log('📬 Message received (foreground):', payload);
-                        const notification = new Notification(
-                            payload.notification.title, 
-                            {
-                                body: payload.notification.body,
-                                icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
-                                tag: 'ghost-chat-msg',
-                                renotify: true
-                            }
-                        );
+                        console.log('📬 Message received (foreground)');
                     });
                 }
             } catch (err) { 
@@ -286,7 +314,6 @@
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                console.log('✅ User authenticated:', user.uid);
                 currentUser = user;
                 getDailyIdentity();
                 if(localStorage.getItem('ghost_rules_accepted') === 'true') {
@@ -307,7 +334,6 @@
 
         if(localStorage.getItem('ghost_rules_accepted') === 'true') document.getElementById('rulesOverlay').style.display = 'none';
 
-        // ✅ إرسال الرسالة
         async function send() {
             if (Date.now() - lastSend < 3000) return;
             const input = document.getElementById('msgInput');
@@ -348,9 +374,7 @@
             }
         }
 
-        // ✅ تهيئة الرسائل
         function initMessages() {
-            console.log('📨 Initializing messages for day:', activeDay);
             const msgRef = ref(db, `messages/global/${activeDay}`);
             
             onChildChanged(msgRef, (snap) => {
@@ -369,13 +393,11 @@
 
             onChildAdded(query(msgRef, limitToLast(100)), (snap) => { 
                 if (!renderedMsgIds.has(snap.key)) {
-                    console.log('✅ New message:', snap.key);
                     renderMsg(snap.key, snap.val());
                 }
             });
         }
 
-        // ✅ رسم الرسالة
         function renderMsg(id, data) {
             const chatBox = document.getElementById('chatBox');
             if (data.deleted) return;
@@ -409,7 +431,6 @@
 
             div.innerHTML = contentHTML;
 
-            // ✅ إضافة زر التقرير فقط
             if (!isMe && !isSystem) {
                 const reportBtn = document.createElement('button');
                 reportBtn.className = 'report-btn';
@@ -426,7 +447,6 @@
             renderedMsgIds.add(id);
         }
 
-        // ✅ الإبلاغ عن الرسالة
         window.reportMessage = (msgId) => {
             Swal.fire({
                 title: 'الإبلاغ عن الرسالة',
@@ -472,7 +492,6 @@
             });
         };
 
-        // ✅ عرض إجراءات الرسالة
         async function showMsgActions(id) {
             const modal = document.getElementById('actionModal');
             modal.style.display = 'flex';
