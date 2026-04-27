@@ -14,34 +14,48 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-    const notificationTitle = payload.data.title;
-const notificationOptions = {
-    body: payload.data.body,
+    const notificationTitle = payload.notification.title;
+    const notificationOptions = {
+        body: payload.notification.body,
         icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
-        tag: 'ghost-chat-msg', 
+        badge: 'https://your-domain.com/badge-icon.png',
+        tag: 'ghost-chat-msg',
         renotify: true,
-        data: { url: payload.data.url || '/' },
-        // التعديلات "العدوانية" لضمان السرعة والظهور:
-        requireInteraction: true, // الإشعار يظل ظاهراً حتى يتفاعل معه المستخدم
-        silent: false,           // التأكد من تشغيل الصوت
-        priority: 'high',        // أولوية قصوى
-        vibrate: [200, 100, 200]  // اهتزاز لضمان انتباه المستخدم فوراً
+        data: payload.data,
+        requireInteraction: false, // ✅ تغيير مهم
+        silent: false,
+        priority: 'high',
+        vibrate: [200, 100, 200],
+        image: 'https://your-domain.com/ghost-notification.png' // ✅ صورة أكبر
     };
+    
     return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 self.addEventListener('notificationclick', function(event) {
     event.notification.close();
     
-    const urlToOpen = new URL(event.notification.data.url, self.location.origin).href;
+    const urlToOpen = new URL(
+        event.notification.data?.url || '/', 
+        self.location.origin
+    ).href;
     
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(windowClients) {
+            // ✅ تحقق من النافذة الموجودة أولاً
             for (var i = 0; i < windowClients.length; i++) {
                 var client = windowClients[i];
-                // التركيز المباشر على النافذة إذا كانت مفتوحة
-                if (client.url.includes(self.location.origin) && 'focus' in client) return client.focus();
+                if (client.url.includes('am-rewards.vercel.app') && 'focus' in client) {
+                    client.focus();
+                    // أرسل رسالة للـ Frontend عن الإشعار الجديد
+                    client.postMessage({
+                        type: 'NOTIFICATION_CLICKED',
+                        msgId: event.notification.data?.msgId
+                    });
+                    return;
+                }
             }
+            // إذا ما في نافذة، فتح واحدة جديدة
             if (clients.openWindow) return clients.openWindow(urlToOpen);
         })
     );
