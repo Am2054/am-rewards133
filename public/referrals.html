@@ -1,3 +1,4 @@
+<!-- referrals.html - النسخة النهائية المحسّنة -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -9,7 +10,7 @@
     :root {
       --neon-cyan: #00f2ff; --neon-purple: #7000ff; --bg-deep: #020617;
       --glass-bg: rgba(15, 23, 42, 0.7); --glass-border: rgba(255, 255, 255, 0.1);
-      --text-main: #f1f5f9; --muted: #94a3b8; --gold: #FFD369;
+      --text-main: #f1f5f9; --muted: #94a3b8; --gold: #FFD369; --success: #22c55e;
     }
     * { box-sizing: border-box; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     body {
@@ -41,8 +42,10 @@
     .history-item { display: flex; justify-content: space-between; font-size: 11px; padding: 6px 0; border-bottom: 1px dashed rgba(255,255,255,0.1); }
     #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--neon-cyan); color: #000; padding: 12px 30px; border-radius: 50px; font-weight: 900; visibility: hidden; opacity: 0; z-index: 1000; }
     #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
-    /* ستايل زر الواتساب */
     .wa-btn { background: #25D366; border: none; border-radius: 12px; color: #fff; padding: 10px 15px; font-weight: 900; cursor: pointer; margin-right: 5px; }
+    .pagination { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }
+    .pagination button { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.2); color: #fff; cursor: pointer; }
+    .pagination button.active { background: var(--neon-cyan); color: #000; }
   </style>
 </head>
 <body>
@@ -82,19 +85,25 @@
       </tbody>
     </table>
   </div>
+
+  <div class="pagination" id="paginationControls" style="display: none;"></div>
 </div>
 
 <div id="toast">تم النسخ! 📋</div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, doc, onSnapshot, collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
   const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
+
+  let currentPage = 0;
+  const pageSize = 5;
+  let allFriends = [];
 
   onAuthStateChanged(auth, user => {
     if (!user) return;
@@ -107,61 +116,109 @@
       document.getElementById('refLink').innerText = `https://am-rewards.vercel.app/signup.html?ref=${d.referralCode}`;
     });
 
-    const q = query(collection(db, "users"), where("referredBy", "==", user.uid));
-    
-    onSnapshot(q, async snap => {
-      const tbody = document.getElementById('refTable');
-      let totalCalculatedEarnings = 0;
-
-      if (snap.empty) {
-        tbody.innerHTML = "<tr><td colspan='2' style='text-align:center;padding:40px;'>لا يوجد أصدقاء بعد.</td></tr>";
-        document.getElementById('refEarnings').innerHTML = `0.00 <small>EGP</small>`;
-        return;
-      }
-
-      let rowsHtml = "";
-      const friendDocs = snap.docs;
-      for (const docSnap of friendDocs) {
-        const u = docSnap.data();
-        const uId = docSnap.id;
-
-        const wQ = query(collection(db, "withdrawals"), where("userId", "==", uId), where("status", "==", "completed"));
-        const wSnap = await getDocs(wQ);
-        
-        let friendComm = 0;
-        let historyHtml = "";
-        
-        wSnap.docs.forEach((wDoc, i) => {
-          if(i < 10) {
-            const amt = (Number(wDoc.data().amount || 0) * 0.10);
-            friendComm += amt;
-            historyHtml += `<div class="history-item"><span>سحب #${i+1}</span><span style="color:var(--neon-cyan)">+${amt.toFixed(2)} ج</span></div>`;
-          }
-        });
-
-        totalCalculatedEarnings += friendComm;
-        const count = wSnap.size > 10 ? 10 : wSnap.size;
-        const progress = (count / 10) * 100;
-
-        rowsHtml += `
-          <tr>
-            <td>
-              <div style="font-weight:700">${u.name || 'مستخدم'}</div>
-              <div style="font-size:10px; color:var(--muted); margin-top:4px;">سحبات الربح: ${count}/10</div>
-              <div class="progress-container"><div class="progress-bar" style="width:${progress}%"></div></div>
-              <span class="view-log-link" onclick="toggleHistory('${uId}')">تفاصيل السحبات 👇</span>
-              <div id="hist-${uId}" class="history-box">${historyHtml || 'لا يوجد سحبات مكتملة بعد.'}</div>
-            </td>
-            <td style="text-align:center"><span class="commission-tag">+${friendComm.toFixed(2)}</span></td>
-          </tr>`;
-      }
-      
-      tbody.innerHTML = rowsHtml;
-      document.getElementById('refEarnings').innerHTML = `${totalCalculatedEarnings.toFixed(2)} <small>EGP</small>`;
-    });
+    loadFriendsWithPagination(user.uid);
   });
 
-  // دوال الـ Window للوصول إليها من الـ HTML
+  // ✅ تحميل الأصدقاء مع Pagination
+  async function loadFriendsWithPagination(userId) {
+    const q = query(
+      collection(db, "users"),
+      where("referredBy", "==", userId)
+    );
+    
+    const snap = await getDocs(q);
+    allFriends = snap.docs;
+
+    if (allFriends.length === 0) {
+      document.getElementById('refTable').innerHTML = "<tr><td colspan='2' style='text-align:center;padding:40px;'>لا يوجد أصدقاء بعد.</td></tr>";
+      document.getElementById('refEarnings').innerHTML = `0.00 <small>EGP</small>`;
+      return;
+    }
+
+    displayPage(0, userId);
+    setupPagination(userId);
+  }
+
+  async function displayPage(pageNum, userId) {
+    const start = pageNum * pageSize;
+    const end = start + pageSize;
+    const pageFriends = allFriends.slice(start, end);
+
+    const tbody = document.getElementById('refTable');
+    tbody.innerHTML = "";
+
+    let totalEarnings = 0;
+
+    for (const friendDoc of pageFriends) {
+      const u = friendDoc.data();
+      const uId = friendDoc.id;
+
+      const wQ = query(
+        collection(db, "withdrawals"),
+        where("userId", "==", uId),
+        where("status", "==", "completed")
+      );
+      const wSnap = await getDocs(wQ);
+      
+      let friendComm = 0;
+      let historyHtml = "";
+      
+      wSnap.docs.forEach((wDoc, i) => {
+        if(i < 10) {
+          const amt = (Number(wDoc.data().amount || 0) * 0.10);
+          friendComm += amt;
+          historyHtml += `<div class="history-item"><span>سحب #${i+1}</span><span style="color:var(--neon-cyan)">+${amt.toFixed(2)} ج</span></div>`;
+        }
+      });
+
+      totalEarnings += friendComm;
+      const count = wSnap.size > 10 ? 10 : wSnap.size;
+      const progress = (count / 10) * 100;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <div style="font-weight:700">${u.name || 'مستخدم'}</div>
+          <div style="font-size:10px; color:var(--muted); margin-top:4px;">سحبات الربح: ${count}/10</div>
+          <div class="progress-container"><div class="progress-bar" style="width:${progress}%"></div></div>
+          <span class="view-log-link" onclick="toggleHistory('${uId}')">تفاصيل السحبات 👇</span>
+          <div id="hist-${uId}" class="history-box">${historyHtml || 'لا يوجد سحبات مكتملة بعد.'}</div>
+        </td>
+        <td style="text-align:center"><span class="commission-tag">+${friendComm.toFixed(2)}</span></td>
+      `;
+      tbody.appendChild(tr);
+    }
+    
+    document.getElementById('refEarnings').innerHTML = `${totalEarnings.toFixed(2)} <small>EGP</small>`;
+    currentPage = pageNum;
+  }
+
+  function setupPagination(userId) {
+    const paginationControls = document.getElementById('paginationControls');
+    paginationControls.innerHTML = "";
+    
+    const totalPages = Math.ceil(allFriends.length / pageSize);
+    
+    if (totalPages <= 1) {
+      paginationControls.style.display = 'none';
+      return;
+    }
+
+    paginationControls.style.display = 'flex';
+
+    for (let i = 0; i < totalPages; i++) {
+      const btn = document.createElement('button');
+      btn.textContent = i + 1;
+      btn.className = i === 0 ? 'active' : '';
+      btn.onclick = () => {
+        document.querySelectorAll('.pagination button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        displayPage(i, userId);
+      };
+      paginationControls.appendChild(btn);
+    }
+  }
+
   window.toggleHistory = id => {
     const el = document.getElementById('hist-' + id);
     if(el) el.style.display = (el.style.display === 'block') ? 'none' : 'block';
