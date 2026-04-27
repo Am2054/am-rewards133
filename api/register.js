@@ -38,7 +38,7 @@ async function checkVPN(ip) {
 // ✅ Fraud Detection System
 class FraudDetection {
   static async analyzeSignup(userData, ip, fingerprint) {
-    const riskScore = 0;
+    let riskScore = 0;
     const reasons = [];
 
     // فحص 1: تكرار الـ Fingerprint
