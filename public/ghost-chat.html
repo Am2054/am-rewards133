@@ -1,4 +1,4 @@
-<!-- ghost-chat.html - النسخة النهائية المعدّلة -->
+<!-- ghost-chat.html - مع إشعارات تراكمية و تثبيت محسّن -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -19,7 +19,30 @@
         body { font-family: 'Tajawal', sans-serif; display: flex; flex-direction: column; background: #020617 url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1500') no-repeat center center fixed; background-size: cover; user-select: none; position: relative; } 
         body::before { content: ""; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: -1; } 
         
-        #installBtn { display: none; background: rgba(0, 242, 255, 0.1); color: var(--cyan); border: 1px solid var(--cyan); padding: 6px 15px; border-radius: 20px; margin: 4px auto; cursor: pointer; font-weight: bold; font-size: 10px; transition: 0.3s; }
+        #installBtn { 
+            display: none; 
+            background: linear-gradient(135deg, rgba(0, 242, 255, 0.2), rgba(112, 0, 255, 0.2));
+            color: var(--cyan); 
+            border: 2px solid var(--cyan); 
+            padding: 10px 20px; 
+            border-radius: 25px; 
+            margin: 8px auto; 
+            cursor: pointer; 
+            font-weight: 900; 
+            font-size: 12px; 
+            transition: 0.3s;
+            animation: pulse 2s infinite;
+        }
+        
+        #installBtn:hover {
+            background: linear-gradient(135deg, rgba(0, 242, 255, 0.3), rgba(112, 0, 255, 0.3));
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.3);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.9; }
+            50% { opacity: 1; }
+        }
 
         #rulesOverlay { position: fixed; inset: 0; background: #020617; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; } 
         .rules-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(0, 242, 255, 0.3); border-radius: 30px; padding: 30px; max-width: 480px; width: 100%; text-align: center; box-shadow: 0 0 50px rgba(0, 242, 255, 0.1); max-height: 90vh; overflow-y: auto; } 
@@ -96,7 +119,7 @@
 
     <header id="appHeader">
         <h2>شات الأشباح 👻</h2>
-        <button id="installBtn">تثبيت التطبيق 📱</button>
+        <button id="installBtn">📱 تثبيت التطبيق</button>
         <span id="status">جاري استحضار هويتك اليومية...</span>
     </header>
 
@@ -115,27 +138,49 @@
     </div>
 
     <script type="module">
-        // ✅ زر التثبيت
+        // ✅ نظام التثبيت المحسّن
         let deferredPrompt;
         const installBtn = document.getElementById('installBtn');
+        
+        // ✅ التحقق من حالة التطبيق المثبت
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                           window.navigator.standalone === true;
+        
+        if (isStandalone || localStorage.getItem('app_installed') === 'true') {
+            installBtn.style.display = 'none';
+        }
+
         window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('✅ beforeinstallprompt triggered');
             e.preventDefault();
             deferredPrompt = e;
             installBtn.style.display = 'block';
         });
+
         installBtn.addEventListener('click', async () => {
+            console.log('🔧 Install button clicked');
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') installBtn.style.display = 'none';
+                console.log(`User response: ${outcome}`);
+                if (outcome === 'accepted') {
+                    localStorage.setItem('app_installed', 'true');
+                    installBtn.style.display = 'none';
+                }
                 deferredPrompt = null;
             }
+        });
+
+        window.addEventListener('appinstalled', () => {
+            console.log('✅ App installed successfully');
+            localStorage.setItem('app_installed', 'true');
+            installBtn.style.display = 'none';
         });
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, onChildAdded, query, limitToLast, set, onDisconnect, update, onChildChanged, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
+        import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
         const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", databaseURL: "https://am--rewards-default-rtdb.firebaseio.com", projectId: "am--rewards", storageBucket: "am--rewards.firebasestorage.app", messagingSenderId: "744783579735", appId: "1:744783579735:web:45e00de9998893bbc9b112" };
         const app = initializeApp(firebaseConfig);
@@ -149,8 +194,7 @@
         let currentReplyTo = null;
         let lastSend = 0; 
         const renderedMsgIds = new Set();
-        let activeDay = ""; 
-        let lastNotificationTime = 0; // ✅ منع الإشعارات المتكررة
+        let activeDay = "";
 
         window.cancelReply = () => {
             currentReplyTo = null;
@@ -177,7 +221,7 @@
                     initMessages(); 
                 }
             } catch (e) { 
-                console.error("Identity Failed", e); 
+                console.error("❌ Identity Failed", e); 
             }
         };
 
@@ -191,22 +235,58 @@
         // ✅ طلب تصريح الإشعارات
         async function requestNotificationPermission() {
             try {
+                console.log('🔔 Requesting notification permission...');
                 const permission = await Notification.requestPermission();
+                console.log(`📢 Notification permission: ${permission}`);
+                
                 if (permission === 'granted') {
-                    const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
-                    const token = await getToken(messaging, { 
-                        vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws', 
-                        serviceWorkerRegistration: registration 
+                    console.log('✅ Permission granted, registering service worker...');
+                    
+                    // ✅ تسجيل Service Worker
+                    if ('serviceWorker' in navigator) {
+                        navigator.serviceWorker.register('./firebase-messaging-sw.js')
+                            .then(registration => {
+                                console.log('✅ Service Worker registered:', registration);
+                                return getToken(messaging, { 
+                                    vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
+                                    serviceWorkerRegistration: registration
+                                });
+                            })
+                            .then(token => {
+                                console.log('✅ FCM Token:', token);
+                                if (token) {
+                                    return set(ref(db, `users_tokens/${currentUser.uid}`), { 
+                                        token, 
+                                        ghostName: myGhostName,
+                                        timestamp: Date.now()
+                                    });
+                                }
+                            })
+                            .catch(err => console.error('❌ FCM setup error:', err));
+                    }
+                    
+                    // ✅ الاستماع للإشعارات الأمامية
+                    onMessage(messaging, (payload) => {
+                        console.log('📬 Message received (foreground):', payload);
+                        const notification = new Notification(
+                            payload.notification.title, 
+                            {
+                                body: payload.notification.body,
+                                icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
+                                tag: 'ghost-chat-msg',
+                                renotify: true
+                            }
+                        );
                     });
-                    if (token) await set(ref(db, `users_tokens/${currentUser.uid}`), { token, ghostName: myGhostName });
                 }
             } catch (err) { 
-                console.warn("FCM Error", err); 
+                console.error("❌ FCM Error", err); 
             }
         }
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
+                console.log('✅ User authenticated:', user.uid);
                 currentUser = user;
                 getDailyIdentity();
                 if(localStorage.getItem('ghost_rules_accepted') === 'true') {
@@ -264,12 +344,13 @@
                 cancelReply(); 
                 editingMsgId = null;
             } catch(e) { 
-                console.error("Send Error", e); 
+                console.error("❌ Send Error", e); 
             }
         }
 
-        // ✅ تهيئة الرسائل - بدون تقييمات
+        // ✅ تهيئة الرسائل
         function initMessages() {
+            console.log('📨 Initializing messages for day:', activeDay);
             const msgRef = ref(db, `messages/global/${activeDay}`);
             
             onChildChanged(msgRef, (snap) => {
@@ -288,18 +369,13 @@
 
             onChildAdded(query(msgRef, limitToLast(100)), (snap) => { 
                 if (!renderedMsgIds.has(snap.key)) {
+                    console.log('✅ New message:', snap.key);
                     renderMsg(snap.key, snap.val());
-                    // ✅ منع الإشعارات المتكررة (إشعار واحد فقط كل 5 ثواني)
-                    const now = Date.now();
-                    if (now - lastNotificationTime > 5000) {
-                        lastNotificationTime = now;
-                        console.log("✅ إشعار واحد تم تشغيله");
-                    }
                 }
             });
         }
 
-        // ✅ رسم الرسالة - بدون تقييمات
+        // ✅ رسم الرسالة
         function renderMsg(id, data) {
             const chatBox = document.getElementById('chatBox');
             if (data.deleted) return;
@@ -390,7 +466,7 @@
                             color: '#fff'
                         });
                     } catch (e) {
-                        console.error("Report error:", e);
+                        console.error("❌ Report error:", e);
                     }
                 }
             });
