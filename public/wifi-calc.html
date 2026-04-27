@@ -1,9 +1,10 @@
+<!-- Router Guardian Ultra Pro v8.0 - المحسّن -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Router Guardian Ultra Pro | v7.5</title>
+    <title>Router Guardian Ultra Pro | v8.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -54,7 +55,9 @@
             background: linear-gradient(45deg, var(--accent), var(--primary));
             color: white; font-weight: 900; font-size: 17px; cursor: pointer;
             box-shadow: 0 10px 20px rgba(125, 51, 255, 0.3);
+            transition: 0.3s;
         }
+        .btn-glow:active { transform: scale(0.96); }
 
         #resultsPanel { display: none; margin-top: 25px; animation: slideUp 0.6s ease-out; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
@@ -79,6 +82,28 @@
         .tip-header { color: var(--primary); font-weight: 900; font-size: 14px; margin-bottom: 8px; display: block; }
         .tip-body { font-size: 12px; color: #cbd5e1; line-height: 1.6; }
         .highlight-box { background: rgba(255, 71, 87, 0.1); color: var(--danger); padding: 5px 10px; border-radius: 8px; font-size: 11px; display: inline-block; margin-top: 5px; }
+
+        /* المقارنة والسجل */
+        #compareBadge { 
+            display: none; text-align: center; margin-bottom: 15px; padding: 10px; 
+            border-radius: 12px; font-size: 11px; font-weight: 700; animation: slideUp 0.5s ease;
+        }
+        .badge-up { background: rgba(255, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .badge-down { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid var(--success); }
+
+        .history-btn { 
+            width: 100%; padding: 10px; background: transparent; border: 1px solid var(--primary); 
+            color: var(--primary); border-radius: 12px; font-weight: 700; cursor: pointer; margin-top: 10px;
+        }
+
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: var(--bg); border: 1px solid var(--primary); padding: 25px; border-radius: 20px; max-height: 80vh; overflow-y: auto; max-width: 90%; }
+        .modal-close { float: left; font-size: 24px; cursor: pointer; color: var(--primary); }
+
+        .history-item { 
+            display: flex; justify-content: space-between; padding: 10px; 
+            border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -86,8 +111,10 @@
 <div class="container">
     <div class="header">
         <h1>ROUTER GUARDIAN 🛡️</h1>
-        <p style="font-size: 11px; opacity: 0.7; letter-spacing: 1px;">نظام تحليل استهلاك المجرة</p>
+        <p style="font-size: 11px; opacity: 0.7; letter-spacing: 1px;">نظام تحليل استهلاك المجرة v8.0</p>
     </div>
+
+    <div id="compareBadge"></div>
 
     <div class="card">
         <div class="section-title">📡 تفاصيل الاشتراك</div>
@@ -114,34 +141,43 @@
     </div>
 
     <div class="card">
-        <div class="section-title">📊 نمط الاستخدام</div>
+        <div class="section-title">📊 نمط الاستخدام المحسّن</div>
         <div class="device-row">
-            <span>📱 موبايلات</span>
+            <span>📱 موبايلات (ساعات يومية)</span>
             <div class="counter">
-                <button onclick="change('mobs', -1)">-</button>
-                <span id="mobs">2</span>
-                <button onclick="change('mobs', 1)">+</button>
+                <button onclick="change('mobHours', -1)">-</button>
+                <span id="mobHours">2</span>
+                <button onclick="change('mobHours', 1)">+</button>
             </div>
         </div>
         <div class="device-row">
-            <span>📺 شاشات سمارت</span>
+            <span>📺 شاشات سمارت (ساعات يومية)</span>
             <div class="counter">
-                <button onclick="change('tvs', -1)">-</button>
-                <span id="tvs">1</span>
-                <button onclick="change('tvs', 1)">+</button>
+                <button onclick="change('tvHours', -1)">-</button>
+                <span id="tvHours">1</span>
+                <button onclick="change('tvHours', 1)">+</button>
+            </div>
+        </div>
+        <div class="device-row">
+            <span>💻 تصفح الإنترنت (ساعات يومية)</span>
+            <div class="counter">
+                <button onclick="change('browsingHours', -1)">-</button>
+                <span id="browsingHours">4</span>
+                <button onclick="change('browsingHours', 1)">+</button>
             </div>
         </div>
         <div class="input-group">
             <label>جودة المشاهدة المعتادة</label>
             <select id="quality">
-                <option value="0.35">توفير (360p)</option>
-                <option value="0.8" selected>متوسطة (720p HD)</option>
-                <option value="2.8">عالية (1080p FHD)</option>
+                <option value="0.35">توفير (360p) - 0.35 GB/ساعة</option>
+                <option value="0.8" selected>متوسطة (720p HD) - 0.8 GB/ساعة</option>
+                <option value="2.8">عالية (1080p FHD) - 2.8 GB/ساعة</option>
             </select>
         </div>
     </div>
 
     <button class="btn-glow" id="mainBtn" onclick="processAnalysis()">ابدأ التحليل الفوري ⚡</button>
+    <button class="history-btn" onclick="showHistory()">📊 عرض السجل التاريخي</button>
 
     <div id="resultsPanel">
         <div class="card result-main" id="statusCard">
@@ -162,6 +198,14 @@
                     <small>أيام للتجديد</small>
                     <b id="daysToReset">0</b>
                 </div>
+                <div class="stat-item">
+                    <small>الاستهلاك اليومي</small>
+                    <b id="dailyConsumption">0 GB</b>
+                </div>
+                <div class="stat-item">
+                    <small>الاستهلاك الشهري</small>
+                    <b id="monthlyConsumption">0 GB</b>
+                </div>
             </div>
 
             <div class="tip-text" id="resTip"></div>
@@ -173,53 +217,68 @@
             <div class="tip-item">
                 <b class="tip-header">🔒 1. اقفل السرقة نهائي</b>
                 <div class="tip-body">
-                    تغيير باسورد الواي فاي واستخدام تشفير <b>WPA2</b> أو <b>WPA3</b> مع كلمة سر معقدة.<br>
+                    تغيير باسورد الواي فاي واستخدام تشفير <b>WPA3</b> مع كلمة سر معقدة (20+ حرف).<br>
                     <span class="highlight-box">💡 ناس كتير بتفقد 30–50% من الباقة بسبب الجيران!</span>
                 </div>
             </div>
 
             <div class="tip-item">
                 <b class="tip-header">📊 2. اعرف مين متصل</b>
-                <div class="tip-body">ادخل على إعدادات الراوتر وراجع الأجهزة المتصلة؛ لو لقيت جهاز غريب اعمله <b>Block</b> فورًا.</div>
+                <div class="tip-body">ادخل على إعدادات الراوتر (192.168.0.1) وراجع الأجهزة المتصلة؛ لو لقيت جهاز غريب اعمله <b>Block</b> فورًا.</div>
             </div>
 
             <div class="tip-item">
                 <b class="tip-header">📶 3. اقفل الراوتر وقت النوم</b>
-                <div class="tip-body">قفله لمدة 6-8 ساعات يقلل الاستهلاك التلقائي ويمنع أي سحب في الخلفية.</div>
+                <div class="tip-body">قفله لمدة 6-8 ساعات يقلل الاستهلاك التلقائي ويمنع أي سحب في الخلفية (تحديثات، سحب سحب).</div>
             </div>
 
             <div class="tip-item">
                 <b class="tip-header">📺 4. قلل جودة الفيديو</b>
-                <div class="tip-body">على YouTube و Netflix، اجعل الجودة <b>480p</b> أو <b>720p</b>. فيديو واحد HD قد يستهلك جيجابايتات!</div>
+                <div class="tip-body">على YouTube و Netflix، اجعل الجودة <b>480p</b> أو <b>720p</b>. فيديو واحد HD قد يستهلك جيجابايتات! استخدم وضع Data Saver.</div>
             </div>
 
             <div class="tip-item">
                 <b class="tip-header">⬇️ 5. امنع التحديثات التلقائية</b>
-                <div class="tip-body">عطل تحديثات ويندوز وتطبيقات الموبايل التلقائية واجعلها <b>Manual</b>.</div>
+                <div class="tip-body">عطل تحديثات ويندوز وتطبيقات الموبايل التلقائية واجعلها <b>Manual فقط وقت الحاجة</b>.</div>
             </div>
 
             <div class="tip-item">
                 <b class="tip-header">🎮 6. راقب الألعاب</b>
-                <div class="tip-body">اللعب أونلاين لا يستهلك كثيراً، لكن تحميل الألعاب أو تحديثاتها يعتبر كارثة للباقة.</div>
+                <div class="tip-body">اللعب أونلاين لا يستهلك كثيراً (10-50 MB/ساعة)، لكن <b>تحميل الألعاب وتحديثاتها</b> أو البث المباشر = كارثة للباقة.</div>
             </div>
 
             <div class="tip-item">
                 <b class="tip-header">🧠 7. استخدم خاصية Data Saver</b>
-                <div class="tip-body">فعلها في Google Chrome وإعدادات الموبايل لتقليل استهلاك التصفح.</div>
+                <div class="tip-body">فعلها في <b>Google Chrome وإعدادات الموبايل</b> لتقليل استهلاك التصفح بنسبة 40%.</div>
             </div>
 
             <div class="tip-item">
-                <b class="tip-header">🏠 8. اعمل شبكة للضيوف</b>
-                <div class="tip-body">استخدم <b>Guest Network</b> للزوار بسرعة محدودة.</div>
+                <b class="tip-header">🏠 8. اعمل شبك�� للضيوف</b>
+                <div class="tip-body">استخدم <b>Guest Network</b> بسرعة محدودة (2-5 Mbps) لتحديد الاستهلاك.</div>
             </div>
 
             <div class="tip-item">
                 <b class="tip-header">🚫 9. اقفل الحاجات اللي بتسحب جامد</b>
-                <div class="tip-body">تجنب تشغيل <b>IPTV</b>، التورنت، وتحميل الأفلام بكثرة.</div>
+                <div class="tip-body">تجنب <b>التورنت، تشغيل IPTV متعددة، تحميل الأفلام والألعاب بكثرة</b> وقت الاستخدام.</div>
+            </div>
+
+            <div class="tip-item">
+                <b class="tip-header">⚙️ 10. راقب الأجهزة المتصلة</b>
+                <div class="tip-body">استخدم تطبيقات مثل <b>GlassWire</b> أو <b>Netstat</b> لمراقبة الأجهزة اللي بتسحب الإنترنت والبرامج المشبوهة.</div>
             </div>
         </div>
 
-        <button class="btn-glow" style="background:transparent; border:1px solid var(--primary); margin: 20px 0;" onclick="window.location.href='dashboard.html'">العودة للمجرة 🌌</button>
+        <button class="btn-glow" style="background:transparent; border:1px solid var(--primary); margin: 20px 0;" onclick="resetCalculator()">🔄 حساب جديد</button>
+    </div>
+</div>
+
+<!-- Modal للسجل التاريخي -->
+<div id="historyModal" class="modal" onclick="closeHistory()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <span class="modal-close" onclick="closeHistory()">&times;</span>
+        <h3 style="color: var(--primary); margin-top: 0;">📊 السجل التاريخي للتحليلات</h3>
+        <div id="historyList"></div>
+        <button class="history-btn" style="margin-top: 15px;" onclick="clearHistory()">🗑️ مسح السجل</button>
     </div>
 </div>
 
@@ -238,6 +297,9 @@
         if (left > quota) {
             return Swal.fire("بيانات غير منطقية", "الجيجا المتبقية أكبر من الباقة!", "warning");
         }
+        if (left < 0) {
+            return Swal.fire("خطأ", "الجيجا المتبقية لا يمكن أن تكون سالبة!", "error");
+        }
 
         Swal.fire({
             title: 'جاري التحليل الرقمي...',
@@ -252,25 +314,41 @@
     function analyze() {
         const left = parseFloat(document.getElementById('current_left').value) || 0;
         const resetDay = parseInt(document.getElementById('reset_day').value) || 1;
-        const mobs = parseInt(document.getElementById('mobs').innerText);
-        const tvs = parseInt(document.getElementById('tvs').innerText);
+        const mobHours = parseInt(document.getElementById('mobHours').innerText);
+        const tvHours = parseInt(document.getElementById('tvHours').innerText);
+        const browsingHours = parseInt(document.getElementById('browsingHours').innerText);
         const qual = parseFloat(document.getElementById('quality').value);
+
+        // حساب محسّن أكثر دقة
+        const videoConsumption = (mobHours * qual) + (tvHours * qual * 0.8);
+        const browsingConsumption = browsingHours * 0.15; // 150 MB/ساعة تصفح
+        const backgroundConsumption = 0.2; // تحديثات وإشعارات
+        
+        const daily = videoConsumption + browsingConsumption + backgroundConsumption;
+        const monthlyUsage = daily * 30;
 
         const now = new Date();
         const today = now.getDate();
         const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
         let daysToReset = resetDay > today ? resetDay - today : (lastDay - today) + resetDay;
 
-        const daily = (mobs * 0.5) + (tvs * (3 * qual));
-        let canLast = daily > 0 ? Math.floor(left / daily) : 30;
+        let canLast = daily > 0 ? Math.floor(left / daily) : 60;
         canLast = Math.min(canLast, 60);
 
         let vHours = qual > 1 ? Math.floor(left / 2.5) : Math.floor(left / 0.8);
+
+        // حفظ السجل
+        saveToHistory(left, canLast, daysToReset, daily, monthlyUsage);
+
+        // عرض المقارنة
+        compareWithPrevious(daily, monthlyUsage);
 
         document.getElementById('resultsPanel').style.display = 'block';
         document.getElementById('resDays').innerText = canLast + " يوم";
         document.getElementById('videoHours').innerText = vHours + " س";
         document.getElementById('daysToReset').innerText = daysToReset + " ي";
+        document.getElementById('dailyConsumption').innerText = daily.toFixed(2) + " GB";
+        document.getElementById('monthlyConsumption').innerText = monthlyUsage.toFixed(2) + " GB";
 
         const card = document.getElementById('statusCard');
         const icon = document.getElementById('resIcon');
@@ -284,27 +362,115 @@
         if (canLast >= daysToReset) {
             icon.innerText = "🛡️";
             msg.innerText = "أنت في منطقة الأمان";
-            msg.style.color = "var(--success)";
-            card.style.borderColor = "var(--success)";
-            fill.style.background = "var(--success)";
-            tip.innerText = "نصيحة: باقتك ستكفيك حتى التجديد وسيفيض معك رصيد جيجا إضافي.";
+            msg.style.color = "#2ed573";
+            card.style.borderColor = "#2ed573";
+            fill.style.background = "#2ed573";
+            tip.innerText = `✅ نصيحة: باقتك ستكفيك حتى التجديد وسيفيض معك ${(left - (daily * daysToReset)).toFixed(1)} GB. يمكنك زيادة جودة الفيديو إذا أردت.`;
         } else if (canLast >= daysToReset / 2) {
             icon.innerText = "⚠️";
             msg.innerText = "تحذير: استهلاك مرتفع";
-            msg.style.color = "var(--warning)";
-            card.style.borderColor = "var(--warning)";
-            fill.style.background = "var(--warning)";
-            tip.innerText = `نصيحة: الباقة ستنتهي قبل موعدها بـ ${daysToReset - canLast} أيام. قلل جودة الفيديو فوراً.`;
+            msg.style.color = "#ffa502";
+            card.style.borderColor = "#ffa502";
+            fill.style.background = "#ffa502";
+            tip.innerText = `⚠️ نصيحة: الباقة ستنتهي قبل موعدها بـ ${daysToReset - canLast} أيام. قلل جودة الفيديو إلى 480p فوراً أو قلل ساعات المشاهدة.`;
         } else {
             icon.innerText = "🚨";
             msg.innerText = "خطر: الباقة ستنفد قريباً";
-            msg.style.color = "var(--danger)";
-            card.style.borderColor = "var(--danger)";
-            fill.style.background = "var(--danger)";
-            tip.innerText = "نصيحة: استهلاكك الحالي سيدمر الباقة خلال أيام. افصل الشاشات الذكية وتجنب التحميل.";
+            msg.style.color = "#ff4757";
+            card.style.borderColor = "#ff4757";
+            fill.style.background = "#ff4757";
+            tip.innerText = `🚨 نصيحة حرجة: استهلاكك الحالي سيدمر الباقة خلال ${canLast} أيام فقط! افصل الشاشات الذكية فوراً، غير الجودة إلى 360p، وتجنب التحميل.`;
         }
 
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+
+    function saveToHistory(left, days, daysToReset, daily, monthly) {
+        const history = JSON.parse(localStorage.getItem('quotaHistory') || '[]');
+        history.push({
+            date: new Date().toLocaleDateString('ar-EG'),
+            time: new Date().toLocaleTimeString('ar-EG'),
+            left: left,
+            days: days,
+            daysToReset: daysToReset,
+            daily: daily.toFixed(2),
+            monthly: monthly.toFixed(2)
+        });
+        
+        if (history.length > 20) history.shift(); // الحفاظ على آخر 20 عملية حسابية
+        localStorage.setItem('quotaHistory', JSON.stringify(history));
+    }
+
+    function compareWithPrevious(daily, monthly) {
+        const lastAnalysis = JSON.parse(localStorage.getItem('lastAnalysis') || 'null');
+        const badge = document.getElementById('compareBadge');
+        
+        if (lastAnalysis) {
+            const lastDaily = parseFloat(lastAnalysis.daily);
+            const diff = daily - lastDaily;
+            const percent = ((Math.abs(diff) / lastDaily) * 100).toFixed(1);
+            
+            badge.style.display = 'block';
+            if (diff > 0.1) {
+                badge.className = 'badge-up';
+                badge.innerHTML = `📈 الاستهلاك زاد بنسبة ${percent}% عن المرة السابقة`;
+            } else if (diff < -0.1) {
+                badge.className = 'badge-down';
+                badge.innerHTML = `📉 الاستهلاك قل بنسبة ${percent}% عن المرة السابقة`;
+            } else {
+                badge.className = 'badge-down';
+                badge.innerHTML = `➖ الاستهلاك مطابق تماماً للمرة السابقة`;
+            }
+        }
+        
+        localStorage.setItem('lastAnalysis', JSON.stringify({ daily: daily.toFixed(2), monthly: monthly.toFixed(2) }));
+    }
+
+    function showHistory() {
+        const history = JSON.parse(localStorage.getItem('quotaHistory') || '[]');
+        const historyList = document.getElementById('historyList');
+        
+        if (history.length === 0) {
+            historyList.innerHTML = '<p style="text-align: center; color: #94a3b8;">لا توجد عمليات حسابية سابقة</p>';
+        } else {
+            historyList.innerHTML = '<div style="max-height: 400px; overflow-y: auto;">';
+            history.reverse().forEach((item, idx) => {
+                historyList.innerHTML += `
+                    <div class="history-item">
+                        <div>
+                            <strong>${item.date}</strong><br>
+                            <small style="opacity: 0.7;">${item.time}</small>
+                        </div>
+                        <div style="text-align: left;">
+                            <span style="color: var(--primary);">📊 ${item.days} يوم</span><br>
+                            <small style="opacity: 0.7;">يومي: ${item.daily} GB</small>
+                        </div>
+                    </div>
+                `;
+            });
+            historyList.innerHTML += '</div>';
+        }
+        
+        document.getElementById('historyModal').style.display = 'flex';
+    }
+
+    function closeHistory() {
+        document.getElementById('historyModal').style.display = 'none';
+    }
+
+    function clearHistory() {
+        if (confirm('هل تريد مسح السجل التاريخي بالكامل؟')) {
+            localStorage.removeItem('quotaHistory');
+            localStorage.removeItem('lastAnalysis');
+            closeHistory();
+            Swal.fire('تم', 'تم مسح السجل بنجاح', 'success');
+        }
+    }
+
+    function resetCalculator() {
+        document.getElementById('resultsPanel').style.display = 'none';
+        document.getElementById('compareBadge').style.display = 'none';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 </script>
 </body>
