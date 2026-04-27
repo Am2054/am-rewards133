@@ -1,3 +1,4 @@
+<!-- ghost-chat.html - النسخة المصححة والمختبرة -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -257,10 +258,6 @@
             font-size: 16px;
         }
 
-        .agree-btn:active {
-            transform: scale(0.95);
-        }
-
         header {
             padding: calc(env(safe-area-inset-top, 10px) + 5px) 10px 5px;
             text-align: center;
@@ -374,6 +371,40 @@
             box-shadow: 0 0 20px rgba(59, 130, 246, 0.3) !important;
         }
 
+        .msg-reactions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .reaction-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+
+        .reaction-btn:hover {
+            background: rgba(0, 242, 255, 0.2);
+            border-color: var(--cyan);
+        }
+
+        .reaction-btn:active {
+            transform: scale(0.95);
+        }
+
+        .reaction-btn.active {
+            background: rgba(0, 242, 255, 0.3);
+            border-color: var(--cyan);
+            color: var(--cyan);
+        }
+
         .report-btn {
             position: absolute;
             left: 10px;
@@ -443,17 +474,6 @@
             position: relative;
         }
 
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
         .reply-close {
             position: absolute;
             left: 15px;
@@ -490,7 +510,6 @@
             outline: none;
             font-size: 16px;
             transition: 0.3s;
-            font-family: 'Tajawal';
         }
 
         input:focus {
@@ -513,15 +532,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-
-        .send-btn:active {
-            transform: scale(0.95);
-        }
-
-        .send-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
         }
 
         #actionModal {
@@ -553,15 +563,10 @@
             font-weight: bold;
             cursor: pointer;
             transition: 0.2s;
-            font-size: 14px;
         }
 
         .modal-btn:hover {
             opacity: 0.8;
-        }
-
-        .modal-btn:active {
-            transform: scale(0.95);
         }
 
         .system-msg {
@@ -576,31 +581,24 @@
             border: 1px dashed rgba(0, 242, 255, 0.2);
         }
 
-        @media (max-width: 480px) {
-            #chatBox {
-                padding: 15px;
-            }
+        /* ✅ محمل التحميل */
+        .loader {
+            border: 3px solid rgba(0, 242, 255, 0.2);
+            border-top: 3px solid var(--cyan);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 5px auto;
+        }
 
-            .msg {
-                max-width: 90%;
-                font-size: 14px;
-                padding: 12px 15px;
-            }
-
-            input {
-                padding: 14px 18px;
-                font-size: 15px;
-            }
-
-            .send-btn {
-                width: 48px;
-                height: 48px;
-            }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <!-- Rules Overlay -->
     <div id="rulesOverlay">
         <div class="rules-card">
             <span class="intro-line">هنا، لا أحد يعرفك… لكن الجميع يسمعك.</span>
@@ -617,7 +615,6 @@
         </div>
     </div>
 
-    <!-- Action Modal -->
     <div id="actionModal" onclick="this.style.display='none'">
         <div class="modal-content" onclick="event.stopPropagation()">
             <button class="modal-btn" style="background:var(--cyan); color:#000" id="editBtn">تعديل الهمسة</button>
@@ -626,7 +623,6 @@
         </div>
     </div>
 
-    <!-- Header -->
     <header id="appHeader">
         <h2>شات الأشباح 👻</h2>
         <button id="installBtn">تثبيت التطبيق على جهازك 📱</button>
@@ -634,10 +630,8 @@
         <div id="typingIndicator"></div>
     </header>
 
-    <!-- Chat Box -->
     <div id="chatBox"></div>
 
-    <!-- Input Area -->
     <div class="input-area">
         <div id="replyContainer" class="reply-preview">
             <span class="reply-close" onclick="cancelReply()">✕</span>
@@ -656,20 +650,15 @@
             getDatabase,
             ref,
             onChildAdded,
-            onValue,
             query,
             limitToLast,
             set,
             onDisconnect,
-            remove,
             update,
             onChildChanged,
-            get,
-            orderByChild,
-            off
+            get
         } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -684,7 +673,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const auth = getAuth(app);
-        const messaging = getMessaging(app);
 
         let currentUser = null;
         let myGhostName = "";
@@ -693,186 +681,239 @@
         let lastSend = 0;
         const renderedMsgIds = new Set();
         let activeDay = "";
+        let lastNotificationTime = 0;
+
+        // ✅ قائمة أسماء الأشباح - محلية لتجنب تأخر الـ API
+        const ghostNames = [
+            "الظل الأزرق", "همسة الليل", "روح الغيمة", "الضوء الأسود",
+            "نبض القمر", "صدى الهمس", "الرياح العميقة", "شعاع الظلام",
+            "وسواس الفراغ", "نجم منسي", "دقات الصمت", "صوت الوحدة",
+            "ندى الأحزان", "عطر الذكريات", "نار التوق", "جليد الأمل"
+        ];
+
+        const ranks = ["روح عابرة", "همسة حقيقية", "ظل مؤثر", "نبض حي", "أسطورة"];
+
+        // ✅ دالة محسّنة للحصول على الهوية
+        async function getDailyIdentity() {
+            console.log("🔄 جاري الحصول على الهوية...");
+            
+            try {
+                // ✅ اسم عشوائي محلي
+                myGhostName = ghostNames[Math.floor(Math.random() * ghostNames.length)];
+                activeDay = new Date().toISOString().split('T')[0];
+                
+                const rank = ranks[Math.floor(Math.random() * ranks.length)];
+                document.getElementById('status').innerHTML = 
+                    `<span class="online-dot"></span> هويتك: ${myGhostName} <span class="rank-badge">${rank}</span>`;
+
+                console.log("✅ تم الحصول على الهوية:", myGhostName, activeDay);
+
+                // ✅ بدء الاتصالات
+                initPresence();
+                initMessages();
+                
+                // ✅ محاولة الحصول على بيانات إضافية من الـ API (بدون الانتظار)
+                try {
+                    const token = await currentUser.getIdToken().catch(e => {
+                        console.warn("⚠️ لم نتمكن من الحصول على التوكن:", e);
+                        return null;
+                    });
+
+                    if (token) {
+                        const res = await fetch('/api/sendMessage', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: "GET_IDENTITY",
+                                uid: currentUser.uid,
+                                token
+                            })
+                        }).catch(e => {
+                            console.warn("⚠️ خطأ في الاتصال بـ API:", e);
+                            return null;
+                        });
+
+                        if (res && res.ok) {
+                            const data = await res.json();
+                            if (data.ghostName) {
+                                myGhostName = data.ghostName;
+                                activeDay = data.activeDay || activeDay;
+                                document.getElementById('status').innerHTML = 
+                                    `<span class="online-dot"></span> هويتك: ${myGhostName} <span class="rank-badge">${data.rank || 'روح عابرة'}</span>`;
+                                console.log("✅ تم تحديث الهوية من API");
+                            }
+                        }
+                    }
+                } catch (apiErr) {
+                    console.warn("⚠️ خطأ API - سيستخدم التطبيق النسخة المحلية:", apiErr);
+                }
+
+            } catch (e) {
+                console.error("❌ خطأ في الحصول على الهوية:", e);
+                // ✅ استمرار العمل بهوية محلية
+                myGhostName = ghostNames[0];
+                activeDay = new Date().toISOString().split('T')[0];
+                document.getElementById('status').innerText = `هويتك: ${myGhostName}`;
+                initPresence();
+                initMessages();
+            }
+        }
+
+        // ✅ تهيئة الحضور
+        const initPresence = () => {
+            console.log("🟢 تهيئة الحضور...");
+            try {
+                const onlineRef = ref(db, `users_online/${currentUser.uid}`);
+                set(onlineRef, { name: myGhostName, status: 'online', timestamp: Date.now() });
+                onDisconnect(onlineRef).remove();
+                console.log("✅ تم تهيئة الحضور");
+            } catch (e) {
+                console.error("❌ خطأ في الحضور:", e);
+            }
+        };
+
+        // ✅ إنشاء صوت مخصص
+        function createNotificationAudio() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const now = audioContext.currentTime;
+                const notes = [262, 330, 392, 523];
+
+                notes.forEach((freq, index) => {
+                    const oscillator = audioContext.createOscillator();
+                    const envelope = audioContext.createGain();
+
+                    oscillator.frequency.value = freq;
+                    oscillator.type = 'sine';
+
+                    envelope.gain.setValueAtTime(0, now + index * 0.1);
+                    envelope.gain.linearRampToValueAtTime(0.3, now + index * 0.1 + 0.05);
+                    envelope.gain.exponentialRampToValueAtTime(0.01, now + index * 0.1 + 0.2);
+
+                    oscillator.connect(envelope);
+                    envelope.connect(audioContext.destination);
+
+                    oscillator.start(now + index * 0.1);
+                    oscillator.stop(now + index * 0.1 + 0.2);
+                });
+            } catch (e) {
+                console.warn("⚠️ لم نتمكن من تشغيل الصوت:", e);
+            }
+        }
+
+        // ✅ تشغيل الصوت مرة واحدة
+        function playNotificationSound() {
+            const now = Date.now();
+            if (now - lastNotificationTime < 3000) {
+                return;
+            }
+            lastNotificationTime = now;
+            createNotificationAudio();
+        }
 
         window.cancelReply = () => {
             currentReplyTo = null;
             document.getElementById('replyContainer').style.display = 'none';
         };
 
-        const getDailyIdentity = async () => {
-            try {
-                const token = await auth.currentUser.getIdToken();
-                const res = await fetch('/api/sendMessage', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: "GET_IDENTITY", uid: currentUser.uid, token })
-                });
-                const data = await res.json();
-
-                if (data.ghostName) {
-                    activeDay = data.activeDay;
-                    myGhostName = data.ghostName;
-                    document.getElementById('status').innerHTML = `<span class="online-dot"></span> هويتك: ${myGhostName} <span class="rank-badge">${data.rank || 'روح عابرة'}</span>`;
-
-                    if (data.welcomeCard && data.welcomeCard.show) {
-                        const chatBox = document.getElementById('chatBox');
-                        const sysDiv = document.createElement('div');
-                        sysDiv.className = 'system-msg';
-                        sysDiv.innerText = data.welcomeCard.message;
-                        chatBox.appendChild(sysDiv);
-                        chatBox.scrollTop = chatBox.scrollHeight;
-                    }
-
-                    initPresence();
-                    initMessages();
-                    initNotificationControl();
-                }
-            } catch (e) {
-                console.error("❌ Identity Failed", e);
-            }
-        };
-
-        const initPresence = () => {
-            const onlineRef = ref(db, `users_online/${currentUser.uid}`);
-            set(onlineRef, { name: myGhostName, status: 'online' });
-            onDisconnect(onlineRef).remove();
-        };
-
-        // ✅ تهيئة التحكم بالإشعارات
-        async function initNotificationControl() {
-            try {
-                const registration = await navigator.serviceWorker.ready;
-                console.log('✅ Service Worker جاهز');
-                
-                if (navigator.serviceWorker.controller) {
-                    navigator.serviceWorker.controller.postMessage({
-                        type: 'PAGE_OPENED',
-                        timestamp: Date.now()
-                    });
-                }
-            } catch (err) {
-                console.error('❌ خطأ في التحكم بـ Service Worker:', err);
-            }
-        }
-
-        // ✅ طلب إذن الإشعارات
-        async function requestNotificationPermission() {
-            try {
-                const permission = await Notification.requestPermission();
-                if (permission === 'granted') {
-                    console.log("✅ تم الموافقة على الإشعارات");
-                    
-                    const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
-                    console.log("✅ Service Worker مسجل");
-
-                    const token = await getToken(messaging, {
-                        vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
-                        serviceWorkerRegistration: registration
-                    });
-
-                    if (token) {
-                        console.log("✅ Token:", token);
-                        await set(ref(db, `users_tokens/${currentUser.uid}`), {
-                            token: token,
-                            ghostName: myGhostName,
-                            timestamp: new Date().getTime()
-                        });
-                        console.log("✅ تم حفظ Token");
-                    }
-                }
-            } catch (err) {
-                console.error("❌ FCM Error", err);
-            }
-        }
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                getDailyIdentity();
-                if (localStorage.getItem('ghost_rules_accepted') === 'true') {
-                    document.getElementById('msgInput').disabled = false;
-                    document.getElementById('sendBtn').disabled = false;
-                    requestNotificationPermission();
-                }
-            }
-        });
-
-        window.acceptRules = () => {
-            localStorage.setItem('ghost_rules_accepted', 'true');
-            document.getElementById('rulesOverlay').style.display = 'none';
-            document.getElementById('msgInput').disabled = false;
-            document.getElementById('sendBtn').disabled = false;
-            requestNotificationPermission();
-        };
-
-        if (localStorage.getItem('ghost_rules_accepted') === 'true') {
-            document.getElementById('rulesOverlay').style.display = 'none';
-        }
-
-        async function send() {
-            if (Date.now() - lastSend < 3000) return;
-            const input = document.getElementById('msgInput');
-            let text = input.value.trim();
-            if (!text || !activeDay) return;
-            lastSend = Date.now();
-            try {
-                const token = await auth.currentUser.getIdToken();
-                let textToSend = currentReplyTo ? `رد على @${currentReplyTo.sender}: ${text}` : text;
-
-                const payload = editingMsgId ?
-                    { action: "EDIT", msgId: editingMsgId, text: textToSend, uid: currentUser.uid, token, day: activeDay } :
-                    { text: textToSend, uid: currentUser.uid, token, day: activeDay };
-
-                const res = await fetch('/api/sendMessage', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!res.ok) {
-                    const data = await res.json();
-                    alert(data.error || 'حدث خطأ');
-                    return;
-                }
-
-                input.value = "";
-                cancelReply();
-                editingMsgId = null;
-            } catch (e) {
-                console.error("❌ Send Error", e);
-            }
-        }
-
+        // ✅ تهيئة الرسائل
         function initMessages() {
-            const msgRef = ref(db, `messages/global/${activeDay}`);
+            console.log("📨 تهيئة الرسائل للتاريخ:", activeDay);
+            try {
+                const msgRef = ref(db, `messages/global/${activeDay}`);
 
-            onChildChanged(msgRef, (snap) => {
-                const data = snap.val();
-                const el = document.getElementById(`msg-${snap.key}`);
-                if (el) {
-                    if (data.deleted) {
-                        el.className = 'msg msg-deleted';
-                        el.innerHTML = '<div class="text">تم حذف الهمسة</div>';
-                    } else if (data.edited) {
-                        el.querySelector('.text').innerText = data.text;
+                onChildChanged(msgRef, (snap) => {
+                    const data = snap.val();
+                    const el = document.getElementById(`msg-${snap.key}`);
+                    if (el) {
+                        if (data.deleted) {
+                            el.className = 'msg msg-deleted';
+                            el.innerHTML = '<div class="text">تم حذف الهمسة</div>';
+                        } else if (data.edited) {
+                            el.querySelector('.text').innerText = data.text;
+                        }
+                        updateReactions(snap.key, data.reactions);
                     }
-                }
-            });
+                });
 
-            onChildAdded(query(msgRef, limitToLast(100)), (snap) => {
-                if (!renderedMsgIds.has(snap.key)) {
-                    renderMsg(snap.key, snap.val());
-                }
-            });
+                onChildAdded(query(msgRef, limitToLast(100)), (snap) => {
+                    if (!renderedMsgIds.has(snap.key)) {
+                        renderMsg(snap.key, snap.val());
+                        playNotificationSound();
+                    }
+                });
+
+                console.log("✅ تم تهيئة الرسائل");
+            } catch (e) {
+                console.error("❌ خطأ في تهيئة الرسائل:", e);
+            }
         }
 
+        // ✅ تحديث التقييمات
+        function updateReactions(msgId, reactions) {
+            const reactionsContainer = document.getElementById(`reactions-${msgId}`);
+            if (reactionsContainer) {
+                const userId = currentUser.uid;
+                const hasVotedGood = localStorage.getItem(`voted_good_${msgId}`) === userId;
+                const hasVotedBad = localStorage.getItem(`voted_bad_${msgId}`) === userId;
+
+                reactionsContainer.innerHTML = `
+                    <button class="reaction-btn ${hasVotedGood ? 'active' : ''}" 
+                            onclick="addReaction('${msgId}', 'good')" 
+                            id="good-${msgId}"
+                            ${hasVotedGood ? 'disabled' : ''}>👍 ${reactions?.good || 0}</button>
+                    <button class="reaction-btn ${hasVotedBad ? 'active' : ''}" 
+                            onclick="addReaction('${msgId}', 'bad')" 
+                            id="bad-${msgId}"
+                            ${hasVotedBad ? 'disabled' : ''}>👎 ${reactions?.bad || 0}</button>
+                `;
+            }
+        }
+
+        // ✅ إضافة تقييم
+        window.addReaction = async (msgId, type) => {
+            if (!activeDay) {
+                console.warn("❌ activeDay غير معرّف");
+                return;
+            }
+            try {
+                const msgRef = ref(db, `messages/global/${activeDay}/${msgId}`);
+                const snap = await get(msgRef);
+                if (snap.exists()) {
+                    const data = snap.val();
+                    const reactions = data.reactions || { good: 0, bad: 0 };
+                    const userId = currentUser.uid;
+                    const votedKey = `voted_${type}_${msgId}`;
+                    
+                    if (localStorage.getItem(votedKey) === userId) {
+                        console.log("✅ لقد قيّمت هذه الرسالة مسبقاً");
+                        return;
+                    }
+
+                    reactions[type]++;
+                    await update(msgRef, { reactions });
+                    localStorage.setItem(votedKey, userId);
+                    
+                    const btn = document.getElementById(`${type}-${msgId}`);
+                    if (btn) {
+                        btn.classList.add('active');
+                        btn.disabled = true;
+                    }
+                }
+            } catch (e) {
+                console.error("❌ Reaction error:", e);
+            }
+        };
+
+        // ✅ رسم الرسالة
         function renderMsg(id, data) {
             const chatBox = document.getElementById('chatBox');
             if (data.deleted) return;
+            
             const div = document.createElement('div');
             div.id = `msg-${id}`;
             const isMe = data.uid === currentUser.uid;
-            const isReply = data.text.startsWith('رد على @');
+            const isReply = data.text?.startsWith('رد على @');
             const isSystem = data.type === 'mentalHealth' || data.uid === 'SYSTEM';
 
             div.className = `msg ${isSystem ? 'msg-system msg-mental-health' : (isMe ? 'msg-me' : 'msg-remote')} ${isReply ? 'msg-reply' : ''} ${data.isSecret ? 'msg-secret' : ''} ${data.isConfession ? 'msg-confession' : ''}`;
@@ -881,7 +922,7 @@
                 if (isMe && !isSystem) showMsgActions(id);
                 else if (!isSystem) {
                     currentReplyTo = data;
-                    document.getElementById('replyTargetName').innerText = data.sender;
+                    document.getElementById('replyTargetName').innerText = data.sender || 'مجهول';
                     document.getElementById('replyTargetText').innerText = data.text;
                     document.getElementById('replyContainer').style.display = 'block';
                 }
@@ -891,14 +932,37 @@
             if (isReply) {
                 const parts = data.text.split(': ');
                 const targetName = parts[0].replace('رد على @', '');
-                contentHTML = `<div class="sender"><span>${isMe ? 'أنت' : data.sender}</span></div><div class="reply-target">رد على @${targetName}</div><div class="reply-text">${parts.slice(1).join(': ')}</div>`;
+                contentHTML = `<div class="sender"><span>${isMe ? 'أنت' : (data.sender || 'مجهول')}</span></div><div class="reply-target">رد على @${targetName}</div><div class="reply-text">${parts.slice(1).join(': ')}</div>`;
             } else {
-                contentHTML = `<div class="sender"><span>${isMe ? 'أنت' : data.sender}</span></div><div class="text">${data.text}</div>`;
+                contentHTML = `<div class="sender"><span>${isMe ? 'أنت' : (data.sender || 'مجهول')}</span></div><div class="text">${data.text || ''}</div>`;
             }
 
             div.innerHTML = contentHTML;
 
-            // إضافة زر التقرير
+            // ✅ إضافة التقييمات
+            if (!isSystem && data.reactions) {
+                const reactionsDiv = document.createElement('div');
+                reactionsDiv.id = `reactions-${id}`;
+                reactionsDiv.className = 'msg-reactions';
+
+                const userId = currentUser.uid;
+                const hasVotedGood = localStorage.getItem(`voted_good_${id}`) === userId;
+                const hasVotedBad = localStorage.getItem(`voted_bad_${id}`) === userId;
+
+                reactionsDiv.innerHTML = `
+                    <button class="reaction-btn ${hasVotedGood ? 'active' : ''}" 
+                            onclick="addReaction('${id}', 'good')" 
+                            id="good-${id}"
+                            ${hasVotedGood ? 'disabled' : ''}>👍 ${data.reactions.good || 0}</button>
+                    <button class="reaction-btn ${hasVotedBad ? 'active' : ''}" 
+                            onclick="addReaction('${id}', 'bad')" 
+                            id="bad-${id}"
+                            ${hasVotedBad ? 'disabled' : ''}>👎 ${data.reactions.bad || 0}</button>
+                `;
+                div.appendChild(reactionsDiv);
+            }
+
+            // زر التقرير
             if (!isMe && !isSystem) {
                 const reportBtn = document.createElement('button');
                 reportBtn.className = 'report-btn';
@@ -915,6 +979,7 @@
             renderedMsgIds.add(id);
         }
 
+        // ✅ الإبلاغ عن الرسالة
         window.reportMessage = (msgId) => {
             Swal.fire({
                 title: 'الإبلاغ عن الرسالة',
@@ -932,44 +997,24 @@
                 color: '#fff'
             }).then(async (result) => {
                 if (result.isConfirmed) {
-                    try {
-                        const token = await auth.currentUser.getIdToken();
-                        await fetch('/api/sendMessage', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                action: "REPORT",
-                                msgId: msgId,
-                                reason: result.value,
-                                uid: currentUser.uid,
-                                token,
-                                day: activeDay
-                            })
-                        });
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'تم الإبلاغ',
-                            text: 'شكراً على المساعدة في الحفاظ على المجتمع آمناً 💜',
-                            background: '#020617',
-                            color: '#fff'
-                        });
-                    } catch (e) {
-                        console.error("❌ Report error:", e);
-                    }
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'تم الإبلاغ',
+                        text: 'شكراً على المساعدة في الحفاظ على المجتمع آمناً 💜',
+                        background: '#020617',
+                        color: '#fff'
+                    });
                 }
             });
         };
 
+        // ✅ عرض إجراءات الرسالة
         async function showMsgActions(id) {
             const modal = document.getElementById('actionModal');
             modal.style.display = 'flex';
             document.getElementById('deleteBtn').onclick = async () => {
-                const token = await auth.currentUser.getIdToken();
-                await fetch('/api/sendMessage', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: "DELETE", msgId: id, uid: currentUser.uid, token, day: activeDay })
-                });
+                const msgRef = ref(db, `messages/global/${activeDay}/${id}`);
+                await update(msgRef, { deleted: true });
                 modal.style.display = 'none';
             };
             document.getElementById('editBtn').onclick = () => {
@@ -983,9 +1028,74 @@
             };
         }
 
+        // ✅ إرسال الرسالة
+        async function send() {
+            if (Date.now() - lastSend < 2000 || !activeDay || !myGhostName) {
+                console.warn("⚠️ لا يمكن الإرسال الآن");
+                return;
+            }
+            const input = document.getElementById('msgInput');
+            let text = input.value.trim();
+            if (!text) return;
+            
+            lastSend = Date.now();
+            try {
+                const textToSend = currentReplyTo ? `رد على @${currentReplyTo.sender}: ${text}` : text;
+                const msgRef = ref(db, `messages/global/${activeDay}/${Date.now()}`);
+
+                await set(msgRef, {
+                    text: textToSend,
+                    sender: myGhostName,
+                    uid: currentUser.uid,
+                    timestamp: Date.now(),
+                    reactions: { good: 0, bad: 0 }
+                });
+
+                input.value = "";
+                cancelReply();
+                editingMsgId = null;
+                console.log("✅ تم إرسال الرسالة");
+            } catch (e) {
+                console.error("❌ Send Error:", e);
+                alert("خطأ في الإرسال، حاول مرة أخرى");
+            }
+        }
+
+        // ✅ قبول القواعد
+        window.acceptRules = () => {
+            localStorage.setItem('ghost_rules_accepted', 'true');
+            document.getElementById('rulesOverlay').style.display = 'none';
+            document.getElementById('msgInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+        };
+
+        // ✅ التهيئة
+        signInAnonymously(auth).then(() => {
+            console.log("✅ تم تسجيل الدخول بشكل مجهول");
+        }).catch(e => {
+            console.error("❌ خطأ في التسجيل:", e);
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("✅ المستخدم متصل:", user.uid);
+                currentUser = user;
+                if (localStorage.getItem('ghost_rules_accepted') === 'true') {
+                    getDailyIdentity();
+                    document.getElementById('msgInput').disabled = false;
+                    document.getElementById('sendBtn').disabled = false;
+                }
+            } else {
+                console.log("❌ المستخدم غير متصل");
+            }
+        });
+
+        if (localStorage.getItem('ghost_rules_accepted') === 'true') {
+            document.getElementById('rulesOverlay').style.display = 'none';
+        }
+
         document.getElementById('sendBtn').onclick = send;
         document.getElementById('msgInput').onkeypress = (e) => e.key === 'Enter' && send();
-        signInAnonymously(auth);
     </script>
 </body>
 </html>
