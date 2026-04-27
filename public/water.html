@@ -1,9 +1,10 @@
+<!-- رادار المياه v3.0 - المحسّن -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>رادار المياه الذكي | AM Rewards PRO</title>
+    <title>رادار المياه الذكي v3.0 | AM Rewards PRO</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -44,14 +45,14 @@
         .input-group { flex: 1; }
         label { display: block; margin-bottom: 8px; color: #94a3b8; font-size: 12px; font-weight: 700; }
         
-        input {
+        input, select {
             width: 100%; padding: 12px; border-radius: 12px;
             border: 1px solid rgba(255,255,255,0.1);
             background: rgba(0,0,0,0.4); color: #fff;
-            font-size: 18px; text-align: center; outline: none; box-sizing: border-box;
-            transition: 0.3s;
+            font-size: 16px; text-align: center; outline: none; box-sizing: border-box;
+            transition: 0.3s; font-family: 'Tajawal';
         }
-        input:focus { border-color: var(--neon-blue); box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
+        input:focus, select:focus { border-color: var(--neon-blue); box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
 
         #errorMsg { 
             display: none; background: rgba(239, 68, 68, 0.1); color: #ef4444; 
@@ -66,6 +67,7 @@
             color: #fff; font-weight: 900; cursor: pointer; font-size: 18px;
             box-shadow: 0 10px 20px rgba(0, 242, 255, 0.2); transition: 0.3s;
         }
+        .calc-btn:active { transform: scale(0.96); }
 
         .reset-link {
             display: block; text-align: center; margin-top: 10px;
@@ -122,8 +124,10 @@
         .tips-btn {
             width: 100%; margin-top: 15px; padding: 12px; background: none;
             border: 1px solid var(--neon-blue); color: var(--neon-blue);
-            border-radius: 12px; font-weight: 700; cursor: pointer; font-family: 'Tajawal';
+            border-radius: 12px; font-weight: 700; cursor: pointer; font-family: 'Tajawal'; transition: 0.3s;
         }
+        .tips-btn:hover { background: rgba(0, 242, 255, 0.1); }
+
         #tipsContent {
             display: none; margin-top: 15px; background: rgba(0, 242, 255, 0.03);
             padding: 15px; border-radius: 15px; border: 1px dotted var(--neon-blue);
@@ -142,6 +146,15 @@
         }
         .link-btn:hover { border-color: #facc15; color: #facc15; }
 
+        .charges-breakdown {
+            background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px;
+            margin-top: 15px; font-size: 12px;
+        }
+        .charge-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .charge-row:last-child { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px; margin-top: 8px; font-weight: bold; }
+
+        .govs-btn { width: 100%; margin-top: 15px; padding: 10px; background: transparent; border: 1px solid #64748b; color: #94a3b8; border-radius: 12px; cursor: pointer; font-size: 12px; }
+
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -150,7 +163,7 @@
 
     <div class="container">
         <h1>💧 رادار المياه</h1>
-        <p class="sub-title">تحليل ذكي لاستهلاكك (إصدار 2026)</p>
+        <p class="sub-title">تحليل ذكي لاستهلاكك (إصدار 3.0)</p>
         
         <div id="compareBadge"></div>
 
@@ -170,6 +183,18 @@
         <div class="input-group" style="margin-bottom: 20px;">
             <label>عدد الوحدات (الشقق) بالعداد</label>
             <input type="number" id="unitsCount" value="1" min="1" inputmode="numeric">
+        </div>
+
+        <div class="input-group" style="margin-bottom: 20px;">
+            <label>المحافظة / الإقليم</label>
+            <select id="governorate">
+                <option value="cairo">القاهرة (أسعار عالية)</option>
+                <option value="giza" selected>الجيزة (متوسطة)</option>
+                <option value="alex">الإسكندرية (أسعار عالية)</option>
+                <option value="suez">السويس (منخفضة)</option>
+                <option value="delta">منطقة الدلتا (منخفضة)</option>
+                <option value="south">الصعيد (متوسطة)</option>
+            </select>
         </div>
 
         <button class="calc-btn" onclick="calculateWaterBill()">تحليل الفاتورة والبحث عن تسريب 🔍</button>
@@ -192,6 +217,29 @@
 
             <div id="familyFact" class="family-fact"></div>
 
+            <div class="charges-breakdown">
+                <div class="charge-row">
+                    <span>سعر المياه:</span>
+                    <span id="waterPrice">0.00</span>
+                </div>
+                <div class="charge-row">
+                    <span>رسوم الصرف (75%):</span>
+                    <span id="sewagePrice">0.00</span>
+                </div>
+                <div class="charge-row">
+                    <span>رسم الخدمة:</span>
+                    <span id="serviceFeePrice">0.00</span>
+                </div>
+                <div class="charge-row">
+                    <span>رسم إضافي (معالجة):</span>
+                    <span id="treatmentFeePrice">0.00</span>
+                </div>
+                <div class="charge-row">
+                    <span>الإجمالي:</span>
+                    <span id="finalTotalPrice">0.00</span>
+                </div>
+            </div>
+
             <div class="details-item" style="margin-top: 15px;">
                 <span>الشريحة المحسوبة:</span>
                 <div style="text-align: left;">
@@ -209,29 +257,39 @@
             <div id="tipsContent">
                 <strong>نصائح لتوفير المياه</strong><br><br>
                 🚿 <strong>1. الدش بدل ملء البانيو</strong><br>
-                • الدش 5–10 دقايق = توفير كبير<br>
-                • البانيو ممكن يستهلك 3–4 أضعاف ❌<br><br>
+                • الدش 5–10 دقايق = توفير 60-100 لتر<br>
+                • البانيو ممكن يستهلك 200-300 لتر ❌<br><br>
                 ⏱️ <strong>2. قلل وقت فتح الحنفية</strong><br>
-                • وانت بتغسل سنانك أو بتحلق: 👉 اقفل المياه بدل ما تسيبها شغالة<br><br>
+                • وانت بتغسل سنانك أو بتحلق: 👉 اقفل المياه بدل ما تسيبها شغالة<br>
+                • توفير: 10 لترات يومياً<br><br>
                 🔧 <strong>3. أصلّح أي تسريب فورًا</strong><br>
-                • نقطة كل ثانية = لترّات في اليوم 😳<br>
-                • راجع الحنفية والسيفون<br><br>
+                • نقطة كل ثانية = 30 لتر يومياً 😳<br>
+                • راجع الحنفية، السيفون، والمواسير كل أسبوع<br><br>
                 🧺 <strong>4. الغسالة</strong><br>
-                • شغلها وهي مليانة بس<br>
+                • شغلها وهي مليانة بس (توفير 50%)<br>
                 • اختار برامج توفير المياه (Eco)<br><br>
                 🪣 <strong>5. استخدام ذكي</strong><br>
-                • استخدم جردل بدل الخرطوم في غسيل العربية وتنظيف الأرض<br><br>
+                • استخدم جردل بدل الخرطوم في غسيل العربية وتنظيف الأرض<br>
+                • توفير: 100-150 لتر يومياً<br><br>
                 🌿 <strong>6. ري النباتات</strong><br>
-                • الصبح بدري أو بالليل 👉 عشان الميه متتبخرش بسرعة
+                • الصبح بدري أو بالليل 👉 عشان الميه متتبخرش بسرعة<br>
+                • استخدم مياه الغسيل (مياه معاد تدويرها)<br><br>
+                🚽 <strong>7. خزان المرحاض</strong><br>
+                • جهزه بنظام توفير (Dual flush)<br>
+                • لا تستخدمه كسلة للقمامة<br><br>
+                💧 <strong>8. التجميع والتدوير</strong><br>
+                • جمع مياه غسل الخضار لري النباتات<br>
+                • استخدام مياه الصرف لتنظيف الأرض
             </div>
         </div>
 
         <div class="cross-link">
-            <a href="electricity.html" class="link-btn">🔌 رادر الكهرباء</a>
+            <a href="electricity.html" class="link-btn">⚡ رادار الكهرباء</a>
+            <a href="ghost-chat.html" class="link-btn">👻 شات الأشباح</a>
         </div>
         
         <p style="text-align: center; font-size: 9px; color: #475569; margin-top: 15px;">
-            * الرسوم والشرائح تقديرية لعام 2026 وتشمل الصرف الصحي (75%).
+            * الرسوم والشرائح تقديرية لعام 2026 وتشمل الصرف الصحي (75%) + معالجة المياه.
         </p>
     </div>
 
@@ -239,6 +297,15 @@
         window.onload = function() {
             const savedWater = localStorage.getItem('lastWaterRead');
             if (savedWater) { document.getElementById('prevRead').value = savedWater; }
+        };
+
+        const governorateRates = {
+            cairo: { tier1: 1.50, tier2: 3.00, tier3: 4.50, tier4: 6.00 },
+            giza: { tier1: 1.25, tier2: 2.75, tier3: 4.00, tier4: 5.50 },
+            alex: { tier1: 1.60, tier2: 3.20, tier3: 4.80, tier4: 6.50 },
+            suez: { tier1: 1.00, tier2: 2.00, tier3: 3.00, tier4: 4.00 },
+            delta: { tier1: 0.95, tier2: 1.90, tier3: 2.85, tier4: 3.80 },
+            south: { tier1: 1.10, tier2: 2.20, tier3: 3.30, tier4: 4.40 }
         };
 
         function animateValue(obj, start, end, duration, suffix = " ج.م") {
@@ -261,6 +328,7 @@
             const current = parseFloat(document.getElementById('currentRead').value);
             const previous = parseFloat(document.getElementById('prevRead').value);
             let units = parseInt(document.getElementById('unitsCount').value);
+            const gov = document.getElementById('governorate').value;
             
             if (isNaN(units) || units < 1) units = 1;
             if (units > 100) units = 100; 
@@ -276,41 +344,60 @@
 
             const totalM3 = current - previous;
             const m3PerUnit = totalM3 / units;
+            const rates = governorateRates[gov];
 
             const leakAlert = document.getElementById('leakAlert');
-            if (totalM3 > (units * 15) && m3PerUnit < 8) {
+            if (totalM3 > (units * 25) && m3PerUnit > 25) {
                 leakAlert.style.display = 'block';
             } else {
                 leakAlert.style.display = 'none';
             }
             
-            let unitWaterPrice = 0, serviceFeePerUnit = 0, shName = "", shRange = "", radarMsg = "";
+            let unitWaterPrice = 0, shName = "", shRange = "", radarMsg = "";
+            let tier = "";
 
             if (m3PerUnit <= 10) { 
-                unitWaterPrice = m3PerUnit * 1.25; serviceFeePerUnit = 5; 
-                shName = "الأولى"; shRange = "(0 - 10 م³)";
+                unitWaterPrice = m3PerUnit * rates.tier1;
+                shName = "الأولى (مدعومة)"; 
+                shRange = "(0 - 10 م³)";
                 radarMsg = "📡 استهلاك مثالي للوحدات.";
+                tier = "1";
             } else if (m3PerUnit <= 20) { 
-                unitWaterPrice = (10 * 1.25) + ((m3PerUnit - 10) * 2.50); serviceFeePerUnit = 10; 
-                shName = "الثانية"; shRange = "(11 - 20 م³)";
+                unitWaterPrice = (10 * rates.tier1) + ((m3PerUnit - 10) * rates.tier2);
+                shName = "الثانية (مدعومة)"; 
+                shRange = "(11 - 20 م³)";
                 radarMsg = "📡 استهلاك طبيعي ضمن الحدود.";
+                tier = "2";
             } else if (m3PerUnit <= 30) { 
-                unitWaterPrice = (10 * 1.25) + (10 * 2.50) + ((m3PerUnit - 20) * 3.50); serviceFeePerUnit = 20; 
-                shName = "الثالثة"; shRange = "(21 - 30 م³)";
+                unitWaterPrice = (10 * rates.tier1) + (10 * rates.tier2) + ((m3PerUnit - 20) * rates.tier3);
+                shName = "الثالثة"; 
+                shRange = "(21 - 30 م³)";
                 radarMsg = "📡 رصد زيادة في الاستهلاك.. يرجى الحذر.";
+                tier = "3";
             } else { 
-                unitWaterPrice = (10 * 1.25) + (10 * 2.50) + (10 * 3.50) + ((m3PerUnit - 30) * 5.00); 
-                serviceFeePerUnit = 40; 
-                shName = "الرابعة فأعلى"; shRange = "(أكثر من 30 م³)";
+                unitWaterPrice = (10 * rates.tier1) + (10 * rates.tier2) + (10 * rates.tier3) + ((m3PerUnit - 30) * rates.tier4); 
+                shName = "الرابعة فأعلى (بلا دعم)"; 
+                shRange = "(أكثر من 30 م³)";
                 radarMsg = "🚨 إنذار! استهلاك خارج النطاق المدعوم.";
+                tier = "4";
             }
 
             const totalWaterPrice = unitWaterPrice * units;
             const totalSewage = totalWaterPrice * 0.75; 
-            const totalServiceFees = serviceFeePerUnit * units;
-            
+            let serviceFee = 0;
+            let treatmentFee = 0;
+
+            if (m3PerUnit <= 10) serviceFee = 5;
+            else if (m3PerUnit <= 20) serviceFee = 10;
+            else if (m3PerUnit <= 30) serviceFee = 20;
+            else serviceFee = 40;
+
+            if (m3PerUnit > 30) treatmentFee = (m3PerUnit - 30) * 2.5;
+
+            const totalServiceFees = serviceFee * units;
+            const totalTreatmentFees = treatmentFee * units;
             const adminFees = 5.00; 
-            const finalTotal = totalWaterPrice + totalSewage + totalServiceFees + adminFees;
+            const finalTotal = totalWaterPrice + totalSewage + totalServiceFees + totalTreatmentFees + adminFees;
             const moneyPerUnit = finalTotal / units;
 
             const lastM3 = parseFloat(localStorage.getItem('lastWaterM3'));
@@ -345,6 +432,12 @@
             animateValue(document.getElementById('totalVal'), 0, finalTotal, 1000);
             animateValue(document.getElementById('unitMoneyVal'), 0, moneyPerUnit, 1000);
 
+            document.getElementById('waterPrice').innerText = totalWaterPrice.toFixed(2);
+            document.getElementById('sewagePrice').innerText = totalSewage.toFixed(2);
+            document.getElementById('serviceFeePrice').innerText = totalServiceFees.toFixed(2);
+            document.getElementById('treatmentFeePrice').innerText = totalTreatmentFees.toFixed(2);
+            document.getElementById('finalTotalPrice').innerText = finalTotal.toFixed(2);
+
             document.getElementById('totalM3').innerText = totalM3;
             document.getElementById('unitM3').innerText = m3PerUnit.toFixed(1);
             document.getElementById('shText').innerText = shName;
@@ -355,7 +448,10 @@
             document.getElementById('familyFact').innerHTML = `💡 هذا الاستهلاك يكفي أسرة من 4 أفراد لمدة <b>${familyDays}</b> يوم تقريباً.`;
 
             const alertBox = document.getElementById('smartAlert');
-            if (m3PerUnit > 20) {
+            if (m3PerUnit > 25) {
+                alertBox.className = "smart-alert alert-danger";
+                alertBox.innerHTML = "⚠️ <b>تحذير حرج:</b> تخطيتم حاجز 25 م³ للوحدة. توقع فاتورة ضخمة جداً!";
+            } else if (m3PerUnit > 20) {
                 alertBox.className = "smart-alert alert-danger";
                 alertBox.innerHTML = "⚠️ <b>تحذير:</b> تخطيتم حاجز 20 م³ للوحدة. التكلفة أصبحت مرتفعة جداً.";
             } else {
@@ -380,4 +476,4 @@
         }
     </script>
 </body>
-</html>
+                                                  </html>
