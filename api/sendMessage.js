@@ -185,25 +185,23 @@ export default async function handler(req, res) {
                 }    
 
                 if (targetTokens.length > 0) {    
-                    const payload = {    
-                        notification: {    
-                            title: replyToName ? `💬 رد من ${serverGhostName}` : (isConfession ? `🕯️ اعتراف جديد` : `👻 همسة جديدة`),    
-                            body: isSecret ? "اهمس بشيء غامض..." : (finalDisplayContent.length > 50 ? finalDisplayContent.substring(0, 47) + "..." : finalDisplayContent),    
-                        },    
-                        // التعديل هنا: تمرير معرف الرسالة الجديدة لكي نستخدمه في الـ Frontend
-                        data: { 
-                            url: `https://am-rewards.vercel.app/ghost-chat.html?msgId=${msgRef.key}` 
-                        },
-                        android: { 
-                            priority: 'high', 
-                            ttl: 0, 
-                            notification: { tag: 'ghost-chat-msg', priority: 'max', visibility: 'public' } 
-                        },
-                        webpush: { 
-                            headers: { "Urgency": "high", "TTL": "0" }, 
-                            notification: { tag: 'ghost-chat-msg', renotify: true } 
-                        }
-                    };    
+                   const payload = {
+  data: {
+    title: replyToName ? `💬 رد من ${serverGhostName}` : "👻 همسة جديدة",
+    body: finalDisplayContent,
+    url: `https://am-rewards.vercel.app/ghost-chat.html?msgId=${msgRef.key}`
+  },
+  android: {
+    priority: 'high',
+    ttl: 0
+  },
+  webpush: {
+    headers: {
+      Urgency: "high",
+      TTL: "0"
+    }
+  }
+}; 
                     
                     for (let i = 0; i < targetTokens.length; i += 500) {
                         const chunk = targetTokens.slice(i, i + 500);
