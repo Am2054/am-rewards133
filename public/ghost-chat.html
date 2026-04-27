@@ -1,4 +1,3 @@
-<!-- ghost-chat.html - بدون التقييمات -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -86,7 +85,6 @@
             position: relative;
         }
 
-        /* التعديل الفخم للأسود/الأحمر المشتعل */
         .msg-reply {
             background: linear-gradient(135deg, #020617 0%, #0a0101 50%, #1a0202 100%) !important;
             border: 1px solid rgba(255, 68, 68, 0.4) !important;
@@ -259,6 +257,10 @@
             font-size: 16px;
         }
 
+        .agree-btn:active {
+            transform: scale(0.95);
+        }
+
         header {
             padding: calc(env(safe-area-inset-top, 10px) + 5px) 10px 5px;
             text-align: center;
@@ -372,7 +374,6 @@
             box-shadow: 0 0 20px rgba(59, 130, 246, 0.3) !important;
         }
 
-        /* زر التقرير */
         .report-btn {
             position: absolute;
             left: 10px;
@@ -442,6 +443,17 @@
             position: relative;
         }
 
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         .reply-close {
             position: absolute;
             left: 15px;
@@ -478,6 +490,7 @@
             outline: none;
             font-size: 16px;
             transition: 0.3s;
+            font-family: 'Tajawal';
         }
 
         input:focus {
@@ -500,6 +513,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         #actionModal {
@@ -531,10 +553,15 @@
             font-weight: bold;
             cursor: pointer;
             transition: 0.2s;
+            font-size: 14px;
         }
 
         .modal-btn:hover {
             opacity: 0.8;
+        }
+
+        .modal-btn:active {
+            transform: scale(0.95);
         }
 
         .system-msg {
@@ -548,9 +575,32 @@
             margin: 10px 0;
             border: 1px dashed rgba(0, 242, 255, 0.2);
         }
+
+        @media (max-width: 480px) {
+            #chatBox {
+                padding: 15px;
+            }
+
+            .msg {
+                max-width: 90%;
+                font-size: 14px;
+                padding: 12px 15px;
+            }
+
+            input {
+                padding: 14px 18px;
+                font-size: 15px;
+            }
+
+            .send-btn {
+                width: 48px;
+                height: 48px;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Rules Overlay -->
     <div id="rulesOverlay">
         <div class="rules-card">
             <span class="intro-line">هنا، لا أحد يعرفك… لكن الجميع يسمعك.</span>
@@ -567,6 +617,7 @@
         </div>
     </div>
 
+    <!-- Action Modal -->
     <div id="actionModal" onclick="this.style.display='none'">
         <div class="modal-content" onclick="event.stopPropagation()">
             <button class="modal-btn" style="background:var(--cyan); color:#000" id="editBtn">تعديل الهمسة</button>
@@ -575,6 +626,7 @@
         </div>
     </div>
 
+    <!-- Header -->
     <header id="appHeader">
         <h2>شات الأشباح 👻</h2>
         <button id="installBtn">تثبيت التطبيق على جهازك 📱</button>
@@ -582,8 +634,10 @@
         <div id="typingIndicator"></div>
     </header>
 
+    <!-- Chat Box -->
     <div id="chatBox"></div>
 
+    <!-- Input Area -->
     <div class="input-area">
         <div id="replyContainer" class="reply-preview">
             <span class="reply-close" onclick="cancelReply()">✕</span>
@@ -671,9 +725,10 @@
 
                     initPresence();
                     initMessages();
+                    initNotificationControl();
                 }
             } catch (e) {
-                console.error("Identity Failed", e);
+                console.error("❌ Identity Failed", e);
             }
         };
 
@@ -683,6 +738,23 @@
             onDisconnect(onlineRef).remove();
         };
 
+        // ✅ تهيئة التحكم بالإشعارات
+        async function initNotificationControl() {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                console.log('✅ Service Worker جاهز');
+                
+                if (navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({
+                        type: 'PAGE_OPENED',
+                        timestamp: Date.now()
+                    });
+                }
+            } catch (err) {
+                console.error('❌ خطأ في التحكم بـ Service Worker:', err);
+            }
+        }
+
         // ✅ طلب إذن الإشعارات
         async function requestNotificationPermission() {
             try {
@@ -690,11 +762,9 @@
                 if (permission === 'granted') {
                     console.log("✅ تم الموافقة على الإشعارات");
                     
-                    // ✅ تسجيل Service Worker
                     const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
                     console.log("✅ Service Worker مسجل");
 
-                    // ✅ الحصول على Token
                     const token = await getToken(messaging, {
                         vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
                         serviceWorkerRegistration: registration
@@ -702,7 +772,6 @@
 
                     if (token) {
                         console.log("✅ Token:", token);
-                        // ✅ حفظ Token في DB
                         await set(ref(db, `users_tokens/${currentUser.uid}`), {
                             token: token,
                             ghostName: myGhostName,
@@ -770,7 +839,7 @@
                 cancelReply();
                 editingMsgId = null;
             } catch (e) {
-                console.error("Send Error", e);
+                console.error("❌ Send Error", e);
             }
         }
 
@@ -885,7 +954,7 @@
                             color: '#fff'
                         });
                     } catch (e) {
-                        console.error("Report error:", e);
+                        console.error("❌ Report error:", e);
                     }
                 }
             });
