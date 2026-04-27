@@ -1,3 +1,5 @@
+<!-- ghost-chat.html - Frontend المعدّل بالكامل -->
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -7,7 +9,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Ghost Chat">
-    <title>شات الأشباح | الإصدار السابع</title>
+    <title>شات الأشباح | الإصدار الثامن</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -84,6 +86,63 @@
         .msg-secret { background: linear-gradient(135deg, rgba(30, 27, 75, 0.95), rgba(49, 46, 129, 0.95)) !important; border: 1px solid var(--purple) !important; box-shadow: 0 0 20px rgba(112, 0, 255, 0.3) !important; } 
         .msg-confession { background: linear-gradient(135deg, rgba(153, 27, 27, 0.9), rgba(69, 10, 10, 0.9)) !important; border: 1px solid var(--danger) !important; box-shadow: 0 0 25px rgba(255, 68, 68, 0.3) !important; } 
         
+        /* ✨ نظام رسائل الصحة النفسية */
+        .msg-system { 
+            align-self: center; 
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(168, 85, 247, 0.2)) !important; 
+            border: 1px solid rgba(139, 92, 246, 0.5) !important;
+            color: #e9d5ff !important;
+            font-weight: bold;
+            max-width: 90%;
+            text-align: center;
+        }
+        .msg-mental-health {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(96, 165, 250, 0.2)) !important;
+            border: 2px solid rgba(59, 130, 246, 0.6) !important;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3) !important;
+        }
+
+        /* ✨ نظام التقييم والردود */
+        .msg-reactions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .reaction-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .reaction-btn:hover {
+            background: rgba(0, 242, 255, 0.2);
+            border-color: var(--cyan);
+        }
+
+        /* ✨ زر التقرير */
+        .report-btn {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid rgba(255, 68, 68, 0.3);
+            color: #ff4444;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            opacity: 0;
+            transition: 0.2s;
+        }
+        .msg:hover .report-btn {
+            opacity: 1;
+        }
+        
         .sender { font-size: 10px; font-weight: 900; color: var(--cyan); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; opacity: 0.9; } 
         .rank-badge { font-size: 8px; background: rgba(0, 242, 255, 0.15); color: var(--cyan); padding: 2px 6px; border-radius: 4px; margin-right: 5px; border: 1px solid rgba(0, 242, 255, 0.3); }
         .online-dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; display: inline-block; margin-left: 5px; box-shadow: 0 0 5px var(--success); } 
@@ -99,20 +158,40 @@
         
         #actionModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; } 
         .modal-content { background: var(--dark); border: 1px solid var(--cyan); padding: 20px; border-radius: 20px; width: 80%; max-width: 300px; } 
-        .modal-btn { width: 100%; padding: 12px; margin: 5px 0; border: none; border-radius: 10px; font-family: 'Tajawal'; font-weight: bold; cursor: pointer; } 
+        .modal-btn { width: 100%; padding: 12px; margin: 5px 0; border: none; border-radius: 10px; font-family: 'Tajawal'; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .modal-btn:hover { opacity: 0.8; }
+        
         .system-msg { text-align: center; color: var(--cyan); font-weight: 900; font-size: 13px; padding: 10px; background: rgba(0, 242, 255, 0.05); border-radius: 10px; margin: 10px 0; border: 1px dashed rgba(0, 242, 255, 0.2); }
+
+        /* ✨ رسالة الدعم النفسي */
+        .mental-health-alert {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(96, 165, 250, 0.1));
+            border: 2px solid #3b82f6;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
+            color: #bfdbfe;
+            font-weight: bold;
+            text-align: center;
+        }
+        .mental-health-alert a {
+            color: #60a5fa;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
     <div id="rulesOverlay">
         <div class="rules-card">
             <span class="intro-line">هنا، لا أحد يعرفك… لكن الجميع يسمعك.</span>
-            <h3>ميثاق الأشباح – الإصدار السابع</h3>
+            <h3>ميثاق الأشباح – الإصدار الثامن</h3>
             <ul class="rules-list">
                 <li><b>👻 المجهولية:</b> هنا لا اسم حقيقي، لا صورة، لا ماضٍ. روحك تتجدد كل يوم… وما يبقى هو الكلمات فقط.</li>
                 <li><b>🕯️ الاعتراف:</b> استخدم #اعتراف عندما ترغب أن يتوهج كلامك في الظلام. بعض الأسرار تحتاج شجاعة… وبعضها يحتاج صمت.</li>
                 <li><b>🔒 الخصوصية:</b> لا نطلب بريدًا، ولا رقمًا، ولا هوية. هذا الفضاء لك كما أنت… بلا أقنعة اجتماعية.</li>
                 <li><b>✨ التطهير:</b> هذا المكان يتجدد دائمًا… فكل شيء هنا عابر… إلا الأثر.</li>
+                <li><b>💜 الاحترام:</b> كن لطيفاً. لا كراهية، لا عنصرية، لا إيذاء. نحن هنا لننشر الحب لا الألم.</li>
+                <li><b>🆘 الدعم:</b> إذا كنت في أزمة نفسية، لا تتردد في طلب المساعدة. حياتك مهمة 💜</li>
             </ul>
             <button class="agree-btn" onclick="acceptRules()">تكلم بلا اسم… لكن لا تتكلم بلا ضمير 🕯️</button>
         </div>
@@ -122,6 +201,7 @@
         <div class="modal-content" onclick="event.stopPropagation()">
             <button class="modal-btn" style="background:var(--cyan); color:#000" id="editBtn">تعديل الهمسة</button>
             <button class="modal-btn" style="background:var(--danger); color:#fff" id="deleteBtn">نفي الرسالة (حذف)</button>
+            <button class="modal-btn" style="background:#3b82f6; color:#fff" id="reportBtn">الإبلاغ عن الرسالة 🚨</button>
         </div>
     </div>
 
@@ -141,7 +221,7 @@
             <div id="replyTargetText"></div>
         </div>
         <div class="input-wrapper">
-            <input type="text" id="msgInput" placeholder="اهمس أو اعترف بـ #..." maxlength="200" disabled>
+            <input type="text" id="msgInput" placeholder="اهمس أو اعترف بـ #..." maxlength="300" disabled>
             <button class="send-btn" id="sendBtn" disabled>✦</button>
         </div>
     </div>
@@ -186,6 +266,7 @@
         let myGhostName = "";
         let editingMsgId = null;
         let currentReplyTo = null;
+        let currentReportMsgId = null;
         let lastSend = 0; 
         const renderedMsgIds = new Set();
         let activeDay = ""; 
@@ -195,7 +276,7 @@
             document.getElementById('replyContainer').style.display = 'none';
         };
 
-                const getDailyIdentity = async () => {
+        const getDailyIdentity = async () => {
             try {
                 const token = await auth.currentUser.getIdToken();
                 const res = await fetch('/api/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: "GET_IDENTITY", uid: currentUser.uid, token }) });
@@ -206,12 +287,10 @@
                     myGhostName = data.ghostName;
                     document.getElementById('status').innerHTML = `<span class="online-dot"></span> هويتك: ${myGhostName} <span class="rank-badge">${data.rank || 'روح عابرة'}</span>`;
                     
-                    // التعديل هنا: فحص الـ welcomeCard وعرض الرسالة في الشات
                     if (data.welcomeCard && data.welcomeCard.show) {
                         const chatBox = document.getElementById('chatBox');
                         const sysDiv = document.createElement('div');
                         sysDiv.className = 'system-msg';
-                        // نقوم بعرض الرسالة المرسلة من الـ Backend
                         sysDiv.innerText = data.welcomeCard.message;
                         chatBox.appendChild(sysDiv);
                         chatBox.scrollTop = chatBox.scrollHeight;
@@ -238,6 +317,18 @@
                     if (token) await set(ref(db, `users_tokens/${currentUser.uid}`), { token, ghostName: myGhostName });
                 }
             } catch (err) { console.warn("FCM Error", err); }
+        }
+
+        // ✨ استقبال الرسائل من Service Worker
+        if (navigator.serviceWorker) {
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data.type === 'NOTIFICATION_CLICKED') {
+                    const msgId = event.data.data?.msgId;
+                    if (msgId) {
+                        console.log('Notification clicked for message:', msgId);
+                    }
+                }
+            });
         }
 
         onAuthStateChanged(auth, (user) => {
@@ -270,15 +361,37 @@
             lastSend = Date.now();
             try {
                 const token = await auth.currentUser.getIdToken();
-                // العودة للصيغة القديمة البسيطة
                 let textToSend = currentReplyTo ? `رد على @${currentReplyTo.sender}: ${text}` : text;
                 
                 const payload = editingMsgId ? 
                     { action: "EDIT", msgId: editingMsgId, text: textToSend, uid: currentUser.uid, token, day: activeDay } : 
                     { text: textToSend, uid: currentUser.uid, token, day: activeDay };
 
-                await fetch('/api/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const res = await fetch('/api/sendMessage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const data = await res.json();
+                
+                if (!res.ok) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'تحذير',
+                        text: data.error || 'حدث خطأ',
+                        background: '#020617',
+                        color: '#fff'
+                    });
+                    return;
+                }
+
                 input.value = ""; cancelReply(); editingMsgId = null;
+                
+                if (data.warnings) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: '💜 نحن نقلق عليك',
+                        html: 'تم إرسال رسالة دعم خاصة بك. تذكر: أنت لست وحيداً.',
+                        background: '#020617',
+                        color: '#fff'
+                    });
+                }
             } catch(e) { console.error("Send Error", e); }
         }
 
@@ -290,10 +403,82 @@
                 if (el) {
                     if (data.deleted) { el.className = 'msg msg-deleted'; el.innerHTML = '<div class="text">تم حذف الهمسة</div>'; }
                     else if (data.edited) { el.querySelector('.text').innerText = data.text; }
+                    // تحديث التقييمات
+                    updateReactions(snap.key, data.reactions);
                 }
             });
             onChildAdded(query(msgRef, limitToLast(100)), (snap) => { if (!renderedMsgIds.has(snap.key)) renderMsg(snap.key, snap.val()); });
         }
+
+        function updateReactions(msgId, reactions) {
+            const reactionsContainer = document.getElementById(`reactions-${msgId}`);
+            if (reactionsContainer) {
+                reactionsContainer.innerHTML = `
+                    <button class="reaction-btn" onclick="addReaction('${msgId}', 'good')">👍 ${reactions.good}</button>
+                    <button class="reaction-btn" onclick="addReaction('${msgId}', 'bad')">👎 ${reactions.bad}</button>
+                `;
+            }
+        }
+
+        window.addReaction = async (msgId, type) => {
+            try {
+                const msgRef = ref(db, `messages/global/${activeDay}/${msgId}`);
+                const snap = await get(msgRef);
+                if (snap.exists()) {
+                    const data = snap.val();
+                    const reactions = data.reactions || { good: 0, bad: 0 };
+                    reactions[type]++;
+                    await update(msgRef, { reactions });
+                }
+            } catch (e) {
+                console.error("Reaction error:", e);
+            }
+        };
+
+        window.reportMessage = (msgId) => {
+            Swal.fire({
+                title: 'الإبلاغ عن الرسالة',
+                input: 'select',
+                inputOptions: {
+                    'hate': 'محتوى يحتوي على كراهية',
+                    'spam': 'رسالة مزعجة',
+                    'inappropriate': 'محتوى غير لائق',
+                    'other': 'سبب آخر'
+                },
+                inputPlaceholder: 'اختر السبب',
+                confirmButtonText: 'إرسال التقرير',
+                showCancelButton: true,
+                background: '#020617',
+                color: '#fff'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const token = await auth.currentUser.getIdToken();
+                        await fetch('/api/sendMessage', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: "REPORT",
+                                msgId: msgId,
+                                reason: result.value,
+                                uid: currentUser.uid,
+                                token,
+                                day: activeDay
+                            })
+                        });
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم الإبلاغ',
+                            text: 'شكراً على المساعدة في الحفاظ على المجتمع آمناً 💜',
+                            background: '#020617',
+                            color: '#fff'
+                        });
+                    } catch (e) {
+                        console.error("Report error:", e);
+                    }
+                }
+            });
+        };
 
         function renderMsg(id, data) {
             const chatBox = document.getElementById('chatBox');
@@ -302,12 +487,13 @@
             div.id = `msg-${id}`;
             const isMe = data.uid === currentUser.uid;
             const isReply = data.text.startsWith('رد على @');
+            const isSystem = data.type === 'mentalHealth' || data.uid === 'SYSTEM';
             
-            div.className = `msg ${isMe ? 'msg-me' : 'msg-remote'} ${isReply ? 'msg-reply' : ''} ${data.isSecret ? 'msg-secret' : ''} ${data.isConfession ? 'msg-confession' : ''}`;
+            div.className = `msg ${isSystem ? 'msg-system msg-mental-health' : (isMe ? 'msg-me' : 'msg-remote')} ${isReply ? 'msg-reply' : ''} ${data.isSecret ? 'msg-secret' : ''} ${data.isConfession ? 'msg-confession' : ''}`;
             
             div.onclick = () => {
-                if (isMe) showMsgActions(id);
-                else {
+                if (isMe && !isSystem) showMsgActions(id);
+                else if (!isSystem) {
                     currentReplyTo = data;
                     document.getElementById('replyTargetName').innerText = data.sender;
                     document.getElementById('replyTargetText').innerText = data.text;
@@ -315,12 +501,39 @@
                 }
             };
 
+            let contentHTML = '';
             if (isReply) {
                 const parts = data.text.split(': ');
                 const targetName = parts[0].replace('رد على @', '');
-                div.innerHTML = `<div class="sender"><span>${isMe ? 'أنت' : data.sender}</span></div><div class="reply-target">رد على @${targetName}</div><div class="reply-text">${parts.slice(1).join(': ')}</div>`;
+                contentHTML = `<div class="sender"><span>${isMe ? 'أنت' : data.sender}</span></div><div class="reply-target">رد على @${targetName}</div><div class="reply-text">${parts.slice(1).join(': ')}</div>`;
             } else {
-                div.innerHTML = `<div class="sender"><span>${isMe ? 'أنت' : data.sender}</span></div><div class="text">${data.text}</div>`;
+                contentHTML = `<div class="sender"><span>${isMe ? 'أنت' : data.sender}</span></div><div class="text">${data.text}</div>`;
+            }
+
+            div.innerHTML = contentHTML;
+
+            // إضافة التقييمات
+            if (!isSystem && data.reactions) {
+                const reactionsDiv = document.createElement('div');
+                reactionsDiv.id = `reactions-${id}`;
+                reactionsDiv.className = 'msg-reactions';
+                reactionsDiv.innerHTML = `
+                    <button class="reaction-btn" onclick="addReaction('${id}', 'good')">👍 ${data.reactions.good || 0}</button>
+                    <button class="reaction-btn" onclick="addReaction('${id}', 'bad')">👎 ${data.reactions.bad || 0}</button>
+                `;
+                div.appendChild(reactionsDiv);
+            }
+
+            // إضافة زر التقرير
+            if (!isMe && !isSystem) {
+                const reportBtn = document.createElement('button');
+                reportBtn.className = 'report-btn';
+                reportBtn.innerText = '🚨 تقرير';
+                reportBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    reportMessage(id);
+                };
+                div.appendChild(reportBtn);
             }
 
             chatBox.appendChild(div);
@@ -345,6 +558,10 @@
                 modal.style.display = 'none';
                 input.focus();
             };
+            document.getElementById('reportBtn').onclick = () => {
+                modal.style.display = 'none';
+                reportMessage(id);
+            };
         }
 
         document.getElementById('sendBtn').onclick = send;
@@ -352,4 +569,4 @@
         signInAnonymously(auth);
     </script>
 </body>
-</html>
+    </html>
