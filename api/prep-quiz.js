@@ -1,8 +1,8 @@
+// /api/prep-quiz.js - المعالج المحسّن
 import { getApps, initializeApp, cert } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 
-// ✅ تهيئة Firebase
 if (!getApps().length) {
   try {
     const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY.trim());
@@ -16,19 +16,8 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
-const auth = getAuth();
 
-// 🛡️ دالة التحقق من الرابط
-function isValidUrl(string) {
-  try {
-    const newUrl = new URL(string);
-    return newUrl.protocol === 'http:' || newUrl.protocol === 'https:';
-  } catch (err) {
-    return false;
-  }
-}
-
-// 🎓 معالج اختبارات "حضر نفسك"
+// 🎓 معالج اختبارات "حضر نفسك" - محسّن
 async function handleQuizCost(req, res) {
   const { userId, level } = req.body;
 
@@ -38,7 +27,7 @@ async function handleQuizCost(req, res) {
 
   const costs = {
     "easy": 0,
-    "medium": 2,
+    "medium": 0,
     "hard": 3,
     "expert": 5
   };
@@ -61,15 +50,19 @@ async function handleQuizCost(req, res) {
     const isUnlocked = unlockedLevels.includes(level);
     const currentPoints = userData.points || 0;
 
-    // ✅ إذا لم يكن المستوى مفتوحاً، تحقق من الرصيد
+    console.log(`📊 المستخدم: ${userId}, المستوى: ${level}, النقاط الحالية: ${currentPoints}, التكلفة: ${cost}`);
+
+    // ✅ إذا لم يكن المستوى مفتوحاً وفيه تكلفة
     if (!isUnlocked && cost > 0) {
       if (currentPoints < cost) {
         return res.status(402).json({ 
-          error: `رصي��ك غير كافٍ. تحتاج إلى ${cost} نقطة، لديك ${currentPoints}.` 
+          error: `رصيدك غير كافٍ. تحتاج إلى ${cost} نقطة، لديك ${currentPoints}.` 
         });
       }
 
-      // ✅ خصم النقاط وإضافة المستوى للمفتوحين
+      console.log(`💰 خصم ${cost} نقطة من ${currentPoints}`);
+
+      // ✅ خصم النقاط
       await userRef.update({
         points: FieldValue.increment(-cost),
         unlockedLevels: FieldValue.arrayUnion(level),
@@ -80,23 +73,29 @@ async function handleQuizCost(req, res) {
         }
       });
 
+      const newPoints = currentPoints - cost;
+      console.log(`✅ تم الخصم بنجاح. النقاط الجديدة: ${newPoints}`);
+
       return res.status(200).json({
         success: true,
         message: "تم فتح المستوى بنجاح",
-        newPoints: currentPoints - cost,
-        cost: cost
+        newPoints: newPoints,
+        cost: cost,
+        charged: true
       });
     }
 
+    // ✅ المستوى مفتوح بالفعل أو مجاني
     return res.status(200).json({
       success: true,
-      message: "المستوى مفتوح مسبقاً",
-      isUnlocked: true,
-      currentPoints: currentPoints
+      message: isUnlocked ? "المستوى مفتوح مسبقاً" : "المستوى مجاني",
+      isUnlocked: isUnlocked,
+      currentPoints: currentPoints,
+      charged: false
     });
 
   } catch (error) {
-    console.error("Quiz Error:", error);
+    console.error("❌ Quiz Error:", error);
     return res.status(500).json({ error: "حدث خطأ في معالجة الطلب" });
   }
 }
@@ -110,7 +109,15 @@ async function handleLinkCheck(req, res) {
     return res.status(400).json({ error: "بيانات ناقصة" });
   }
 
-  // ✅ التحقق من صحة الرابط
+  function isValidUrl(string) {
+    try {
+      const newUrl = new URL(string);
+      return newUrl.protocol === 'http:' || newUrl.protocol === 'https:';
+    } catch (err) {
+      return false;
+    }
+  }
+
   if (!isValidUrl(url)) {
     return res.status(400).json({ 
       error: "الرابط غير صالح، يرجى التأكد من كتابة الرابط بشكل صحيح (https://...)" 
@@ -138,6 +145,8 @@ async function handleLinkCheck(req, res) {
     if (stats.date !== today) {
       stats = { date: today, count: 0 };
     }
+
+    console.log(`📊 الفحص: ${url}, المحاولة: ${stats.count + 1}, النقاط: ${currentPoints}, مكرر: ${isRepeated}`);
 
     // 🔄 إذا كان مكرراً، أرسل النتيجة بدون خصم
     if (isRepeated) {
@@ -173,19 +182,24 @@ async function handleLinkCheck(req, res) {
     // ✅ التحقق من الحد الأقصى
     if (stats.count >= 5) {
       return res.status(403).json({ 
-        error: "وصلت للحد الأقصى (5) محاولات اليوم. استخدم النقاط للمتابعة." 
+        error: "وصلت للحد الأقصى (5) محاولات اليوم." 
       });
     }
 
     // ✅ خصم نقاط إذا تجاوزت المحاولات المجانية
+    let costCharged = 0;
     if (stats.count >= 2 && stats.count < 5) {
       if (currentPoints < 2) {
         return res.status(402).json({ 
           error: "تحتاج إلى 2 نقطة لمتابعة الفحص" 
         });
       }
+
+      console.log(`💰 خصم 2 نقطة من ${currentPoints}`);
+
       await userRef.update({ points: FieldValue.increment(-2) });
       currentPoints -= 2;
+      costCharged = 2;
     }
 
     // 🔍 فحص جوجل Safe Browsing
@@ -217,7 +231,6 @@ async function handleLinkCheck(req, res) {
         "scanStats.lastCheck": new Date().toISOString()
       });
 
-      // ✅ إرسال النتيجة مع التفاصيل
       let threatType = "آمن تماماً ✅";
       if (data.matches && data.matches.length > 0) {
         const threats = data.matches[0].threatType;
@@ -227,13 +240,17 @@ async function handleLinkCheck(req, res) {
         else threatType = "⚠️ تهديد محتمل";
       }
 
+      console.log(`✅ فحص كامل: ${threatType}`);
+
       return res.status(200).json({
+        success: true,
         safe: !data.matches,
         threatType: threatType,
         count: newCount,
         points: currentPoints,
         isFree: stats.count < 2,
-        message: stats.count >= 2 ? "تم خصم 2 نقطة من رصيدك" : "فحص مجاني"
+        charged: costCharged,
+        message: stats.count >= 2 ? `تم خصم ${costCharged} نقطة من رصيدك` : "فحص مجاني"
       });
     } catch (err) {
       console.error("Google Safe Browsing API Error:", err);
@@ -243,7 +260,7 @@ async function handleLinkCheck(req, res) {
     }
 
   } catch (error) {
-    console.error("Link Check Error:", error);
+    console.error("❌ Link Check Error:", error);
     return res.status(500).json({ error: "فشل في فحص الرابط" });
   }
 }
@@ -263,23 +280,25 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  // 🎯 تحديد المعالج بناءً على نوع الطلب
   const { action } = req.body;
 
-  if (action === 'quiz-cost') {
-    return handleQuizCost(req, res);
-  } else if (action === 'check-link') {
-    // إضافة action للطلب
-    req.body.action = 'check-link';
-    return handleLinkCheck(req, res);
-  } else if (!action && req.body.level && req.body.userId) {
-    // للتوافق مع الطلب القديم
-    return handleQuizCost(req, res);
-  } else if (!action && req.body.url && req.body.userId) {
-    // للتوافق مع الطلب القديم
-    req.body.action = 'check-link';
-    return handleLinkCheck(req, res);
-  }
+  try {
+    if (action === 'quiz-cost') {
+      return handleQuizCost(req, res);
+    } else if (action === 'check-link') {
+      return handleLinkCheck(req, res);
+    } else if (!action && req.body.level && req.body.userId) {
+      // للتوافق مع الطلب القديم
+      return handleQuizCost(req, res);
+    } else if (!action && req.body.url && req.body.userId) {
+      // للتوافق مع الطلب القديم
+      req.body.action = 'check-link';
+      return handleLinkCheck(req, res);
+    }
 
-  return res.status(400).json({ error: "طلب غير صحيح" });
-      }
+    return res.status(400).json({ error: "طلب غير صحيح" });
+  } catch (err) {
+    console.error("❌ Server Error:", err);
+    return res.status(500).json({ error: "خطأ في الخادم" });
+  }
+    }
