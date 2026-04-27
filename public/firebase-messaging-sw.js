@@ -1,3 +1,5 @@
+// firebase-messaging-sw.js - Service Worker المحسّن النهائي
+
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
@@ -15,18 +17,18 @@ const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
     const notificationTitle = payload.notification.title;
+    // ✨ عرض الرسالة كاملة مع معلومات المُرسل
     const notificationOptions = {
-        body: payload.notification.body,
+        body: payload.notification.body, // الرسالة كاملة
         icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
         badge: 'https://your-domain.com/badge-icon.png',
         tag: 'ghost-chat-msg',
         renotify: true,
-        data: payload.data,
-        requireInteraction: false, // ✅ تغيير مهم
+        data: payload.data || {}, // ✨ بتتضمن المرسل والرسالة الكاملة
+        requireInteraction: false,
         silent: false,
         priority: 'high',
-        vibrate: [200, 100, 200],
-        image: 'https://your-domain.com/ghost-notification.png' // ✅ صورة أكبر
+        vibrate: [200, 100, 200]
     };
     
     return self.registration.showNotification(notificationTitle, notificationOptions);
@@ -42,20 +44,20 @@ self.addEventListener('notificationclick', function(event) {
     
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(windowClients) {
-            // ✅ تحقق من النافذة الموجودة أولاً
+            // تحقق من النافذة الموجودة
             for (var i = 0; i < windowClients.length; i++) {
                 var client = windowClients[i];
                 if (client.url.includes('am-rewards.vercel.app') && 'focus' in client) {
                     client.focus();
-                    // أرسل رسالة للـ Frontend عن الإشعار الجديد
+                    // أرسل رسالة للـ Frontend مع بيانات المرسل والرسالة
                     client.postMessage({
                         type: 'NOTIFICATION_CLICKED',
-                        msgId: event.notification.data?.msgId
+                        data: event.notification.data
                     });
                     return;
                 }
             }
-            // إذا ما في نافذة، فتح واحدة جديدة
+            // إذا ما في نافذة مفتوحة، افتح واحدة جديدة
             if (clients.openWindow) return clients.openWindow(urlToOpen);
         })
     );
