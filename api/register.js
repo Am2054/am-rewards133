@@ -289,17 +289,6 @@ export default async function handler(req, res) {
           referralCount: FieldValue.increment(1)
         });
 
-        // إضافة بونص إحالة (50 نقطة = 3.5 ج.م)
-        tr.set(db.collection("referralBonuses").doc(), {
-          fromUserId: referredBy,
-          toUserId: uid,
-          bonusPoints: 50,
-          bonusEgp: 3.5,
-          timestamp: FieldValue.serverTimestamp(),
-          status: "pending"
-        });
-      }
-
       // تسجيل عملية التسجيل
       tr.set(db.collection("registrations").doc(), {
         uid,
