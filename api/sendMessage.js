@@ -202,16 +202,16 @@ export default async function handler(req, res) {
     }
   }
 }; 
-                    
-                    for (let i = 0; i < targetTokens.length; i += 500) {
-                        const chunk = targetTokens.slice(i, i + 500);
-                        await messaging.sendEachForMulticast({ tokens: chunk, ...payload });
-                    }
-                }    
-            }    
-        } catch (e) { console.error("Push Error", e); }    
+                    // ✅ الحل السريع:
+const chunks = [];
+for (let i = 0; i < targetTokens.length; i += 500) {
+    chunks.push(targetTokens.slice(i, i + 500));
+}
 
-
+// أرسل الكل في نفس الوقت
+await Promise.all(chunks.map(chunk => 
+    messaging.sendEachForMulticast({ tokens: chunk, ...payload })
+));
         return res.status(200).json({ success: true, ghostName: serverGhostName, activeDay });    
     } catch (error) { return res.status(500).json({ error: error.message }); }
 }
