@@ -1,3 +1,4 @@
+<!-- withdraw.html - النسخة النهائية المحسّنة -->
 <!DOCTYPE html>  
 <html lang="ar" dir="rtl">  
 <head>  
@@ -25,53 +26,111 @@
         .limits-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }  
         .limit-box { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 12px; font-size: 11px; }  
         .limit-box span { display: block; color: var(--neon-cyan); font-weight: 700; font-size: 14px; }  
+        
+        .withdrawal-method {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          margin-bottom: 15px;
+        }
+        .method-btn {
+          padding: 15px;
+          border-radius: 12px;
+          border: 2px solid var(--glass-border);
+          background: rgba(0,0,0,0.2);
+          color: #fff;
+          cursor: pointer;
+          font-weight: 700;
+          transition: 0.3s;
+        }
+        .method-btn.active {
+          border-color: var(--neon-cyan);
+          background: rgba(0, 242, 255, 0.1);
+        }
+        .method-btn:hover {
+          border-color: var(--neon-cyan);
+        }
+        
         label { display:block; margin:15px 0 8px; font-weight:700; color: #94a3b8; font-size: 13px; }  
         input { width: 100%; padding: 14px; margin-bottom: 5px; border: 1px solid var(--glass-border); border-radius: 12px; background: rgba(0,0,0,0.3); color: #fff; font-size: 16px; outline: none; }  
         input:focus { border-color: var(--neon-cyan); }  
+        
         .calc-details { background: rgba(255,255,255,0.03); border-radius: 15px; padding: 15px; margin: 15px 0; display: flex; justify-content: space-around; text-align: center; border: 1px dashed var(--glass-border); }  
         .calc-item b { display: block; font-family: 'Montserrat'; color: var(--neon-purple); }  
+        
         #confirmBtn { width: 100%; background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan)); color: #fff; font-weight: 900; padding: 16px; border: none; border-radius: 16px; cursor: pointer; font-size: 18px; box-shadow: 0 10px 20px rgba(112, 0, 255, 0.3); }  
         #confirmBtn:disabled { opacity: 0.3; cursor: not-allowed; filter: grayscale(1); }  
+        
         .history { margin-top: 35px; }  
         .table-responsive { border-radius: 15px; overflow: hidden; border: 1px solid var(--glass-border); }  
         table { width: 100%; border-collapse: collapse; background: rgba(0,0,0,0.2); }  
         th { background: rgba(112, 0, 255, 0.2); color: var(--neon-cyan); padding: 12px; font-size: 12px; }  
         td { padding: 12px 8px; text-align: center; border-bottom: 1px solid var(--glass-border); font-size: 12px; }  
-        .row-pending { color: var(--warning); } .row-completed { color: var(--success); } .row-rejected { color: var(--error); }  
+        .row-pending { color: var(--warning); } 
+        .row-completed { color: var(--success); } 
+        .row-rejected { color: var(--error); }  
+        
         #customModal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(10px); }  
         .modal-content { background: var(--bg-deep); padding: 30px; border-radius: 24px; width: 90%; max-width: 380px; text-align: center; border: 1px solid var(--neon-purple); }  
         .modal-actions { display: flex; gap: 10px; margin-top: 20px; }  
         .modal-actions button { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; }  
         #confirmActionBtn { background: var(--success); color: #fff; }  
         #cancelActionBtn { background: #334155; color: #fff; }  
+        
         .status-msg { text-align: center; margin-top: 15px; font-weight: 700; padding: 10px; border-radius: 10px; display: none; }  
-        .status-msg.show { display: block; }  
+        .status-msg.show { display: block; }
+        
+        .alert { padding: 12px; border-radius: 10px; margin-bottom: 15px; font-size: 12px; display: none; }
+        .alert.show { display: block; }
+        .alert-error { background: rgba(248, 113, 113, 0.1); border: 1px solid var(--error); color: var(--error); }
+        .alert-warning { background: rgba(250, 204, 21, 0.1); border: 1px solid var(--warning); color: var(--warning); }
+        
+        .cooldown-timer { color: var(--warning); font-weight: 900; text-align: center; margin-top: 10px; }
     </style>  
 </head>  
 <body>  
     <div class="container">  
         <h1>💸 سحب الأرباح</h1>  
+        
+        <div id="errorAlert" class="alert alert-error"></div>
+        <div id="warningAlert" class="alert alert-warning"></div>
+        
         <div class="balance-info-card">  
             <span style="font-size: 13px; opacity: 0.7;">رصيدك الحالي</span>  
             <span class="points-large" id="pointsVal">0</span>  
             <span style="font-size:16px;">≈ <span id="egpVal">0.00</span> ج.م</span>  
             <div class="limits-row">  
-                <div class="limit-box">الحد المتبقي اليوم <span id="remainingLimitVal">200</span></div>  
+                <div class="limit-box">المتبقي اليوم <span id="remainingLimitVal">200</span></div>  
                 <div class="limit-box">عمليات متبقية <span id="remainingOpsVal">--</span></div>  
             </div>  
         </div>  
-        <label>رقم المحفظة (فودافون كاش)</label>  
+        
+        <label>طريقة السحب</label>
+        <div class="withdrawal-method">
+          <button class="method-btn active" onclick="selectMethod('vodafone', this)">📱 فودافون كاش</button>
+          <button class="method-btn" onclick="selectMethod('orange', this)">🟠 أورانج موني</button>
+        </div>
+        
+        <label>رقم المحفظة <span id="methodLabel">(فودافون كاش)</span></label>  
         <input type="text" id="walletVod" placeholder="01xxxxxxxxx" maxlength="11">  
+        
         <label>المبلغ (الحد الأدنى 20 ج.م)</label>  
-        <input type="number" id="amountInp" placeholder="أدخل المبلغ">  
+        <input type="number" id="amountInp" placeholder="أدخل المبلغ" step="1" min="20">  
+        
         <div id="limitWarning" style="color:var(--error); font-size:12px; text-align:center; display:none; margin-top:10px;"></div>  
+        
         <div class="calc-details">  
             <div class="calc-item">الخصم (10%)<b id="feeVal">0.00</b></div>  
             <div class="calc-item">الصافي<b id="netVal" style="color:var(--neon-cyan)">0.00</b></div>  
             <div class="calc-item">النقاط<b id="needPts">0</b></div>  
         </div>  
+        
         <button id="confirmBtn" disabled>إرسال طلب السحب</button>  
+        
+        <div id="cooldownMsg" class="cooldown-timer" style="display: none;"></div>
+        
         <div id="msg" class="status-msg"></div>  
+        
         <div class="history">  
             <h2 style="font-size:16px; text-align:center; color:var(--neon-cyan);">📜 سجل العمليات</h2>  
             <div class="table-responsive">  
@@ -107,10 +166,15 @@
     firebase.initializeApp(firebaseConfig);  
     const auth = firebase.auth(); 
     const db = firebase.firestore();  
+    
     const POINT_VALUE = 0.07; 
-    const LIMITS = { min: 20, maxDaily: 200, maxOps: 2 };  
+    const LIMITS = { min: 20, maxDaily: 200, maxOps: 2, cooldown: 3600000 };  
+    const METHODS = {
+      vodafone: { name: 'فودافون كاش', regex: /^010\d{8}$/ },
+      orange: { name: 'أورانج موني', regex: /^012\d{8}$/ }
+    };
 
-    let userId, currentPoints, todayOps = 0, todayAmt = 0;  
+    let userId, currentPoints, todayOps = 0, todayAmt = 0, selectedMethod = 'vodafone', lastWithdrawalTime = 0;  
 
     const translateStatus = (s) => ({ 
         'pending': 'قيد الانتظار ⏳', 
@@ -118,6 +182,64 @@
         'rejected': 'مرفوض ❌' 
     }[s] || s);  
 
+    // ✅ اختيار طريقة السحب
+    window.selectMethod = function(method, btn) {
+      selectedMethod = method;
+      document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('methodLabel').textContent = `(${METHODS[method].name})`;
+      document.getElementById('walletVod').placeholder = method === 'vodafone' ? '01xxxxxxxxx' : '012xxxxxxxx';
+      document.getElementById('walletVod').value = '';
+      updateCalc();
+    };
+
+    // ✅ فحص الـ Cooldown
+    async function checkCooldown() {
+      if (!userId) return false;
+      
+      const snap = await db.collection("withdrawals")
+        .where("userId", "==", userId)
+        .where("status", "==", "completed")
+        .orderBy("date", "desc")
+        .limit(1)
+        .get();
+
+      if (!snap.empty) {
+        const lastTime = snap.docs[0].data().date.toMillis();
+        const timePassed = Date.now() - lastTime;
+        
+        if (timePassed < LIMITS.cooldown) {
+          const remainingMs = LIMITS.cooldown - timePassed;
+          const remainingMins = Math.ceil(remainingMs / 60000);
+          lastWithdrawalTime = Date.now() + remainingMs;
+          
+          startCooldownTimer(remainingMs);
+          return true;
+        }
+      }
+      
+      return false;
+    }
+
+    // ✅ таймер الـ Cooldown
+    function startCooldownTimer(ms) {
+      const msg = document.getElementById('cooldownMsg');
+      msg.style.display = 'block';
+      
+      const timer = setInterval(() => {
+        const remaining = Math.ceil((lastWithdrawalTime - Date.now()) / 60000);
+        
+        if (remaining <= 0) {
+          msg.style.display = 'none';
+          clearInterval(timer);
+          updateCalc();
+        } else {
+          msg.textContent = `⏳ يجب الانتظار ${remaining} دقيقة قبل السحب التالي`;
+        }
+      }, 1000);
+    }
+
+    // ✅ حساب الحدود اليومية
     async function checkLimits() {  
         if (!userId) return;  
         const start = new Date(); start.setUTCHours(0,0,0,0);  
@@ -125,7 +247,12 @@
             .where("userId", "==", userId)
             .where("date", ">=", start).get();  
         todayOps = 0; todayAmt = 0;  
-        snap.forEach(doc => { if(doc.data().status !== 'rejected') { todayOps++; todayAmt += doc.data().amount; } });  
+        snap.forEach(doc => { 
+          if(doc.data().status !== 'rejected') { 
+            todayOps++; 
+            todayAmt += doc.data().amount; 
+          } 
+        });  
         document.getElementById('remainingOpsVal').textContent = Math.max(0, LIMITS.maxOps - todayOps);  
         document.getElementById('remainingLimitVal').textContent = Math.max(0, LIMITS.maxDaily - todayAmt).toFixed(2);  
     }  
@@ -133,7 +260,9 @@
     auth.onAuthStateChanged(user => {  
         if (user) {  
             userId = user.uid; 
-            checkLimits();  
+            checkLimits();
+            checkCooldown();
+            
             db.collection('users').doc(userId).onSnapshot(doc => {  
                 if (doc.exists) {  
                     currentPoints = doc.data().points || 0;  
@@ -142,8 +271,11 @@
                     updateCalc();  
                 }  
             });  
-            db.collection("withdrawals").where("userId", "==", userId)
-                .orderBy("date", "desc").limit(10)
+            
+            db.collection("withdrawals")
+                .where("userId", "==", userId)
+                .orderBy("date", "desc")
+                .limit(10)
                 .onSnapshot(snap => {  
                     const table = document.getElementById('withdrawalsTable'); 
                     table.innerHTML = "";  
@@ -152,19 +284,22 @@
                         const tr = document.createElement('tr'); 
                         tr.className = `row-${w.status}`;  
                         
-                        // إضافة منطق عرض سبب الرفض
                         let statusHTML = translateStatus(w.status);
                         if (w.status === 'rejected' && w.rejectionReason) {
                             statusHTML += `<br><small style="color:#ff4d4d; font-size:10px; font-weight:bold;">السبب: ${w.rejectionReason}</small>`;
                         }
 
-                        tr.innerHTML = `<td>${w.amount} ج</td><td>${statusHTML}</td><td>${w.date?.toDate().toLocaleDateString('ar-EG')}</td>`;  
+                        const dateStr = w.date?.toDate ? w.date.toDate().toLocaleDateString('ar-EG') : 'N/A';
+                        tr.innerHTML = `<td>${w.amount} ج</td><td>${statusHTML}</td><td>${dateStr}</td>`;  
                         table.appendChild(tr);  
                     });  
                 });  
-        } else { window.location.href = "login.html"; }  
+        } else { 
+            window.location.href = "login.html"; 
+        }  
     });  
 
+    // ✅ حساب التفاصيل
     function updateCalc() {  
         const amtInput = document.getElementById('amountInp');
         const amt = parseFloat(amtInput.value);  
@@ -173,25 +308,35 @@
         const warning = document.getElementById('limitWarning');  
         warning.style.display = 'none';  
 
-        // تحسين منطق التأكد من صحة الرقم (Regex) ليتناسب مع الباك آند
-        const isWalletValid = /^010\d{8}$/.test(wallet);
+        const methodRegex = METHODS[selectedMethod].regex;
+        const isWalletValid = methodRegex.test(wallet);
 
-        if (amt >= LIMITS.min) {  
+        const isCoolingDown = lastWithdrawalTime > Date.now();
+
+        if (amt >= LIMITS.min && !isNaN(amt)) {  
             document.getElementById('feeVal').textContent = (amt * 0.1).toFixed(2);  
             document.getElementById('netVal').textContent = (amt * 0.9).toFixed(2);  
             document.getElementById('needPts').textContent = ptsNeeded.toLocaleString();  
             
-            const canSubmit = ptsNeeded <= currentPoints && isWalletValid && (todayAmt + amt) <= LIMITS.maxDaily && todayOps < LIMITS.maxOps;  
+            const canSubmit = ptsNeeded <= currentPoints && isWalletValid && (todayAmt + amt) <= LIMITS.maxDaily && todayOps < LIMITS.maxOps && !isCoolingDown;  
             document.getElementById('confirmBtn').disabled = !canSubmit;  
             
             if (ptsNeeded > currentPoints) { 
                 warning.textContent = "⚠️ نقاطك لا تكفي"; 
                 warning.style.display = "block"; 
-            } else if (wallet.length === 11 && !isWalletValid) {
-                warning.textContent = "⚠️ عذراً، متاح فقط فودافون كاش حالياً (010)";
+            } else if (wallet.length > 0 && !isWalletValid) {
+                warning.textContent = `⚠️ رقم غير صحيح لـ ${METHODS[selectedMethod].name}`;
+                warning.style.display = "block";
+            } else if ((todayAmt + amt) > LIMITS.maxDaily) {
+                warning.textContent = `⚠️ تجاوزت الحد اليومي المسموح`;
+                warning.style.display = "block";
+            } else if (todayOps >= LIMITS.maxOps) {
+                warning.textContent = `⚠️ وصلت للحد الأقصى للعمليات اليومية`;
                 warning.style.display = "block";
             }
-        } else { document.getElementById('confirmBtn').disabled = true; }  
+        } else { 
+            document.getElementById('confirmBtn').disabled = true; 
+        }  
     }  
 
     document.getElementById('amountInp').oninput = updateCalc;  
@@ -203,7 +348,9 @@
         document.getElementById('customModal').style.display = 'flex';  
     };  
 
-    document.getElementById('cancelActionBtn').onclick = () => document.getElementById('customModal').style.display = 'none';  
+    document.getElementById('cancelActionBtn').onclick = () => {
+      document.getElementById('customModal').style.display = 'none';  
+    };
 
     document.getElementById('confirmActionBtn').onclick = async () => {  
         document.getElementById('customModal').style.display = 'none';  
@@ -211,14 +358,22 @@
         btn.disabled = true; 
         btn.textContent = "جارِ الإرسال...";  
 
+        const errorAlert = document.getElementById('errorAlert');
+        errorAlert.innerHTML = '';
+        errorAlert.classList.remove('show');
+
         try {  
             const idToken = await auth.currentUser.getIdToken();  
             const response = await fetch('/api/withdraw', { 
                 method: 'POST',  
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },  
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Authorization': `Bearer ${idToken}` 
+                },  
                 body: JSON.stringify({ 
-                    amount: parseFloat(document.getElementById('amountInp').value), 
-                    wallet: document.getElementById('walletVod').value.trim() 
+                    amount: parseFloat(document.getElementById('amountInp').value),
+                    wallet: document.getElementById('walletVod').value.trim(),
+                    method: selectedMethod
                 })  
             });  
 
@@ -226,16 +381,21 @@
             let data;
             try { data = JSON.parse(text); } catch { data = { message: text }; }
 
-            if (!response.ok) throw new Error(data.message || "حدث خطأ غير معروف");  
+            if (!response.ok) throw new Error(data.message || data.error || "حدث خطأ غير معروف");  
 
-            document.getElementById('msg').textContent = "✅ " + data.message;  
-            document.getElementById('msg').className = "status-msg show success";  
+            const msgEl = document.getElementById('msg');
+            msgEl.textContent = "✅ " + data.message;  
+            msgEl.className = "status-msg show";
+            msgEl.style.background = 'rgba(34, 197, 94, 0.2)';
+            msgEl.style.color = '#22c55e';
+            
             document.getElementById('amountInp').value = ""; 
-            document.getElementById('walletVod').value = ""; // تفريغ الرقم بعد النجاح
-            checkLimits();  
+            document.getElementById('walletVod').value = "";
+            checkLimits();
+            checkCooldown();
         } catch (err) {  
-            document.getElementById('msg').textContent = "❌ " + err.message;  
-            document.getElementById('msg').className = "status-msg show error";  
+            errorAlert.textContent = "❌ " + err.message;  
+            errorAlert.classList.add('show');
         } finally { 
             btn.textContent = "إرسال طلب السحب"; 
             updateCalc(); 
@@ -243,4 +403,4 @@
     };
 </script>
 </body>  
-</html>
+            </html>
