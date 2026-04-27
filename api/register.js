@@ -120,7 +120,7 @@ export default async function handler(req, res) {
       });
     }
 
-    if (!/^01[0256]\d{8}$/.test(phone)) {
+    if (!/^01[0125]\d{8}$/.test(phone)) {
       return res.status(400).json({ 
         error: "Invalid phone number format" 
       });
