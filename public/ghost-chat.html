@@ -1,4 +1,4 @@
-<!-- ghost-chat.html - النسخة المصححة -->
+<!-- ghost-chat.html - بدون التقييمات -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -372,41 +372,6 @@
             box-shadow: 0 0 20px rgba(59, 130, 246, 0.3) !important;
         }
 
-        /* ✅ نظام التقييم - محسّن */
-        .msg-reactions {
-            display: flex;
-            gap: 8px;
-            margin-top: 8px;
-            flex-wrap: wrap;
-        }
-
-        .reaction-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #fff;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: 0.2s;
-            white-space: nowrap;
-        }
-
-        .reaction-btn:hover {
-            background: rgba(0, 242, 255, 0.2);
-            border-color: var(--cyan);
-        }
-
-        .reaction-btn:active {
-            transform: scale(0.95);
-        }
-
-        .reaction-btn.active {
-            background: rgba(0, 242, 255, 0.3);
-            border-color: var(--cyan);
-            color: var(--cyan);
-        }
-
         /* زر التقرير */
         .report-btn {
             position: absolute;
@@ -674,52 +639,6 @@
         let lastSend = 0;
         const renderedMsgIds = new Set();
         let activeDay = "";
-        let notificationAudio = null;
-        let lastNotificationTime = 0; // ✅ لمنع الإشعارات المتعددة
-
-        // ✅ إنشاء صوت مخصص للإشعارات
-        function createNotificationAudio() {
-            // صوت جميل بدل الافتراضي
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const now = audioContext.currentTime;
-
-            // نوتة موسيقية جميلة: Do-Mi-Sol-Do
-            const notes = [262, 330, 392, 523]; // الترددات بالهرتز
-
-            notes.forEach((freq, index) => {
-                const oscillator = audioContext.createOscillator();
-                const envelope = audioContext.createGain();
-
-                oscillator.frequency.value = freq;
-                oscillator.type = 'sine';
-
-                envelope.gain.setValueAtTime(0, now + index * 0.1);
-                envelope.gain.linearRampToValueAtTime(0.3, now + index * 0.1 + 0.05);
-                envelope.gain.exponentialRampToValueAtTime(0.01, now + index * 0.1 + 0.2);
-
-                oscillator.connect(envelope);
-                envelope.connect(audioContext.destination);
-
-                oscillator.start(now + index * 0.1);
-                oscillator.stop(now + index * 0.1 + 0.2);
-            });
-        }
-
-        // ✅ تشغيل الصوت مرة واحدة فقط
-        function playNotificationSound() {
-            const now = Date.now();
-            // منع الأصوات المتكررة (فقط صوت واحد كل 3 ثواني)
-            if (now - lastNotificationTime < 3000) {
-                console.log("🔇 صوت تم تشغيله مؤخراً، تخطي");
-                return;
-            }
-            lastNotificationTime = now;
-            try {
-                createNotificationAudio();
-            } catch (e) {
-                console.error("Error playing sound:", e);
-            }
-        }
 
         window.cancelReply = () => {
             currentReplyTo = null;
@@ -764,31 +683,37 @@
             onDisconnect(onlineRef).remove();
         };
 
+        // ✅ طلب إذن الإشعارات
         async function requestNotificationPermission() {
             try {
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
+                    console.log("✅ تم الموافقة على الإشعارات");
+                    
+                    // ✅ تسجيل Service Worker
                     const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+                    console.log("✅ Service Worker مسجل");
+
+                    // ✅ الحصول على Token
                     const token = await getToken(messaging, {
                         vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
                         serviceWorkerRegistration: registration
                     });
+
                     if (token) {
-                        await set(ref(db, `users_tokens/${currentUser.uid}`), { token, ghostName: myGhostName });
+                        console.log("✅ Token:", token);
+                        // ✅ حفظ Token في DB
+                        await set(ref(db, `users_tokens/${currentUser.uid}`), {
+                            token: token,
+                            ghostName: myGhostName,
+                            timestamp: new Date().getTime()
+                        });
+                        console.log("✅ تم حفظ Token");
                     }
                 }
             } catch (err) {
-                console.warn("FCM Error", err);
+                console.error("❌ FCM Error", err);
             }
-        }
-
-        // ✅ استقبال الرسائل من Service Worker
-        if (navigator.serviceWorker) {
-            navigator.serviceWorker.addEventListener('message', (event) => {
-                if (event.data.type === 'NOTIFICATION_CLICKED') {
-                    console.log('Notification clicked:', event.data.data);
-                }
-            });
         }
 
         onAuthStateChanged(auth, (user) => {
@@ -862,66 +787,15 @@
                     } else if (data.edited) {
                         el.querySelector('.text').innerText = data.text;
                     }
-                    // ✅ تحديث التقييمات
-                    updateReactions(snap.key, data.reactions);
                 }
             });
 
             onChildAdded(query(msgRef, limitToLast(100)), (snap) => {
                 if (!renderedMsgIds.has(snap.key)) {
                     renderMsg(snap.key, snap.val());
-                    // ✅ تشغيل الصوت مرة واحدة عند وصول رسالة جديدة
-                    playNotificationSound();
                 }
             });
         }
-
-        // ✅ تحديث التقييمات - محسّن
-        function updateReactions(msgId, reactions) {
-            const reactionsContainer = document.getElementById(`reactions-${msgId}`);
-            if (reactionsContainer) {
-                reactionsContainer.innerHTML = `
-                    <button class="reaction-btn" onclick="addReaction('${msgId}', 'good')" id="good-${msgId}">👍 ${reactions.good || 0}</button>
-                    <button class="reaction-btn" onclick="addReaction('${msgId}', 'bad')" id="bad-${msgId}">👎 ${reactions.bad || 0}</button>
-                `;
-            }
-        }
-
-        // ✅ إضافة تقييم - محسّن
-        window.addReaction = async (msgId, type) => {
-            try {
-                const msgRef = ref(db, `messages/global/${activeDay}/${msgId}`);
-                const snap = await get(msgRef);
-                if (snap.exists()) {
-                    const data = snap.val();
-                    const reactions = data.reactions || { good: 0, bad: 0 };
-
-                    // ✅ منع التقييم المتكرر من نفس المستخدم
-                    const userId = currentUser.uid;
-                    const votedKey = `voted_${type}_${msgId}`;
-                    
-                    if (localStorage.getItem(votedKey) === userId) {
-                        console.log("✅ لقد قيّمت هذه الرسالة مسبقاً");
-                        return;
-                    }
-
-                    reactions[type]++;
-                    await update(msgRef, { reactions });
-                    
-                    // ✅ حفظ التصويت
-                    localStorage.setItem(votedKey, userId);
-                    
-                    // ✅ تحديث الزر
-                    const btn = document.getElementById(`${type}-${msgId}`);
-                    if (btn) {
-                        btn.classList.add('active');
-                        btn.disabled = true;
-                    }
-                }
-            } catch (e) {
-                console.error("Reaction error:", e);
-            }
-        };
 
         function renderMsg(id, data) {
             const chatBox = document.getElementById('chatBox');
@@ -954,29 +828,6 @@
             }
 
             div.innerHTML = contentHTML;
-
-            // ✅ إضافة التقييمات - محسّن
-            if (!isSystem && data.reactions) {
-                const reactionsDiv = document.createElement('div');
-                reactionsDiv.id = `reactions-${id}`;
-                reactionsDiv.className = 'msg-reactions';
-
-                const userId = currentUser.uid;
-                const hasVotedGood = localStorage.getItem(`voted_good_${id}`) === userId;
-                const hasVotedBad = localStorage.getItem(`voted_bad_${id}`) === userId;
-
-                reactionsDiv.innerHTML = `
-                    <button class="reaction-btn ${hasVotedGood ? 'active' : ''}" 
-                            onclick="addReaction('${id}', 'good')" 
-                            id="good-${id}"
-                            ${hasVotedGood ? 'disabled' : ''}>👍 ${data.reactions.good || 0}</button>
-                    <button class="reaction-btn ${hasVotedBad ? 'active' : ''}" 
-                            onclick="addReaction('${id}', 'bad')" 
-                            id="bad-${id}"
-                            ${hasVotedBad ? 'disabled' : ''}>👎 ${data.reactions.bad || 0}</button>
-                `;
-                div.appendChild(reactionsDiv);
-            }
 
             // إضافة زر التقرير
             if (!isMe && !isSystem) {
