@@ -1,105 +1,107 @@
+// /api/admin-stats.js - إحصائيات محسّنة
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
+import jwt from "jsonwebtoken";
+import { parse } from "cookie";
 
-// --- 1. تهيئة Firebase Admin (باستخدام الكود الخاص بك) ---
 if (!getApps().length) {
-  try {
-    let rawKey = process.env.FIREBASE_ADMIN_KEY;
-    if (rawKey) {
-      const serviceAccount = JSON.parse(rawKey.trim());
-      if (serviceAccount.private_key) {
-        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-      }
-      initializeApp({ credential: cert(serviceAccount) });
-    }
-  } catch (error) { 
-    console.error("Firebase Init Error:", error.message); 
-  }
+  initializeApp({
+    credential: cert(JSON.parse(process.env.FIREBASE_ADMIN_KEY))
+  });
 }
 
 const db = getFirestore();
+const auth = getAuth();
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
-// --- 2. إعدادات الـ Cache (خارج الـ handler) ---
-let cachedStats = null;
-let lastFetchTime = 0;
-const CACHE_DURATION = 30000; // 30 ثانية
+// ✅ التحقق من الجلسة
+function verifyAdminSession(req) {
+  try {
+    const cookies = parse(req.headers.cookie || "");
+    const token = cookies.adminToken;
+
+    if (!token) return false;
+
+    jwt.verify(token, JWT_SECRET);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export default async function handler(req, res) {
-  // تم تعديل هذا الجزء للسماح بالمرور بدون fingerprint ليتوافق مع النظام الجديد
-  const fingerprint = req.headers['x-fingerprint'] || "authorized_session"; 
-  
-  // أ) فحص الـ Cache أولاً
-  const currentTime = Date.now();
-  if (cachedStats && (currentTime - lastFetchTime < CACHE_DURATION)) {
-    console.log("Serving from Server-Side Cache 🚀");
-    return res.status(200).json(cachedStats);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "GET") return res.status(405).json({ error: "Method Not Allowed" });
+
+  // ✅ التحقق من الجلسة
+  if (!verifyAdminSession(req)) {
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   try {
-    console.log("Fetching fresh data from Firestore... 🔥");
+    // جمع الإحصائيات
+    const usersSnap = await db.collection("users").get();
+    const totalUsers = usersSnap.size;
+    let currentPoints = 0;
+    let totalDistributedPoints = 0;
+    let totalRefEarnings = 0;
+    let totalRefCount = 0;
 
-    // ب) جلب البيانات من المجموعات (Collections)
-    const [usersSnap, withdrawalsSnap, tasksSnap, supportSnap, transSnap] = await Promise.all([
-      db.collection("users").get(),
-      db.collection("withdrawals").get(),
-      db.collection("tasksCompleted").where("status", "==", "done").get(),
-      db.collection("support_tickets").where("status", "==", "pending").get(),
-      db.collection("points_transactions").where("type", "==", "reward").get()
-    ]);
-
-    let stats = {
-      totalUsers: usersSnap.size,
-      currentPoints: 0,
-      totalRefEarnings: 0,
-      totalRefCount: 0,
-      totalDistributedPoints: 0,
-      pendingWithdrawals: 0,
-      totalPaidNet: 0,
-      todayPaidCount: 0,
-      openSupportTickets: supportSnap.size
-    };
-
-    const today = new Date().toDateString();
-
-    // ج) معالجة بيانات المستخدمين
     usersSnap.forEach(doc => {
       const data = doc.data();
-      stats.currentPoints += (Number(data.points) || 0);
-      stats.totalRefEarnings += (Number(data.totalReferralEarnings) || 0);
-      if (data.referredBy) stats.totalRefCount++;
+      currentPoints += data.points || 0;
+      totalDistributedPoints += (data.pointsDistributed || 0);
+      totalRefEarnings += (data.totalReferralEarnings || 0);
+      totalRefCount += (data.referralCount || 0);
     });
 
-    // د) حساب النقاط الموزعة (مهام + مكافآت)
-    tasksSnap.forEach(doc => {
-      stats.totalDistributedPoints += (Number(doc.data().pointsEarned) || 0);
-    });
-    transSnap.forEach(doc => {
-      stats.totalDistributedPoints += (Number(doc.data().amount) || 0);
+    // السحوبات المعلقة
+    const withdrawalsSnap = await db.collection("withdrawals")
+      .where("status", "==", "pending")
+      .get();
+    const pendingWithdrawals = withdrawalsSnap.size;
+
+    // تذاكر الدعم المفتوحة
+    const supportSnap = await db.collection("supportTickets")
+      .where("status", "==", "open")
+      .get();
+    const openSupportTickets = supportSnap.size;
+
+    // عمليات اليوم
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    const todaySnap = await db.collection("withdrawals")
+      .where("status", "==", "completed")
+      .where("date", ">=", today)
+      .get();
+    const todayPaidCount = todaySnap.size;
+    let totalPaidNet = 0;
+
+    todaySnap.forEach(doc => {
+      totalPaidNet += (doc.data().net || 0);
     });
 
-    // هـ) حساب السحوبات (الصافي Net)
-    withdrawalsSnap.forEach(doc => {
-      const d = doc.data();
-      if (d.status === "pending") stats.pendingWithdrawals++;
-      if (d.status === "completed") {
-        stats.totalPaidNet += (Number(d.net) || 0);
-        
-        // التحقق من تاريخ اليوم
-        if (d.processedAt) {
-          const processDate = d.processedAt.toDate().toDateString();
-          if (processDate === today) stats.todayPaidCount++;
-        }
-      }
+    return res.status(200).json({
+      totalUsers,
+      currentPoints,
+      totalDistributedPoints,
+      totalRefEarnings,
+      totalRefCount,
+      pendingWithdrawals,
+      openSupportTickets,
+      todayPaidCount,
+      totalPaidNet,
+      timestamp: new Date().toISOString()
     });
-
-    // و) تحديث الـ Cache قبل الإرسال
-    cachedStats = stats;
-    lastFetchTime = currentTime;
-
-    return res.status(200).json(stats);
 
   } catch (error) {
-    console.error("Aggregation Error Details:", error);
-    return res.status(500).json({ error: "Internal Server Error", details: error.message });
+    console.error("Error fetching admin stats:", error);
+    return res.status(500).json({ error: "Failed to fetch stats" });
   }
 }
