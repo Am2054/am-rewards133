@@ -4,10 +4,20 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import fetch from 'node-fetch';
 
+// تهيئة Firebase Admin
 if (!getApps().length) {
-  initializeApp({
-    credential: cert(JSON.parse(process.env.FIREBASE_ADMIN_KEY.replace(/\\n/g, '\n')))
-  });
+  try {
+    let rawKey = process.env.FIREBASE_ADMIN_KEY;
+    if (rawKey) {
+      const serviceAccount = JSON.parse(rawKey.trim());
+      if (serviceAccount.private_key) {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      }
+      initializeApp({ credential: cert(serviceAccount) });
+    }
+  } catch (error) { 
+    console.error("Firebase Init Error:", error.message); 
+  }
 }
 
 const db = getFirestore();
