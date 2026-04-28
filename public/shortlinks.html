@@ -388,10 +388,25 @@
 
         if (response.ok) {
           // ✅ تسجيل الرابط في collection
-          await setDoc(
-            doc(db, "users", currentUser.uid, "lastLinks", idx.toString()),
-            { timestamp: new Date(), points: pts }
-          );
+          const linkData = shortlinks.find(l => l.id == idx);
+
+// 1️⃣ تسجيل global
+await addDoc(collection(db, "lastLinks"), {
+  userId: currentUser.uid,
+  linkId: idx,
+  title: linkData?.title || "",
+  url: linkData?.url || "",
+  difficulty: linkData?.difficulty || "",
+  type: linkData?.type || "",
+  points: pts,
+  timestamp: new Date()
+});
+
+// 2️⃣ تسجيل آخر مرة (للكول داون)
+await setDoc(
+  doc(db, "users", currentUser.uid, "lastLinks", idx.toString()),
+  { timestamp: new Date(), points: pts }
+);
 
           Swal.fire({
             title: 'كفو!',
