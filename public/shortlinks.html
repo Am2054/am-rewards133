@@ -368,62 +368,67 @@
     }
 
     window.submitVerify = async (selectedCode, pts, idx) => {
-      if (isProcessing) return;
-      isProcessing = true;
-      Swal.showLoading();
+  if (isProcessing) return;
+  isProcessing = true;
+  Swal.showLoading();
 
-      try {
-        const response = await fetch('/api/verify-link', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: currentUser.uid,
-            linkIdx: idx,
-            selectedCode: selectedCode,
-            points: pts
-          })
-        });
+  try {
+    const response = await fetch('/api/verify-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: currentUser.uid,
+        linkIdx: idx,
+        selectedCode: selectedCode,
+        points: pts
+      })
+    });
 
-        const data = await response.json();
+    const data = await response.json();
 
-        if (response.ok) {
-          // ✅ تسجيل الرابط في collection
-          const linkData = shortlinks.find(l => l.id == idx);
+    if (response.ok) {
+      const linkData = shortlinks.find(l => l.id == idx);
+      const now = new Date();
 
-// 1️⃣ تسجيل global
-await addDoc(collection(db, "lastLinks"), {
-  userId: currentUser.uid,
-  linkId: idx,
-  title: linkData?.title || "",
-  url: linkData?.url || "",
-  difficulty: linkData?.difficulty || "",
-  type: linkData?.type || "",
-  points: pts,
-  timestamp: new Date()
-});
+      // 1️⃣ تحديث المصفوفة المحلية فوراً عشان الـ UI يتحدث
+      lastLinks[idx.toString()] = now.getTime(); 
+      
+      // 2️⃣ إعادة رسم الواجهة فوراً
+      renderUI(); 
 
-// 2️⃣ تسجيل آخر مرة (للكول داون)
-await setDoc(
-  doc(db, "users", currentUser.uid, "lastLinks", idx.toString()),
-  { timestamp: new Date(), points: pts }
-);
+      // 3️⃣ تسجيل في الـ Databases (في الخلفية)
+      await addDoc(collection(db, "lastLinks"), {
+        userId: currentUser.uid,
+        linkId: idx,
+        title: linkData?.title || "",
+        url: linkData?.url || "",
+        difficulty: linkData?.difficulty || "",
+        type: linkData?.type || "",
+        points: pts,
+        timestamp: now
+      });
 
-          Swal.fire({
-            title: 'كفو!',
-            text: `تم إضافة ${data.points} نقطة بنجاح ✅`,
-            icon: 'success'
-          });
-        } else {
-          Swal.fire('فشل!', data.error || 'حدث خطأ ما.', 'error');
-        }
-      } catch (e) {
-        Swal.fire('خطأ', 'تعذر الاتصال بالخادم', 'error');
-      } finally {
-        isProcessing = false;
-        localStorage.removeItem('p_idx');
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-    };
+      await setDoc(
+        doc(db, "users", currentUser.uid, "lastLinks", idx.toString()),
+        { timestamp: now, points: pts }
+      );
+
+      Swal.fire({
+        title: 'كفو!',
+        text: `تم إضافة ${data.points} نقطة بنجاح ✅`,
+        icon: 'success'
+      });
+    } else {
+      Swal.fire('فشل!', data.error || 'حدث خطأ ما.', 'error');
+    }
+  } catch (e) {
+    Swal.fire('خطأ', 'تعذر الاتصال بالخادم', 'error');
+  } finally {
+    isProcessing = false;
+    localStorage.removeItem('p_idx');
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+};
 
     window.openLink = (i, url) => {
       localStorage.setItem("p_idx", i);
