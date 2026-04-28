@@ -241,7 +241,7 @@ export default async function handler(req, res) {
       tr.set(withdrawalRef, withdrawalData);
 
       // معالجة مكافأة الإحالة
-      if (userData.referredBy && (userData.totalReferralEarnings || 0) < 10) {
+      if (userData.referredBy && (userData.completedReferralsCount || 0) < 10) {
         const bonusPoints = Math.ceil(pointsNeeded * REFERRAL_PERCENT);
         const bonusEgp = Number((amount * REFERRAL_PERCENT).toFixed(2));
 
