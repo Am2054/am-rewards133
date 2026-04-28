@@ -1,12 +1,12 @@
-<!DOCTYPE html>    
-<html lang="ar" dir="rtl">      
-<head>      
-  <meta charset="utf-8" />      
-  <title>AM Rewards | الـمـجـرة</title>      
-  <meta name="viewport" content="width=device-width,initial-scale=1" />      
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Montserrat:wght@900&display=swap" rel="stylesheet">      
-  <style>      
-    :root {      
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <title>AM Rewards | لوحة المستخدم</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Montserrat:wght@900&display=swap" rel="stylesheet">
+  <style>
+    :root {
       --neon-cyan: #00f2ff;
       --neon-purple: #7000ff;
       --bg-deep: #020617;
@@ -14,105 +14,230 @@
       --glass-border: rgba(255, 255, 255, 0.1);
       --gold: #FFD369;
       --text-main: #f1f5f9;
-    }      
+      --danger: #f87171;
+      --success: #22c55e;
+    }
 
-    * { box-sizing: border-box; }      
-    
-    /* جعل الحاوية مخفية افتراضياً لحين التأكد من تسجيل الدخول */
-    .container { 
-      max-width: 480px; 
-      margin: 0 auto; 
-      padding: 25px 15px; 
-      display: none; 
-      opacity: 0; 
+    * { box-sizing: border-box; }
+
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 25px 15px;
+      display: none;
+      opacity: 0;
       transition: opacity 0.5s ease;
     }
 
-    .action-item, .point-box, .progress-fill, .btn-logout, .profile-card {
-      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
-                  box-shadow 0.4s ease, 
-                  opacity 0.4s ease, 
-                  background-color 0.4s ease; 
+    .container.show {
+      display: block;
+      opacity: 1;
     }
-    
-    body { 
-      margin: 0; padding: 0; font-family: "Cairo", sans-serif; 
-      background: var(--bg-deep); color: var(--text-main);
-      min-height: 100vh; overflow-x: hidden;
-      background-image: 
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Cairo", sans-serif;
+      background: var(--bg-deep);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image:
         radial-gradient(circle at 10% 20%, rgba(112, 0, 255, 0.1) 0%, transparent 40%),
         radial-gradient(circle at 90% 80%, rgba(0, 242, 255, 0.1) 0%, transparent 40%);
     }
 
     .nebula {
-      position: fixed; inset: 0; z-index: -1;
+      position: fixed;
+      inset: 0;
+      z-index: -1;
       background: radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 100%);
     }
+
     .nebula::after {
-      content: ""; position: absolute; width: 200%; height: 200%;
+      content: "";
+      position: absolute;
+      width: 200%;
+      height: 200%;
       background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
       opacity: 0.15;
       animation: stars 100s linear infinite;
     }
-    @keyframes stars { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+
+    @keyframes stars {
+      from { transform: translateY(0); }
+      to { transform: translateY(-50%); }
+    }
+
+    /* ✅ نظام التنبيهات */
+    .alert {
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      display: none;
+      animation: slideIn 0.3s ease;
+    }
+
+    .alert.show {
+      display: block;
+    }
+
+    .alert-danger {
+      background: rgba(248, 113, 113, 0.1);
+      border: 1px solid #f87171;
+      color: #f87171;
+    }
+
+    .alert-warning {
+      background: rgba(250, 204, 21, 0.1);
+      border: 1px solid #facc15;
+      color: #facc15;
+    }
+
+    .alert-success {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid #22c55e;
+      color: #22c55e;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateY(-10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
 
     header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 20px; border-radius: 24px;
-      background: var(--glass-bg); backdrop-filter: blur(15px);
-      border: 1px solid var(--glass-border); margin-bottom: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px;
+      border-radius: 24px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(15px);
+      border: 1px solid var(--glass-border);
+      margin-bottom: 25px;
     }
+
     .logo-glow {
-      width: 50px; height: 50px; border-radius: 15px;
+      width: 50px;
+      height: 50px;
+      border-radius: 15px;
       background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       box-shadow: 0 0 20px rgba(0, 242, 255, 0.5);
-      font-family: 'Montserrat'; font-size: 20px; color: #fff;
+      font-family: 'Montserrat';
+      font-size: 20px;
+      color: #fff;
     }
 
     .profile-card {
-      position: relative; padding: 30px 20px; border-radius: 30px;
-      background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
-      border: 1px solid var(--glass-border); backdrop-filter: blur(20px);
-      text-align: center; overflow: hidden; margin-bottom: 25px;
+      position: relative;
+      padding: 30px 20px;
+      border-radius: 30px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(20px);
+      text-align: center;
+      overflow: hidden;
+      margin-bottom: 25px;
     }
+
     .profile-card::before {
-      content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
       background: conic-gradient(transparent, var(--neon-cyan), transparent 30%);
-      animation: rotateBorder 6s linear infinite; z-index: -1;
+      animation: rotateBorder 6s linear infinite;
+      z-index: -1;
     }
-    @keyframes rotateBorder { to { transform: rotate(360deg); } }
-    .inner-card { background: var(--bg-deep); border-radius: 25px; padding: 20px; }
-    
+
+    @keyframes rotateBorder {
+      to { transform: rotate(360deg); }
+    }
+
+    .inner-card {
+      background: var(--bg-deep);
+      border-radius: 25px;
+      padding: 20px;
+    }
+
     .avatar-main {
-      width: 90px; height: 90px; border-radius: 50%; border: 4px solid var(--neon-cyan);
-      margin: -60px auto 15px; background: #1e293b; display: flex;
-      align-items: center; justify-content: center; font-size: 40px;
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      border: 4px solid var(--neon-cyan);
+      margin: -60px auto 15px;
+      background: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
       box-shadow: 0 0 30px rgba(0, 242, 255, 0.3);
     }
 
-    .points-section { margin: 20px 0; display: flex; gap: 15px; }
-    .point-box {
-      flex: 1; padding: 20px; border-radius: 24px;
-      background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border);
-      text-align: center;
+    .points-section {
+      margin: 20px 0;
+      display: flex;
+      gap: 15px;
     }
-    .point-box.gold { border-color: var(--gold); box-shadow: 0 0 15px rgba(255, 211, 105, 0.1); }
-    .val { font-family: 'Montserrat'; font-size: 32px; display: block; margin: 5px 0; color: var(--neon-cyan); }
-    .val.gold-text { color: var(--gold); }
 
-    /* التعديل: إخفاء قسم الهدف */
+    .point-box {
+      flex: 1;
+      padding: 20px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--glass-border);
+      text-align: center;
+      transition: 0.3s;
+    }
+
+    .point-box:hover {
+      border-color: var(--neon-cyan);
+      background: rgba(0, 242, 255, 0.05);
+    }
+
+    .point-box.gold {
+      border-color: var(--gold);
+      box-shadow: 0 0 15px rgba(255, 211, 105, 0.1);
+    }
+
+    .val {
+      font-family: 'Montserrat';
+      font-size: 32px;
+      display: block;
+      margin: 5px 0;
+      color: var(--neon-cyan);
+    }
+
+    .val.gold-text {
+      color: var(--gold);
+    }
+
     .goal-card {
-      display: none; 
-      padding: 20px; border-radius: 24px; background: var(--glass-bg);
-      border: 1px solid var(--glass-border); margin-bottom: 25px;
+      padding: 20px;
+      border-radius: 24px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      margin-bottom: 25px;
     }
+
     .progress-container {
-      height: 12px; background: #1e293b; border-radius: 10px; margin: 15px 0;
-      position: relative; overflow: hidden;
+      height: 12px;
+      background: #1e293b;
+      border-radius: 10px;
+      margin: 15px 0;
+      position: relative;
+      overflow: hidden;
     }
+
     .progress-fill {
-      position: absolute; height: 100%; width: 0%;
+      position: absolute;
+      height: 100%;
+      width: 0%;
       background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan));
       box-shadow: 0 0 15px var(--neon-cyan);
       transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
@@ -122,41 +247,146 @@
       animation: pulseGlow 1.5s infinite alternate;
       box-shadow: 0 0 20px var(--neon-cyan), 0 0 40px var(--neon-purple);
     }
+
     @keyframes pulseGlow {
       from { filter: brightness(1) drop-shadow(0 0 5px var(--neon-cyan)); }
       to { filter: brightness(1.5) drop-shadow(0 0 20px var(--neon-cyan)); }
     }
 
-    .grid-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    .action-item {
-      padding: 20px; border-radius: 22px; background: var(--glass-bg);
-      border: 1px solid var(--glass-border); text-decoration: none; color: #fff;
-      display: flex; flex-direction: column; align-items: center; gap: 10px;
-      font-weight: 700; position: relative; overflow: hidden;
+    .grid-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
     }
-    .action-item:hover { transform: translateY(-10px); background: rgba(255,255,255,0.1); border-color: var(--neon-cyan); }
-    .action-item.full { grid-column: span 2; flex-direction: row; justify-content: space-between; border-color: var(--neon-purple); }
+
+    .action-item {
+      padding: 20px;
+      border-radius: 22px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      text-decoration: none;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      position: relative;
+      overflow: hidden;
+      transition: 0.3s;
+      cursor: pointer;
+    }
+
+    .action-item:hover {
+      transform: translateY(-10px);
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--neon-cyan);
+    }
+
+    .action-item.full {
+      grid-column: span 2;
+      flex-direction: row;
+      justify-content: space-between;
+      border-color: var(--neon-purple);
+    }
 
     .btn-logout {
-      background: rgba(255, 95, 95, 0.1); color: #ff5f5f; border: 1px solid #ff5f5f;
-      padding: 8px 18px; border-radius: 12px; cursor: pointer; font-weight: 800;
+      background: rgba(248, 113, 113, 0.1);
+      color: #ff5f5f;
+      border: 1px solid #ff5f5f;
+      padding: 8px 18px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 800;
+      transition: 0.3s;
     }
-    .btn-logout:hover { background: #ff5f5f; color: #fff; box-shadow: 0 0 20px #ff5f5f; }
-    
-    footer { text-align: center; padding: 30px; opacity: 0.5; font-size: 11px; letter-spacing: 1px; }
-  </style>      
-</head>      
-<body>      
-  <div class="nebula"></div>      
-  
-  <div class="container" id="mainContainer">      
-    <header>      
+
+    .btn-logout:hover {
+      background: #ff5f5f;
+      color: #fff;
+      box-shadow: 0 0 20px #ff5f5f;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .stat-item {
+      background: rgba(255, 255, 255, 0.02);
+      padding: 12px;
+      border-radius: 18px;
+      text-align: center;
+      border: 1px solid var(--glass-border);
+    }
+
+    .stat-value {
+      font-weight: 900;
+      font-family: 'Montserrat';
+      font-size: 1.3rem;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      opacity: 0.5;
+      margin-top: 5px;
+    }
+
+    .ban-alert {
+      background: rgba(248, 113, 113, 0.1);
+      border: 2px solid #f87171;
+      border-radius: 20px;
+      padding: 25px;
+      text-align: center;
+      display: none;
+    }
+
+    .ban-alert h3 {
+      color: #f87171;
+      margin: 0 0 10px 0;
+      font-weight: 900;
+    }
+
+    .ban-alert p {
+      color: #f87171;
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    footer {
+      text-align: center;
+      padding: 30px;
+      opacity: 0.5;
+      font-size: 11px;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="nebula"></div>
+
+  <div class="container" id="mainContainer">
+    <!-- ✅ نظام التنبيهات -->
+    <div id="banAlert" class="alert alert-danger">
+      <strong>⛔ الحساب محظور</strong>
+      <p id="banReason">عذراً، حسابك معطّل من قبل الإدارة. للمزيد من المعلومات، يرجى التواصل مع الدعم.</p>
+    </div>
+
+    <div id="warningAlert" class="alert alert-warning" style="display: none;">
+      <strong>⚠️ تحذير</strong>
+      <p id="warningText"></p>
+    </div>
+
+    <header>
       <div style="display:flex; gap:12px; align-items:center;">
         <div class="logo-glow">AM</div>
         <div style="font-weight:900; font-size:16px;">AM REWARDS</div>
       </div>
       <button id="logoutBtn" class="btn-logout">خروج</button>
-    </header>    
+    </header>
 
     <div class="profile-card">
       <div class="inner-card">
@@ -208,72 +438,96 @@
       </a>
     </div>
 
-    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:20px;">
-        <div style="background:rgba(255,255,255,0.02); padding:12px; border-radius:18px; text-align:center; border:1px solid var(--glass-border);">
-            <div id="pointsToday" style="font-weight:900; color:var(--neon-cyan); font-family:'Montserrat';">0</div>
-            <div style="font-size:10px; opacity:0.5;">نقاط اليوم</div>
-        </div>
-        <div style="background:rgba(255,255,255,0.02); padding:12px; border-radius:18px; text-align:center; border:1px solid var(--glass-border);">
-            <div id="totalWithdrawn" style="font-weight:900; color:var(--gold); font-family:'Montserrat';">0</div>
-            <div style="font-size:10px; opacity:0.5;">المسحوبات</div>
-        </div>
-        <div style="background:rgba(255,255,255,0.02); padding:12px; border-radius:18px; text-align:center; border:1px solid var(--glass-border);">
-            <div id="referralPoints" style="font-weight:900; color:var(--neon-purple); font-family:'Montserrat';">0</div>
-            <div style="font-size:10px; opacity:0.5;">أرباح إحالات</div>
-        </div>
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-value" id="pointsToday" style="color:var(--neon-cyan);">0</div>
+        <div class="stat-label">نقاط اليوم</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="totalWithdrawn" style="color:var(--gold);">0</div>
+        <div class="stat-label">المسحوبات</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="referralPoints" style="color:var(--neon-purple);">0</div>
+        <div class="stat-label">أرباح إحالات</div>
+      </div>
     </div>
 
-    <footer>© 2025 AM REWARDS | تجربة مستقبلية مطورة</footer>    
-  </div>      
+    <footer>© 2025 AM REWARDS | تجربة مستقبلية مطورة</footer>
+  </div>
 
-  <script type="module">      
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";      
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";      
-    import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";      
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };      
-    const app = initializeApp(firebaseConfig);      
-    const auth = getAuth(app);      
-    const db = getFirestore(app);      
-    const POINT_VALUE = 0.07;      
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards"
+    };
 
-    // متغير التحكم في ظهور المحتوى
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const POINT_VALUE = 0.07;
+
     let contentShown = false;
-
-    function animateValue(id, start, end, duration) {
-        const obj = document.getElementById(id);
-        if (!obj) return;
-        let startTimestamp = null;
-        const step = (timestamp) => {
-            if (!startTimestamp) startTimestamp = timestamp;
-            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-            obj.innerHTML = (Math.floor(progress * (end - start) + start)).toLocaleString();
-            if (progress < 1) window.requestAnimationFrame(step);
-        };
-        window.requestAnimationFrame(step);
-    }
-
     let lastPoints = 0;
 
-    onAuthStateChanged(auth, (user) => {      
-      if (!user) {
-          // لو مش مسجل يحوله فوراً ويمنع أي حاجة تظهر
-          window.location.replace('index.html');
-          return;
+    function animateValue(id, start, end, duration) {
+      const obj = document.getElementById(id);
+      if (!obj) return;
+      let startTimestamp = null;
+      const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        obj.innerHTML = (Math.floor(progress * (end - start) + start)).toLocaleString();
+        if (progress < 1) window.requestAnimationFrame(step);
+      };
+      window.requestAnimationFrame(step);
+    }
+
+    // ✅ فحص حالة الحساب (محظور أم لا)
+    async function checkBanStatus(uid) {
+      try {
+        const response = await fetch(`/api/check-ban?uid=${uid}`);
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error("Error checking ban status:", error);
+        return { banned: false };
       }
-      
-      // إظهار المحتوى بمجرد التأكد من أن المستخدم مسجل
-      if (!contentShown) {
-          const container = document.getElementById('mainContainer');
-          container.style.display = 'block';
-          setTimeout(() => container.style.opacity = '1', 50);
-          contentShown = true;
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.replace('index.html');
+        return;
       }
 
-      onSnapshot(doc(db, 'users', user.uid), (snap) => {    
+      // ✅ التحقق من حالة الحساب
+      const banStatus = await checkBanStatus(user.uid);
+      if (banStatus.banned) {
+        document.getElementById('banAlert').classList.add('show');
+        document.getElementById('banReason').textContent = banStatus.reason ||
+          'عذراً، حسابك معطّل من قبل الإدارة. للمزيد من المعلومات، يرجى التواصل مع الدعم.';
+        document.getElementById('mainContainer').innerHTML = document.getElementById('banAlert').outerHTML;
+        return;
+      }
+
+      // إظهار المحتوى
+      if (!contentShown) {
+        const container = document.getElementById('mainContainer');
+        container.classList.add('show');
+        contentShown = true;
+      }
+
+      // تحديث البيانات
+      onSnapshot(doc(db, 'users', user.uid), (snap) => {
         if (!snap.exists()) return;
         const d = snap.data();
-        
+
         document.getElementById('userName').textContent = d.name || 'مستكشف';
         document.getElementById('userRefCode').textContent = `كود الإحالة: ${d.referralCode || '---'}`;
         document.getElementById('avatar').textContent = (d.name || 'A')[0].toUpperCase();
@@ -298,15 +552,15 @@
         const percentText = document.getElementById('progressPercent');
 
         fill.style.width = pct + '%';
-        
+
         if (pct >= 100) {
-            fill.classList.add('goal-reached');
-            percentText.style.color = 'var(--gold)';
-            percentText.innerHTML = '🎯 اكتمل!';
+          fill.classList.add('goal-reached');
+          percentText.style.color = 'var(--gold)';
+          percentText.innerHTML = '🎯 اكتمل!';
         } else {
-            fill.classList.remove('goal-reached');
-            percentText.style.color = 'var(--neon-cyan)';
-            percentText.innerHTML = pct + '%';
+          fill.classList.remove('goal-reached');
+          percentText.style.color = 'var(--neon-cyan)';
+          percentText.innerHTML = pct + '%';
         }
 
         document.getElementById('progressLbl').textContent = `${ptsToday} / 1000`;
@@ -314,6 +568,6 @@
     });
 
     document.getElementById('logoutBtn').onclick = () => signOut(auth).then(() => location.href = 'index.html');
-  </script>    
+  </script>
 </body>
 </html>
