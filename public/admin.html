@@ -1,273 +1,701 @@
+<!-- admin.html - النسخة المحسّنة -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AM REWARDS | مركز التحكم النيوني</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700;900&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        /* كل الـ CSS اللي بعته زي ما هو بالظبط */
-        :root {
-            --primary: #00f2ff; --secondary: #00FFC3; --bg: #020202; 
-            --card: rgba(15, 15, 15, 0.6); --border: rgba(0, 242, 255, 0.1);
-            --danger: #ff0055; --purple: #bc13fe; --neon-glow: 0 0 15px rgba(0, 242, 255, 0.2);
-        }
-        body { margin: 0; font-family: 'Cairo', sans-serif; background: var(--bg); color: #E5E7EB; min-height: 100vh; overflow-x: hidden; background-image: radial-gradient(circle at 10% 10%, rgba(0, 242, 255, 0.05) 0%, transparent 30%), radial-gradient(circle at 90% 90%, rgba(188, 19, 254, 0.05) 0%, transparent 30%); }
-        #auth-overlay { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; align-items: center; justify-content: center; }
-        .auth-card { width: 100%; max-width: 400px; padding: 40px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; backdrop-filter: blur(20px); text-align: center; box-shadow: 0 0 50px rgba(0,0,0,1); }
-        .auth-card h2 { font-family: 'Syncopate', sans-serif; font-size: 0.9rem; letter-spacing: 4px; color: var(--primary); margin-bottom: 25px; text-shadow: 0 0 10px rgba(0, 242, 255, 0.5); }
-        .input-group { margin-bottom: 15px; }
-        .input-group input { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.02); color: white; outline: none; font-family: 'Cairo'; text-align: center; transition: 0.3s; box-sizing: border-box; font-size: 0.9rem; }
-        .input-group input:focus { border-color: var(--primary); box-shadow: var(--neon-glow); }
-        .btn-prime { width: 100%; padding: 15px; border-radius: 10px; border: none; background: var(--primary); color: #000; font-weight: 900; cursor: pointer; transition: 0.4s; font-family: 'Syncopate'; font-size: 0.75rem; letter-spacing: 2px; }
-        .dashboard-content { max-width: 1200px; margin: 0 auto; padding: 30px 15px; }
-        .header-main { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
-        .header-main h1 { font-family: 'Syncopate'; font-weight: 700; color: var(--primary); font-size: 1.1rem; letter-spacing: 2px; margin:0; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px; }
-        .stats-card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 15px; position: relative; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); backdrop-filter: blur(10px); display: flex; flex-direction: column; }
-        .stats-card:hover { border-color: var(--primary); background: rgba(0, 242, 255, 0.03); transform: scale(1.02); }
-        .label { font-size: 0.7rem; color: #666; letter-spacing: 0px; margin-bottom: 8px; font-weight: 800; }
-        .number { font-family: 'Syncopate'; font-size: 1.4rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
-        .sub-text { font-size: 0.75rem; color: var(--secondary); font-weight: 600; opacity: 0.8; }
-        .admin-sections { margin-top: 40px; }
-        .section-title { font-family: 'Cairo'; font-size: 0.95rem; color: var(--primary); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; font-weight: 900; }
-        .section-title::after { content: ""; height: 1px; flex: 1; background: var(--border); }
-        .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-        .action-card { background: rgba(255,255,255,0.02); border: 1px solid var(--border); padding: 20px 10px; border-radius: 12px; text-align: center; cursor: pointer; transition: 0.2s all; text-decoration: none; color: #ccc; font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .action-card.disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; filter: grayscale(1); }
-        .action-card:hover:not(.disabled) { background: var(--primary); color: #000; font-weight: 900; box-shadow: var(--neon-glow); }
-        .btn-audit { border-right: 4px solid var(--danger) !important; }
-        .hidden { display: none !important; }
-        .logout-btn { background: transparent; border: 1px solid var(--danger); color: var(--danger); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-family: 'Cairo'; font-weight: 700; font-size: 0.8rem; transition: 0.3s; }
-        .logout-btn:hover { background: var(--danger); color: #fff; }
-        .color-pending { color: var(--danger) !important; text-shadow: 0 0 10px rgba(255, 0, 85, 0.2); }
-        .color-success { color: var(--secondary) !important; text-shadow: 0 0 10px rgba(0, 255, 195, 0.2); }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AM REWARDS | مركز التحكم</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700;900&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #00f2ff;
+      --secondary: #00FFC3;
+      --bg: #020202;
+      --card: rgba(15, 15, 15, 0.6);
+      --border: rgba(0, 242, 255, 0.1);
+      --danger: #ff0055;
+      --purple: #bc13fe;
+      --success: #22c55e;
+      --warning: #facc15;
+      --neon-glow: 0 0 15px rgba(0, 242, 255, 0.2);
+      --gold: #FFD369;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: var(--bg);
+      color: #E5E7EB;
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image:
+        radial-gradient(circle at 10% 10%, rgba(0, 242, 255, 0.05) 0%, transparent 30%),
+        radial-gradient(circle at 90% 90%, rgba(188, 19, 254, 0.05) 0%, transparent 30%);
+    }
+
+    /* ✅ الـ Navbar المحسّنة */
+    .navbar {
+      background: rgba(2, 6, 23, 0.95);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .navbar-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .navbar-brand {
+      font-family: 'Syncopate', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: var(--primary);
+      text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+    }
+
+    .navbar-status {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 15px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .logout-btn {
+      background: transparent;
+      border: 2px solid var(--danger);
+      color: var(--danger);
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: 'Cairo';
+      font-weight: 700;
+      font-size: 0.9rem;
+      transition: 0.3s all;
+    }
+
+    .logout-btn:hover {
+      background: var(--danger);
+      color: #fff;
+      box-shadow: 0 0 20px rgba(255, 0, 85, 0.3);
+    }
+
+    /* ✅ المحتوى الرئيسي */
+    .dashboard-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
+
+    .dashboard-header {
+      margin-bottom: 40px;
+    }
+
+    .header-title {
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--primary);
+      text-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
+      margin-bottom: 10px;
+    }
+
+    .header-subtitle {
+      color: #666;
+      font-size: 0.95rem;
+    }
+
+    /* ✅ الإحصائيات */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 25px;
+      border-radius: 15px;
+      position: relative;
+      transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 3px;
+      height: 100%;
+      background: linear-gradient(180deg, var(--primary), transparent);
+    }
+
+    .stat-card:hover {
+      border-color: var(--primary);
+      background: rgba(0, 242, 255, 0.03);
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0, 242, 255, 0.1);
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .stat-number {
+      font-family: 'Syncopate', sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .stat-subtext {
+      font-size: 0.8rem;
+      color: var(--secondary);
+      font-weight: 600;
+      opacity: 0.8;
+    }
+
+    /* ✅ الأقسام */
+    .admin-section {
+      margin-bottom: 50px;
+    }
+
+    .section-title {
+      font-family: 'Syncopate', sans-serif;
+      font-size: 1.3rem;
+      color: var(--primary);
+      margin-bottom: 25px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .section-title::after {
+      content: '';
+      height: 1px;
+      flex: 1;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+
+    /* ✅ شبكة الإجراءات */
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .action-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      padding: 25px;
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.3s all;
+      text-decoration: none;
+      color: #ccc;
+      font-weight: 700;
+      font-size: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .action-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      opacity: 0;
+      transition: 0.3s;
+      z-index: -1;
+    }
+
+    .action-card:hover:not(.disabled)::before {
+      opacity: 0.1;
+    }
+
+    .action-card:hover:not(.disabled) {
+      background: rgba(0, 242, 255, 0.05);
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px rgba(0, 242, 255, 0.15);
+    }
+
+    .action-card.disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      pointer-events: none;
+      filter: grayscale(1);
+    }
+
+    .action-icon {
+      font-size: 2rem;
+    }
+
+    .action-card.btn-audit {
+      border-right: 4px solid var(--danger) !important;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* ✅ Auth Overlay */
+    #auth-overlay {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.9));
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(5px);
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      padding: 40px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      backdrop-filter: blur(20px);
+      text-align: center;
+      box-shadow: 0 0 50px rgba(0, 0, 0, 1), 0 0 100px rgba(0, 242, 255, 0.1);
+    }
+
+    .auth-card h2 {
+      font-family: 'Syncopate', sans-serif;
+      font-size: 1.3rem;
+      letter-spacing: 3px;
+      color: var(--primary);
+      margin-bottom: 25px;
+      text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+    }
+
+    .input-group {
+      margin-bottom: 15px;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.02);
+      color: white;
+      outline: none;
+      font-family: 'Cairo';
+      text-align: center;
+      transition: 0.3s;
+      box-sizing: border-box;
+      font-size: 0.95rem;
+    }
+
+    .input-group input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 12px rgba(0, 242, 255, 0.4);
+      background: rgba(0, 242, 255, 0.05);
+    }
+
+    .btn-prime {
+      width: 100%;
+      padding: 15px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #000;
+      font-weight: 900;
+      cursor: pointer;
+      transition: 0.4s;
+      font-family: 'Syncopate';
+      font-size: 0.9rem;
+      letter-spacing: 2px;
+    }
+
+    .btn-prime:hover:not(:disabled) {
+      box-shadow: 0 0 30px rgba(0, 242, 255, 0.5);
+      transform: translateY(-2px);
+    }
+
+    .btn-prime:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    #error-msg {
+      color: var(--danger);
+      font-size: 0.85rem;
+      margin-top: 15px;
+      font-weight: 700;
+      min-height: 20px;
+    }
+
+    /* ✅ Responsive */
+    @media (max-width: 768px) {
+      .navbar {
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .header-title {
+        font-size: 1.5rem;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .action-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      }
+
+      .stat-number {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
 </head>
 <body>
 
+<!-- ✅ Auth Overlay المحسّن -->
 <div id="auth-overlay">
-    <div class="auth-card">
-        <h2>تحقق الهوية الأمنية</h2>
-        <div class="input-group"><input type="email" id="email" placeholder="بريد الإدارة"></div>
-        <div class="input-group"><input type="password" id="pass" placeholder="كود الدخول"></div>
-        <button class="btn-prime" id="unlock-btn">منح التصريح</button>
-        <p id="error-msg" style="color: var(--danger); font-size: 0.75rem; margin-top: 15px; font-weight: 700;"></p>
+  <div class="auth-card">
+    <h2>🔐 تحقق الهوية</h2>
+    <div class="input-group">
+      <input type="email" id="email" placeholder="بريد الإدارة" autocomplete="username">
     </div>
+    <div class="input-group">
+      <input type="password" id="pass" placeholder="كود الدخول" autocomplete="current-password">
+    </div>
+    <button class="btn-prime" id="unlock-btn">منح التصريح</button>
+    <p id="error-msg"></p>
+  </div>
 </div>
 
-<div id="main-panel" class="dashboard-content hidden">
-    <div class="header-main">
-        <h1>لوحة التحكم التنفيذية <span style="font-size: 0.7rem; opacity: 0.4; font-weight: 300;">V3.0.1</span></h1>
-        <button onclick="logout()" class="logout-btn">إنهاء الجلسة</button>
+<!-- ✅ لوحة التحكم الرئيسية -->
+<div id="main-panel" class="hidden">
+  <nav class="navbar">
+    <div class="navbar-left">
+      <div class="navbar-brand">AM REWARDS</div>
+      <div class="navbar-status">
+        <div class="status-badge">
+          <div class="status-dot"></div>
+          <span>نظام نشط</span>
+        </div>
+      </div>
+    </div>
+    <button onclick="logout()" class="logout-btn">إنهاء الجلسة 🚪</button>
+  </nav>
+
+  <div class="dashboard-content">
+    <div class="dashboard-header">
+      <h1 class="header-title">لوحة التحكم التنفيذية</h1>
+      <p class="header-subtitle">النسخة 3.1 • آخر تحديث الآن</p>
     </div>
 
+    <!-- الإحصائيات الرئيسية -->
     <div class="stats-grid">
-        <div class="stats-card">
-            <span class="label">إجمالي الأعضاء</span>
-            <span class="number" id="stat-users">---</span>
-            <span class="sub-text">بانتظار التحقق...</span>
-        </div>
-        <div class="stats-card">
-            <span class="label">النقاط الحالية (بالخزينة)</span>
-            <span class="number" id="stat-points">---</span>
-            <span class="sub-text" id="stat-egp">0.00 EGP</span>
-        </div>
-        <div class="stats-card" style="border-bottom: 2px solid var(--primary);">
-            <span class="label">إجمالي المكافآت الموزعة</span>
-            <span class="number" id="stat-total-distributed">---</span>
-            <span class="sub-text">نقاط المهام والهدايا</span>
-        </div>
-        <div class="stats-card">
-            <span class="label">عمولات الإحالة</span>
-            <span class="number" id="stat-ref">---</span>
-            <span class="sub-text" id="stat-ref-count">--- رابط نشط</span>
-        </div>
+      <div class="stat-card">
+        <span class="stat-label">📊 إجمالي الأعضاء</span>
+        <span class="stat-number" id="stat-users">---</span>
+        <span class="stat-subtext">مستخدمين نشطين</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">💰 النقاط بالخزينة</span>
+        <span class="stat-number" id="stat-points">---</span>
+        <span class="stat-subtext" id="stat-egp">0.00 EGP</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">🎁 المكافآت الموزعة</span>
+        <span class="stat-number" id="stat-total-distributed">---</span>
+        <span class="stat-subtext">نقاط المهام والهدايا</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">🔗 عمولات الإحالة</span>
+        <span class="stat-number" id="stat-ref">---</span>
+        <span class="stat-subtext" id="stat-ref-count">--- رابط نشط</span>
+      </div>
     </div>
 
+    <!-- الإحصائيات الثانوية -->
     <div class="stats-grid">
-        <div class="stats-card" style="border-left: 3px solid var(--danger);">
-            <span class="label">طلبات بانتظار الإجراء</span>
-            <span class="number color-pending" id="stat-pending">---</span>
-            <span class="sub-text">سحوبات معلقة</span>
-        </div>
-        <div class="stats-card" style="border-left: 3px solid var(--purple);">
-            <span class="label">تذاكر الدعم المفتوحة</span>
-            <span class="number" id="stat-support-count">---</span>
-            <span class="sub-text">استفسارات الأعضاء</span>
-        </div>
-        <div class="stats-card" style="border-left: 3px solid var(--secondary);">
-            <span class="label">نشاط اليوم</span>
-            <span class="number color-success" id="stat-today-paid">---</span>
-            <span class="sub-text">عمليات مكتملة</span>
-        </div>
-        <div class="stats-card">
-            <span class="label">إجمالي المبالغ المدفوعة</span>
-            <span class="number" id="stat-total-paid-egp">---</span>
-            <span class="sub-text">الصافي (Net)</span>
-        </div>
+      <div class="stat-card">
+        <span class="stat-label">⏳ طلبات معلقة</span>
+        <span class="stat-number" id="stat-pending" style="color: var(--danger);">---</span>
+        <span class="stat-subtext">سحوبات بانتظار المراجعة</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">💬 تذاكر الدعم</span>
+        <span class="stat-number" id="stat-support-count">---</span>
+        <span class="stat-subtext">استفسارات الأعضاء المفتوحة</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">✅ نشاط اليوم</span>
+        <span class="stat-number" id="stat-today-paid" style="color: var(--success);">---</span>
+        <span class="stat-subtext">عمليات مكتملة</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">💳 إجمالي المدفوع</span>
+        <span class="stat-number" id="stat-total-paid-egp" style="color: var(--gold);">---</span>
+        <span class="stat-subtext">الصافي (Net)</span>
+      </div>
     </div>
 
-    <div class="admin-sections">
-        <h2 class="section-title">إدارة العمليات</h2>
-        <div class="action-grid" id="action-btns-container">
-            <a href="users.html" class="action-card disabled">👤 الأعضاء</a>
-            <a href="withdrawalsAdmin.html" class="action-card disabled">💳 السحوبات</a>
-            <a href="tasksDone.html" class="action-card disabled">🎯 المهام</a>
-            <a href="referralsAdmin.html" class="action-card disabled">🔗 الإحالات</a>
-        </div>
+    <!-- إدارة العمليات -->
+    <div class="admin-section">
+      <h2 class="section-title">⚙️ إدارة العمليات</h2>
+      <div class="action-grid" id="action-btns-container">
+        <a href="users.html" class="action-card disabled">
+          <span class="action-icon">👤</span>
+          <span>الأعضاء</span>
+        </a>
+        <a href="withdrawalsAdmin.html" class="action-card disabled">
+          <span class="action-icon">💳</span>
+          <span>السحوبات</span>
+        </a>
+        <a href="tasksDone.html" class="action-card disabled">
+          <span class="action-icon">🎯</span>
+          <span>المهام</span>
+        </a>
+        <a href="referralsAdmin.html" class="action-card disabled">
+          <span class="action-icon">🔗</span>
+          <span>الإحالات</span>
+        </a>
+      </div>
     </div>
 
-    <div class="admin-sections">
-        <h2 class="section-title">النظام والأمان</h2>
-        <div class="action-grid">
-            <a href="supportAdmin.html" class="action-card disabled">📩 مركز الدعم</a>
-            <a href="auditUser.html" class="action-card btn-audit disabled">🔍 مراجع المعرفات (UID)</a>
-        </div>
+    <!-- النظام والأمان -->
+    <div class="admin-section">
+      <h2 class="section-title">🔒 النظام والأمان</h2>
+      <div class="action-grid">
+        <a href="supportAdmin.html" class="action-card disabled">
+          <span class="action-icon">📩</span>
+          <span>مركز الدعم</span>
+        </a>
+        <a href="auditUser.html" class="action-card btn-audit disabled">
+          <span class="action-icon">🔍</span>
+          <span>مراجعة المعرفات</span>
+        </a>
+        <a href="fraudAdmin.html" class="action-card disabled">
+          <span class="action-icon">🛡️</span>
+          <span>كشف الاحتيال</span>
+        </a>
+      </div>
     </div>
+  </div>
 </div>
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-        authDomain: "am--rewards.firebaseapp.com",
-        projectId: "am--rewards",
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+    authDomain: "am--rewards.firebaseapp.com",
+    projectId: "am--rewards",
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-    let isSessionValid = false;
+  let isSessionValid = false;
+  let refreshInterval;
 
-    function toggleControls(enable) {
-        const btns = document.querySelectorAll('.action-card');
-        btns.forEach(btn => {
-            if(enable) btn.classList.remove('disabled');
-            else btn.classList.add('disabled');
-        });
-    }
-
-    async function verifyServerSession() {
-        try {
-          const res = await fetch("/api/admin-auth"); // المسار الجديد الموحد
-    const data = await res.json();
-            isSessionValid = (res.ok && data.valid === true);
-            return isSessionValid;
-        } catch { 
-            isSessionValid = false;
-            return false; 
-        }
-    }
-
-    async function loadAdminStats() {
-        if (!isSessionValid) return;
-        try {
-            const res = await fetch("/api/admin-stats");
-            if (!res.ok) throw new Error("API Unauthorized");
-            const data = await res.json();
-
-            document.getElementById('stat-users').textContent = data.totalUsers;
-            document.getElementById('stat-points').textContent = data.currentPoints.toLocaleString();
-            document.getElementById('stat-egp').textContent = (data.currentPoints * 0.07).toFixed(2) + " EGP";
-            document.getElementById('stat-total-distributed').textContent = data.totalDistributedPoints.toLocaleString();
-            document.getElementById('stat-ref-count').textContent = data.totalRefCount + " رابط نشط";
-            document.getElementById('stat-ref').textContent = data.totalRefEarnings.toFixed(2);
-            document.getElementById('stat-pending').textContent = data.pendingWithdrawals;
-            document.getElementById('stat-support-count').textContent = data.openSupportTickets;
-            document.getElementById('stat-today-paid').textContent = data.todayPaidCount;
-            document.getElementById('stat-total-paid-egp').textContent = data.totalPaidNet.toFixed(2);
-            
-            toggleControls(true);
-        } catch (e) {
-            console.error("Access Denied");
-            toggleControls(false);
-        }
-    }
-
-    document.getElementById('unlock-btn').onclick = async () => {
-        const emailInput = document.getElementById('email').value.trim();
-        const passInput = document.getElementById('pass').value.trim();
-        const errMsg = document.getElementById('error-msg');
-
-        if (!emailInput || !passInput) {
-            errMsg.textContent = "يرجى إدخال البيانات كاملة";
-            return;
-        }
-
-        errMsg.textContent = "جاري طلب تصريح الدخول...";
-
-        try {
-            // التعديل هنا: استخدام المسار الموحد admin-auth مع action: 'login'
-            const res = await fetch("/api/admin-auth", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    action: "login", // إضافة الـ action
-                    email: emailInput, 
-                    password: passInput 
-                })
-            });
-
-            if (!res.ok) {
-                const errorData = await res.json();
-                errMsg.textContent = "فشل السيرفر: " + (errorData.message || "كود خاطئ");
-                return;
-            }
-
-            await signInWithEmailAndPassword(auth, emailInput, passInput);
-            isSessionValid = true;
-            document.getElementById('auth-overlay').classList.add('hidden');
-            document.getElementById('main-panel').classList.remove('hidden');
-            loadAdminStats();
-
-        } catch (e) {
-            console.error(e);
-            errMsg.textContent = "خطأ في الدخول: " + e.message;
-        }
-    };
-
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            if (isSessionValid) {
-                document.getElementById('auth-overlay').classList.add('hidden');
-                document.getElementById('main-panel').classList.remove('hidden');
-                loadAdminStats();
-                return;
-            }
-            const verified = await verifyServerSession();
-            if (verified) {
-                document.getElementById('auth-overlay').classList.add('hidden');
-                document.getElementById('main-panel').classList.remove('hidden');
-                loadAdminStats();
-            } else {
-                await signOut(auth);
-            }
-        } else {
-            isSessionValid = false;
-            document.getElementById('auth-overlay').classList.remove('hidden');
-            document.getElementById('main-panel').classList.add('hidden');
-            toggleControls(false);
-        }
+  function toggleControls(enable) {
+    const btns = document.querySelectorAll('.action-card');
+    btns.forEach(btn => {
+      if (enable) btn.classList.remove('disabled');
+      else btn.classList.add('disabled');
     });
+  }
 
-    window.logout = async () => {
-        try {
-            isSessionValid = false;
-            // التعديل هنا: استخدام المسار الموحد admin-auth مع action: 'logout'
-            await fetch("/api/admin-auth", { 
-                method: "POST", 
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "logout" }) 
-            });
-            await signOut(auth);
-            location.reload();
-        } catch (e) { location.reload(); }
-    };
+  async function verifyServerSession() {
+    try {
+      const res = await fetch("/api/admin-auth");
+      const data = await res.json();
+      isSessionValid = (res.ok && data.valid === true);
+      return isSessionValid;
+    } catch {
+      isSessionValid = false;
+      return false;
+    }
+  }
+
+  async function loadAdminStats() {
+    if (!isSessionValid) return;
+    try {
+      const res = await fetch("/api/admin-stats");
+      if (!res.ok) throw new Error("API Unauthorized");
+      const data = await res.json();
+
+      document.getElementById('stat-users').textContent = data.totalUsers.toLocaleString();
+      document.getElementById('stat-points').textContent = data.currentPoints.toLocaleString();
+      document.getElementById('stat-egp').textContent = (data.currentPoints * 0.07).toFixed(2) + " EGP";
+      document.getElementById('stat-total-distributed').textContent = data.totalDistributedPoints.toLocaleString();
+      document.getElementById('stat-ref-count').textContent = data.totalRefCount + " رابط نشط";
+      document.getElementById('stat-ref').textContent = data.totalRefEarnings.toFixed(2) + " EGP";
+      document.getElementById('stat-pending').textContent = data.pendingWithdrawals;
+      document.getElementById('stat-support-count').textContent = data.openSupportTickets;
+      document.getElementById('stat-today-paid').textContent = data.todayPaidCount;
+      document.getElementById('stat-total-paid-egp').textContent = data.totalPaidNet.toFixed(2) + " EGP";
+
+      toggleControls(true);
+    } catch (e) {
+      console.error("Access Denied:", e);
+      toggleControls(false);
+    }
+  }
+
+  document.getElementById('unlock-btn').onclick = async () => {
+    const emailInput = document.getElementById('email').value.trim();
+    const passInput = document.getElementById('pass').value.trim();
+    const errMsg = document.getElementById('error-msg');
+    const unlockBtn = document.getElementById('unlock-btn');
+
+    if (!emailInput || !passInput) {
+      errMsg.textContent = "⚠️ يرجى إدخال البيانات كاملة";
+      return;
+    }
+
+    unlockBtn.disabled = true;
+    errMsg.textContent = "⏳ جاري التحقق...";
+
+    try {
+      const res = await fetch("/api/admin-auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "login",
+          email: emailInput,
+          password: passInput
+        })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        errMsg.textContent = "❌ " + (errorData.message || "بيانات خاطئة");
+        unlockBtn.disabled = false;
+        return;
+      }
+
+      await signInWithEmailAndPassword(auth, emailInput, passInput);
+      isSessionValid = true;
+      errMsg.textContent = "✅ تم التحقق بنجاح...";
+
+      setTimeout(() => {
+        document.getElementById('auth-overlay').classList.add('hidden');
+        document.getElementById('main-panel').classList.remove('hidden');
+        loadAdminStats();
+
+        // ✅ تحديث الإحصائيات كل 30 ثانية
+        refreshInterval = setInterval(loadAdminStats, 30000);
+      }, 800);
+    } catch (e) {
+      console.error(e);
+      errMsg.textContent = "❌ خطأ في الدخول: " + e.message;
+      unlockBtn.disabled = false;
+    }
+  };
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      const verified = await verifyServerSession();
+      if (verified) {
+        document.getElementById('auth-overlay').classList.add('hidden');
+        document.getElementById('main-panel').classList.remove('hidden');
+        loadAdminStats();
+        refreshInterval = setInterval(loadAdminStats, 30000);
+      } else {
+        await signOut(auth);
+      }
+    } else {
+      isSessionValid = false;
+      document.getElementById('auth-overlay').classList.remove('hidden');
+      document.getElementById('main-panel').classList.add('hidden');
+      clearInterval(refreshInterval);
+      toggleControls(false);
+    }
+  });
+
+  window.logout = async () => {
+    if (confirm('هل أنت متأكد من رغبتك في تسجيل الخروج؟')) {
+      try {
+        isSessionValid = false;
+        clearInterval(refreshInterval);
+        await fetch("/api/admin-auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "logout" })
+        });
+        await signOut(auth);
+        location.reload();
+      } catch (e) {
+        location.reload();
+      }
+    }
+  };
 </script>
 </body>
-</html>
+    </html>
