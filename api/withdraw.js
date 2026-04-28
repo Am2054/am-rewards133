@@ -34,7 +34,7 @@ const COOLDOWN_MS = 3600000; // ساعة واحدة
 // ✅ كشف محاولات الاحتيال
 class FraudDetectionWithdraw {
   static async analyze(userId, amount, wallet, ip) {
-    const riskScore = 0;
+    let riskScore = 0;
     const reasons = [];
 
     // فحص 1: مبلغ غريب جداً (جداً صغير أو كبير)
