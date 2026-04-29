@@ -1,0 +1,1075 @@
+<!-- prep-check.html - النسخة المصححة والمحسّنة -->
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AM Rewards | حضّر نفسك وفحص الروابط</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #007bff;
+            --cyan: #00f2ff;
+            --success: #28a745;
+            --danger: #dc3545;
+            --bg: #0b0e14;
+            --card: rgba(20, 25, 35, 0.6);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: radial-gradient(circle at 50% 50%, #1a1f2e, var(--bg));
+            min-height: 100vh;
+            color: white;
+            padding: 15px;
+            overflow-x: hidden;
+        }
+
+        /* ✅ إصلاح: شريط المعلومات العلوي */
+        .info-bar {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            display: flex;
+            gap: 10px;
+            z-index: 50;
+            flex-wrap: wrap;
+            max-width: calc(100% - 24px);
+        }
+
+        .info-card {
+            background: rgba(0, 210, 255, 0.12);
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            padding: 8px 14px;
+            border-radius: 25px;
+            font-size: 0.8rem;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .info-card span {
+            color: var(--cyan);
+            font-weight: bold;
+        }
+
+        /* ✅ إصلاح: التابات بتصميم أفضل */
+        .tabs-wrapper {
+            max-width: 600px;
+            margin: 70px auto 30px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 0 10px;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: var(--card);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: 'Tajawal';
+            font-size: 14px;
+        }
+
+        .tab-btn:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--cyan), var(--primary));
+            border-color: var(--cyan);
+            box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
+            color: #000;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto 50px;
+            background: var(--card);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 35px;
+            padding: 35px 25px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header h2 {
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #fff, var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: #8b949e;
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+        }
+
+        /* قسم الاختبارات */
+        .levels-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .level-btn {
+            padding: 18px 15px;
+            background: rgba(40, 167, 69, 0.15);
+            border: 2px solid var(--success);
+            border-radius: 15px;
+            color: white;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-weight: 700;
+            font-family: 'Tajawal';
+        }
+
+        .level-btn:hover {
+            background: rgba(40, 167, 69, 0.25);
+            box-shadow: 0 0 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .level-btn:active {
+            transform: scale(0.95);
+        }
+
+        .level-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .level-btn small {
+            display: block;
+            font-size: 10px;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        /* قسم فحص الروابط */
+        .input-group {
+            margin: 20px 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: #8b949e;
+            font-weight: 600;
+        }
+
+        .url-input {
+            width: 100%;
+            padding: 14px;
+            background: #0d1117;
+            border: 2px solid #30363d;
+            border-radius: 14px;
+            color: white;
+            outline: none;
+            font-family: 'Tajawal';
+            transition: 0.4s;
+            box-sizing: border-box;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .url-input:focus {
+            border-color: var(--cyan);
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.2);
+        }
+
+        .scan-button,
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--cyan), var(--primary));
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-family: 'Tajawal';
+        }
+
+        .scan-button:active,
+        .btn-primary:active {
+            transform: scale(0.96);
+        }
+
+        .scan-button:disabled,
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loader {
+            display: none;
+            width: 18px;
+            height: 18px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loader.show {
+            display: block;
+        }
+
+        /* نتائج الفحص */
+        #resultBox {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 14px;
+            display: none;
+            font-weight: 500;
+            animation: slideIn 0.4s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-safe {
+            background: rgba(46, 160, 67, 0.15);
+            color: #57ab5a;
+            border: 1px solid rgba(46, 160, 67, 0.4);
+        }
+
+        .result-danger {
+            background: rgba(248, 81, 73, 0.15);
+            color: #f85149;
+            border: 1px solid rgba(248, 81, 73, 0.4);
+        }
+
+        /* Modal */
+        #confirmModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: #161b22;
+            border: 1px solid #30363d;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 350px;
+            width: 100%;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content h3 {
+            margin: 0 0 12px;
+            font-size: 18px;
+            color: white;
+        }
+
+        .modal-content p {
+            color: #8b949e;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .modal-btns {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: 'Tajawal';
+            font-size: 14px;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-confirm {
+            background: var(--cyan);
+            color: #000;
+        }
+
+        .btn-cancel {
+            background: #21262d;
+            color: #fff;
+        }
+
+        .back-btn {
+            width: 100%;
+            padding: 14px;
+            margin-top: 18px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #6c757d;
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            font-weight: 700;
+            transition: 0.3s;
+            font-family: 'Tajawal';
+            font-size: 14px;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .back-btn:active {
+            transform: scale(0.95);
+        }
+
+        .quiz-container {
+            animation: fadeIn 0.6s ease;
+        }
+
+        .question-box {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border: 2px solid var(--cyan);
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .option-btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            margin: 10px 0;
+            background: #1c222d;
+            border: 2px solid #444;
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            transition: 0.3s;
+            font-weight: 700;
+            font-family: 'Tajawal';
+            font-size: 14px;
+        }
+
+        .option-btn:hover {
+            border-color: var(--cyan);
+            background: rgba(0, 210, 255, 0.05);
+        }
+
+        .option-btn:active {
+            transform: scale(0.95);
+        }
+
+        .bar {
+            height: 6px;
+            background: #222;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        #barFill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--cyan), var(--primary));
+            width: 0%;
+            transition: 0.3s;
+        }
+
+        .tip-box {
+            background: rgba(0, 123, 255, 0.1);
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 18px;
+            border-left: 4px solid var(--primary);
+            font-size: 13px;
+            line-height: 1.6;
+            color: #cbd5e1;
+        }
+
+        .job-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .job-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            padding: 16px;
+            border-radius: 14px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+            font-weight: 600;
+        }
+
+        .job-card:hover {
+            border-color: var(--cyan);
+            background: rgba(0, 210, 255, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .fee-info {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            padding: 14px;
+            border-radius: 12px;
+            margin: 18px 0;
+            font-size: 12px;
+            color: #ffc107;
+            line-height: 1.6;
+        }
+
+        .fee-info strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .fee-info li {
+            margin-left: 20px;
+        }
+
+        .screen-title {
+            text-align: center;
+            color: var(--cyan);
+            font-weight: 900;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .tabs-wrapper {
+                margin-top: 60px;
+            }
+
+            .info-bar {
+                top: 8px;
+                right: 8px;
+                gap: 8px;
+            }
+
+            .info-card {
+                padding: 6px 10px;
+                font-size: 0.75rem;
+            }
+
+            .container {
+                padding: 25px 18px;
+                margin-bottom: 30px;
+            }
+
+            .header h2 {
+                font-size: 1.4rem;
+            }
+
+            .levels-container {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .job-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ✅ شريط المعلومات العلوي - محسّن -->
+    <div class="info-bar">
+        <div class="info-card">🪙 النقاط: <span id="userPoints">0</span></div>
+        <div class="info-card" id="scanCountCard" style="display: none;">
+            📊 محاولات: <span id="scanCount">0</span>/5
+        </div>
+    </div>
+
+    <!-- ✅ التابات - محسّنة -->
+    <div class="tabs-wrapper">
+        <button class="tab-btn active" onclick="switchTab('prep')">📚 حضّر نفسك</button>
+        <button class="tab-btn" onclick="switchTab('check')">🔍 فحص الروابط</button>
+    </div>
+
+    <!-- نافذة التأكيد - محسّنة -->
+    <div id="confirmModal">
+        <div class="modal-content">
+            <h3>💰 تأكيد الدفع</h3>
+            <p id="modalMessage"></p>
+            <div class="modal-btns">
+                <button class="modal-btn btn-confirm" id="confirmOk">✅ استمرار</button>
+                <button class="modal-btn btn-cancel" id="confirmCancel">❌ إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- حاوية المحتوى الرئيسية -->
+    <div class="container">
+        <!-- قسم "حضّر نفسك" -->
+        <div id="prep" class="tab-content active">
+            <div id="homeScreen">
+                <div class="screen-title">📚 حضّر نفسك للمقابلة</div>
+                <div class="header">
+                    <p>اختبر معلوماتك في مجالك المهني واحصل على نقاط</p>
+                </div>
+                <div id="jobGrid" class="job-grid"></div>
+                <div class="fee-info">
+                    <strong>💡 نظام النقاط:</strong>
+                    <ul style="list-style: none; padding-left: 0;">
+                        <li>✅ المستويات السهلة والمتوسطة: مجانية</li>
+                        <li>✅ المستوى الصعب: 3 نقاط</li>
+                        <li>✅ المستوى المتقدم: 5 نقاط</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="levelScreen" style="display: none;">
+                <div class="screen-title" id="selectedJobTitle"></div>
+                <div class="header">
+                    <p>اختر المستوى المناسب لك</p>
+                </div>
+                <div class="levels-container">
+                    <button class="level-btn" onclick="startQuiz('easy')">سهل<small>(مجاني)</small></button>
+                    <button class="level-btn" onclick="startQuiz('medium')">متوسط<small>(مجاني)</small></button>
+                    <button class="level-btn" onclick="startQuiz('hard')">صعب<small>(3 نقاط)</small></button>
+                    <button class="level-btn" onclick="startQuiz('expert')">محترف<small>(5 نقاط)</small></button>
+                </div>
+                <button class="back-btn" onclick="goBackToJobs()">← العودة للوظائف</button>
+            </div>
+
+            <div id="quizScreen" style="display: none;">
+                <div class="screen-title">🎯 الاختبار</div>
+                <div class="bar"><div id="barFill"></div></div>
+                <div class="quiz-container">
+                    <div id="questionBox" class="question-box"></div>
+                    <div id="optionsBox"></div>
+                </div>
+                <button class="back-btn" onclick="cancelQuiz()">❌ إلغاء الاختبار</button>
+            </div>
+        </div>
+
+        <!-- قسم "فحص الروابط" -->
+        <div id="check" class="tab-content">
+            <div class="screen-title">🔍 فاحص الروابط الآمن</div>
+            <div class="header">
+                <p>تحقق من أمان أي رابط قبل فتحه</p>
+            </div>
+            <div class="input-group">
+                <label>الرابط المراد فحصه:</label>
+                <input type="text" id="urlInput" class="url-input" placeholder="https://example.com" dir="ltr">
+            </div>
+            <button class="scan-button" id="btnScan" onclick="executeScan()">
+                <span>🔍 تحليل الرابط</span>
+                <span class="loader"></span>
+            </button>
+            <div id="resultBox"></div>
+            <div class="fee-info">
+                <strong>💡 نظام الفحص:</strong>
+                <ul style="list-style: none; padding-left: 0;">
+                    <li>✅ أول فحصين: مجاني</li>
+                    <li>✅ فحص إضافي: 2 نقطة لكل فحص</li>
+                    <li>✅ الحد الأقصى: 5 فحصات يومياً</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+            authDomain: "am--rewards.firebaseapp.com",
+            projectId: "am--rewards"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // ✅ متغيرات عامة
+        let currentUser = null;
+        let currentJob = null;
+        let currentLevel = "";
+        let questions = [];
+        let currentIndex = 0;
+        let score = 0;
+        let wrongQuestions = [];
+        let answered = false;
+        let timer = null;
+        let lastCheckedUrl = "";
+        let lastResult = null;
+        let isProcessing = false;
+        let pendingQuizData = null; // ✅ لحفظ بيانات الاختبار المعلقة
+
+        const TIME_LIMIT = 10;
+        const levelNames = {
+            'easy': 'سهل',
+            'medium': 'متوسط',
+            'hard': 'صعب',
+            'expert': 'محترف'
+        };
+
+        const jobTranslations = {
+            "Accountant": "محاسب",
+            "Assistant": "مساعد",
+            "Biomedical_Tech": "فني أجهزة طبية",
+            "Call_Center": "كول سنتر",
+            "Content_Writer": "كتابة محتوى",
+            "Customer_Service": "خدمة عملاء",
+            "Data_Entry": "إدخال بيانات",
+            "Digital_Marketing": "تسويق رقمي",
+            "Electronics_Tech": "فني إلكترونيات",
+            "Frontend_Developer": "مطور واجهات",
+            "Graphic_Designer": "مصمم جرافيك",
+            "HR": "موارد بشرية",
+            "Order_Picker": "تجهيز طلبات",
+            "Packaging_Worker": "عمال تغليف",
+            "Receptionist": "استقبال",
+            "Sales_Representative": "مندوب مبيعات",
+            "Social_Media_Moderator": "مشرف وسائل التواصل",
+            "Translator": "مترجم",
+            "Warehouse_Keeper": "أمين مخزن",
+            "Technical_Support": "دعم فني"
+        };
+
+        // ✅ مراقبة المستخدم
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                onSnapshot(doc(db, "users", user.uid), (snap) => {
+                    if (snap.exists()) {
+                        const userData = snap.data();
+                        const points = userData.points || 0;
+                        document.getElementById('userPoints').innerText = points;
+
+                        const today = new Date().toISOString().split('T')[0];
+                        if (userData.scanStats && userData.scanStats.date === today) {
+                            document.getElementById('scanCountCard').style.display = 'flex';
+                            document.getElementById('scanCount').innerText = userData.scanStats.count;
+                        }
+                    }
+                });
+                loadJobs();
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+
+        // ✅ تبديل بين التابات
+        window.switchTab = (tab) => {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        };
+
+        // ✅ تحميل الوظائف
+        async function loadJobs() {
+            const grid = document.getElementById('jobGrid');
+            const jobSnapshot = await getDocs(collection(db, "jobs"));
+            grid.innerHTML = "";
+            jobSnapshot.forEach((doc) => {
+                if (doc.id !== "General_Interview") {
+                    const jobData = doc.data();
+                    const card = document.createElement('div');
+                    card.className = 'job-card';
+                    card.innerHTML = `<div>${jobTranslations[doc.id] || doc.id}</div>`;
+                    card.onclick = () => {
+                        currentJob = jobData;
+                        document.getElementById('homeScreen').style.display = 'none';
+                        document.getElementById('levelScreen').style.display = 'block';
+                        document.getElementById('selectedJobTitle').innerText = jobTranslations[doc.id] || doc.id;
+                    };
+                    grid.appendChild(card);
+                }
+            });
+        }
+
+        // ✅ بدء الاختبار - محسّن
+        window.startQuiz = async (level) => {
+            if (isProcessing) return;
+            isProcessing = true;
+
+            const costs = { "easy": 0, "medium": 0, "hard": 3, "expert": 5 };
+            const cost = costs[level];
+
+            if (cost > 0) {
+                // ✅ حفظ البيانات ثم عرض Modal
+                pendingQuizData = { level, cost };
+                document.getElementById('modalMessage').innerText = `بدء هذا المستوى سيكلفك ${cost} نقطة. هل أنت موافق؟`;
+                document.getElementById('confirmModal').style.display = 'flex';
+
+                document.getElementById('confirmOk').onclick = () => {
+                    document.getElementById('confirmModal').style.display = 'none';
+                    proceedWithQuiz(level, cost);
+                };
+
+                document.getElementById('confirmCancel').onclick = () => {
+                    document.getElementById('confirmModal').style.display = 'none';
+                    isProcessing = false;
+                    pendingQuizData = null;
+                };
+            } else {
+                // لا توجد تكلفة، ابدأ مباشرة
+                proceedWithQuiz(level, 0);
+            }
+        };
+
+        // ✅ متابعة الاختبار بعد التأكيد
+        async function proceedWithQuiz(level, cost) {
+            try {
+                // ✅ إرسال الطلب للـ Backend
+                const res = await fetch('/api/prep-quiz', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'quiz-cost',
+                        userId: currentUser.uid,
+                        level: level
+                    })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    alert(`❌ ${data.error}`);
+                    isProcessing = false;
+                    return;
+                }
+
+                // ✅ نجح الخصم، ابدأ الاختبار
+                console.log("✅ نجح الخصم:", data);
+
+                currentLevel = level;
+                questions = currentJob.levels ? currentJob.levels[level] : [];
+
+                if (questions.length === 0) {
+                    alert("لا توجد أسئلة لهذا المستوى حالياً");
+                    isProcessing = false;
+                    return;
+                }
+
+                // ✅ تحديث النقاط فوراً
+                if (cost > 0) {
+                    const currentPoints = parseInt(document.getElementById('userPoints').innerText);
+                    document.getElementById('userPoints').innerText = currentPoints - cost;
+                }
+
+                // ✅ البدء بالاختبار
+                document.getElementById('levelScreen').style.display = 'none';
+                document.getElementById('quizScreen').style.display = 'block';
+                currentIndex = 0;
+                score = 0;
+                wrongQuestions = [];
+                showQuestion();
+            } catch (e) {
+                console.error("خطأ:", e);
+                alert("❌ حدث خطأ، حاول مرة أخرى");
+            }
+            isProcessing = false;
+        }
+
+        // ✅ عرض السؤال
+        function showQuestion() {
+            answered = false;
+            let timeLeft = TIME_LIMIT;
+            const optionsBox = document.getElementById('optionsBox');
+            optionsBox.style.pointerEvents = 'auto';
+            document.getElementById("barFill").style.width = "100%";
+            clearInterval(timer);
+
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById("barFill").style.width = (timeLeft / TIME_LIMIT * 100) + "%";
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    handleAnswer(-1, questions[currentIndex], null);
+                }
+            }, 1000);
+
+            const q = questions[currentIndex];
+            document.getElementById('questionBox').innerHTML = `<div><strong>السؤال ${currentIndex + 1}/${questions.length}</strong></div><br><strong>${q.q}</strong>`;
+            optionsBox.innerHTML = "";
+
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt;
+                btn.onclick = () => handleAnswer(index, q, btn);
+                optionsBox.appendChild(btn);
+            });
+        }
+
+        // ✅ معالجة الإجابة
+        function handleAnswer(selectedIndex, q, btn) {
+            if (answered) return;
+            answered = true;
+            clearInterval(timer);
+            const optionsBox = document.getElementById('optionsBox');
+            optionsBox.style.pointerEvents = 'none';
+
+            if (selectedIndex === q.answer) {
+                if (btn) btn.style.background = "green";
+                score++;
+            } else {
+                if (btn) btn.style.background = "red";
+                optionsBox.children[q.answer].style.background = "green";
+                wrongQuestions.push(q);
+            }
+
+            setTimeout(() => {
+                currentIndex++;
+                if (currentIndex < questions.length) {
+                    showQuestion();
+                } else {
+                    showResult();
+                }
+            }, 800);
+        }
+
+        // ✅ عرض النتيجة
+        window.showResult = () => {
+            document.getElementById("barFill").style.width = "100%";
+            const percentage = (score / questions.length) * 100;
+            let feedback = "";
+            let color = percentage >= 50 ? "#28a745" : "#dc3545";
+
+            if (percentage === 100) {
+                feedback = "أداء أسطوري! أنت متمكن جداً من هذا المستوى. 🔥";
+            } else if (percentage >= 70) {
+                feedback = "أداء ممتاز! أنت مستعد بنسبة كبيرة للمقابلات. 🚀";
+            } else if (percentage >= 50) {
+                feedback = "أداء جيد، لكن تحتاج لبعض المراجعة. 👍";
+            } else if (percentage > 0) {
+                feedback = "أداء ضعيف.. راجع المفاهيم الأساسية. ⚠️";
+            } else {
+                feedback = "للأسف لم توفق في أي إجابة. حاول مرة أخرى. 🛑";
+            }
+
+            let html = `<h3 style="color: ${color}">🎯 نتيجتك: ${score} من ${questions.length} (${percentage.toFixed(1)}%)</h3>
+                        <p style="font-size: 1.1rem; margin-top: 10px;">${feedback}</p>`;
+
+            html += `<div class="tip-box"><b>💡 نصائح ذهبية للمقابلة:</b><br>
+                1. <b>الثقة:</b> لا تقل "لا أعرف"<br>
+                2. <b>التنظيم:</b> اجعل إجاباتك مرتبة<br>
+                3. <b>الأسئلة:</b> اسأل عن الفريق والراتب
+            </div>`;
+
+            document.getElementById('questionBox').innerHTML = html;
+            document.getElementById('optionsBox').innerHTML = "";
+
+            if (percentage < 100) {
+                const retryBtn = document.createElement('button');
+                retryBtn.className = 'option-btn';
+                retryBtn.style.background = "var(--primary)";
+                retryBtn.innerText = percentage === 0 ? "🔄 ابدأ من جديد" : "🔍 راجع الأخطاء وأعد";
+                retryBtn.onclick = () => {
+                    questions = percentage === 0 ? questions : wrongQuestions;
+                    currentIndex = 0;
+                    score = 0;
+                    showQuestion();
+                };
+                document.getElementById('optionsBox').appendChild(retryBtn);
+            }
+
+            const homeBtn = document.createElement('button');
+            homeBtn.className = 'option-btn';
+            homeBtn.style.background = "#1c222d";
+            homeBtn.innerText = "🏠 العودة للرئيسية";
+            homeBtn.onclick = goBackToJobs;
+            document.getElementById('optionsBox').appendChild(homeBtn);
+        };
+
+        // ✅ فحص الروابط - محسّن
+        window.executeScan = async () => {
+            const url = document.getElementById('urlInput').value.trim();
+            const btnScan = document.getElementById('btnScan');
+            const resultBox = document.getElementById('resultBox');
+            const loader = document.querySelector('.loader');
+
+            if (!url) {
+                alert("أدخل الرابط!");
+                return;
+            }
+
+            // ✅ إذا نفس الرابط
+            if (url === lastCheckedUrl && lastResult !== null) {
+                displayLinkResult(lastResult);
+                return;
+            }
+
+            const currentCount = parseInt(document.getElementById('scanCount').innerText || 0);
+
+            if (currentCount >= 2 && currentCount < 5) {
+                document.getElementById('confirmModal').style.display = 'flex';
+                document.getElementById('modalMessage').innerText = "سيتم خصم 2 نقطة لإتمام هذا الفحص. هل تريد الاستمرار؟";
+                document.getElementById('confirmOk').onclick = () => {
+                    document.getElementById('confirmModal').style.display = 'none';
+                    performScan(url, btnScan, resultBox, loader);
+                };
+                document.getElementById('confirmCancel').onclick = () => {
+                    document.getElementById('confirmModal').style.display = 'none';
+                };
+            } else {
+                performScan(url, btnScan, resultBox, loader);
+            }
+        };
+
+        // ✅ تنفيذ الفحص
+        async function performScan(url, btnScan, resultBox, loader) {
+            btnScan.disabled = true;
+            loader.classList.add('show');
+            resultBox.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/prep-quiz', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'check-link',
+                        url: url,
+                        userId: currentUser.uid
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    lastCheckedUrl = url;
+                    lastResult = data;
+                    displayLinkResult(data);
+
+                    // ✅ تحديث العداد
+                    if (data.count) {
+                        document.getElementById('scanCountCard').style.display = 'flex';
+                        document.getElementById('scanCount').innerText = data.count;
+                    }
+
+                    // ✅ تحديث النقاط إذا تم خصم نقاط
+                    if (data.points) {
+                        document.getElementById('userPoints').innerText = data.points;
+                    }
+                } else {
+                    alert(`❌ ${data.error}`);
+                }
+            } catch (err) {
+                alert("❌ خطأ في الاتصال");
+            } finally {
+                btnScan.disabled = false;
+                loader.classList.remove('show');
+            }
+        }
+
+        // ✅ عرض نتيجة الفحص
+        function displayLinkResult(data) {
+            const resultBox = document.getElementById('resultBox');
+            resultBox.style.display = 'block';
+
+            if (data.safe) {
+                resultBox.className = 'result-safe';
+                resultBox.innerHTML = `✅ الرابط آمن وموثوق<br><small>${data.threatType || ""}</small>`;
+            } else {
+                resultBox.className = 'result-danger';
+                resultBox.innerHTML = `⚠️ ${data.threatType || "هذا الرابط قد يكون خطيراً!"}`;
+            }
+
+            if (data.isRepeated) {
+                resultBox.innerHTML += '<br><small>✨ (تم فحصه مسبقاً - لم يتم خصم نقاط)</small>';
+            } else if (data.message) {
+                resultBox.innerHTML += `<br><small>${data.message}</small>`;
+            }
+        }
+
+        // ✅ العودة إلى الوظائف
+        window.goBackToJobs = () => {
+            document.getElementById('homeScreen').style.display = 'block';
+            document.getElementById('levelScreen').style.display = 'none';
+            document.getElementById('quizScreen').style.display = 'none';
+            clearInterval(timer);
+        };
+
+        // ✅ إلغاء الاختبار
+        window.cancelQuiz = () => {
+            clearInterval(timer);
+            goBackToJobs();
+        };
+    </script>
+</body>
+</html>
