@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>لوحة رفع الخدمات والمهام | Galaxy Center</title>
 </head>
-<body style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #020617; gap: 20px; font-family: sans-serif;">
+<body style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; background: #020617; gap: 20px; font-family: sans-serif; padding: 20px;">
 
     <h2 style="color: #00f2ff;">لوحة تحكم مجرة Am Rewards 🌌</h2>
 
@@ -14,6 +14,10 @@
 
     <button id="uploadTasksBtn" style="padding: 20px; font-size: 18px; background: #00f2ff; color: #020617; border: none; border-radius: 10px; cursor: pointer; width: 300px; font-weight: bold;">
         🔗 رفع قائمة المهام (Tasks)
+    </button>
+
+    <button id="uploadShortlinksBtn" style="padding: 20px; font-size: 18px; background: #f5c542; color: #020617; border: none; border-radius: 10px; cursor: pointer; width: 300px; font-weight: bold;">
+        🪙 رفع روابط الربح (Shortlinks)
     </button>
 
     <p id="status" style="color: #94a3b8;"></p>
@@ -32,7 +36,7 @@
         const db = getFirestore(app);
         const statusText = document.getElementById('status');
 
-        // --- 1. قائمة الخدمات (التي تظهر في التبويب الأول) ---
+        // --- 1. قائمة الخدمات ---
         async function uploadServices() {
             const services = [
                 { id: "am-test", title: "حضر نفسك وافحص الروابط", description: "اختبارات مهنية + كشف الروابط", icon: "🎓", link: "am.html", order: 1, btnClass: "start-btn", btnStyle: "background: var(--neon-cyan); color:#000;", btnText: "ابدأ الآن", specialBorder: "var(--neon-cyan)" },
@@ -55,7 +59,7 @@
             }
         }
 
-        // --- 2. قائمة المهام (التي تظهر في تبويب المهام) ---
+        // --- 2. قائمة المهام ---
         async function uploadTasks() {
             const tasks = [
                 { id: "shortlink-1", name: "روابط مختصرة", reward: "اربح نقاطاً مقابل كل تخطّي", icon: "🔗", link: "shortlinks.html", active: true, order: 1 }
@@ -72,8 +76,42 @@
             }
         }
 
+        // --- 3. قائمة الروابط المختصرة (Shortlinks) ---
+        async function uploadShortlinks() {
+            const shortlinks = [
+              { id: 0, title: "رابط رقم 1", url: "https://swiftlnx.com/O9fy5YtU", difficulty: "متوسط", points: 2.5, class: "medium", type: "medium", order: 1 },
+              { id: 1, title: "رابط رقم 2", url: "https://exe.io/vxcI5", difficulty: "سهل", points: 1.5, class: "easy", type: "easy", order: 2 },
+              { id: 2, title: "رابط رقم 3", url: "https://uii.io/wyy7xt", difficulty: "سهل", points: 1.5, class: "easy", type: "easy", order: 3 },
+              { id: 3, title: "رابط رقم 4", url: "https://short-jambo.ink/fswqjuSL", difficulty: "متوسط", points: 2.5, class: "medium", type: "medium", order: 4 },
+              { id: 4, title: "رابط رقم 5", url: "https://tpi.li/1yhN", difficulty: "سهل", points: 1.5, class: "easy", type: "easy", order: 5 },
+              { id: 5, title: "رابط رقم 6", url: "https://shrinkme.click/iMlwz", difficulty: "سهل", points: 1.5, class: "easy", type: "easy", order: 6 },
+              { id: 6, title: "رابط رقم 7", url: "https://revlink.pro/KHBXnaU", difficulty: "صعب", points: 4, class: "hard", type: "hard", order: 7 },
+              { id: 7, title: "رابط رقم 8", url: "https://oii.la/fVqC9YyA", difficulty: "سهل", points: 1.5, class: "easy", type: "easy", order: 8 },
+              { id: 8, title: "رابط رقم 9", url: "https://gplinks.co/DXrOS", difficulty: "سهل", points: 1.5, class: "easy", type: "easy", order: 9 },
+              { id: 9, title: "رابط رقم 10", url: "https://nitro-link.com/PVVy", difficulty: "متوسط", points: 2.5, class: "medium", type: "medium", order: 10 },
+              { id: 10, title: "رابط رقم 11", url: "https://www.short-fly.com/T0I15Rv", difficulty: "سهل", points: 1.5, class: "easy", type: "easy", order: 11 },
+              { id: 11, title: "رابط رقم 12", url: "https://Shortig.com/lin/53bfd2", difficulty: "متوسط", points: 2.5, class: "medium", type: "medium", order: 12 },
+              { id: 12, title: "رابط رقم 13", url: "https://xpshort.com/hBC7", difficulty: "سهل", points: 1.5, class: "easy", type: "easy", order: 13 },
+              { id: 13, title: "رابط رقم 14", url: "http://easy4skip.com/1xGAnqI4", difficulty: "صعب", points: 4, class: "hard", type: "hard", order: 14 },
+              { id: 14, title: "رابط رقم 15", url: "https://linkjust.com/4KnViKd6rWvEctQ", difficulty: "متوسط", points: 2.5, class: "medium", type: "medium", order: 15 },
+              { id: 15, title: "رابط رقم 16", url: "https://seturl.in/9jjxXX", difficulty: "سهل", points: 1.5, class: "easy", type: "easy", order: 16 }
+            ];
+
+            try {
+                for (const link of shortlinks) {
+                    // سيتم تخزينها في Collection باسم links_data
+                    await setDoc(doc(db, "links_data", link.id.toString()), link);
+                }
+                statusText.innerText = "✅ تم رفع كافة الروابط المختصرة بنجاح!";
+                alert("تم تحديث الروابط المختصرة بنجاح! 🪙");
+            } catch (e) {
+                statusText.innerText = "❌ خطأ في الرفع: " + e.message;
+            }
+        }
+
         document.getElementById('uploadServicesBtn').addEventListener('click', uploadServices);
         document.getElementById('uploadTasksBtn').addEventListener('click', uploadTasks);
+        document.getElementById('uploadShortlinksBtn').addEventListener('click', uploadShortlinks);
     </script>
 </body>
 </html>
