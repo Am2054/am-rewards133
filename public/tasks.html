@@ -81,11 +81,10 @@
         </div> 
 
         <div id="tasks" class="task-container"> 
-            <div class="task-card"> 
-                <div class="task-info"><span class="task-icon">🔗</span><div><span class="task-name">روابط مختصرة</span><span class="task-reward">اربح نقاطاً مقابل كل تخطّي</span></div></div> 
-                <button class="start-btn" onclick="location.href='shortlinks.html'">إبدأ</button> 
-            </div> 
-            <p class="soon-msg">سيتم إضافة العديد من المهام قريباً، تابعنا!</p>
+            <div id="tasksList">
+                <p class="soon-msg">جاري تحميل المهام...</p>
+            </div>
+            <p class="soon-msg" style="margin-top: 30px;">سيتم إضافة العديد من المهام قريباً، تابعنا!</p>
         </div> 
 
         <button class="back-btn" onclick="window.location.href='dashboard.html'">⬅️ العودة للرئيسية</button> 
@@ -109,46 +108,52 @@
                     contentShown = true;
                 }
                 listenToPoints(user.uid); 
-                loadServices(); // جلب الخدمات تلقائياً عند الدخول
+                loadData("services", "servicesList"); // جلب الخدمات
+                loadData("tasks", "tasksList");       // جلب المهام
             } else { 
                 window.location.replace("index.html"); 
             } 
         }); 
 
-        // دالة جلب الخدمات من Firestore
-        function loadServices() {
-            const servicesList = document.getElementById("servicesList");
+        // دالة موحدة لجلب البيانات (خدمات أو مهام) من Firestore ورسمها
+        function loadData(collectionName, containerId) {
+            const listElement = document.getElementById(containerId);
             
-            db.collection("services").orderBy("order", "asc").get().then((querySnapshot) => {
-                servicesList.innerHTML = ""; // مسح رسالة التحميل
+            db.collection(collectionName).orderBy("order", "asc").get().then((querySnapshot) => {
+                listElement.innerHTML = ""; // مسح رسالة التحميل
+
+                if (querySnapshot.empty) {
+                    listElement.innerHTML = '<p class="soon-msg">لا يوجد عناصر حالياً.</p>';
+                    return;
+                }
 
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
                     
-                    // بناء كارت الخدمة بنفس التصميم الأصلي
+                    // إنشاء الكارت
                     const card = document.createElement('div');
                     card.className = 'task-card';
                     if(data.specialBorder) card.style.border = `1px solid ${data.specialBorder}`;
 
                     card.innerHTML = `
                         <div class="task-info">
-                            <span class="task-icon">${data.icon || '🛠️'}</span>
+                            <span class="task-icon">${data.icon || '✨'}</span>
                             <div>
-                                <span class="task-name">${data.title}</span>
-                                <span class="task-reward">${data.description || ''}</span>
+                                <span class="task-name">${data.title || data.name}</span>
+                                <span class="task-reward">${data.description || data.reward || ''}</span>
                             </div>
                         </div> 
-                        <button class="start-btn ${data.btnClass || 'service-btn'}" 
+                        <button class="start-btn ${data.btnClass || (collectionName === 'services' ? 'service-btn' : '')}" 
                                 style="${data.btnStyle || ''}" 
                                 onclick="location.href='${data.link}'">
                             ${data.btnText || 'ابدأ'}
                         </button>
                     `;
-                    servicesList.appendChild(card);
+                    listElement.appendChild(card);
                 });
             }).catch(err => {
-                console.error("Error loading services:", err);
-                servicesList.innerHTML = '<p class="soon-msg">حدث خطأ في تحميل الخدمات.</p>';
+                console.error(`Error loading ${collectionName}:`, err);
+                listElement.innerHTML = `<p class="soon-msg">خطأ في الاتصال بالمجرة.</p>`;
             });
         }
 
