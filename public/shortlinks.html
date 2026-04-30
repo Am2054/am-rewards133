@@ -245,32 +245,33 @@
         handleVerification();
       }
 
+      // مراقبة نقاط المستخدم
       onSnapshot(doc(db, "users", user.uid), (snap) => {
         const data = snap.data() || {};
         document.getElementById("points-val").textContent = data.points || 0;
-        loadUserLinks(user.uid);
         fetchLinksFromDB();
       });
+
+      // ✅ التعديل الجوهري: مراقبة الروابط المستخدمة لحظياً (Real-time)
+      loadUserLinks(user.uid);
     });
 
-    async function loadUserLinks(uid) {
-      try {
-        const q = query(collection(db, "users", uid, "lastLinks"));
-        const snap = await getDocs(q);
-
+    function loadUserLinks(uid) {
+      const q = query(collection(db, "users", uid, "lastLinks"));
+      
+      // استخدام onSnapshot يضمن التحديث التلقائي دون ريفرش
+      onSnapshot(q, (snap) => {
         lastLinks = {};
         snap.forEach(doc => {
           lastLinks[doc.id] = doc.data().timestamp?.toMillis?.() || doc.data().timestamp || 0;
         });
+        renderUI(); 
+      }, (error) => {
+        console.error("Error watching links:", error);
+      });
 
-        renderUI();
-
-        if (!window.uiRefresher) {
-          window.uiRefresher = setInterval(renderUI, 60000);
-        }
-      } catch (error) {
-        console.error("Error loading links:", error);
-        renderUI();
+      if (!window.uiRefresher) {
+        window.uiRefresher = setInterval(renderUI, 60000);
       }
     }
 
@@ -374,8 +375,15 @@
 
         if (response.ok) {
           const now = new Date();
+          
+          // تحديث محلي احتياطي
           lastLinks[idx.toString()] = now.getTime(); 
           renderUI(); 
+
+          await setDoc(
+            doc(db, "users", currentUser.uid, "lastLinks", idx.toString()),
+            { timestamp: now, points: pts }
+          );
 
           await addDoc(collection(db, "lastLinks"), {
             userId: currentUser.uid,
@@ -383,11 +391,6 @@
             points: pts,
             completedAt: now
           });
-
-          await setDoc(
-            doc(db, "users", currentUser.uid, "lastLinks", idx.toString()),
-            { timestamp: now, points: pts }
-          );
 
           Swal.fire({
             title: 'كفو!',
