@@ -75,34 +75,8 @@
         </div> 
 
         <div id="services" class="task-container active">
-            <div class="task-card" style="border: 1px solid var(--neon-cyan);"> 
-                <div class="task-info"><span class="task-icon">🎓</span><div><span class="task-name">حضر نفسك وافحص الروابط</span><span class="task-reward">اختبارات مهنية + كشف الروابط</span></div></div> 
-                <button class="start-btn" style="background: var(--neon-cyan); color:#000;" onclick="location.href='am.html'">ابدأ الآن</button> 
-            </div>
-
-            <div class="task-card"> 
-                <div class="task-info"><span class="task-icon">🌐</span><div><span class="task-name">محلل الإنترنت</span><span class="task-reward">حساب استهلاك الباقة</span></div></div> 
-                <button class="start-btn service-btn" onclick="location.href='wifi-calc.html'">فتح الأداة</button> 
-            </div> 
-            <div class="task-card"> 
-                <div class="task-info"><span class="task-icon">⚡</span><div><span class="task-name">فاتورة الكهرباء</span><span class="task-reward">حساب الشرائح الجديدة</span></div></div> 
-                <button class="start-btn service-btn" onclick="location.href='electricity.html'">احسب</button> 
-            </div> 
-            <div class="task-card"> 
-                <div class="task-info"><span class="task-icon">💧</span><div><span class="task-name">فاتورة المياه</span><span class="task-reward">التقدير الدقيق للفاتورة</span></div></div> 
-                <button class="start-btn service-btn" onclick="location.href='water.html'">احسب</button> 
-            </div> 
-            <div class="task-card"> 
-                <div class="task-info"><span class="task-icon">📞</span><div><span class="task-name">أكواد الشركات</span><span class="task-reward">جميع أكواد الشبكات</span></div></div> 
-                <button class="start-btn service-btn" onclick="location.href='codes.html'">عرض</button> 
-            </div> 
-            <div class="task-card" style="border: 1px solid var(--neon-purple);"> 
-                <div class="task-info"><span class="task-icon">👻</span><div><span class="task-name">شات الأشباح</span><span class="task-reward">دردشة مجهولة الهوية</span></div></div> 
-                <button class="start-btn" style="background: var(--neon-purple);" onclick="location.href='ghost-chat.html'">دخول</button> 
-            </div>
-            <div class="task-card"> 
-                <div class="task-info"><span class="task-icon">💡</span><div><span class="task-name">المشاكل والاقتراحات</span><span class="task-reward">صوتك مسموع لتطوير المجرة</span></div></div> 
-                <button class="start-btn" style="background: #4f46e5;" onclick="location.href='feedback.html'">إرسال</button> 
+            <div id="servicesList">
+                <p class="soon-msg">جاري تحميل الخدمات...</p>
             </div>
         </div> 
 
@@ -135,10 +109,48 @@
                     contentShown = true;
                 }
                 listenToPoints(user.uid); 
+                loadServices(); // جلب الخدمات تلقائياً عند الدخول
             } else { 
                 window.location.replace("index.html"); 
             } 
         }); 
+
+        // دالة جلب الخدمات من Firestore
+        function loadServices() {
+            const servicesList = document.getElementById("servicesList");
+            
+            db.collection("services").orderBy("order", "asc").get().then((querySnapshot) => {
+                servicesList.innerHTML = ""; // مسح رسالة التحميل
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    
+                    // بناء كارت الخدمة بنفس التصميم الأصلي
+                    const card = document.createElement('div');
+                    card.className = 'task-card';
+                    if(data.specialBorder) card.style.border = `1px solid ${data.specialBorder}`;
+
+                    card.innerHTML = `
+                        <div class="task-info">
+                            <span class="task-icon">${data.icon || '🛠️'}</span>
+                            <div>
+                                <span class="task-name">${data.title}</span>
+                                <span class="task-reward">${data.description || ''}</span>
+                            </div>
+                        </div> 
+                        <button class="start-btn ${data.btnClass || 'service-btn'}" 
+                                style="${data.btnStyle || ''}" 
+                                onclick="location.href='${data.link}'">
+                            ${data.btnText || 'ابدأ'}
+                        </button>
+                    `;
+                    servicesList.appendChild(card);
+                });
+            }).catch(err => {
+                console.error("Error loading services:", err);
+                servicesList.innerHTML = '<p class="soon-msg">حدث خطأ في تحميل الخدمات.</p>';
+            });
+        }
 
         function listenToPoints(userId) { 
             db.collection("users").doc(userId).onSnapshot(doc => { 
