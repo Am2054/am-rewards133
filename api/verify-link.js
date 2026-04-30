@@ -22,30 +22,34 @@ export default async function handler(req, res) {
     if (!userId || linkIdx === undefined || !selectedCode) return res.status(400).json({ error: "بيانات ناقصة" });
 
     try {
+        // 1. التحقق من الجلسة
         const sessionRef = db.collection("linkSessions").doc(`${userId}_${linkIdx}`);
         const snap = await sessionRef.get();
 
         if (!snap.exists || snap.data().used) return res.status(400).json({ error: "جلسة غير صالحة أو تم استخدامها" });
 
-        // مطابقة الكود
+        // 2. مطابقة الكود
         if (snap.data().code.toString() !== selectedCode.toString()) {
             return res.status(401).json({ error: "الرمز غير صحيح" });
         }
 
-        // تم إضافة 11 و 15 للمصفوفة لتتطابق مع الـ Frontend
-        const pointsMap = { 
-            0: 2.5, 1: 1.5, 2: 1.5, 3: 2.5, 4: 1.5, 5: 1.5, 6: 4, 7: 1.5, 8: 1.5, 
-            9: 2.5, 10: 1.5, 11: 2.5, 12: 1.5, 13: 4, 14: 2.5, 15: 1.5 
-        };
-        const pts = pointsMap[linkIdx] || 1.5;
+        // 3. جلب بيانات الرابط والنقاط من قاعدة البيانات بدلاً من المصفوفة الثابتة
+        const linkDoc = await db.collection("links_data").doc(linkIdx.toString()).get();
+        if (!linkDoc.exists) {
+            return res.status(404).json({ error: "الرابط غير موجود في قاعدة البيانات" });
+        }
 
-        // تنفيذ التحديث
+        const linkData = linkDoc.data();
+        const pts = linkData.points || 1.5; // استخدام النقاط المسجلة في links_data
+
+        // 4. تنفيذ التحديث لرصيد المستخدم
         const userRef = db.collection("users").doc(userId);
         await userRef.update({
             points: FieldValue.increment(pts),
             [`lastLinks.${linkIdx}`]: FieldValue.serverTimestamp()
         });
 
+        // 5. علامة على أن الجلسة استُخدمت
         await sessionRef.set({ used: true }, { merge: true });
 
         return res.status(200).json({ success: true, points: pts });
