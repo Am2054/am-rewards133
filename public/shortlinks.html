@@ -230,24 +230,24 @@
     let lastLinks = {};
     let isProcessing = false;
 
-    const shortlinks = [
-      { id: 0, title: "رابط رقم 1", url: "https://swiftlnx.com/O9fy5YtU", difficulty: "متوسط", points: 2.5, class: "medium", type: "medium" },
-      { id: 1, title: "رابط رقم 2", url: "https://exe.io/vxcI5", difficulty: "سهل", points: 1.5, class: "easy", type: "easy" },
-      { id: 2, title: "رابط رقم 3", url: "https://uii.io/wyy7xt", difficulty: "سهل", points: 1.5, class: "easy", type: "easy" },
-      { id: 3, title: "رابط رقم 4", url: "https://short-jambo.ink/fswqjuSL", difficulty: "متوسط", points: 2.5, class: "medium", type: "medium" },
-      { id: 4, title: "رابط رقم 5", url: "https://tpi.li/1yhN", difficulty: "سهل", points: 1.5, class: "easy", type: "easy" },
-      { id: 5, title: "رابط رقم 6", url: "https://shrinkme.click/iMlwz", difficulty: "سهل", points: 1.5, class: "easy", type: "easy" },
-      { id: 6, title: "رابط رقم 7", url: "https://revlink.pro/KHBXnaU", difficulty: "صعب", points: 4, class: "hard", type: "hard" },
-      { id: 7, title: "رابط رقم 8", url: "https://oii.la/fVqC9YyA", difficulty: "سهل", points: 1.5, class: "easy", type: "easy" },
-      { id: 8, title: "رابط رقم 9", url: "https://gplinks.co/DXrOS", difficulty: "سهل", points: 1.5, class: "easy", type: "easy" },
-      { id: 9, title: "رابط رقم 10", url: "https://nitro-link.com/PVVy", difficulty: "متوسط", points: 2.5, class: "medium", type: "medium" },
-      { id: 10, title: "رابط رقم 11", url: "https://www.short-fly.com/T0I15Rv", difficulty: "سهل", points: 1.5, class: "easy", type: "easy" },
-      { id: 11, title: "رابط رقم 12", url: "https://Shortig.com/lin/53bfd2", difficulty: "متوسط", points: 2.5, class: "medium", type: "medium" },
-      { id: 12, title: "رابط رقم 13", url: "https://xpshort.com/hBC7", difficulty: "سهل", points: 1.5, class: "easy", type: "easy" },
-      { id: 13, title: "رابط رقم 14", url: "http://easy4skip.com/1xGAnqI4", difficulty: "صعب", points: 4, class: "hard", type: "hard" },
-      { id: 14, title: "رابط رقم 15", url: "https://linkjust.com/4KnViKd6rWvEctQ", difficulty: "متوسط", points: 2.5, class: "medium", type: "medium" },
-      { id: 15, title: "رابط رقم 16", url: "https://seturl.in/9jjxXX", difficulty: "سهل", points: 1.5, class: "easy", type: "easy" }
-    ];
+        let shortlinks = []; // المتغير بقى فاضي وهيتملي من الداتابيز
+
+    // دالة لجلب الروابط من Firestore
+    async function fetchLinksFromDB() {
+      try {
+        const querySnapshot = await getDocs(collection(db, "links_data"));
+        shortlinks = [];
+        querySnapshot.forEach((doc) => {
+          shortlinks.push(doc.data());
+        });
+        // ترتيب الروابط حسب الـ order عشان يظهروا بنفس ترتيبك
+        shortlinks.sort((a, b) => a.order - b.order);
+        renderUI(); // تشغيل الواجهة بعد التحميل
+      } catch (error) {
+        console.error("خطأ في جلب الروابط:", error);
+      }
+    }
+
 
     let currentUser = null;
 
@@ -269,6 +269,7 @@
 
         // ✅ تحميل آخر الروابط من collection
         loadUserLinks(user.uid);
+        fetchLinksFromDB();
       });
     });
 
