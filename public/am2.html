@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة رفع الخدمات والمهام | Galaxy Center</title>
+</head>
+<body style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #020617; gap: 20px; font-family: sans-serif;">
+
+    <h2 style="color: #00f2ff;">لوحة تحكم مجرة Am Rewards 🌌</h2>
+
+    <button id="uploadServicesBtn" style="padding: 20px; font-size: 18px; background: #7000ff; color: white; border: none; border-radius: 10px; cursor: pointer; width: 300px;">
+        🚀 رفع قائمة الخدمات (Services)
+    </button>
+
+    <button id="uploadTasksBtn" style="padding: 20px; font-size: 18px; background: #00f2ff; color: #020617; border: none; border-radius: 10px; cursor: pointer; width: 300px; font-weight: bold;">
+        🔗 رفع قائمة المهام (Tasks)
+    </button>
+
+    <p id="status" style="color: #94a3b8;"></p>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const firebaseConfig = { 
+            apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
+            authDomain: "am--rewards.firebaseapp.com", 
+            projectId: "am--rewards" 
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const statusText = document.getElementById('status');
+
+        // --- 1. قائمة الخدمات (التي تظهر في التبويب الأول) ---
+        async function uploadServices() {
+            const services = [
+                { id: "am-test", title: "حضر نفسك وافحص الروابط", description: "اختبارات مهنية + كشف الروابط", icon: "🎓", link: "am.html", order: 1, btnClass: "start-btn", btnStyle: "background: var(--neon-cyan); color:#000;", btnText: "ابدأ الآن", specialBorder: "var(--neon-cyan)" },
+                { id: "wifi-calc", title: "محلل الإنترنت", description: "حساب استهلاك الباقة", icon: "🌐", link: "wifi-calc.html", order: 2, btnClass: "service-btn", btnText: "فتح الأداة" },
+                { id: "electricity", title: "فاتورة الكهرباء", description: "حساب الشرائح الجديدة", icon: "⚡", link: "electricity.html", order: 3, btnClass: "service-btn", btnText: "احسب" },
+                { id: "water", title: "فاتورة المياه", description: "التقدير الدقيق للفاتورة", icon: "💧", link: "water.html", order: 4, btnClass: "service-btn", btnText: "احسب" },
+                { id: "codes", title: "أكواد الشركات", description: "جميع أكواد الشبكات", icon: "📞", link: "codes.html", order: 5, btnClass: "service-btn", btnText: "عرض" },
+                { id: "ghost-chat", title: "شات الأشباح", description: "دردشة مجهولة الهوية", icon: "👻", link: "ghost-chat.html", order: 6, btnClass: "start-btn", btnStyle: "background: var(--neon-purple);", btnText: "دخول", specialBorder: "var(--neon-purple)" },
+                { id: "feedback", title: "المشاكل والاقتراحات", description: "صوتك مسموع لتطوير المجرة", icon: "💡", link: "feedback.html", order: 7, btnClass: "start-btn", btnStyle: "background: #4f46e5;", btnText: "إرسال" }
+            ];
+
+            try {
+                for (const item of services) {
+                    await setDoc(doc(db, "services", item.id), item);
+                }
+                statusText.innerText = "✅ تم رفع كافة الخدمات بنجاح!";
+                alert("تم تحديث الخدمات! 🚀");
+            } catch (e) {
+                statusText.innerText = "❌ خطأ في الرفع: " + e.message;
+            }
+        }
+
+        // --- 2. قائمة المهام (التي تظهر في تبويب المهام) ---
+        async function uploadTasks() {
+            const tasks = [
+                { id: "shortlink-1", name: "روابط مختصرة", reward: "اربح نقاطاً مقابل كل تخطّي", icon: "🔗", link: "shortlinks.html", active: true, order: 1 }
+            ];
+
+            try {
+                for (const task of tasks) {
+                    await setDoc(doc(db, "tasks", task.id), task);
+                }
+                statusText.innerText = "✅ تم رفع كافة المهام بنجاح!";
+                alert("تم تحديث المهام بنجاح! 🚀");
+            } catch (e) {
+                statusText.innerText = "❌ خطأ في الرفع: " + e.message;
+            }
+        }
+
+        document.getElementById('uploadServicesBtn').addEventListener('click', uploadServices);
+        document.getElementById('uploadTasksBtn').addEventListener('click', uploadTasks);
+    </script>
+</body>
+</html>
