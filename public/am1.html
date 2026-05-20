@@ -1,266 +1,647 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AM Rewards | حضر نفسك</title>
-    <style>
-        :root { --primary: #007bff; --bg: #0b0e14; }
-        html { scroll-behavior: smooth; }
-        body { font-family: 'Segoe UI', sans-serif; background: radial-gradient(circle at 50% 50%, #1a1f2e, #0b0e14); min-height: 100vh; color: white; padding: 15px; margin: 0; -webkit-overflow-scrolling: touch; overflow-y: auto; overscroll-behavior: contain; }
-        
-        .info-bar { display: flex; justify-content: center; margin-bottom: 20px; }
-        .points-card { background: rgba(0, 123, 255, 0.15); padding: 8px 20px; border-radius: 50px; border: 1px solid var(--primary); color: #00d2ff; font-weight: bold; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام طلبات الفطار | Breakfast Orders</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .header { text-align: center; margin: 20px 0; font-size: 22px; color: var(--primary); text-shadow: 0 0 10px rgba(0,123,255,0.5); }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 10px; margin-bottom: 50px; animation: fadeIn 0.6s ease; }
-        
-        .card { background: rgba(255, 255, 255, 0.04); padding: 15px 10px; border-radius: 15px; text-align: center; border: 1px solid rgba(0, 123, 255, 0.2); cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; min-height: 50px; font-size: 0.95rem; }
-        .card:hover { border-color: var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.2); transform: scale(1.02); }
-        
-        .hidden { display: none; }
-        
-        .levels-container { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; justify-content: center; animation: fadeIn 0.6s ease; }
-        .level-btn { min-width: 80px; padding: 15px; background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; border-radius: 15px; color: white; font-size: 14px; cursor: pointer; transition: 0.4s; }
-        .level-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        
-        .back-btn { display: block; width: 100%; padding: 15px; margin-top: 20px; background: rgba(255,255,255,0.1); border: 1px solid #6c757d; border-radius: 10px; color: white; cursor: pointer; }
-        
-        .quiz-container { animation: fadeIn 0.6s ease; padding: 10px; }
-        .question-box { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid var(--primary); }
-        .option-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; background: #1c222d; border: 1px solid #444; border-radius: 12px; color: white; cursor: pointer; transition: 0.3s; }
-        
-        .bar { height: 6px; background: #222; border-radius: 10px; margin-bottom: 20px; overflow: hidden; }
-        #barFill { height: 100%; background: #007bff; width: 0%; transition: 0.3s; }
-        .tip-box { background: rgba(0,123,255,0.1); padding: 15px; border-radius: 15px; margin-top: 20px; border-right: 4px solid var(--primary); font-size: 14px; line-height: 1.6; }
-    </style>
+    :root {
+      --primary: #FF6B35;
+      --secondary: #F7931E;
+      --bg-dark: #1a1a2e;
+      --card-bg: rgba(255, 107, 53, 0.1);
+      --border: rgba(255, 107, 53, 0.2);
+      --text: #f5f5f5;
+      --text-secondary: #b0b0b0;
+      --success: #4CAF50;
+      --warning: #FFC107;
+    }
+
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: var(--text);
+      min-height: 100vh;
+      background-attachment: fixed;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* ✅ Header */
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 20px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(255, 107, 53, 0.3);
+      animation: slideDown 0.5s ease;
+    }
+
+    @keyframes slideDown {
+      from { transform: translateY(-30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 5px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    header p {
+      color: rgba(255,255,255,0.9);
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    /* ✅ Form Card */
+    .form-card {
+      background: rgba(30, 30, 46, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 30px;
+      animation: slideUp 0.5s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* ✅ Form Section */
+    .form-section {
+      margin-bottom: 25px;
+    }
+
+    .section-title {
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 12px;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ✅ Input Fields */
+    input[type="text"],
+    input[type="email"],
+    select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.3);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 1rem;
+      margin-bottom: 15px;
+      outline: none;
+      transition: 0.3s;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--primary);
+      background: rgba(255, 107, 53, 0.05);
+      box-shadow: 0 0 15px rgba(255, 107, 53, 0.2);
+    }
+
+    /* ✅ Radio Buttons (Food Items) */
+    .food-options {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .food-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      background: rgba(0, 0, 0, 0.2);
+      border: 2px solid transparent;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .food-item:hover {
+      border-color: var(--primary);
+      background: rgba(255, 107, 53, 0.05);
+    }
+
+    .food-item input {
+      width: auto;
+      margin: 0;
+      margin-right: 12px;
+      cursor: pointer;
+      accent-color: var(--primary);
+    }
+
+    .food-info {
+      flex: 1;
+    }
+
+    .food-name {
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .food-desc {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .food-price {
+      color: var(--primary);
+      font-weight: 900;
+      font-size: 0.95rem;
+    }
+
+    /* ✅ Quantity */
+    .quantity-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      width: fit-content;
+      padding: 8px 12px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+
+    .quantity-control button {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 900;
+      transition: 0.2s;
+    }
+
+    .quantity-control button:hover {
+      transform: scale(1.1);
+    }
+
+    .quantity-display {
+      min-width: 30px;
+      text-align: center;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    /* ✅ Checkbox (Extra Options) */
+    .extra-options {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .checkbox-item:hover {
+      background: rgba(255, 107, 53, 0.1);
+    }
+
+    .checkbox-item input {
+      width: auto;
+      margin: 0;
+      margin-right: 12px;
+      cursor: pointer;
+      accent-color: var(--primary);
+    }
+
+    /* ✅ Textarea */
+    textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.3);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.95rem;
+      resize: vertical;
+      min-height: 80px;
+      outline: none;
+      transition: 0.3s;
+      margin-bottom: 20px;
+    }
+
+    textarea:focus {
+      border-color: var(--primary);
+      background: rgba(255, 107, 53, 0.05);
+      box-shadow: 0 0 15px rgba(255, 107, 53, 0.2);
+    }
+
+    /* ✅ Buttons */
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 25px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-weight: 900;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: 0.3s;
+      font-family: inherit;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-submit {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff;
+      box-shadow: 0 5px 15px rgba(255, 107, 53, 0.3);
+    }
+
+    .btn-submit:hover:not(:disabled) {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px rgba(255, 107, 53, 0.4);
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-reset {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-reset:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* ✅ Summary */
+    .order-summary {
+      background: rgba(76, 175, 80, 0.1);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      border-radius: 12px;
+      padding: 15px;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .order-summary.show {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      font-size: 0.9rem;
+    }
+
+    .summary-item strong {
+      color: var(--success);
+    }
+
+    /* ✅ Status Message */
+    .status-message {
+      padding: 15px;
+      border-radius: 12px;
+      margin-top: 20px;
+      display: none;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .status-message.show {
+      display: block;
+      animation: slideUp 0.3s ease;
+    }
+
+    .status-success {
+      background: rgba(76, 175, 80, 0.15);
+      border: 1px solid rgba(76, 175, 80, 0.4);
+      color: var(--success);
+    }
+
+    .status-error {
+      background: rgba(244, 67, 54, 0.15);
+      border: 1px solid rgba(244, 67, 54, 0.4);
+      color: #f44336;
+    }
+
+    /* ✅ Mobile Responsive */
+    @media (max-width: 600px) {
+      .container { padding: 10px; }
+      header h1 { font-size: 1.5rem; }
+      .form-card { padding: 20px; }
+      .button-group { flex-direction: column-reverse; }
+    }
+  </style>
 </head>
 <body>
 
-    <div class="info-bar">
-        <div class="points-card">🪙 النقاط: <span id="userPoints">0</span></div>
-    </div>
+  <div class="container">
+    <!-- ✅ Header -->
+    <header>
+      <h1>🍔 طلب الفطار</h1>
+      <p>أدخل تفاصيل طلبك الآن - سيتم إحضاره بسرعة</p>
+    </header>
 
-    <div id="homeScreen">
-        <h2 class="header">استعد لاقتناص فرصتك المهنية الآن</h2>
-        <div id="jobGrid" class="grid"></div>
-    </div>
-
-    <div id="levelScreen" class="hidden">
-        <h2 id="selectedJobTitle" class="header"></h2>
-        <div id="levelsBox" class="levels-container">
-            <button class="level-btn" onclick="startQuiz('easy', this)">سهل</button>
-            <button class="level-btn" onclick="startQuiz('medium', this)">متوسط</button>
-            <button class="level-btn" onclick="startQuiz('hard', this)">صعب</button>
-            <button class="level-btn" onclick="startQuiz('expert', this)">محترف</button>
+    <!-- ✅ Form -->
+    <div class="form-card">
+      <form id="orderForm">
+        <!-- 1️⃣ Personal Info -->
+        <div class="form-section">
+          <div class="section-title">👤 بيانتك</div>
+          <input type="text" id="fullName" placeholder="اسمك الكامل" required>
+          <input type="email" id="email" placeholder="بريدك الإلكتروني" required>
+          <select id="department" required>
+            <option value="">اختر القسم</option>
+            <option value="sales">المبيعات</option>
+            <option value="hr">الموارد البشرية</option>
+            <option value="it">تكنولوجيا المعلومات</option>
+            <option value="accounting">المحاسبة</option>
+            <option value="operations">العمليات</option>
+            <option value="admin">الإدارة</option>
+          </select>
         </div>
-        <button class="back-btn" onclick="goBack()">عودة</button>
-    </div>
 
-    <div id="quizScreen" class="hidden">
-        <div class="bar"><div id="barFill"></div></div>
-        <div class="quiz-container">
-            <div id="questionBox" class="question-box"></div>
-            <div id="optionsBox"></div>
+        <!-- 2️⃣ Food Selection -->
+        <div class="form-section">
+          <div class="section-title">🥘 اختر الطعام</div>
+          <div class="food-options">
+            <label class="food-item">
+              <input type="radio" name="food" value="sandwich" data-price="15" required>
+              <div class="food-info">
+                <div class="food-name">شطيرة الفطار 🥪</div>
+                <div class="food-desc">جبن + بيض + نقانق</div>
+              </div>
+              <div class="food-price">15 ج</div>
+            </label>
+
+            <label class="food-item">
+              <input type="radio" name="food" value="cheese" data-price="12">
+              <div class="food-info">
+                <div class="food-name">فطيرة الجبن 🧀</div>
+                <div class="food-desc">جبن رومي طازج</div>
+              </div>
+              <div class="food-price">12 ج</div>
+            </label>
+
+            <label class="food-item">
+              <input type="radio" name="food" value="eggs" data-price="10">
+              <div class="food-info">
+                <div class="food-name">بيض مقلي ✨</div>
+                <div class="food-desc">3 بيضات مع خبز</div>
+              </div>
+              <div class="food-price">10 ج</div>
+            </label>
+
+            <label class="food-item">
+              <input type="radio" name="food" value="beans" data-price="8">
+              <div class="food-info">
+                <div class="food-name">فول محمص 🫘</div>
+                <div class="food-desc">فول مصري أصيل</div>
+              </div>
+              <div class="food-price">8 ج</div>
+            </label>
+
+            <label class="food-item">
+              <input type="radio" name="food" value="mixture" data-price="20">
+              <div class="food-info">
+                <div class="food-name">مشكل الفطار 🎁</div>
+                <div class="food-desc">مشكل من كل الأنواع</div>
+              </div>
+              <div class="food-price">20 ج</div>
+            </label>
+          </div>
         </div>
-        <button class="back-btn" onclick="goBack()">إلغاء الاختبار</button>
+
+        <!-- 3️⃣ Extras -->
+        <div class="form-section">
+          <div class="section-title">➕ إضافات اختيارية</div>
+          <div class="extra-options">
+            <label class="checkbox-item">
+              <input type="checkbox" name="extras" value="juice" data-price="5">
+              <span>عصير طازج 🧃 (+5 ج)</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="extras" value="tea" data-price="2">
+              <span>شاي ساخن ☕ (+2 ج)</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="extras" value="fruit" data-price="8">
+              <span>سلة فواكه 🍎 (+8 ج)</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" name="extras" value="pastry" data-price="6">
+              <span>معجنات شهية 🥐 (+6 ج)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 4️⃣ Quantity -->
+        <div class="form-section">
+          <div class="section-title">📦 الكمية</div>
+          <div class="quantity-control">
+            <button type="button" onclick="decreaseQty()">−</button>
+            <div class="quantity-display" id="qtyDisplay">1</div>
+            <button type="button" onclick="increaseQty()">+</button>
+          </div>
+        </div>
+
+        <!-- 5️⃣ Notes -->
+        <div class="form-section">
+          <div class="section-title">📝 ملاحظات إضافية</div>
+          <textarea id="notes" placeholder="أي ملاحظات خاصة؟ (بدون بهارات، بدون ملح، إلخ...)"></textarea>
+        </div>
+
+        <!-- 6️⃣ Order Summary -->
+        <div class="order-summary" id="summary">
+          <div class="summary-item">
+            <span>الطعام:</span>
+            <strong id="summaryFood">---</strong>
+          </div>
+          <div class="summary-item">
+            <span>الإضافات:</span>
+            <strong id="summaryExtras">---</strong>
+          </div>
+          <div class="summary-item">
+            <span>الكمية:</span>
+            <strong id="summaryQty">1</strong>
+          </div>
+          <div class="summary-item" style="border-top: 1px solid rgba(76, 175, 80, 0.3); padding-top: 8px; margin-top: 8px;">
+            <span>السعر الإجمالي:</span>
+            <strong id="summaryTotal">0 ج</strong>
+          </div>
+        </div>
+
+        <!-- 7️⃣ Buttons -->
+        <div class="button-group">
+          <button type="reset" class="btn btn-reset" onclick="resetForm()">إعادة تعيين</button>
+          <button type="submit" class="btn btn-submit" id="submitBtn">📤 تأكيد الطلب</button>
+        </div>
+
+        <!-- Status -->
+        <div class="status-message" id="statusMessage"></div>
+      </form>
     </div>
+  </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, onSnapshot, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  <script>
+    let quantity = 1;
+    const DELIVERY_TIME = 30; // دقيقة
 
-        const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", projectId: "am--rewards" };
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        
-        let currentUser = null, isProcessing = false, unlockedLevels = [];
-        const jobTranslations = { "Accountant": "محاسب", "Assistant": "مساعد", "Biomedical_Tech": "فني أجهزة طبية", "Call_Center": "كول سنتر ", "Content_Writer": "كتابة محتوى", "Customer_Service": "خدمة عملاء", "Data_Entry": "إدخال بيانات", "Digital_Marketing": "تسويق رقمي", "Electronics_Tech": "فني إلكترونيات", "Frontend_Developer": "مطور واجهات", "Graphic_Designer": "مصمم جرافيك", "HR": "موارد بشرية", "Order_Picker": "تجهيز طلبات", "Packaging_Worker": "عمال تغليف", "Receptionist": "استقبال", "Sales_Representative": "مندوب مبيعات", "Social_Media_Moderator": "مشرف وسائل التواصل", "Translator": "مترجم", "Warehouse_Keeper": "أمين مخزن", "Technical_Support": "دعم فني" };
+    function increaseQty() {
+      if (quantity < 10) {
+        quantity++;
+        updateDisplay();
+      }
+    }
 
-        let currentJob = null, currentLevel = "", questions = [], currentIndex = 0, score = 0, wrongQuestions = [], answered = false, timer = null;
-        const TIME_LIMIT = 10;
-        const levelNames = { 'easy': 'سهل', 'medium': 'متوسط', 'hard': 'صعب', 'expert': 'محترف' };
+    function decreaseQty() {
+      if (quantity > 1) {
+        quantity--;
+        updateDisplay();
+      }
+    }
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                onSnapshot(doc(db, "users", user.uid), (snap) => {
-                    if (snap.exists()) {
-                        const userData = snap.data();
-                        document.getElementById('userPoints').innerText = userData.points || 0;
-                        unlockedLevels = userData.unlockedLevels || [];
-                    }
-                });
-                loadJobs();
-            } else { window.location.href = "login.html"; }
+    function updateDisplay() {
+      document.getElementById('qtyDisplay').textContent = quantity;
+      document.getElementById('summaryQty').textContent = quantity;
+      updateSummary();
+    }
+
+    function updateSummary() {
+      const foodRadios = document.querySelectorAll('input[name="food"]');
+      const extrasCheckboxes = document.querySelectorAll('input[name="extras"]:checked');
+
+      let selectedFood = null;
+      let foodPrice = 0;
+
+      foodRadios.forEach(radio => {
+        if (radio.checked) {
+          selectedFood = radio.parentElement.querySelector('.food-name').textContent;
+          foodPrice = parseFloat(radio.dataset.price);
+        }
+      });
+
+      let extras = [];
+      let extrasPrice = 0;
+      extrasCheckboxes.forEach(checkbox => {
+        extras.push(checkbox.nextElementSibling.textContent.split(' ')[0]);
+        extrasPrice += parseFloat(checkbox.dataset.price);
+      });
+
+      document.getElementById('summaryFood').textContent = selectedFood || '---';
+      document.getElementById('summaryExtras').textContent = extras.length > 0 ? extras.join(' + ') : 'بدون';
+
+      const totalPrice = (foodPrice + extrasPrice) * quantity;
+      document.getElementById('summaryTotal').textContent = totalPrice + ' ج';
+
+      if (selectedFood) {
+        document.getElementById('summary').classList.add('show');
+      }
+    }
+
+    function resetForm() {
+      document.getElementById('orderForm').reset();
+      quantity = 1;
+      updateDisplay();
+      document.getElementById('summary').classList.remove('show');
+      document.getElementById('statusMessage').classList.remove('show');
+    }
+
+    function showStatus(message, isSuccess) {
+      const statusEl = document.getElementById('statusMessage');
+      statusEl.textContent = message;
+      statusEl.className = `status-message show ${isSuccess ? 'status-success' : 'status-error'}`;
+      
+      if (isSuccess) {
+        setTimeout(() => {
+          resetForm();
+        }, 2000);
+      }
+    }
+
+    document.getElementById('orderForm').addEventListener('change', updateSummary);
+    document.getElementById('orderForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = {
+        fullName: document.getElementById('fullName').value,
+        email: document.getElementById('email').value,
+        department: document.getElementById('department').value,
+        food: document.querySelector('input[name="food"]:checked').value,
+        extras: Array.from(document.querySelectorAll('input[name="extras"]:checked')).map(el => el.value),
+        quantity: quantity,
+        notes: document.getElementById('notes').value,
+        timestamp: new Date().toISOString(),
+        deliveryTime: new Date(Date.now() + DELIVERY_TIME * 60000).toLocaleTimeString('ar-EG')
+      };
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ جاري الحفظ...';
+
+      try {
+        const response = await fetch('/api/breakfast-orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
         });
 
-        async function loadJobs() {
-            const grid = document.getElementById('jobGrid');
-            const jobSnapshot = await getDocs(collection(db, "jobs"));
-            grid.innerHTML = "";
-            jobSnapshot.forEach((doc) => {
-                if (doc.id !== "General_Interview") {
-                    const jobData = doc.data();
-                    const card = document.createElement('div');
-                    card.className = 'card';
-                    card.innerHTML = `<div>${jobTranslations[doc.id] || doc.id}</div>`;
-                    card.onclick = () => { currentJob = jobData; document.getElementById('homeScreen').classList.add('hidden'); document.getElementById('levelScreen').classList.remove('hidden'); document.getElementById('selectedJobTitle').innerText = jobTranslations[doc.id] || doc.id; };
-                    grid.appendChild(card);
-                }
-            });
+        if (response.ok) {
+          showStatus(`✅ تم استقبال طلبك! ستصل بك الوجبة في الساعة ${formData.deliveryTime}`, true);
+        } else {
+          showStatus('❌ حدث خطأ في تسجيل الطلب', false);
         }
+      } catch (error) {
+        showStatus('❌ فشل الاتصال بالسيرفر', false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '📤 تأكيد الطلب';
+      }
+    });
 
-        window.startQuiz = async (level, btn) => {
-            if (isProcessing) return;
-            
-            const isUnlocked = unlockedLevels.includes(level);
-            const costs = { "easy": 0, "medium": 2, "hard": 3, "expert": 5 };
-            const cost = isUnlocked ? 0 : costs[level];
-            
-            if (cost > 0) {
-                const confirmed = confirm(`بدء هذا المستوى سيكلفك ${cost} نقطة. هل أنت موافق؟`);
-                if (!confirmed) return;
-            }
-
-            isProcessing = true;
-            const originalText = btn.innerText;
-            btn.innerText = "جاري التحميل...";
-            btn.disabled = true;
-
-            try {
-                if (!isUnlocked && cost > 0) {
-                    const res = await fetch('/api/quiz-cost', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId: currentUser.uid, level: level })
-                    });
-                    if (!res.ok) { alert("حدث خطأ في الدفع"); resetAllBtns(); return; }
-                    
-                    // تسجيل المستوى كمفتوح في قاعدة البيانات
-                    await updateDoc(doc(db, "users", currentUser.uid), {
-                        unlockedLevels: arrayUnion(level)
-                    });
-                }
-                
-                currentLevel = level;
-                questions = currentJob.levels ? currentJob.levels[level] : [];
-                if (questions.length === 0) { alert("لا توجد أسئلة"); resetAllBtns(); return; }
-                initQuiz();
-            } catch (e) { alert("حدث خطأ، حاول مرة أخرى"); resetAllBtns(); }
-        };
-
-        function resetAllBtns() {
-            isProcessing = false;
-            document.querySelectorAll('.level-btn').forEach((b, idx) => {
-                const keys = ['easy', 'medium', 'hard', 'expert'];
-                b.innerText = levelNames[keys[idx]];
-                b.disabled = false;
-            });
-        }
-
-        function initQuiz() {
-            resetAllBtns();
-            currentIndex = 0; score = 0; wrongQuestions = [];
-            document.getElementById('homeScreen').classList.add('hidden');
-            document.getElementById('levelScreen').classList.add('hidden');
-            document.getElementById('quizScreen').classList.remove('hidden');
-            showQuestion();
-        }
-
-        // باقي الدوال (showQuestion, handleAnswer, showResult, goBack) تبقى كما هي...
-        function showQuestion() {
-            answered = false;
-            let timeLeft = TIME_LIMIT;
-            const optionsBox = document.getElementById('optionsBox');
-            optionsBox.style.pointerEvents = 'auto';
-            document.getElementById("barFill").style.width = "100%";
-            clearInterval(timer);
-            timer = setInterval(() => {
-                timeLeft--;
-                document.getElementById("barFill").style.width = (timeLeft / TIME_LIMIT * 100) + "%";
-                if (timeLeft <= 0) { clearInterval(timer); handleAnswer(-1, questions[currentIndex], null); }
-            }, 1000);
-
-            const q = questions[currentIndex];
-            document.getElementById('questionBox').innerText = q.q;
-            optionsBox.innerHTML = "";
-            q.options.forEach((opt, index) => {
-                const btn = document.createElement('button');
-                btn.className = 'option-btn';
-                btn.innerText = opt;
-                btn.onclick = () => handleAnswer(index, q, btn);
-                optionsBox.appendChild(btn);
-            });
-        }
-
-        function handleAnswer(selectedIndex, q, btn) {
-            if (answered) return;
-            answered = true;
-            clearInterval(timer);
-            const optionsBox = document.getElementById('optionsBox');
-            optionsBox.style.pointerEvents = 'none';
-            if (selectedIndex === q.answer) { if(btn) btn.style.background = "green"; score++; } 
-            else { if(btn) btn.style.background = "red"; optionsBox.children[q.answer].style.background = "green"; wrongQuestions.push(q); }
-            setTimeout(() => { currentIndex++; if (currentIndex < questions.length) showQuestion(); else showResult(); }, 800);
-        }
-
-                window.showResult = () => {
-            document.getElementById("barFill").style.width = "100%";
-            const percentage = (score / questions.length) * 100;
-            let feedback = "";
-            let color = percentage >= 50 ? "#28a745" : "#dc3545";
-
-            // منطق الرسائل بناءً على النسبة
-            if (percentage === 100) {
-                feedback = "أداء أسطوري! أنت متمكن جداً من هذا المستوى. 🔥";
-            } else if (percentage >= 70) {
-                feedback = "أداء ممتاز! أنت مستعد بنسبة كبيرة للمقابلات. 🚀";
-            } else if (percentage >= 50) {
-                feedback = "أداء جيد، لكن تحتاج لبعض المراجعة لتكون أكثر ثقة. 👍";
-            } else if (percentage > 0) {
-                feedback = "أداء ضعيف.. هذه الأسئلة توضح الفجوات في معلوماتك، اقرأ عنها مجدداً. ⚠️";
-            } else {
-                feedback = "للأسف لم توفق في أي إجابة. لا تحبط، ابدأ بمراجعة المفاهيم الأساسية وحاول مرة أخرى. 🛑";
-            }
-
-            let html = `<h3 style="color: ${color}">نتيجتك: ${score} من ${questions.length} (${percentage}%)</h3>
-                        <p style="font-size: 1.1rem;">${feedback}</p>`;
-            
-            html += `<div class="tip-box"><b>نصائح ذهبية للمقابلة:</b><br>1. <b>الثقة:</b> لا تقل "لا أعرف"، قل "سأبحث عنها وأتعلمها".<br>2. <b>التنظيم:</b> اجعل إجاباتك مرتبة (خطوة 1، خطوة 2).<br>3. <b>الأسئلة:</b> اسأل دائماً عن الفريق الذي ستنضم إليه.</div>`;
-            
-            document.getElementById('questionBox').innerHTML = html;
-            document.getElementById('optionsBox').innerHTML = "";
-
-            // زر إعادة المحاولة إذا النسبة أقل من 100%
-            if (percentage < 100) {
-                const retryBtn = document.createElement('button');
-                retryBtn.className = 'option-btn';
-                retryBtn.style.background = "var(--primary)";
-                retryBtn.innerText = percentage === 0 ? "ابدأ الاختبار من جديد" : "راجع أخطائك وأعد الاختبار";
-                retryBtn.onclick = () => { 
-                    questions = percentage === 0 ? questions : wrongQuestions; 
-                    initQuiz(); 
-                };
-                document.getElementById('optionsBox').appendChild(retryBtn);
-            }
-            
-            const homeBtn = document.createElement('button');
-            homeBtn.className = 'option-btn';
-            homeBtn.innerText = "العودة للرئيسية";
-            homeBtn.onclick = () => goBack();
-            document.getElementById('optionsBox').appendChild(homeBtn);
-        };
-    window.goBack = () => {
-            clearInterval(timer);
-            document.getElementById('homeScreen').classList.remove('hidden');
-            document.getElementById('levelScreen').classList.add('hidden');
-            document.getElementById('quizScreen').classList.add('hidden');
-        };
-    </script>
+    // تحديث الملخص عند التحميل
+    updateDisplay();
+  </script>
 </body>
 </html>
