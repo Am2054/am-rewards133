@@ -1,647 +1,347 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>نظام طلبات الفطار | Breakfast Orders</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>رادار الفطار الذكي - Am Rewards</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #131a26;
+            --text-color: #f3f4f6;
+            --primary-neon: #00f2fe;
+            --secondary-neon: #4facfe;
+            --accent-purple: #7f00ff;
+            --danger-color: #ff4757;
+            --success-color: #2ed573;
+        }
 
-    :root {
-      --primary: #FF6B35;
-      --secondary: #F7931E;
-      --bg-dark: #1a1a2e;
-      --card-bg: rgba(255, 107, 53, 0.1);
-      --border: rgba(255, 107, 53, 0.2);
-      --text: #f5f5f5;
-      --text-secondary: #b0b0b0;
-      --success: #4CAF50;
-      --warning: #FFC107;
-    }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-    body {
-      font-family: 'Cairo', sans-serif;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-      color: var(--text);
-      min-height: 100vh;
-      background-attachment: fixed;
-    }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
 
-    .container {
-      max-width: 500px;
-      margin: 0 auto;
-      padding: 20px;
-    }
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 242, 254, 0.1);
+        }
 
-    /* ✅ Header */
-    header {
-      text-align: center;
-      margin-bottom: 30px;
-      padding: 20px;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(255, 107, 53, 0.3);
-      animation: slideDown 0.5s ease;
-    }
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 5px;
+            background: linear-gradient(45deg, var(--primary-neon), var(--secondary-neon));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
 
-    @keyframes slideDown {
-      from { transform: translateY(-30px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
+        .subtitle {
+            text-align: center;
+            font-size: 13px;
+            color: #8a99ad;
+            margin-bottom: 25px;
+        }
 
-    header h1 {
-      font-size: 2rem;
-      font-weight: 900;
-      color: #fff;
-      margin-bottom: 5px;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
 
-    header p {
-      color: rgba(255,255,255,0.9);
-      font-size: 0.9rem;
-      font-weight: 600;
-    }
+        input, select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+            transition: 0.3s;
+        }
 
-    /* ✅ Form Card */
-    .form-card {
-      background: rgba(30, 30, 46, 0.8);
-      backdrop-filter: blur(10px);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 30px;
-      animation: slideUp 0.5s ease;
-    }
+        input:focus, select:focus {
+            border-color: var(--primary-neon);
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+        }
 
-    @keyframes slideUp {
-      from { transform: translateY(30px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
+        .btn-add {
+            background: linear-gradient(45deg, var(--accent-purple), var(--secondary-neon));
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: 0.3s;
+        }
 
-    /* ✅ Form Section */
-    .form-section {
-      margin-bottom: 25px;
-    }
+        .btn-add:hover {
+            opacity: 0.9;
+            box-shadow: 0 0 15px rgba(79, 172, 254, 0.4);
+        }
 
-    .section-title {
-      font-weight: 700;
-      color: var(--primary);
-      margin-bottom: 12px;
-      font-size: 0.95rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+        .list-section {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+        }
 
-    /* ✅ Input Fields */
-    input[type="text"],
-    input[type="email"],
-    select {
-      width: 100%;
-      padding: 12px 16px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: rgba(0, 0, 0, 0.3);
-      color: var(--text);
-      font-family: inherit;
-      font-size: 1rem;
-      margin-bottom: 15px;
-      outline: none;
-      transition: 0.3s;
-    }
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-right: 3px solid var(--primary-neon);
+        }
 
-    input:focus,
-    select:focus {
-      border-color: var(--primary);
-      background: rgba(255, 107, 53, 0.05);
-      box-shadow: 0 0 15px rgba(255, 107, 53, 0.2);
-    }
+        .order-item .details {
+            font-size: 14px;
+        }
 
-    /* ✅ Radio Buttons (Food Items) */
-    .food-options {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
+        .order-item .name {
+            font-weight: bold;
+            color: var(--secondary-neon);
+        }
 
-    .food-item {
-      display: flex;
-      align-items: center;
-      padding: 12px 16px;
-      background: rgba(0, 0, 0, 0.2);
-      border: 2px solid transparent;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: 0.3s;
-    }
+        .btn-delete {
+            background: none;
+            border: none;
+            color: var(--danger-color);
+            cursor: pointer;
+            font-size: 14px;
+        }
 
-    .food-item:hover {
-      border-color: var(--primary);
-      background: rgba(255, 107, 53, 0.05);
-    }
+        .result-section {
+            margin-top: 25px;
+            display: none;
+        }
 
-    .food-item input {
-      width: auto;
-      margin: 0;
-      margin-right: 12px;
-      cursor: pointer;
-      accent-color: var(--primary);
-    }
+        .result-box {
+            background: rgba(0, 242, 254, 0.03);
+            border: 1px dashed var(--primary-neon);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 10px;
+            white-space: pre-line;
+            font-size: 14px;
+            line-height: 1.6;
+        }
 
-    .food-info {
-      flex: 1;
-    }
+        .btn-action {
+            width: 100%;
+            background: #1e293b;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 15px;
+            transition: 0.3s;
+        }
 
-    .food-name {
-      font-weight: 700;
-      color: var(--text);
-    }
+        .btn-action.process {
+            background: var(--success-color);
+            color: #000;
+            border: none;
+        }
 
-    .food-desc {
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-    }
+        .btn-action.copy {
+            background: var(--primary-neon);
+            color: #000;
+            border: none;
+        }
 
-    .food-price {
-      color: var(--primary);
-      font-weight: 900;
-      font-size: 0.95rem;
-    }
-
-    /* ✅ Quantity */
-    .quantity-control {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: rgba(0, 0, 0, 0.2);
-      width: fit-content;
-      padding: 8px 12px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-    }
-
-    .quantity-control button {
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      width: 30px;
-      height: 30px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 900;
-      transition: 0.2s;
-    }
-
-    .quantity-control button:hover {
-      transform: scale(1.1);
-    }
-
-    .quantity-display {
-      min-width: 30px;
-      text-align: center;
-      font-weight: 700;
-      color: var(--primary);
-    }
-
-    /* ✅ Checkbox (Extra Options) */
-    .extra-options {
-      display: grid;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .checkbox-item {
-      display: flex;
-      align-items: center;
-      padding: 12px;
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 12px;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-
-    .checkbox-item:hover {
-      background: rgba(255, 107, 53, 0.1);
-    }
-
-    .checkbox-item input {
-      width: auto;
-      margin: 0;
-      margin-right: 12px;
-      cursor: pointer;
-      accent-color: var(--primary);
-    }
-
-    /* ✅ Textarea */
-    textarea {
-      width: 100%;
-      padding: 12px 16px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: rgba(0, 0, 0, 0.3);
-      color: var(--text);
-      font-family: inherit;
-      font-size: 0.95rem;
-      resize: vertical;
-      min-height: 80px;
-      outline: none;
-      transition: 0.3s;
-      margin-bottom: 20px;
-    }
-
-    textarea:focus {
-      border-color: var(--primary);
-      background: rgba(255, 107, 53, 0.05);
-      box-shadow: 0 0 15px rgba(255, 107, 53, 0.2);
-    }
-
-    /* ✅ Buttons */
-    .button-group {
-      display: flex;
-      gap: 12px;
-      margin-top: 25px;
-    }
-
-    .btn {
-      flex: 1;
-      padding: 14px;
-      border: none;
-      border-radius: 12px;
-      font-weight: 900;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: 0.3s;
-      font-family: inherit;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .btn-submit {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: #fff;
-      box-shadow: 0 5px 15px rgba(255, 107, 53, 0.3);
-    }
-
-    .btn-submit:hover:not(:disabled) {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 25px rgba(255, 107, 53, 0.4);
-    }
-
-    .btn-submit:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .btn-reset {
-      background: rgba(255, 255, 255, 0.1);
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-
-    .btn-reset:hover {
-      background: rgba(255, 255, 255, 0.15);
-    }
-
-    /* ✅ Summary */
-    .order-summary {
-      background: rgba(76, 175, 80, 0.1);
-      border: 1px solid rgba(76, 175, 80, 0.3);
-      border-radius: 12px;
-      padding: 15px;
-      margin-top: 20px;
-      display: none;
-    }
-
-    .order-summary.show {
-      display: block;
-      animation: fadeIn 0.3s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    .summary-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 0;
-      font-size: 0.9rem;
-    }
-
-    .summary-item strong {
-      color: var(--success);
-    }
-
-    /* ✅ Status Message */
-    .status-message {
-      padding: 15px;
-      border-radius: 12px;
-      margin-top: 20px;
-      display: none;
-      text-align: center;
-      font-weight: 700;
-    }
-
-    .status-message.show {
-      display: block;
-      animation: slideUp 0.3s ease;
-    }
-
-    .status-success {
-      background: rgba(76, 175, 80, 0.15);
-      border: 1px solid rgba(76, 175, 80, 0.4);
-      color: var(--success);
-    }
-
-    .status-error {
-      background: rgba(244, 67, 54, 0.15);
-      border: 1px solid rgba(244, 67, 54, 0.4);
-      color: #f44336;
-    }
-
-    /* ✅ Mobile Responsive */
-    @media (max-width: 600px) {
-      .container { padding: 10px; }
-      header h1 { font-size: 1.5rem; }
-      .form-card { padding: 20px; }
-      .button-group { flex-direction: column-reverse; }
-    }
-  </style>
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--success-color);
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+    </style>
 </head>
 <body>
 
-  <div class="container">
-    <!-- ✅ Header -->
-    <header>
-      <h1>🍔 طلب الفطار</h1>
-      <p>أدخل تفاصيل طلبك الآن - سيتم إحضاره بسرعة</p>
-    </header>
+<div class="container">
+    <h1>⚡ رادار الفطار الذكي</h1>
+    <div class="subtitle">تجميع وفرز طلبات العمال بضغطة واحدة</div>
 
-    <!-- ✅ Form -->
-    <div class="form-card">
-      <form id="orderForm">
-        <!-- 1️⃣ Personal Info -->
-        <div class="form-section">
-          <div class="section-title">👤 بيانتك</div>
-          <input type="text" id="fullName" placeholder="اسمك الكامل" required>
-          <input type="email" id="email" placeholder="بريدك الإلكتروني" required>
-          <select id="department" required>
-            <option value="">اختر القسم</option>
-            <option value="sales">المبيعات</option>
-            <option value="hr">الموارد البشرية</option>
-            <option value="it">تكنولوجيا المعلومات</option>
-            <option value="accounting">المحاسبة</option>
-            <option value="operations">العمليات</option>
-            <option value="admin">الإدارة</option>
-          </select>
-        </div>
-
-        <!-- 2️⃣ Food Selection -->
-        <div class="form-section">
-          <div class="section-title">🥘 اختر الطعام</div>
-          <div class="food-options">
-            <label class="food-item">
-              <input type="radio" name="food" value="sandwich" data-price="15" required>
-              <div class="food-info">
-                <div class="food-name">شطيرة الفطار 🥪</div>
-                <div class="food-desc">جبن + بيض + نقانق</div>
-              </div>
-              <div class="food-price">15 ج</div>
-            </label>
-
-            <label class="food-item">
-              <input type="radio" name="food" value="cheese" data-price="12">
-              <div class="food-info">
-                <div class="food-name">فطيرة الجبن 🧀</div>
-                <div class="food-desc">جبن رومي طازج</div>
-              </div>
-              <div class="food-price">12 ج</div>
-            </label>
-
-            <label class="food-item">
-              <input type="radio" name="food" value="eggs" data-price="10">
-              <div class="food-info">
-                <div class="food-name">بيض مقلي ✨</div>
-                <div class="food-desc">3 بيضات مع خبز</div>
-              </div>
-              <div class="food-price">10 ج</div>
-            </label>
-
-            <label class="food-item">
-              <input type="radio" name="food" value="beans" data-price="8">
-              <div class="food-info">
-                <div class="food-name">فول محمص 🫘</div>
-                <div class="food-desc">فول مصري أصيل</div>
-              </div>
-              <div class="food-price">8 ج</div>
-            </label>
-
-            <label class="food-item">
-              <input type="radio" name="food" value="mixture" data-price="20">
-              <div class="food-info">
-                <div class="food-name">مشكل الفطار 🎁</div>
-                <div class="food-desc">مشكل من كل الأنواع</div>
-              </div>
-              <div class="food-price">20 ج</div>
-            </label>
-          </div>
-        </div>
-
-        <!-- 3️⃣ Extras -->
-        <div class="form-section">
-          <div class="section-title">➕ إضافات اختيارية</div>
-          <div class="extra-options">
-            <label class="checkbox-item">
-              <input type="checkbox" name="extras" value="juice" data-price="5">
-              <span>عصير طازج 🧃 (+5 ج)</span>
-            </label>
-            <label class="checkbox-item">
-              <input type="checkbox" name="extras" value="tea" data-price="2">
-              <span>شاي ساخن ☕ (+2 ج)</span>
-            </label>
-            <label class="checkbox-item">
-              <input type="checkbox" name="extras" value="fruit" data-price="8">
-              <span>سلة فواكه 🍎 (+8 ج)</span>
-            </label>
-            <label class="checkbox-item">
-              <input type="checkbox" name="extras" value="pastry" data-price="6">
-              <span>معجنات شهية 🥐 (+6 ج)</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- 4️⃣ Quantity -->
-        <div class="form-section">
-          <div class="section-title">📦 الكمية</div>
-          <div class="quantity-control">
-            <button type="button" onclick="decreaseQty()">−</button>
-            <div class="quantity-display" id="qtyDisplay">1</div>
-            <button type="button" onclick="increaseQty()">+</button>
-          </div>
-        </div>
-
-        <!-- 5️⃣ Notes -->
-        <div class="form-section">
-          <div class="section-title">📝 ملاحظات إضافية</div>
-          <textarea id="notes" placeholder="أي ملاحظات خاصة؟ (بدون بهارات، بدون ملح، إلخ...)"></textarea>
-        </div>
-
-        <!-- 6️⃣ Order Summary -->
-        <div class="order-summary" id="summary">
-          <div class="summary-item">
-            <span>الطعام:</span>
-            <strong id="summaryFood">---</strong>
-          </div>
-          <div class="summary-item">
-            <span>الإضافات:</span>
-            <strong id="summaryExtras">---</strong>
-          </div>
-          <div class="summary-item">
-            <span>الكمية:</span>
-            <strong id="summaryQty">1</strong>
-          </div>
-          <div class="summary-item" style="border-top: 1px solid rgba(76, 175, 80, 0.3); padding-top: 8px; margin-top: 8px;">
-            <span>السعر الإجمالي:</span>
-            <strong id="summaryTotal">0 ج</strong>
-          </div>
-        </div>
-
-        <!-- 7️⃣ Buttons -->
-        <div class="button-group">
-          <button type="reset" class="btn btn-reset" onclick="resetForm()">إعادة تعيين</button>
-          <button type="submit" class="btn btn-submit" id="submitBtn">📤 تأكيد الطلب</button>
-        </div>
-
-        <!-- Status -->
-        <div class="status-message" id="statusMessage"></div>
-      </form>
+    <div class="input-group">
+        <input type="text" id="workerName" placeholder="اسم العامل أو الموظف" autocomplete="off">
+        <input type="text" id="foodItem" placeholder="نوع الساندوتش أو الصنف (فول، فلافل..)" autocomplete="off">
+        <input type="text" id="details" placeholder="أي تعديل؟ (بدون طماطم، زيت حار.. اختياري)" autocomplete="off">
+        <button class="btn-add" id="addBtn">إضافة القائمة ➕</button>
     </div>
-  </div>
 
-  <script>
-    let quantity = 1;
-    const DELIVERY_TIME = 30; // دقيقة
+    <div class="list-section" id="ordersList"></div>
 
-    function increaseQty() {
-      if (quantity < 10) {
-        quantity++;
-        updateDisplay();
-      }
-    }
+    <button class="btn-action process" id="processBtn" style="display: none;">تجميع وفرز الطلبات 🔍</button>
 
-    function decreaseQty() {
-      if (quantity > 1) {
-        quantity--;
-        updateDisplay();
-      }
-    }
+    <div class="result-section" id="resultSection">
+        <h3>📋 ملخص طلبات المطعم:</h3>
+        <div class="result-box" id="restaurantSummary"></div>
+        <button class="btn-action copy" id="copySummaryBtn">نسخ ملخص المطعم 📋</button>
 
-    function updateDisplay() {
-      document.getElementById('qtyDisplay').textContent = quantity;
-      document.getElementById('summaryQty').textContent = quantity;
-      updateSummary();
-    }
+        <h3 style="margin-top: 20px;">👥 جدول التوزيع (مين هياكل إيه):</h3>
+        <div class="result-box" id="distributionSummary"></div>
+    </div>
+</div>
 
-    function updateSummary() {
-      const foodRadios = document.querySelectorAll('input[name="food"]');
-      const extrasCheckboxes = document.querySelectorAll('input[name="extras"]:checked');
+<div class="toast" id="toast">تم النسخ بنجاح! ✔️</div>
 
-      let selectedFood = null;
-      let foodPrice = 0;
+<script>
+    // مصفوفة لتخزين الطلبات مؤقتاً
+    let orders = [];
 
-      foodRadios.forEach(radio => {
-        if (radio.checked) {
-          selectedFood = radio.parentElement.querySelector('.food-name').textContent;
-          foodPrice = parseFloat(radio.dataset.price);
+    const workerNameInput = document.getElementById('workerName');
+    const foodItemInput = document.getElementById('foodItem');
+    const detailsInput = document.getElementById('details');
+    const addBtn = document.getElementById('addBtn');
+    const ordersList = document.getElementById('ordersList');
+    const processBtn = document.getElementById('processBtn');
+    const resultSection = document.getElementById('resultSection');
+    const restaurantSummary = document.getElementById('restaurantSummary');
+    const distributionSummary = document.getElementById('distributionSummary');
+    const copySummaryBtn = document.getElementById('copySummaryBtn');
+    const toast = document.getElementById('toast');
+
+    // دالة إضافة الطلب للقائمة
+    function addOrder() {
+        const name = workerNameInput.value.trim();
+        const food = foodItemInput.value.trim();
+        const detail = detailsInput.value.trim();
+
+        if (!name || !food) {
+            alert('من فضلك اكتب اسم العامل ونوع الأكل!');
+            return;
         }
-      });
 
-      let extras = [];
-      let extrasPrice = 0;
-      extrasCheckboxes.forEach(checkbox => {
-        extras.push(checkbox.nextElementSibling.textContent.split(' ')[0]);
-        extrasPrice += parseFloat(checkbox.dataset.price);
-      });
+        // إضافة الطلب للكائن
+        orders.push({ name, food, detail });
 
-      document.getElementById('summaryFood').textContent = selectedFood || '---';
-      document.getElementById('summaryExtras').textContent = extras.length > 0 ? extras.join(' + ') : 'بدون';
+        // إعادة ضبط الخانات وتوجيه المؤشر لاسم العامل الجديد مباشرة
+        workerNameInput.value = '';
+        foodItemInput.value = '';
+        detailsInput.value = '';
+        workerNameInput.focus();
 
-      const totalPrice = (foodPrice + extrasPrice) * quantity;
-      document.getElementById('summaryTotal').textContent = totalPrice + ' ج';
-
-      if (selectedFood) {
-        document.getElementById('summary').classList.add('show');
-      }
+        updateList();
     }
 
-    function resetForm() {
-      document.getElementById('orderForm').reset();
-      quantity = 1;
-      updateDisplay();
-      document.getElementById('summary').classList.remove('show');
-      document.getElementById('statusMessage').classList.remove('show');
-    }
+    // زرار الإضافة
+    addBtn.addEventListener('click', addOrder);
 
-    function showStatus(message, isSuccess) {
-      const statusEl = document.getElementById('statusMessage');
-      statusEl.textContent = message;
-      statusEl.className = `status-message show ${isSuccess ? 'status-success' : 'status-error'}`;
-      
-      if (isSuccess) {
-        setTimeout(() => {
-          resetForm();
-        }, 2000);
-      }
-    }
-
-    document.getElementById('orderForm').addEventListener('change', updateSummary);
-    document.getElementById('orderForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const formData = {
-        fullName: document.getElementById('fullName').value,
-        email: document.getElementById('email').value,
-        department: document.getElementById('department').value,
-        food: document.querySelector('input[name="food"]:checked').value,
-        extras: Array.from(document.querySelectorAll('input[name="extras"]:checked')).map(el => el.value),
-        quantity: quantity,
-        notes: document.getElementById('notes').value,
-        timestamp: new Date().toISOString(),
-        deliveryTime: new Date(Date.now() + DELIVERY_TIME * 60000).toLocaleTimeString('ar-EG')
-      };
-
-      const btn = document.getElementById('submitBtn');
-      btn.disabled = true;
-      btn.textContent = '⏳ جاري الحفظ...';
-
-      try {
-        const response = await fetch('/api/breakfast-orders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
-        });
-
-        if (response.ok) {
-          showStatus(`✅ تم استقبال طلبك! ستصل بك الوجبة في الساعة ${formData.deliveryTime}`, true);
-        } else {
-          showStatus('❌ حدث خطأ في تسجيل الطلب', false);
-        }
-      } catch (error) {
-        showStatus('❌ فشل الاتصال بالسيرفر', false);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '📤 تأكيد الطلب';
-      }
+    // السماح بالضغط على Enter للإضافة السريعة
+    detailsInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') addOrder();
     });
 
-    // تحديث الملخص عند التحميل
-    updateDisplay();
-  </script>
+    // تحديث الواجهة بقائمة الأسماء المضافة
+    function updateList() {
+        ordersList.innerHTML = '';
+        orders.forEach((order, index) => {
+            const item = document.createElement('div');
+            item.className = 'order-item';
+            item.innerHTML = `
+                <div class="details">
+                    <span class="name">${order.name}:</span> ${order.food} ${order.detail ? `(${order.detail})` : ''}
+                </div>
+                <button class="btn-delete" onclick="deleteOrder(${index})">حذف ❌</button>
+            `;
+            ordersList.appendChild(item);
+        });
+
+        // إظهار زر التجميع لو فيه طلبات
+        processBtn.style.display = orders.length > 0 ? 'block' : 'none';
+        if (orders.length === 0) resultSection.style.display = 'none';
+    }
+
+    // دالة حذف طلب معين
+    function deleteOrder(index) {
+        orders.splice(index, 1);
+        updateList();
+    }
+
+    // دالة الفرز والتجميع السحري
+    processBtn.addEventListener('click', function() {
+        if (orders.length === 0) return;
+
+        // 1. تجميع طلبات المطعم (حسب الأكل والتعديل)
+        let summaryMap = {};
+        orders.forEach(order => {
+            // المفتاح الفريد عبارة عن الصنف + التعديل إن وجد
+            let key = order.food;
+            if (order.detail) {
+                key += ` (${order.detail})`;
+            }
+            summaryMap[key] = (summaryMap[key] || 0) + 1;
+        });
+
+        // صياغة نص المطعم
+        let restaurantText = `إجمالي المطلـوب من المحل:\n`;
+        let count = 1;
+        for (let item in summaryMap) {
+            restaurantText += `🔹 [ ${summaryMap[item]} ]  ${item}\n`;
+            count++;
+        }
+
+        // 2. صياغة نص التوزيع (مين هياكل إيه)
+        let distributionText = '';
+        orders.forEach(order => {
+            distributionText += `👤 ${order.name} 👈 ${order.food} ${order.detail ? `(${order.detail})` : ''}\n`;
+        });
+
+        // عرض النتائج في الواجهة
+        restaurantSummary.innerText = restaurantText;
+        distributionSummary.innerText = distributionText;
+        resultSection.style.display = 'block';
+
+        // النزول لأسفل الشاشة تلقائياً لرؤية النتيجة على الموبايل
+        resultSection.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    // ميزة النسخ بضغطة زرار واحدة للواتساب
+    copySummaryBtn.addEventListener('click', function() {
+        const textToCopy = restaurantSummary.innerText;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 2000);
+        });
+    });
+</script>
+
 </body>
 </html>
