@@ -78,38 +78,6 @@
             letter-spacing: 0.5px;
         }
 
-        /* ✅ Stats Bar */
-        .stats-bar {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin-bottom: 25px;
-        }
-
-        .stat-box {
-            background: rgba(79, 172, 254, 0.1);
-            border: 1px solid rgba(79, 172, 254, 0.3);
-            border-radius: 12px;
-            padding: 12px;
-            text-align: center;
-        }
-
-        .stat-label {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: 900;
-            color: var(--primary-neon);
-            margin-top: 4px;
-            font-family: 'Inter', monospace;
-        }
-
         /* ✅ Input Group */
         .input-group {
             display: flex;
@@ -324,6 +292,10 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            padding: 12px;
+            background: rgba(0, 242, 254, 0.1);
+            border-radius: 10px;
+            border-right: 4px solid var(--primary-neon);
         }
 
         .result-title:first-of-type {
@@ -341,7 +313,7 @@
             line-height: 1.8;
             font-family: 'Courier New', monospace;
             color: var(--text-color);
-            max-height: 300px;
+            max-height: 350px;
             overflow-y: auto;
         }
 
@@ -465,18 +437,6 @@
                 font-size: 1.8rem;
             }
 
-            .stats-bar {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .button-group {
-                grid-template-columns: 1fr;
-            }
-
-            .btn-add {
-                grid-column: span 1;
-            }
-
             .action-buttons {
                 grid-template-columns: 1fr;
             }
@@ -509,27 +469,23 @@
         <p class="subtitle">تجميع وفرز طلبات العمال بذكاء اصطناعي</p>
     </div>
 
-    <!-- ✅ Stats -->
-    <div class="stats-bar">
-        <div class="stat-box">
-            <div class="stat-label">📊 إجمالي الطلبات</div>
-            <div class="stat-value" id="totalOrdersCount">0</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-label">🔥 أصناف فريدة</div>
-            <div class="stat-value" id="uniqueItemsCount">0</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-label">💰 التكلفة الكلية</div>
-            <div class="stat-value" id="totalPriceCount">0 ج</div>
-        </div>
-    </div>
-
     <!-- ✅ Input -->
     <div class="input-group">
         <input type="text" id="workerName" placeholder="👤 اسم العامل أو الموظف" autocomplete="off">
-        <input type="text" id="foodItem" placeholder="🥪 نوع الساندوتش أو الصنف (فول، فلافل، جبن..)" autocomplete="off">
-        <input type="text" id="details" placeholder="📝 أي تعديل؟ (بدون طماطم، زيت حار.. اختياري)" autocomplete="off">
+        <select id="storeSelect">
+            <option value="">🏪 اختر المحل أو مصدر الطلب</option>
+            <option value="المطعم">🍽️ المطعم</option>
+            <option value="الخباز">🥖 الخباز</option>
+            <option value="السوبر ماركت">🛒 السوبر ماركت</option>
+            <option value="الكشري">🍲 الكشري</option>
+            <option value="البطاطس">🍟 البطاطس</option>
+            <option value="المشروبات">🥤 المشروبات</option>
+            <option value="الفواكه">🍎 الفواكه</option>
+            <option value="أخرى">📌 أخرى</option>
+        </select>
+        <input type="text" id="foodItem" placeholder="🥪 نوع الصنف (بطاطس، خبز، عصير..)" autocomplete="off">
+        <input type="number" id="quantity" placeholder="📊 الكمية (مثلاً 10، 5)" min="1" value="1">
+        <input type="text" id="details" placeholder="📝 أي تعديل أو ملاحظة (اختياري)" autocomplete="off">
     </div>
 
     <!-- ✅ Buttons -->
@@ -552,8 +508,7 @@
 
     <!-- ✅ Result -->
     <div class="result-section" id="resultSection">
-        <div class="result-title">🏪 ملخص طلبات المطعم:</div>
-        <div class="result-box" id="restaurantSummary"></div>
+        <div id="storesContainer"></div>
 
         <div class="result-title">👥 جدول التوزيع (مين هياكل إيه):</div>
         <div class="result-box" id="distributionSummary"></div>
@@ -576,22 +531,21 @@
 
     // ✅ DOM Elements
     const workerNameInput = document.getElementById('workerName');
+    const storeSelect = document.getElementById('storeSelect');
     const foodItemInput = document.getElementById('foodItem');
+    const quantityInput = document.getElementById('quantity');
     const detailsInput = document.getElementById('details');
     const addBtn = document.getElementById('addBtn');
     const clearBtn = document.getElementById('clearBtn');
     const ordersList = document.getElementById('ordersList');
     const listCount = document.getElementById('listCount');
     const resultSection = document.getElementById('resultSection');
-    const restaurantSummary = document.getElementById('restaurantSummary');
+    const storesContainer = document.getElementById('storesContainer');
     const distributionSummary = document.getElementById('distributionSummary');
     const copySummaryBtn = document.getElementById('copySummaryBtn');
     const whatsappBtn = document.getElementById('whatsappBtn');
     const printBtn = document.getElementById('printBtn');
     const toast = document.getElementById('toast');
-    const totalOrdersCount = document.getElementById('totalOrdersCount');
-    const uniqueItemsCount = document.getElementById('uniqueItemsCount');
-    const totalPriceCount = document.getElementById('totalPriceCount');
 
     // ✅ Load from Local Storage
     function loadOrders() {
@@ -615,24 +569,30 @@
     // ✅ Add Order
     function addOrder() {
         const name = workerNameInput.value.trim();
+        const store = storeSelect.value.trim();
         const food = foodItemInput.value.trim();
+        const quantity = parseInt(quantityInput.value) || 1;
         const detail = detailsInput.value.trim();
 
-        if (!name || !food) {
-            showToast('⚠️ من فضلك اكتب الاسم ونوع الأكل!', 'warning');
+        if (!name || !store || !food) {
+            showToast('⚠️ من فضلك أكمل البيانات (الاسم، المحل، الصنف)!', 'warning');
             return;
         }
 
         orders.push({ 
             id: Date.now(),
             name, 
+            store,
             food, 
+            quantity,
             detail,
             timestamp: new Date().toLocaleTimeString('ar-EG')
         });
 
         workerNameInput.value = '';
+        storeSelect.value = '';
         foodItemInput.value = '';
+        quantityInput.value = '1';
         detailsInput.value = '';
         workerNameInput.focus();
 
@@ -678,8 +638,8 @@
         ordersList.innerHTML = orders.map(order => `
             <div class="order-item">
                 <div class="details">
-                    <div class="name">👤 ${order.name}</div>
-                    <div class="food">🥪 ${order.food}</div>
+                    <div class="name">👤 ${order.name} <span style="color: var(--text-secondary); font-size: 11px;">(${order.store})</span></div>
+                    <div class="food">🥪 ${order.food} <span style="color: var(--warning-color); font-weight: 900;">× ${order.quantity}</span></div>
                     ${order.detail ? `<div class="note">📝 ${order.detail}</div>` : ''}
                 </div>
                 <button class="btn-delete" onclick="deleteOrder(${order.id})">❌</button>
@@ -688,62 +648,66 @@
 
         listCount.textContent = orders.length;
 
-        // Update Stats
-        updateStats();
-
         // Generate Results
         generateResults();
-    }
-
-    // ✅ Update Stats
-    function updateStats() {
-        // Total orders
-        totalOrdersCount.textContent = orders.length;
-
-        // Unique items
-        const uniqueItems = new Set(orders.map(o => o.food)).size;
-        uniqueItemsCount.textContent = uniqueItems;
-
-        // Total price (فرضاً كل طلب = 15 جنيه)
-        const pricePerItem = 15;
-        const totalPrice = orders.length * pricePerItem;
-        totalPriceCount.textContent = totalPrice + ' ج';
     }
 
     // ✅ Generate Results
     function generateResults() {
         if (orders.length === 0) return;
 
-        // 1. Restaurant Summary (grouped by food + details)
-        let summaryMap = {};
+        // 1. Group by Store and Item
+        let storeGroups = {};
         orders.forEach(order => {
-            let key = order.food;
-            if (order.detail) {
-                key += ` (${order.detail})`;
+            if (!storeGroups[order.store]) {
+                storeGroups[order.store] = {};
             }
-            summaryMap[key] = (summaryMap[key] || 0) + 1;
+
+            // Create a unique key for each item with its details
+            let itemKey = order.food;
+            if (order.detail) {
+                itemKey += ` (${order.detail})`;
+            }
+
+            if (!storeGroups[order.store][itemKey]) {
+                storeGroups[order.store][itemKey] = 0;
+            }
+
+            // Add to the quantity
+            storeGroups[order.store][itemKey] += order.quantity;
         });
 
-        let restaurantText = `🏪 إجمالي المطلـوب من المحل:\n`;
-        restaurantText += `━━━━━━━━━━━━━━━━━━━━━\n`;
-        for (let item in summaryMap) {
-            restaurantText += `✓ [ ${summaryMap[item]} ] 🔹 ${item}\n`;
-        }
-        restaurantText += `━━━━━━━━━━━━━━━━━━━━━\n`;
-        restaurantText += `📊 الإجمالي: ${orders.length} طلب`;
+        // Generate Store Summaries
+        let storesHTML = '';
+        Object.keys(storeGroups).forEach(store => {
+            let storeText = `🏪 ${store}:\n`;
+            storeText += `━━━━━━━━━━━━━━━━━\n`;
+            
+            Object.keys(storeGroups[store]).forEach(item => {
+                const qty = storeGroups[store][item];
+                storeText += `✓ [ ${qty} ] 🔹 ${item}\n`;
+            });
+
+            storesHTML += `
+                <div class="result-title">${store}</div>
+                <div class="result-box">${storeText}</div>
+            `;
+        });
+
+        storesContainer.innerHTML = storesHTML;
 
         // 2. Distribution Table
         let distributionText = `👥 جدول التوزيع:\n`;
-        distributionText += `━━━━━━━━━━━━━━━━━━━━━\n`;
+        distributionText += `━━━━━━━━━━━━━━━━━━━━━━━━\n`;
         orders.forEach((order, index) => {
-            distributionText += `${index + 1}️⃣  ${order.name.padEnd(15, '.')} ${order.food}`;
+            distributionText += `${index + 1}️⃣  ${order.name.padEnd(15, '.')} ${order.store}\n`;
+            distributionText += `    🥪 ${order.food} × ${order.quantity}`;
             if (order.detail) {
                 distributionText += ` (${order.detail})`;
             }
             distributionText += `\n`;
         });
 
-        restaurantSummary.innerText = restaurantText;
         distributionSummary.innerText = distributionText;
         resultSection.classList.add('show');
     }
@@ -759,7 +723,8 @@
 
     // ✅ Copy Summary
     function copySummary() {
-        const text = restaurantSummary.innerText + '\n\n' + distributionSummary.innerText;
+        const storesText = storesContainer.innerText;
+        const text = storesText + '\n\n' + distributionSummary.innerText;
         navigator.clipboard.writeText(text).then(() => {
             showToast('📋 تم النسخ بنجاح!');
         });
@@ -767,7 +732,8 @@
 
     // ✅ Share WhatsApp
     function shareWhatsApp() {
-        const text = encodeURIComponent(restaurantSummary.innerText + '\n\n' + distributionSummary.innerText);
+        const storesText = storesContainer.innerText;
+        const text = encodeURIComponent(storesText + '\n\n' + distributionSummary.innerText);
         window.open(`https://wa.me/?text=${text}`, '_blank');
     }
 
@@ -788,10 +754,18 @@
     });
 
     workerNameInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') storeSelect.focus();
+    });
+
+    storeSelect.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') foodItemInput.focus();
     });
 
     foodItemInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') quantityInput.focus();
+    });
+
+    quantityInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') detailsInput.focus();
     });
 
