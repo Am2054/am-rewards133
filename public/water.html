@@ -177,7 +177,7 @@
 
         <div id="resultBox" class="result-box">
             <div id="leakAlert">
-                ⚠️ <b>احتمالية تسريب خفي:</b> إجمالي الاستهلاك عالٍ جداً مقارنة بعدد الوحدات. يرجى فحص الخطوط الرئيسية والعوامات الأرضية فوراً.
+                ⚠️ <b>احتمالية تسريب خفي:</b> إجمالي الاستهلاك عالٍ جداً مقارنة بعدد الوحدات. يرجى فحص الخطوط الرئيسية [...]
             </div>
 
             <div class="radar-status" id="radarStatus">📡 الرادار يرصد تدفق المياه...</div>
@@ -218,7 +218,7 @@
         </div>
         
         <p style="text-align: center; font-size: 9px; color: #475569; margin-top: 15px;">
-            * الرسوم والشرائح تقديرية لعام 2026 وتشمل الصرف الصحي (75%).
+            * الأسعار والشرائح محدثة لعام 2026 وتشمل رسوم الصرف الصحي (75%).
         </p>
     </div>
 
@@ -276,23 +276,42 @@
             
             let totalWaterPrice = 0, serviceFeePerUnit = 0, shName = "", shRange = "", radarMsg = "";
 
-            // حساب الشريحة بناءً على إجمالي استهلاك العداد الفعلي وليس تقسيم الشقق
+            // ===== أسعار 2026 الصحيحة (بالقرش للمتر المكعب) =====
+            // الشريحة الأولى: 0-10 = 0.65 ج.م
+            // الشريحة الثانية: 11-20 = 1.60 ج.م
+            // الشريحة الثالثة: 21-30 = 2.25 ج.م
+            // الشريحة الرابعة: 31-40 = 2.75 ج.م
+            // الشريحة الخامسة: فوق 40 = 3.15 ج.م
+            
             if (totalM3 <= 10) { 
-                totalWaterPrice = totalM3 * 1.25; serviceFeePerUnit = 5; 
-                shName = "الأولى"; shRange = "(0 - 10 م³)";
+                totalWaterPrice = totalM3 * 0.65;
+                serviceFeePerUnit = 8; 
+                shName = "الأولى"; 
+                shRange = "(0 - 10 م³)";
                 radarMsg = "📡 استهلاك مثالي للمبنى.";
             } else if (totalM3 <= 20) { 
-                totalWaterPrice = (10 * 1.25) + ((totalM3 - 10) * 2.50); serviceFeePerUnit = 10; 
-                shName = "الثانية"; shRange = "(11 - 20 م³)";
+                totalWaterPrice = (10 * 0.65) + ((totalM3 - 10) * 1.60);
+                serviceFeePerUnit = 15; 
+                shName = "الثانية"; 
+                shRange = "(11 - 20 م³)";
                 radarMsg = "📡 استهلاك طبيعي ضمن الحدود.";
             } else if (totalM3 <= 30) { 
-                totalWaterPrice = (10 * 1.25) + (10 * 2.50) + ((totalM3 - 20) * 3.50); serviceFeePerUnit = 20; 
-                shName = "الثالثة"; shRange = "(21 - 30 م³)";
+                totalWaterPrice = (10 * 0.65) + (10 * 1.60) + ((totalM3 - 20) * 2.25);
+                serviceFeePerUnit = 25; 
+                shName = "الثالثة"; 
+                shRange = "(21 - 30 م³)";
                 radarMsg = "📡 رصد زيادة في الاستهلاك.. يرجى الحذر.";
+            } else if (totalM3 <= 40) { 
+                totalWaterPrice = (10 * 0.65) + (10 * 1.60) + (10 * 2.25) + ((totalM3 - 30) * 2.75);
+                serviceFeePerUnit = 35; 
+                shName = "الرابعة"; 
+                shRange = "(31 - 40 م³)";
+                radarMsg = "⚠️ استهلاك مرتفع - الأسعار بدأت تزيد.";
             } else { 
-                totalWaterPrice = (10 * 1.25) + (10 * 2.50) + (10 * 3.50) + ((totalM3 - 30) * 5.00); 
-                serviceFeePerUnit = 40; 
-                shName = "الرابعة فأعلى"; shRange = "(أكثر من 30 م³)";
+                totalWaterPrice = (10 * 0.65) + (10 * 1.60) + (10 * 2.25) + (10 * 2.75) + ((totalM3 - 40) * 3.15);
+                serviceFeePerUnit = 50; 
+                shName = "الخامسة فأعلى"; 
+                shRange = "(أكثر من 40 م³)";
                 radarMsg = "🚨 إنذار! استهلاك خارج النطاق المدعوم.";
             }
 
