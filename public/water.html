@@ -35,6 +35,7 @@
         h1 { text-align: center; color: var(--neon-blue); font-weight: 900; margin-bottom: 5px; text-shadow: 0 0 10px var(--neon-blue); }
         .sub-title { text-align: center; font-size: 12px; color: #94a3b8; margin-bottom: 25px; }
 
+        /* ميزة المقارنة الجديدة */
         #compareBadge { display: none; text-align: center; margin-bottom: 15px; padding: 10px; border-radius: 12px; font-size: 11px; font-weight: 700; animation: slideUp 0.5s ease; }
         .badge-up { background: rgba(255, 68, 68, 0.1); color: var(--neon-red); border: 1px solid var(--neon-red); }
         .badge-down { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid #10b981; }
@@ -228,6 +229,7 @@
         };
 
         function animateValue(obj, start, end, duration, suffix = " ج.م") {
+            // --- تحسين 2: حماية من الفروقات الصفرية ---
             if (start === end) {
                 obj.innerHTML = end.toFixed(2) + suffix;
                 return;
@@ -248,8 +250,9 @@
             const previous = parseFloat(document.getElementById('prevRead').value);
             let units = parseInt(document.getElementById('unitsCount').value);
             
+            // --- تحسين 2: تأمين إضافي للمدخلات ---
             if (isNaN(units) || units < 1) units = 1;
-            if (units > 100) units = 100; 
+            if (units > 100) units = 100; // حد أقصى منطقي لعداد منزلي
             document.getElementById('unitsCount').value = units;
 
             const errorDiv = document.getElementById('errorMsg');
@@ -263,46 +266,46 @@
             const totalM3 = current - previous;
             const m3PerUnit = totalM3 / units;
 
-            // كشف التسريب يعتمد على تخطي متوسط الشقة لـ 25 متر مكعب
+            // --- تحسين 1: خوارزمية كشف تسريب ديناميكية أذكى ---
             const leakAlert = document.getElementById('leakAlert');
-            if (m3PerUnit > 25) {
+            if (totalM3 > (units * 15) && m3PerUnit < 8) {
                 leakAlert.style.display = 'block';
             } else {
                 leakAlert.style.display = 'none';
             }
             
-            let unitWaterPrice = 0, serviceFeePerUnit = 0, shName = "", shRange = "", radarMsg = "";
+            let totalWaterPrice = 0, serviceFeePerUnit = 0, shName = "", shRange = "", radarMsg = "";
 
-            // حساب التكلفة الصافية للشقة الواحدة بناء على شريحتها
-            if (m3PerUnit <= 10) { 
-                unitWaterPrice = m3PerUnit * 1.25; serviceFeePerUnit = 5; 
+            // حساب الشريحة بناءً على إجمالي استهلاك العداد الفعلي وليس تقسيم الشقق
+            if (totalM3 <= 10) { 
+                totalWaterPrice = totalM3 * 1.25; serviceFeePerUnit = 5; 
                 shName = "الأولى"; shRange = "(0 - 10 م³)";
-                radarMsg = "📡 استهلاك مثالي للوحدات.";
-            } else if (m3PerUnit <= 20) { 
-                unitWaterPrice = (10 * 1.25) + ((m3PerUnit - 10) * 2.50); serviceFeePerUnit = 10; 
+                radarMsg = "📡 استهلاك مثالي للمبنى.";
+            } else if (totalM3 <= 20) { 
+                totalWaterPrice = (10 * 1.25) + ((totalM3 - 10) * 2.50); serviceFeePerUnit = 10; 
                 shName = "الثانية"; shRange = "(11 - 20 م³)";
                 radarMsg = "📡 استهلاك طبيعي ضمن الحدود.";
-            } else if (m3PerUnit <= 30) { 
-                unitWaterPrice = (10 * 1.25) + (10 * 2.50) + ((m3PerUnit - 20) * 3.50); serviceFeePerUnit = 20; 
+            } else if (totalM3 <= 30) { 
+                totalWaterPrice = (10 * 1.25) + (10 * 2.50) + ((totalM3 - 20) * 3.50); serviceFeePerUnit = 20; 
                 shName = "الثالثة"; shRange = "(21 - 30 م³)";
                 radarMsg = "📡 رصد زيادة في الاستهلاك.. يرجى الحذر.";
             } else { 
-                unitWaterPrice = (10 * 1.25) + (10 * 2.50) + (10 * 3.50) + ((m3PerUnit - 30) * 5.00); 
+                totalWaterPrice = (10 * 1.25) + (10 * 2.50) + (10 * 3.50) + ((totalM3 - 30) * 5.00); 
                 serviceFeePerUnit = 40; 
                 shName = "الرابعة فأعلى"; shRange = "(أكثر من 30 م³)";
                 radarMsg = "🚨 إنذار! استهلاك خارج النطاق المدعوم.";
             }
 
-            // الحسبة الصحيحة: نضرب تكلفة استهلاك الشقة الواحدة في عدد الشقق
-            const totalWaterPrice = unitWaterPrice * units;
-            const totalSewage = totalWaterPrice * 0.75; // الصرف الصحي 75% من قيمة المياه الكلية
-            const totalServiceFees = serviceFeePerUnit * units; // إجمالي خدمات الإدارة للمبنى
+            const totalSewage = totalWaterPrice * 0.75; 
+            const totalServiceFees = serviceFeePerUnit * units;
             
-            const adminFees = 5.00; // رسوم ثابتة للمرفق
+            const adminFees = 5.00; 
             const finalTotal = totalWaterPrice + totalSewage + totalServiceFees + adminFees;
+            
+            // حساب نصيب الوحدة العادل من الفاتورة الإجمالية للمبنى
             const moneyPerUnit = finalTotal / units;
 
-            // ميزة المقارنة بالشهر السابق
+            // --- تحسين 4: ميزة المقارنة بالشهر السابق (مثل الكهرباء) ---
             const lastM3 = parseFloat(localStorage.getItem('lastWaterM3'));
             const badge = document.getElementById('compareBadge');
             
