@@ -1,4 +1,4 @@
-// /api/register.js - معالج التسجيل المحسّن
+// /api/register.js - معالج التسجيل المحسّن (تعديل نظام كشف الاحتيال ليعرض الأخطاء الفعلية)
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
@@ -41,7 +41,7 @@ class FraudDetection {
     let riskScore = 0;
     const reasons = [];
 
-    // فحص 1: تكرار الـ Fingerprint
+    // فحص 1: تكرار الـ Fingerprint (مؤشر احتيال)
     const fpSnap = await db.collection("userDevices")
       .where("fingerprint", "==", fingerprint)
       .limit(5)
@@ -52,7 +52,7 @@ class FraudDetection {
       reasons.push("Duplicate device fingerprint detected");
     }
 
-    // فحص 2: تكرار الـ IP
+    // فحص 2: تكرار الـ IP في وقت قصير (مؤشر احتيال)
     const ipSnap = await db.collection("registrations")
       .where("ip", "==", ip)
       .where("createdAt", ">=", new Date(Date.now() - 3600000)) // آخر ساعة
@@ -63,29 +63,12 @@ class FraudDetection {
       reasons.push("Multiple registrations from same IP in 1 hour");
     }
 
-    // فحص 3: رقم الهاتف
-    const phoneSnap = await db.collection("users")
-      .where("phone", "==", userData.phone)
-      .limit(1)
-      .get();
-    
-    if (!phoneSnap.empty) {
-      riskScore += 50;
-      reasons.push("Phone number already exists");
-    }
-
-    // فحص 4: البريد الإلكتروني
-    try {
-      await auth.getUserByEmail(userData.email);
-      riskScore += 50;
-      reasons.push("Email already exists");
-    } catch (e) {
-      // البريد جديد - بدون مشكلة
-    }
+    // 💡 تم إزالة فحص الهاتف والبريد الإلكتروني من هنا لكي لا يتسببا في إظهار رسالة الحظر الأمنية،
+    // وتم نقل الفحص بالكامل إلى الأسفل ليعطي الرسالة الفعلية المحددة للمستخدم.
 
     return {
       riskScore,
-      isSuspicious: riskScore >= 60,
+      isSuspicious: riskScore >= 60, // يتم الحظر فقط لو تخطى الـ 60 نتيجة الـ IP أو Fingerprint
       reasons
     };
   }
@@ -107,7 +90,7 @@ export default async function handler(req, res) {
   console.log(`[SIGNUP] New registration attempt from ${ip} - ${email}`);
 
   try {
-    // ======== 1. التحقق من صحة البيانات ========
+    // ======== 1. التحقق من صحة البيانات الحسابية والمدخلات ========
     if (!email || !password || !phone || !name || !deviceId) {
       return res.status(400).json({ 
         error: "برجاء ملء جميع الحقول المطلوبة" 
@@ -128,7 +111,7 @@ export default async function handler(req, res) {
 
     if (password.length < 6) {
       return res.status(400).json({ 
-        error: "كلمة المرور ضعيفة للغاية" 
+        error: "كلمة المرور ضعيفة للغاية (الحد الأدنى 6 أحرف)" 
       });
     }
 
@@ -138,13 +121,47 @@ export default async function handler(req, res) {
       });
     }
 
-    // ======== 2. كشف الاحتيال ========
+    // ======== 2. التحقق من البيانات المكررة أولاً (لإظهار الرسائل الفعلية) ========
+    const [deviceSnap, phoneSnap, emailSnap] = await Promise.all([
+      db.collection("userDevices").where("deviceId", "==", deviceId).limit(1).get(),
+      db.collection("users").where("phone", "==", phone).limit(1).get(),
+      db.collection("users").where("email", "==", email.toLowerCase()).limit(1).get()
+    ]);
+
+    if (!deviceSnap.empty) {
+      return res.status(403).json({ 
+        error: "هذا الجهاز مسجل بالفعل. مسموح بحساب واحد فقط لكل جهاز." 
+      });
+    }
+
+    if (!phoneSnap.empty) {
+      return res.status(400).json({ 
+        error: "رقم الهاتف هذا مسجل بحساب آخر بالفعل." 
+      });
+    }
+
+    if (!emailSnap.empty) {
+      return res.status(400).json({ 
+        error: "البريد الإلكتروني هذا مسجل بحساب آخر بالفعل." 
+      });
+    }
+
+    // التحقق الإضافي من الـ Auth الخاص بـ Firebase للبريد الإلكتروني
+    try {
+      await auth.getUserByEmail(email.toLowerCase());
+      return res.status(400).json({ 
+        error: "البريد الإلكتروني هذا مسجل بحساب آخر بالفعل." 
+      });
+    } catch (e) {
+      // البريد غير مكرر في الـ Auth، يمكن المتابعة بأمان
+    }
+
+    // ======== 3. كشف الاحتيال الفعلي (للأجهزة الـ Spam والـ IPs فقط) ========
     const fraudCheck = await FraudDetection.analyzeSignup({ email, phone }, ip, fingerprint);
     
     if (fraudCheck.isSuspicious) {
       console.warn(`[FRAUD ALERT] High risk signup from ${ip}:`, fraudCheck.reasons);
       
-      // تسجيل محاولة الاحتيال
       await db.collection("fraudLogs").add({
         ip,
         fingerprint,
@@ -170,7 +187,7 @@ export default async function handler(req, res) {
       const data = rateLimitSnap.data();
       if (data.count >= 5 && (now - data.lastAttempt < 3600000)) {
         return res.status(429).json({ 
-          error: "محاولات تسجيل كثيرة جداً. يرجى المحاولة مرة أخرى لاحقاً." 
+          error: "محاولات تسجيل كثيرة جداً من هذا الجهاز. يرجى المحاولة مرة أخرى لاحقاً." 
         });
       }
       
@@ -186,32 +203,7 @@ export default async function handler(req, res) {
       await rateLimitRef.set({ count: 1, lastAttempt: now });
     }
 
-    // ======== 5. التحقق من البيانات المكررة ========
-    const [deviceSnap, phoneSnap, emailSnap] = await Promise.all([
-      db.collection("userDevices").where("deviceId", "==", deviceId).limit(1).get(),
-      db.collection("users").where("phone", "==", phone).limit(1).get(),
-      db.collection("users").where("email", "==", email.toLowerCase()).limit(1).get()
-    ]);
-
-    if (!deviceSnap.empty) {
-      return res.status(403).json({ 
-        error: "هذا الجهاز مسجل بالفعل. مسموح بحساب واحد فقط لكل جهاز." 
-      });
-    }
-
-    if (!phoneSnap.empty) {
-      return res.status(400).json({ 
-        error: "رقم الهاتف هذا مسجل بحساب آخر بالفعل." 
-      });
-    }
-
-    if (!emailSnap.empty) {
-      return res.status(400).json({ 
-        error: "البريد الإلكتروني هذا مسجل بحساب آخر بالفعل." 
-      });
-    }
-
-    // ======== 6. إنشاء حساب Firebase Auth ========
+    // ======== 5. إنشاء حساب Firebase Auth ========
     let userRecord;
     try {
       userRecord = await auth.createUser({
@@ -230,7 +222,7 @@ export default async function handler(req, res) {
 
     const uid = userRecord.uid;
 
-    // ======== 7. حفظ البيانات في Firestore ========
+    // ======== 6. حفظ البيانات في Firestore ========
     await db.runTransaction(async (tr) => {
       tr.set(db.collection("users").doc(uid), {
         uid,
