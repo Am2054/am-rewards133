@@ -1,4 +1,4 @@
-// /api/register.js - معالج التسجيل المحسّن بدون نظام الإحالات
+// /api/register.js - معالج التسجيل المحسّن مع شرط الاسم الثلاثي
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
@@ -101,8 +101,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    if (name.length < 3) {
-      return res.status(400).json({ error: "Name must be at least 3 characters" });
+    // التحقق من الاسم الثلاثي خلفياً في الـ Backend لحماية إضافية للبيانات
+    const nameParts = name.trim().split(/\s+/).filter(part => part.length > 0);
+    if (nameParts.length < 3) {
+      return res.status(400).json({ error: "Name must be at least 3 parts (Full triple name)" });
     }
 
     if (!/^01[0125]\d{8}$/.test(phone)) {
