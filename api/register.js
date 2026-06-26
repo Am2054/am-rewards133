@@ -98,7 +98,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+  if (req.method !== "POST") return res.status(405).json({ error: "الطريقة غير مسموح بها" });
 
   const { email, password, confirmPassword, name, phone, deviceId, fingerprint } = req.body;
   const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress || "unknown_ip";
@@ -110,31 +110,31 @@ export default async function handler(req, res) {
     // ======== 1. التحقق من صحة البيانات ========
     if (!email || !password || !phone || !name || !deviceId) {
       return res.status(400).json({ 
-        error: "Missing required fields" 
+        error: "برجاء ملء جميع الحقول المطلوبة" 
       });
     }
 
     if (name.length < 3) {
       return res.status(400).json({ 
-        error: "Name must be at least 3 characters" 
+        error: "يجب أن يتكون الاسم من 3 أحرف على الأقل" 
       });
     }
 
     if (!/^01[0125]\d{8}$/.test(phone)) {
       return res.status(400).json({ 
-        error: "Invalid phone number format" 
+        error: "صيغة رقم الهاتف غير صحيحة" 
       });
     }
 
     if (password.length < 6) {
       return res.status(400).json({ 
-        error: "Password is too weak" 
+        error: "كلمة المرور ضعيفة للغاية" 
       });
     }
 
     if (password !== confirmPassword) {
       return res.status(400).json({ 
-        error: "Passwords do not match" 
+        error: "كلمات المرور غير متطابقة" 
       });
     }
 
@@ -156,12 +156,11 @@ export default async function handler(req, res) {
       });
 
       return res.status(403).json({ 
-        error: "Registration blocked due to security concerns. Please contact support." 
+        error: "تم حظر التسجيل لأسباب أمنية لحماية المنصة. يرجى الاتصال بالدعم الفني." 
       });
     }
 
     // ======== 4. Rate Limiting ========
-    // استبدال النقاط والنقطتين والمسافات ليعمل الـ Document ID بشكل آمن مع كل أنواع الـ IPs (IPv4 & IPv6)
     const rateLimitDocId = ip.trim().replace(/[\.\:\s]/g, "_");
     const rateLimitRef = db.collection("rateLimits").doc(rateLimitDocId);
     const rateLimitSnap = await rateLimitRef.get();
@@ -171,7 +170,7 @@ export default async function handler(req, res) {
       const data = rateLimitSnap.data();
       if (data.count >= 5 && (now - data.lastAttempt < 3600000)) {
         return res.status(429).json({ 
-          error: "Too many registration attempts. Please try again later." 
+          error: "محاولات تسجيل كثيرة جداً. يرجى المحاولة مرة أخرى لاحقاً." 
         });
       }
       
@@ -196,19 +195,19 @@ export default async function handler(req, res) {
 
     if (!deviceSnap.empty) {
       return res.status(403).json({ 
-        error: "This device is already registered. Maximum 1 account per device." 
+        error: "هذا الجهاز مسجل بالفعل. مسموح بحساب واحد فقط لكل جهاز." 
       });
     }
 
     if (!phoneSnap.empty) {
       return res.status(400).json({ 
-        error: "This phone number is already registered." 
+        error: "رقم الهاتف هذا مسجل بحساب آخر بالفعل." 
       });
     }
 
     if (!emailSnap.empty) {
       return res.status(400).json({ 
-        error: "This email is already registered." 
+        error: "البريد الإلكتروني هذا مسجل بحساب آخر بالفعل." 
       });
     }
 
@@ -223,7 +222,7 @@ export default async function handler(req, res) {
     } catch (authError) {
       if (authError.code === 'auth/email-already-exists') {
         return res.status(400).json({ 
-          error: "This email is already registered." 
+          error: "البريد الإلكتروني هذا مسجل بحساب آخر بالفعل." 
         });
       }
       throw authError;
@@ -233,7 +232,6 @@ export default async function handler(req, res) {
 
     // ======== 7. حفظ البيانات في Firestore ========
     await db.runTransaction(async (tr) => {
-      // إنشاء مستخدم جديد (بدون حقول الإحالات مع الاحتفاظ بكل البيانات الأخرى)
       tr.set(db.collection("users").doc(uid), {
         uid,
         email: email.toLowerCase(),
@@ -250,10 +248,9 @@ export default async function handler(req, res) {
         totalChallengesCompleted: 0,
         challengesCompletedToday: [],
         twoFAEnabled: false,
-        trustLevel: 'new' // new, trusted, suspicious
+        trustLevel: 'new'
       });
 
-      // إضافة سجل الجهاز
       tr.set(db.collection("userDevices").doc(), {
         uid,
         deviceId,
@@ -264,7 +261,6 @@ export default async function handler(req, res) {
         lastUsed: FieldValue.serverTimestamp()
       });
 
-      // تسجيل عملية التسجيل
       tr.set(db.collection("registrations").doc(), {
         uid,
         email: email.toLowerCase(),
@@ -281,13 +277,13 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: "✅ Account created successfully! Please log in."
+      message: "✅ تم إنشاء الحساب بنجاح! جاري تسجيل الدخول..."
     });
 
   } catch (err) {
     console.error("[ERROR] Signup error:", err);
     return res.status(500).json({ 
-      error: "An error occurred during registration. Please try again." 
+      error: "حدث خطأ غير متوقع أثناء التسجيل. يرجى المحاولة مرة أخرى." 
     });
   }
 }
