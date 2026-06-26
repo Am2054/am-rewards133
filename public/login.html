@@ -1,4 +1,4 @@
-للربحTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
@@ -459,7 +459,7 @@
     import {
       getFirestore,
       doc,
-      setDoc,
+      updateDoc,
       serverTimestamp,
       getDoc
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -488,10 +488,9 @@
     const ADMIN_PAGE = "admin.html";
     const USER_PAGE = "dashboard.html";
 
-    // ✅ تتبع محاولات الدخول الفاشلة
     const loginAttempts = {};
     const MAX_ATTEMPTS = 5;
-    const LOCKOUT_TIME = 15 * 60 * 1000; // 15 دقيقة
+    const LOCKOUT_TIME = 15 * 60 * 1000;
 
     function showMessage(text, type = "success") {
       msgTextEl.textContent = text;
@@ -538,7 +537,6 @@
       }
     }
 
-    // ✅ فحص الحظر من محاولات الدخول المتكررة
     function checkLoginLockout(email) {
       const now = Date.now();
       const attempt = loginAttempts[email];
@@ -554,7 +552,6 @@
       return { locked: false };
     }
 
-    // ✅ تسجيل محاولة فاشلة
     function recordFailedAttempt(email) {
       const now = Date.now();
 
@@ -570,26 +567,18 @@
       }
     }
 
-    // ✅ حذف سجل المحاولات عند النجاح
     function clearLoginAttempts(email) {
       delete loginAttempts[email];
     }
 
-    // ✅ تحديث آخر وقت دخول
+    // 🛠️ التعديل هنا: استخدام updateDoc لكي يفشل التحديث إذا لم يكن المستخدم يمتلك مستنداً حقيقياً في Firestore
     async function updateLastLogin(uid, email) {
-      try {
-        const userRef = doc(db, "users", uid);
-        await setDoc(userRef, {
-          uid,
-          email,
-          lastLogin: serverTimestamp()
-        }, { merge: true });
-      } catch (error) {
-        console.error("Failed to update lastLogin:", error);
-      }
+      const userRef = doc(db, "users", uid);
+      await updateDoc(userRef, {
+        lastLogin: serverTimestamp()
+      });
     }
 
-    // ✅ فحص حالة الحساب (محظور أم لا)
     async function checkUserBanStatus(uid) {
       try {
         const userRef = doc(db, "users", uid);
@@ -603,12 +592,13 @@
               reason: data.banReason || "عذراً، حسابك مُعطّل من قبل الإدارة. للمزيد من المعلومات، يرجى التواصل مع الدعم."
             };
           }
+          return { banned: false, exists: true };
         }
 
-        return { banned: false };
+        return { banned: false, exists: false };
       } catch (error) {
         console.error("Error checking ban status:", error);
-        return { banned: false };
+        return { banned: false, exists: false };
       }
     }
 
@@ -630,7 +620,6 @@
         return showMessage("يرجى إدخال البريد وكلمة المرور", "error");
       }
 
-      // ✅ فحص الحظر من المحاولات المتكررة
       const lockoutCheck = checkLoginLockout(email);
       if (lockoutCheck.locked) {
         return showMessage(lockoutCheck.message, "warning");
@@ -646,8 +635,16 @@
         const user = userCredential.user;
         const uid = user.uid;
 
-        // ✅ فحص حالة الحساب (محظور أم لا)
         const banStatus = await checkUserBanStatus(uid);
+        
+        // التحقق الإضافي للتأكد أن حساب هذا الشخص موجود بقاعدة البيانات
+        if (!banStatus.exists) {
+          await auth.signOut();
+          loginBtn.disabled = false;
+          btnText.textContent = "تسجيل الدخول";
+          return showMessage("هذا الحساب غير مسجل لدينا", "error");
+        }
+
         if (banStatus.banned) {
           await auth.signOut();
           showBannedAlert(banStatus.reason);
