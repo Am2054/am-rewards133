@@ -1,4 +1,3 @@
-// /api/register.js - معالج التسجيل المحسّن مع تعريب كامل الأخطاء
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
@@ -22,65 +21,50 @@ if (!getApps().length) {
 const db = getFirestore();
 const auth = getAuth();
 
-async function checkVPN(ip) {
-  try {
-    const response = await fetch(`https://vpnapi.io/?ip=${ip}&key=${process.env.VPN_API_KEY}`);
-    const data = await response.json();
-    return data.security?.vpn || false;
-  } catch (e) {
-    console.warn("فشل التحقق من VPN:", e.message);
-    return false;
-  }
-}
-
 class FraudDetection {
   static async analyzeSignup(userData, ip, fingerprint) {
     let riskScore = 0;
     const reasons = [];
 
-    // ✅ تقليل الصرامة - بصمة الجهاز
     const fpSnap = await db.collection("userDevices")
       .where("fingerprint", "==", fingerprint)
       .limit(5)
       .get();
     
     if (!fpSnap.empty) {
-      riskScore += 15; // تقليل من 30
+      riskScore += 15;
       reasons.push("تم اكتشاف بصمة جهاز مكررة (عادي - نفس المتصفح)");
     }
 
-    // ✅ تقليل الصرامة - عنوان IP
     const ipSnap = await db.collection("registrations")
       .where("ip", "==", ip)
       .where("createdAt", ">=", new Date(Date.now() - 3600000))
       .get();
     
-    if (ipSnap.size > 5) { // تغيير من 3 إلى 5
-      riskScore += 20; // تقليل من 40
-      reasons.push("عدة تسجيلات من نفس عنوان IP (قد يكون من نفس المنزل/الشركة)");
+    if (ipSnap.size > 5) {
+      riskScore += 20;
+      reasons.push("عدة تسجيلات من نفس عنوان IP");
     }
 
-    // ✅ التحقق الفعلي من رقم الهاتف المكرر
     const phoneSnap = await db.collection("users")
       .where("phone", "==", userData.phone)
       .limit(1)
       .get();
     
     if (!phoneSnap.empty) {
-      riskScore += 100; // خطر حقيقي
+      riskScore += 100;
       reasons.push("رقم الهاتف موجود بالفعل");
     }
 
-    // ✅ التحقق الفعلي من البريد المكرر
     try {
       await auth.getUserByEmail(userData.email);
-      riskScore += 100; // خطر حقيقي
+      riskScore += 100;
       reasons.push("البريد الإلكتروني موجود بالفعل");
     } catch (e) {}
 
     return {
       riskScore,
-      isSuspicious: riskScore >= 80, // تغيير من 60 إلى 80
+      isSuspicious: riskScore >= 80,
       reasons,
       debugInfo: {
         fpCount: fpSnap.size,
@@ -101,10 +85,15 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "الطريقة غير مسموح بها" });
 
   const { email, password, confirmPassword, name, phone, deviceId, fingerprint } = req.body;
-  const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress || "عنوان IP مجهول";
+  
+  // تأمين جلب الـ IP ونظافته
+  let ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress || "127_0_0_1";
+  ip = ip.trim();
+  
+  // تحويل أي رموز غير مسموحة في الـ Doc ID لتعمل بسلاسة تامة مع الـ IPv6 والـ IPv4
+  const rateLimitDocId = ip.replace(/[\.\:\s]/g, "_");
+  
   const userAgent = req.headers["user-agent"] || "متصفح مجهول";
-
-  console.log(`[التسجيل] محاولة تسجيل جديدة من ${ip} - ${email}`);
 
   try {
     if (!email || !password || !phone || !name || !deviceId) {
@@ -128,13 +117,29 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "❌ كلمات المرور غير متطابقة" });
     }
 
+    // --- نظام الـ Rate Limiting المصلح والمرن بالكامل داخل المتصفحات والسيرفرات ---
+    const rateLimitRef = db.collection("rateLimits").doc(rateLimitDocId);
+    const rateLimitSnap = await rateLimitRef.get();
+    const now = Date.now();
+
+    if (rateLimitSnap.exists) {
+      const data = rateLimitSnap.data();
+      // إذا مر أكثر من ساعة، نقوم بعمل تصفير حقيقي للعداد تلقائياً
+      if (now - data.lastAttempt > 3600000) {
+        await rateLimitRef.set({ count: 1, lastAttempt: now });
+      } else {
+        if (data.count >= 10) {
+          return res.status(429).json({ error: "❌ عدد محاولات التسجيل كثير من هذا الجهاز. يرجى المحاولة بعد ساعة." });
+        }
+        await rateLimitRef.update({ count: FieldValue.increment(1), lastAttempt: now });
+      }
+    } else {
+      await rateLimitRef.set({ count: 1, lastAttempt: now });
+    }
+
     const fraudCheck = await FraudDetection.analyzeSignup({ email, phone }, ip, fingerprint);
     
-    console.log(`[تحليل احتيال] ${email} - النقاط: ${fraudCheck.riskScore} - التفاصيل:`, fraudCheck.debugInfo);
-
     if (fraudCheck.isSuspicious) {
-      console.warn(`[تنبيه احتيال] محاولة تسجيل عالية المخاطر من ${ip}:`, fraudCheck.reasons);
-      
       await db.collection("fraudLogs").add({
         ip,
         fingerprint,
@@ -149,25 +154,6 @@ export default async function handler(req, res) {
       return res.status(403).json({ 
         error: "❌ تم حجب التسجيل لأسباب أمنية. يرجى التواصل مع فريق الدعم على: support@amrewards.com" 
       });
-    }
-
-    // ✅ تقليل Spam - المحاولات المتكررة من نفس IP
-    const rateLimitRef = db.collection("rateLimits").doc(ip.replace(/\./g, "_"));
-    const rateLimitSnap = await rateLimitRef.get();
-    const now = Date.now();
-
-    if (rateLimitSnap.exists) {
-      const data = rateLimitSnap.data();
-      if (data.count >= 10 && (now - data.lastAttempt < 3600000)) { // تغيير من 5 إلى 10
-        return res.status(429).json({ error: "❌ عدد محاولات التسجيل كثير. يرجى المحاولة بعد ساعة." });
-      }
-      if (now - data.lastAttempt > 3600000) {
-        await rateLimitRef.set({ count: 1, lastAttempt: now });
-      } else {
-        await rateLimitRef.update({ count: FieldValue.increment(1), lastAttempt: now });
-      }
-    } else {
-      await rateLimitRef.set({ count: 1, lastAttempt: now });
     }
 
     const [deviceSnap, phoneSnap, emailSnap] = await Promise.all([
@@ -196,7 +182,6 @@ export default async function handler(req, res) {
         displayName: name
       });
     } catch (authError) {
-      console.error("خطأ Firebase Auth:", authError.code);
       if (authError.code === 'auth/email-already-exists') {
         return res.status(400).json({ error: "❌ البريد الإلكتروني مسجل بالفعل." });
       }
@@ -250,8 +235,6 @@ export default async function handler(req, res) {
         status: "نجح"
       });
     });
-
-    console.log(`[نجح] تم تسجيل المستخدم: ${uid} - ${email}`);
 
     return res.status(200).json({
       success: true,
