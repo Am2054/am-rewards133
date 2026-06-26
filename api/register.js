@@ -1,4 +1,3 @@
-// /api/register.js - معالج التسجيل المحسّن مع شرط الاسم الثلاثي
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
@@ -15,7 +14,7 @@ if (!getApps().length) {
       initializeApp({ credential: cert(serviceAccount) });
     }
   } catch (error) { 
-    console.error("Firebase Init Error:", error.message); 
+    console.error("خطأ في تهيئة Firebase:", error.message); 
   }
 }
 
@@ -28,7 +27,7 @@ async function checkVPN(ip) {
     const data = await response.json();
     return data.security?.vpn || false;
   } catch (e) {
-    console.warn("VPN Check failed:", e.message);
+    console.warn("فشل التحقق من VPN:", e.message);
     return false;
   }
 }
@@ -38,6 +37,7 @@ class FraudDetection {
     let riskScore = 0;
     const reasons = [];
 
+    // التحقق من بصمة الجهاز المكررة
     const fpSnap = await db.collection("userDevices")
       .where("fingerprint", "==", fingerprint)
       .limit(5)
@@ -45,9 +45,10 @@ class FraudDetection {
     
     if (!fpSnap.empty) {
       riskScore += 30;
-      reasons.push("Duplicate device fingerprint detected");
+      reasons.push("تم اكتشاف بصمة جهاز مكررة");
     }
 
+    // التحقق من التسجيلات المتعددة من نفس IP
     const ipSnap = await db.collection("registrations")
       .where("ip", "==", ip)
       .where("createdAt", ">=", new Date(Date.now() - 3600000))
@@ -55,9 +56,10 @@ class FraudDetection {
     
     if (ipSnap.size > 3) {
       riskScore += 40;
-      reasons.push("Multiple registrations from same IP in 1 hour");
+      reasons.push("تم اكتشاف عدة تسجيلات من نفس عنوان IP خلال ساعة واحدة");
     }
 
+    // التحقق من رقم الهاتف المكرر
     const phoneSnap = await db.collection("users")
       .where("phone", "==", userData.phone)
       .limit(1)
@@ -65,13 +67,14 @@ class FraudDetection {
     
     if (!phoneSnap.empty) {
       riskScore += 50;
-      reasons.push("Phone number already exists");
+      reasons.push("رقم الهاتف موجود بالفعل في النظام");
     }
 
+    // التحقق من البريد الإلكتروني المكرر
     try {
       await auth.getUserByEmail(userData.email);
       riskScore += 50;
-      reasons.push("Email already exists");
+      reasons.push("البريد الإلكتروني موجود بالفعل في النظام");
     } catch (e) {}
 
     return {
@@ -88,42 +91,50 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "الطريقة غير مدعومة - استخدم POST فقط" });
+  }
 
   const { email, password, confirmPassword, name, phone, deviceId, fingerprint } = req.body;
   const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress || "unknown_ip";
   const userAgent = req.headers["user-agent"] || "unknown";
 
-  console.log(`[SIGNUP] New registration attempt from ${ip} - ${email}`);
+  console.log(`[تسجيل جديد] محاولة تسجيل جديدة من ${ip} - ${email}`);
 
   try {
+    // التحقق من وجود جميع الحقول المطلوبة
     if (!email || !password || !phone || !name || !deviceId) {
-      return res.status(400).json({ error: "Missing required fields" });
+      return res.status(400).json({ error: "❌ بيانات ناقصة - يجب ملء جميع الحقول المطلوبة" });
     }
 
-    // التحقق من الاسم الثلاثي خلفياً في الـ Backend لحماية إضافية للبيانات
+    // التحقق من الاسم الثلاثي خلفياً في الـ Backend لحماية إضافية
     const nameParts = name.trim().split(/\s+/).filter(part => part.length > 0);
     if (nameParts.length < 3) {
-      return res.status(400).json({ error: "Name must be at least 3 parts (Full triple name)" });
+      return res.status(400).json({ error: "❌ الاسم يجب أن يكون ثلاثياً على الأقل (الاسم الأول - اسم الأب - الاسم الأخير)" });
     }
 
+    // التحقق من صيغة رقم الهاتف المصري
     if (!/^01[0125]\d{8}$/.test(phone)) {
-      return res.status(400).json({ error: "Invalid phone number format" });
+      return res.status(400).json({ error: "❌ صيغة رقم الهاتف غير صحيحة - يجب أن يبدأ بـ 01 ويكون 11 رقم" });
     }
 
+    // التحقق من قوة كلمة المرور
     if (password.length < 6) {
-      return res.status(400).json({ error: "Password is too weak" });
+      return res.status(400).json({ error: "❌ كلمة المرور ضعيفة جداً - الحد الأدنى 6 أحرف" });
     }
 
+    // التحقق من تطابق كلمات المرور
     if (password !== confirmPassword) {
-      return res.status(400).json({ error: "Passwords do not match" });
+      return res.status(400).json({ error: "❌ كلمات المرور غير متطابقة" });
     }
 
+    // تحليل الاحتيال والمخاطر
     const fraudCheck = await FraudDetection.analyzeSignup({ email, phone }, ip, fingerprint);
     
     if (fraudCheck.isSuspicious) {
-      console.warn(`[FRAUD ALERT] High risk signup from ${ip}:`, fraudCheck.reasons);
+      console.warn(`[تنبيه احتيال] محاولة تسجيل عالية المخاطر من ${ip}:`, fraudCheck.reasons);
       
+      // تسجيل محاولة الاحتيال في قاعدة البيانات
       await db.collection("fraudLogs").add({
         ip,
         fingerprint,
@@ -135,10 +146,11 @@ export default async function handler(req, res) {
       });
 
       return res.status(403).json({ 
-        error: "Registration blocked due to security concerns. Please contact support." 
+        error: "❌ تم حظر التسجيل لأسباب أمنية - يرجى التواصل مع فريق الدعم" 
       });
     }
 
+    // تحديد معدل الطلبات (Rate Limiting)
     const rateLimitRef = db.collection("rateLimits").doc(ip.replace(/\./g, "_"));
     const rateLimitSnap = await rateLimitRef.get();
     const now = Date.now();
@@ -146,7 +158,7 @@ export default async function handler(req, res) {
     if (rateLimitSnap.exists) {
       const data = rateLimitSnap.data();
       if (data.count >= 5 && (now - data.lastAttempt < 3600000)) {
-        return res.status(429).json({ error: "Too many registration attempts. Please try again later." });
+        return res.status(429).json({ error: "❌ عدد محاولات التسجيل كثير جداً - يرجى المحاولة بعد ساعة" });
       }
       if (now - data.lastAttempt > 3600000) {
         await rateLimitRef.set({ count: 1, lastAttempt: now });
@@ -157,6 +169,7 @@ export default async function handler(req, res) {
       await rateLimitRef.set({ count: 1, lastAttempt: now });
     }
 
+    // التحقق المتوازي من تكرار البيانات
     const [deviceSnap, phoneSnap, emailSnap] = await Promise.all([
       db.collection("userDevices").where("deviceId", "==", deviceId).limit(1).get(),
       db.collection("users").where("phone", "==", phone).limit(1).get(),
@@ -164,17 +177,18 @@ export default async function handler(req, res) {
     ]);
 
     if (!deviceSnap.empty) {
-      return res.status(403).json({ error: "This device is already registered. Maximum 1 account per device." });
+      return res.status(403).json({ error: "❌ هذا الجهاز مسجل بالفعل - حساب واحد فقط لكل جهاز" });
     }
 
     if (!phoneSnap.empty) {
-      return res.status(400).json({ error: "This phone number is already registered." });
+      return res.status(400).json({ error: "❌ رقم الهاتف مسجل بالفعل في النظام" });
     }
 
     if (!emailSnap.empty) {
-      return res.status(400).json({ error: "This email is already registered." });
+      return res.status(400).json({ error: "❌ البريد الإلكتروني مسجل بالفعل في النظام" });
     }
 
+    // إنشاء حساب في Firebase Authentication
     let userRecord;
     try {
       userRecord = await auth.createUser({
@@ -184,14 +198,16 @@ export default async function handler(req, res) {
       });
     } catch (authError) {
       if (authError.code === 'auth/email-already-exists') {
-        return res.status(400).json({ error: "This email is already registered." });
+        return res.status(400).json({ error: "❌ البريد الإلكتروني مسجل بالفعل" });
       }
       throw authError;
     }
 
     const uid = userRecord.uid;
 
+    // حفظ بيانات المستخدم في Firestore باستخدام Transaction
     await db.runTransaction(async (tr) => {
+      // حفظ بيانات المستخدم الأساسية
       tr.set(db.collection("users").doc(uid), {
         uid,
         email: email.toLowerCase(),
@@ -204,9 +220,12 @@ export default async function handler(req, res) {
         loginStreak: 1,
         lastLoginDate: FieldValue.serverTimestamp(),
         twoFAEnabled: false,
-        trustLevel: 'new'
+        trustLevel: 'new',
+        profileComplete: false,
+        role: 'user'
       });
 
+      // حفظ معلومات الجهاز للأمان
       tr.set(db.collection("userDevices").doc(), {
         uid,
         deviceId,
@@ -214,9 +233,11 @@ export default async function handler(req, res) {
         ip,
         userAgent,
         createdAt: FieldValue.serverTimestamp(),
-        lastUsed: FieldValue.serverTimestamp()
+        lastUsed: FieldValue.serverTimestamp(),
+        isVerified: false
       });
 
+      // حفظ سجل التسجيل
       tr.set(db.collection("registrations").doc(), {
         uid,
         email: email.toLowerCase(),
@@ -229,15 +250,15 @@ export default async function handler(req, res) {
       });
     });
 
-    console.log(`[SUCCESS] User registered: ${uid} - ${email}`);
+    console.log(`[نجاح] تم تسجيل المستخدم: ${uid} - ${email}`);
 
     return res.status(200).json({
       success: true,
-      message: "✅ Account created successfully! Please log in."
+      message: "✅ تم إنشاء الحساب بنجاح! يرجى تسجيل الدخول"
     });
 
   } catch (err) {
-    console.error("[ERROR] Signup error:", err);
-    return res.status(500).json({ error: "An error occurred during registration. Please try again." });
+    console.error("[خطأ] خطأ في التسجيل:", err);
+    return res.status(500).json({ error: "❌ حدث خطأ أثناء التسجيل - يرجى المحاولة لاحقاً" });
   }
 }
