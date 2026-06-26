@@ -1,4 +1,3 @@
-<!-- signup.html - النسخة النهائية المحسّنة -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -124,15 +123,15 @@
 <div class="main-wrapper">
   <div class="hero-box">
     <h1>Am Rewards</h1>
-    <p>انضم الآن إلى أقوى منصة مكافآت في الوطن العربي. ابدأ بجمع النقاط وحولها إلى كاش حقيقي بكل سهولة وأمان.</p>
-    <div class="feature-item"><div class="feature-icon"></div> سحب فوري عبر المحافظ الإلكترونية</div>
-    <div class="feature-item"><div class="feature-icon"></div> نظام إحالات يمنحك 10% أرباح إضافية</div>
-    <div class="feature-item"><div class="feature-icon"></div> حماية كاملة لبياناتك وأرباحك</div>
+    <p>انضم الآن إلى أقوى منصة لتأجير الشقق. ابدأ كمالك لعرض عقاراتك أو كمستأجر يبحث عن أفضل الأماكن بسهولة وأمان.</p>
+    <div class="feature-item"><div class="feature-icon"></div> حجز مباشر وآمن من المالك</div>
+    <div class="feature-item"><div class="feature-icon"></div> نظام توثيق متطور للعقارات</div>
+    <div class="feature-item"><div class="feature-icon"></div> حماية كاملة لبياناتك وعربونك</div>
   </div>
 
   <div class="signup-card">
     <h2>إنشاء حساب</h2>
-    <p class="sub">ابدأ رحلتك في ربح المكافآت اليوم</p>
+    <p class="sub">ابدأ رحلتك معنا اليوم</p>
 
     <div id="errorAlert" class="alert alert-error"></div>
     <div id="warningAlert" class="alert alert-warning"></div>
@@ -172,11 +171,6 @@
         </div>
       </div>
 
-      <div class="input-group">
-        <label>كود الإحالة (اختياري)</label>
-        <input id="refCode" type="text" placeholder="أدخل الكود إن وجد" style="text-transform: uppercase; color: var(--neon-cyan); font-weight: 700;" maxlength="6">
-      </div>
-
       <div style="font-size: 12px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
         <input type="checkbox" id="agree" required style="width: 16px; height: 16px;">
         <label for="agree">أوافق على <a href="javascript:void(0)" onclick="showPolicy()" style="color:var(--neon-cyan); font-weight:700;">سياسة الاستخدام</a></label>
@@ -198,9 +192,8 @@
     <ul style="line-height: 2; font-size: 14px; color: var(--muted); padding-right: 20px; text-align: right;">
       <li>يُمنع استخدام أي برامج تلاعب أو VPN.</li>
       <li>يُسمح بحساب واحد فقط لكل هاتف/شخص.</li>
-      <li>الحد الأدنى للسحب هو 20 جنيه مصري.</li>
-      <li>يتم مراجعة الطلبات خلال 24 ساعة من الطلب.</li>
-      <li>في حالة محاولة احتيال، سيتم حظر الحساب فوراً.</li>
+      <li>يتم مراجعة الشكاوى والطلبات خلال 24 ساعة.</li>
+      <li>في حالة محاولة احتيال أو تقديم بيانات كاذبة، سيتم حظر الحساب فوراً.</li>
       <li>جميع البيانات محمية بموجب قانون حماية البيانات.</li>
     </ul>
     <button class="btn-submit" onclick="closePolicy()">فهمت ذلك</button>
@@ -209,7 +202,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -220,7 +213,6 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
 
-  // ✅ وظيفة محسّنة للحصول على البصمة
   async function getFingerprint() {
     try {
       const canvas = document.createElement('canvas');
@@ -249,7 +241,6 @@
     ).substring(0, 32);
   }
 
-  // ✅ فحص قوة كلمة المرور
   window.checkPasswordStrength = function() {
     const password = document.getElementById('password').value;
     const bar = document.getElementById('strengthBar');
@@ -279,7 +270,6 @@
     document.getElementById('policyModal').style.display = 'none';
   };
 
-  // ✅ الحصول على معرّف الجهاز
   function getDeviceId() {
     let id = localStorage.getItem('appDeviceId');
     if (!id) { 
@@ -289,23 +279,12 @@
     return id;
   }
 
-  // ✅ تحميل كود الإحالة من الـ URL
-  window.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const referral = urlParams.get('ref');
-    if (referral) {
-      document.getElementById('refCode').value = referral.toUpperCase();
-    }
-  });
-
-  // ✅ دالة التسجيل المحسّنة
   window.signup = async function() {
     const statusEl = document.getElementById('status');
     const signupBtn = document.getElementById('signupBtn');
     const errorAlert = document.getElementById('errorAlert');
     const warningAlert = document.getElementById('warningAlert');
     
-    // تفريغ التنبيهات
     errorAlert.innerHTML = '';
     errorAlert.classList.remove('show');
     warningAlert.innerHTML = '';
@@ -317,12 +296,10 @@
       confirmPassword: document.getElementById('confirmPassword').value,
       phone: document.getElementById('phone').value.trim(),
       name: document.getElementById('name').value.trim(),
-      referralCode: document.getElementById('refCode').value.trim().toUpperCase(),
       deviceId: getDeviceId(),
       fingerprint: await getFingerprint()
     };
 
-    // ✅ التحقق من صحة البيانات في الـ Frontend
     if (fields.name.length < 3) {
       errorAlert.innerHTML = '❌ الاسم يجب أن يكون 3 أحرف على الأقل';
       errorAlert.classList.add('show');
@@ -390,4 +367,4 @@
   };
 </script>
 </body>
-        </html>
+</html>
