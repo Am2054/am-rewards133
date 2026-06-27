@@ -3,1360 +3,979 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AM. Dashboard - لوحة التحكم العقارية الذكية</title>
-  <!-- Fonts & Icons -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <title>AM - لوحة التحكم</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-  <style>
-    /* ============================================
-       THEME VARIABLES & BASE STYLES
-       ============================================ */
-    :root {
-      --bg-primary: #0b0f19;
-      --bg-secondary: rgba(22, 30, 49, 0.7);
-      --bg-tertiary: #1f293d;
-      --primary: #38bdf8;
-      --primary-hover: #0ea5e9;
-      --text-primary: #f3f4f6;
-      --text-muted: #9ca3af;
-      --border: rgba(255, 255, 255, 0.08);
-      --glass-bg: rgba(15, 23, 42, 0.55);
-      --glass-blur: blur(12px);
-      --success: #10b981;
-      --danger: #ef4444;
-      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Cairo', sans-serif;
-      background-color: var(--bg-primary);
-      color: var(--text-primary);
-      overflow-x: hidden;
-      min-height: 100vh;
-    }
-
-    /* Scrollbar Style */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: var(--bg-primary); }
-    ::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
-
-    /* ============================================
-       LAYOUT & GLASSMORPHISM UTILITIES
-       ============================================ */
-    .glass-panel {
-      background: var(--glass-bg);
-      backdrop-filter: var(--glass-blur);
-      -webkit-backdrop-filter: var(--glass-blur);
-      border: 1px solid var(--border);
-    }
-
-    .app-container {
-      display: grid;
-      grid-template-columns: 260px 1fr;
-      min-height: 100vh;
-    }
-
-    /* ============================================
-       SIDEBAR & NAVIGATION STYLE
-       ============================================ */
-    .sidebar {
-      background: var(--bg-secondary);
-      border-left: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      padding: 2rem 1rem;
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      z-index: 100;
-      transition: var(--transition);
-    }
-
-    .sidebar-title {
-      font-size: 1.8rem;
-      font-weight: 900;
-      text-align: center;
-      margin-bottom: 2.5rem;
-      letter-spacing: 1px;
-    }
-
-    .sidebar-menu {
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-      flex: 1;
-      overflow-y: auto;
-    }
-
-    .sidebar-item {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 0.85rem 1.25rem;
-      color: var(--text-muted);
-      text-decoration: none;
-      border-radius: 12px;
-      font-weight: 600;
-      transition: var(--transition);
-    }
-
-    .sidebar-item i {
-      font-size: 1.2rem;
-      width: 24px;
-      text-align: center;
-    }
-
-    .sidebar-item:hover, .sidebar-item.active {
-      color: var(--primary);
-      background: rgba(56, 189, 248, 0.08);
-    }
-
-    .sidebar-divider {
-      height: 1px;
-      background: var(--border);
-      margin: 1.5rem 0;
-    }
-
-    .sidebar-logout:hover {
-      color: var(--danger);
-      background: rgba(239, 68, 68, 0.08);
-    }
-
-    .sidebar-close {
-      display: none;
-      position: absolute;
-      top: 1.5rem;
-      left: 1.5rem;
-      background: none;
-      border: none;
-      color: white;
-      font-size: 1.5rem;
-      cursor: pointer;
-    }
-
-    /* ============================================
-       TOP BAR & HEADER
-       ============================================ */
-    .main {
-      padding: 2rem;
-      overflow-y: auto;
-    }
-
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2.5rem;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .menu-toggle {
-      display: none;
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border);
-      color: white;
-      padding: 0.75rem;
-      border-radius: 10px;
-      cursor: pointer;
-    }
-
-    .user-profile-widget {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .user-avatar {
-      width: 45px;
-      height: 45px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary), #818cf8);
-      color: var(--bg-primary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 1.1rem;
-      box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
-    }
-
-    .user-info {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .user-name { font-weight: 700; font-size: 0.95rem; }
-    .user-role { font-size: 0.75rem; color: var(--text-muted); }
-
-    .notification-btn {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      color: white;
-      padding: 0.75rem;
-      border-radius: 50%;
-      cursor: pointer;
-      position: relative;
-      transition: var(--transition);
-    }
-
-    .notification-btn:hover { border-color: var(--primary); color: var(--primary); }
-    .notification-badge {
-      position: absolute;
-      top: -2px;
-      right: -2px;
-      background: var(--danger);
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-
-    /* ============================================
-       SPA ARCHITECTURE SECTIONS & TRANSITIONS
-       ============================================ */
-    .spa-section {
-      display: none;
-      opacity: 0;
-      transform: translateY(15px);
-      transition: opacity 0.4s ease, transform 0.4s ease;
-    }
-
-    .spa-section.active-section {
-      display: block;
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    /* ============================================
-       HOME SECTION (GREETING & ACTIONS & CHECKLIST)
-       ============================================ */
-    .greeting { margin-bottom: 2rem; }
-    .greeting-title { font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem; }
-    .greeting-subtitle { color: var(--text-muted); }
-
-    .quick-actions {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 2.5rem;
-    }
-
-    .action-card {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 1.5rem;
-      cursor: pointer;
-      transition: var(--transition);
-    }
-
-    .action-card:hover {
-      transform: translateY(-5px);
-      border-color: var(--primary);
-      background: rgba(56, 189, 248, 0.02);
-    }
-
-    .action-icon { font-size: 2rem; margin-bottom: 1rem; }
-    .action-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.35rem; }
-    .action-description { font-size: 0.85rem; color: var(--text-muted); }
-
-    .completion-card {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 2rem;
-      margin-bottom: 2rem;
-    }
-
-    .completion-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-    }
-
-    .completion-title { font-size: 1.2rem; font-weight: 700; }
-    .completion-percentage { color: var(--primary); font-weight: 700; }
-
-    .progress-bar {
-      height: 8px;
-      background: var(--bg-tertiary);
-      border-radius: 10px;
-      overflow: hidden;
-      margin-bottom: 1.5rem;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--primary), #818cf8);
-      border-radius: 10px;
-      transition: width 0.5s ease;
-    }
-
-    .completion-checklist {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-    }
-
-    .checklist-item {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      background: var(--bg-primary);
-      padding: 1rem;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-    }
-
-    .checklist-icon {
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.8rem;
-    }
-
-    .completed .checklist-icon { background: rgba(16, 185, 129, 0.15); color: var(--success); }
-    .pending .checklist-icon { background: rgba(255, 255, 255, 0.05); color: var(--text-muted); }
-    .checklist-label { font-size: 0.9rem; font-weight: 600; }
-
-    /* ============================================
-       PROPERTIES GRID & CARDS UTILITIES
-       ============================================ */
-    .section-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; }
-    .section-title i { color: var(--primary); }
-
-    .properties-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1.5rem;
-    }
-
-    .property-card {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-      transition: var(--transition);
-    }
-
-    .property-card:hover { transform: translateY(-5px); border-color: var(--primary); }
-    
-    .property-image {
-      height: 180px;
-      position: relative;
-      background: var(--bg-tertiary);
-    }
-
-    .property-image img { width: 100%; height: 100%; object-fit: cover; }
-    
-    .property-status {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      padding: 0.35rem 0.85rem;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 700;
-    }
-
-    .property-status.active { background: rgba(16, 185, 129, 0.15); color: var(--success); }
-    .property-status.review { background: rgba(56, 189, 248, 0.15); color: var(--primary); }
-
-    .property-content { padding: 1.25rem; }
-    .property-name { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .property-location { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem; }
-    .property-price { font-size: 1.2rem; font-weight: 800; color: var(--primary); margin-bottom: 1rem; }
-    
-    .property-details {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.5rem;
-      padding-top: 0.75rem;
-      border-top: 1px solid var(--border);
-      margin-bottom: 1rem;
-    }
-
-    .detail-item { display: flex; flex-direction: column; align-items: center; font-size: 0.8rem; color: var(--text-muted); gap: 0.25rem; }
-    .detail-item i { color: var(--primary); font-size: 0.95rem; }
-
-    .property-stats {
-      display: flex;
-      justify-content: space-between;
-      background: var(--bg-primary);
-      padding: 0.75rem;
-      border-radius: 10px;
-      margin-bottom: 1rem;
-    }
-
-    .stat-box { text-align: center; flex: 1; }
-    .stat-number { font-weight: 700; font-size: 0.9rem; }
-    .stat-label { font-size: 0.7rem; color: var(--text-muted); }
-
-    .property-edit-btn {
-      width: 100%;
-      background: var(--primary);
-      color: var(--bg-primary);
-      border: none;
-      padding: 0.65rem;
-      border-radius: 8px;
-      font-weight: 700;
-      cursor: pointer;
-      font-family: 'Cairo', sans-serif;
-      transition: var(--transition);
-    }
-
-    .property-edit-btn:hover { background: var(--primary-hover); }
-
-    /* ============================================
-       SEARCH ENGINE & FILTERS LAYOUT
-       ============================================ */
-    .search-filter-panel {
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-      background: var(--bg-secondary);
-      padding: 1.25rem;
-      border-radius: 12px;
-      margin-bottom: 1.5rem;
-      border: 1px solid var(--border);
-    }
-
-    .search-filter-panel select, .search-filter-panel input {
-      flex: 1;
-      min-width: 160px;
-      margin-bottom: 0;
-    }
-
-    .search-layout-wrapper {
-      display: grid;
-      grid-template-columns: 1fr 350px;
-      gap: 1.5rem;
-    }
-
-    .map-mock-container {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      height: 500px;
-      position: sticky;
-      top: 95px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 2rem;
-      color: var(--text-muted);
-    }
-
-    /* ============================================
-       7-STEP WIZARD FORM BUILDER
-       ============================================ */
-    .wizard-container {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 2rem;
-    }
-
-    .wizard-steps-indicator {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 2.5rem;
-      position: relative;
-    }
-
-    .wizard-steps-indicator::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: var(--border);
-      transform: translateY(-50%);
-      z-index: 1;
-    }
-
-    .step-dot {
-      width: 35px;
-      height: 35px;
-      border-radius: 50%;
-      background: var(--bg-tertiary);
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 0.9rem;
-      transition: var(--transition);
-      z-index: 2;
-    }
-
-    .step-dot.active {
-      background: var(--primary);
-      color: var(--bg-primary);
-      box-shadow: 0 0 15px var(--primary);
-    }
-
-    .wizard-step-content { display: none; }
-    .wizard-step-content.active { display: block; animation: fadeIn 0.4s ease-out; }
-
-    .form-group-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1.25rem;
-      margin-bottom: 1.25rem;
-    }
-
-    input[type="text"], input[type="number"], input[type="password"], input[type="email"], select, textarea {
-      width: 100%;
-      padding: 0.85rem 1.25rem;
-      background: var(--bg-primary);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text-primary);
-      font-family: 'Cairo', sans-serif;
-      transition: var(--transition);
-      margin-bottom: 1rem;
-    }
-
-    input:focus, select:focus, textarea:focus {
-      border-color: var(--primary);
-      outline: none;
-      box-shadow: 0 0 10px rgba(56,189,248,0.2);
-    }
-
-    .type-selection-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 1rem;
-      margin-top: 1.5rem;
-    }
-
-    .type-radio-card {
-      background: var(--bg-primary);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.5rem;
-      text-align: center;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.75rem;
-      transition: var(--transition);
-    }
-
-    .type-radio-card input { display: none; }
-    .type-radio-card:hover, .type-radio-card:has(input:checked) {
-      border-color: var(--primary);
-      background: rgba(56, 189, 248, 0.05);
-    }
-
-    .amenities-checkbox-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 1rem;
-      margin: 1.5rem 0;
-    }
-
-    .amenities-checkbox-grid label {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: var(--bg-primary);
-      padding: 0.75rem;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      cursor: pointer;
-    }
-
-    .drag-drop-zone {
-      border: 2px dashed var(--border);
-      border-radius: 12px;
-      padding: 3rem 1.5rem;
-      text-align: center;
-      cursor: pointer;
-      transition: var(--transition);
-    }
-
-    .drag-drop-zone:hover { border-color: var(--primary); background: rgba(56, 189, 248, 0.02); }
-    .images-preview-sortable { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
-    
-    .preview-thumb-box {
-      width: 100%;
-      height: 100px;
-      border-radius: 8px;
-      overflow: hidden;
-      position: relative;
-      border: 1px solid var(--border);
-    }
-
-    .preview-thumb-box img { width: 100%; height: 100%; object-fit: cover; }
-    .wizard-navigation-actions { display: flex; justify-content: space-between; margin-top: 2rem; gap: 1rem; }
-    .review-summary-box { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; margin-top: 1rem; }
-    .review-summary-box p { margin-bottom: 0.5rem; font-size: 0.95rem; }
-
-    /* ============================================
-       REALTIME CHAT COMPONENT
-       ============================================ */
-    .chat-main-wrapper {
-      display: grid;
-      grid-template-columns: 300px 1fr;
-      height: 600px;
-      border-radius: 16px;
-      overflow: hidden;
-    }
-
-    .chat-sidebar-list { background: rgba(17, 24, 39, 0.6); border-left: 1px solid var(--border); overflow-y: auto; }
-    
-    .chat-thread-card {
-      padding: 1.25rem 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      cursor: pointer;
-      border-bottom: 1px solid rgba(255,255,255,0.02);
-      transition: var(--transition);
-    }
-
-    .chat-thread-card:hover, .chat-thread-card.active-thread { background: rgba(56, 189, 248, 0.08); }
-    .chat-window-viewport { display: flex; flex-direction: column; background: rgba(15, 23, 42, 0.4); }
-    .chat-header-active { padding: 1.25rem; background: var(--bg-secondary); border-bottom: 1px solid var(--border); font-weight: 700; }
-    .chat-messages-stream { flex: 1; padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; }
-    
-    .msg-bubble { max-width: 70%; padding: 0.85rem 1.25rem; border-radius: 12px; font-size: 0.95rem; line-height: 1.5; }
-    .msg-bubble.sent { background: var(--primary); color: var(--bg-primary); align-self: flex-start; border-top-right-radius: 2px; }
-    .msg-bubble.received { background: var(--bg-tertiary); color: var(--text-primary); align-self: flex-end; border-top-left-radius: 2px; }
-    
-    .chat-input-action-bar { padding: 1rem; background: var(--bg-secondary); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 0.75rem; }
-    .chat-input-action-bar input { margin-bottom: 0; }
-
-    /* ============================================
-       TIMELINE & NOTIFICATIONS STYLE
-       ============================================ */
-    .timeline { position: relative; padding: 1rem 0; }
-    .timeline::before { content: ''; position: absolute; right: 16px; top: 0; bottom: 0; width: 2px; background: var(--border); }
-    
-    .timeline-item { position: relative; margin-bottom: 2rem; padding-right: 45px; }
-    .timeline-dot { position: absolute; right: 10px; top: 5px; width: 14px; height: 14px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 10px var(--primary); }
-    
-    .timeline-content { background: var(--bg-secondary); border: 1px solid var(--border); padding: 1.25rem; border-radius: 12px; }
-    .timeline-time { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; }
-    .timeline-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.35rem; }
-    .timeline-description { font-size: 0.85rem; color: var(--text-muted); }
-
-    /* Overlay Background */
-    .overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.6);
-      backdrop-filter: blur(4px);
-      z-index: 90;
-      display: none;
-      opacity: 0;
-      transition: var(--transition);
-    }
-
-    .overlay.active { display: block; opacity: 1; }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ============================================
-       RESPONSIVE MEDIA QUERIES
-       ============================================ */
-    @media (max-width: 1024px) {
-      .app-container { grid-template-columns: 1fr; }
-      .sidebar { position: fixed; right: -280px; top: 0; bottom: 0; width: 260px; height: 100vh; background: var(--bg-primary); box-shadow: -5px 0 25px rgba(0,0,0,0.5); }
-      .sidebar.active { right: 0; }
-      .sidebar-close { display: block; }
-      .menu-toggle { display: block; }
-      .chat-main-wrapper { grid-template-columns: 1fr; }
-      .search-layout-wrapper { grid-template-columns: 1fr; }
-      .map-mock-container { display: none; }
-    }
-  </style>
+  <link rel="stylesheet" href="css/dashboard.css">
 </head>
 <body>
 
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <button class="menu-toggle" id="menuToggle">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="logo">AM</div>
+    </div>
+
+    <div class="header-right">
+      <div class="user-section">
+        <div class="user-avatar" id="userAvatar">
+          <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop" alt="المستخدم">
+        </div>
+        <span class="user-name" id="userName">أحمد محمد</span>
+      </div>
+      <button class="notification-btn" id="notificationBtn">
+        <i class="fas fa-bell"></i>
+        <span class="notification-badge" id="notificationBadge">3</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- OVERLAY -->
   <div class="overlay" id="overlay"></div>
 
-  <div class="app-container">
-    
-    <!-- ==========================================
-         SIDEBAR NAVIGATION COMPONENT
-         ========================================== -->
-    <aside class="sidebar" id="sidebar">
-      <button class="sidebar-close" id="sidebarClose"><i class="fas fa-times"></i></button>
-      <div class="sidebar-title">AM<span style="color:var(--primary)">.</span></div>
-      <nav class="sidebar-menu">
-        <a href="#" class="sidebar-item active" data-section="home"><i class="fas fa-home"></i> <span>الرئيسية</span></a>
-        <a href="#" class="sidebar-item" data-section="search"><i class="fas fa-search"></i> <span>البحث عن شقة</span></a>
-        <a href="#" class="sidebar-item" data-section="add-property"><i class="fas fa-plus-circle"></i> <span>إضافة عقار</span></a>
-        <a href="#" class="sidebar-item" data-section="my-properties"><i class="fas fa-building"></i> <span>عقاراتي</span></a>
-        <a href="#" class="sidebar-item" data-section="messages"><i class="fas fa-envelope"></i> <span>الرسائل</span></a>
-        <a href="#" class="sidebar-item" data-section="bookings"><i class="fas fa-calendar"></i> <span>الحجوزات</span></a>
-        <a href="#" class="sidebar-item" data-section="favorites"><i class="fas fa-heart"></i> <span>المفضلة</span></a>
-        <a href="#" class="sidebar-item" data-section="notifications"><i class="fas fa-bell"></i> <span>الإشعارات</span></a>
-        <a href="#" class="sidebar-item" data-section="reviews"><i class="fas fa-star"></i> <span>التقييمات</span></a>
-        <a href="#" class="sidebar-item" data-section="profile"><i class="fas fa-user-circle"></i> <span>الملف الشخصي</span></a>
-        <a href="#" class="sidebar-item" data-section="settings"><i class="fas fa-cog"></i> <span>الإعدادات</span></a>
-        <a href="#" class="sidebar-item" data-section="support"><i class="fas fa-headset"></i> <span>الدعم الفني</span></a>
-        <div class="sidebar-divider"></div>
-        <a href="#" class="sidebar-item sidebar-logout"><i class="fas fa-sign-out-alt"></i> <span>تسجيل الخروج</span></a>
-      </nav>
-    </aside>
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <button class="sidebar-close" id="sidebarClose">
+      <i class="fas fa-times"></i>
+    </button>
+    <div class="sidebar-title">AM</div>
 
-    <!-- ==========================================
-         MAIN INTERFACE ENGINE (SPA CONTROLLER)
-         ========================================== -->
-    <div style="display: flex; flex-direction: column; min-width: 0;">
-      
-      <!-- GLOBAL TOP BAR -->
-      <header class="main" style="padding-bottom: 0;">
-        <div class="top-bar">
-          <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
-          
-          <div style="display: flex; align-items: center; gap: 1.5rem; margin-right: auto;">
-            <button class="notification-btn" onclick="app.navigateTo('notifications')">
-              <i class="fas fa-bell"></i>
-              <div class="notification-badge"></div>
-            </button>
-            
-            <div class="user-profile-widget" style="cursor: pointer;" onclick="app.navigateTo('profile')">
-              <div class="user-avatar">أم</div>
-              <div class="user-info">
-                <span class="user-name">أحمد محمد</span>
-                <span class="user-role">مالك ومستأجر</span>
+    <nav class="sidebar-menu">
+      <button class="sidebar-item active" data-section="home">
+        <i class="fas fa-home"></i>
+        <span>الرئيسية</span>
+      </button>
+      <button class="sidebar-item" data-section="search">
+        <i class="fas fa-search"></i>
+        <span>البحث عن شقة</span>
+      </button>
+      <button class="sidebar-item" data-section="add-property">
+        <i class="fas fa-plus-circle"></i>
+        <span>أضف عقارك</span>
+      </button>
+      <button class="sidebar-item" data-section="my-properties">
+        <i class="fas fa-building"></i>
+        <span>عقاراتي</span>
+      </button>
+      <button class="sidebar-item" data-section="messages">
+        <i class="fas fa-envelope"></i>
+        <span>الرسائل</span>
+      </button>
+      <button class="sidebar-item" data-section="bookings">
+        <i class="fas fa-calendar"></i>
+        <span>الحجوزات</span>
+      </button>
+      <button class="sidebar-item" data-section="favorites">
+        <i class="fas fa-heart"></i>
+        <span>المفضلة</span>
+      </button>
+      <button class="sidebar-item" data-section="notifications">
+        <i class="fas fa-bell"></i>
+        <span>الإشعارات</span>
+      </button>
+      <button class="sidebar-item" data-section="reviews">
+        <i class="fas fa-star"></i>
+        <span>التقييمات</span>
+      </button>
+      <button class="sidebar-item" data-section="profile">
+        <i class="fas fa-user"></i>
+        <span>الملف الشخصي</span>
+      </button>
+      <button class="sidebar-item" data-section="settings">
+        <i class="fas fa-cog"></i>
+        <span>الإعدادات</span>
+      </button>
+      <button class="sidebar-item" data-section="support">
+        <i class="fas fa-headset"></i>
+        <span>الدعم الفني</span>
+      </button>
+
+      <div class="sidebar-divider"></div>
+
+      <button class="sidebar-item sidebar-logout" id="logoutBtn">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>تسجيل الخروج</span>
+      </button>
+    </nav>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main" id="mainContent">
+    <!-- HOME SECTION -->
+    <section id="home-section" class="section active">
+      <div class="section-content">
+        <!-- Welcome Section -->
+        <div class="greeting">
+          <h1 class="greeting-title" id="greetingTitle">مرحباً، أحمد 👋</h1>
+          <p class="greeting-subtitle">ماذا تريد أن تفعل اليوم؟</p>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="quick-stats">
+          <div class="stat-card small">
+            <div class="stat-icon">🏠</div>
+            <div class="stat-info">
+              <div class="stat-value" id="totalProperties">3</div>
+              <div class="stat-label">عقار</div>
+            </div>
+          </div>
+          <div class="stat-card small">
+            <div class="stat-icon">👁️</div>
+            <div class="stat-info">
+              <div class="stat-value" id="totalViews">2,145</div>
+              <div class="stat-label">مشاهدة</div>
+            </div>
+          </div>
+          <div class="stat-card small">
+            <div class="stat-icon">💬</div>
+            <div class="stat-info">
+              <div class="stat-value" id="newMessages">12</div>
+              <div class="stat-label">رسالة جديدة</div>
+            </div>
+          </div>
+          <div class="stat-card small">
+            <div class="stat-icon">📅</div>
+            <div class="stat-info">
+              <div class="stat-value" id="bookingRequests">5</div>
+              <div class="stat-label">طلب حجز</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <h2 class="section-title">🚀 الإجراءات السريعة</h2>
+        <div class="quick-actions">
+          <div class="action-card" data-action="add-property">
+            <div class="action-icon">➕</div>
+            <h3 class="action-title">أضف عقارك</h3>
+            <p class="action-description">قائم بتأجير عقار جديد</p>
+          </div>
+          <div class="action-card" data-action="search">
+            <div class="action-icon">🔍</div>
+            <h3 class="action-title">ابحث عن شقة</h3>
+            <p class="action-description">ابحث عن أحلامك</p>
+          </div>
+          <div class="action-card" data-action="favorites">
+            <div class="action-icon">❤️</div>
+            <h3 class="action-title">المفضلة</h3>
+            <p class="action-description">عقاراتك المفضلة</p>
+          </div>
+          <div class="action-card" data-action="messages">
+            <div class="action-icon">📩</div>
+            <h3 class="action-title">الرسائل</h3>
+            <p class="action-description">إدارة الرسائل</p>
+          </div>
+        </div>
+
+        <!-- Completion Card -->
+        <div class="completion-card">
+          <div class="completion-header">
+            <h2 class="completion-title">✨ اكتمل حسابك</h2>
+            <span class="completion-percentage" id="completionPercentage">60%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 60%"></div>
+          </div>
+          <div class="completion-checklist">
+            <div class="checklist-item completed">
+              <div class="checklist-icon">✓</div>
+              <div class="checklist-text">
+                <div class="checklist-label">صورة شخصية</div>
+              </div>
+            </div>
+            <div class="checklist-item completed">
+              <div class="checklist-icon">✓</div>
+              <div class="checklist-text">
+                <div class="checklist-label">تأكيد الهاتف</div>
+              </div>
+            </div>
+            <div class="checklist-item completed">
+              <div class="checklist-icon">✓</div>
+              <div class="checklist-text">
+                <div class="checklist-label">اختيار المدينة</div>
+              </div>
+            </div>
+            <div class="checklist-item pending">
+              <div class="checklist-icon">○</div>
+              <div class="checklist-text">
+                <div class="checklist-label">أضف أول عقار</div>
               </div>
             </div>
           </div>
         </div>
-      </header>
 
-      <!-- SECTIONS CORE WRAPPER -->
-      <main class="main" style="padding-top: 0;">
-        
-        <!-- 1. SECTION HOME -->
-        <section id="section-home" class="spa-section active-section">
-          <div class="greeting">
-            <h1 class="greeting-title" id="dynamic-greeting">مرحباً، أحمد 👋</h1>
-            <p class="greeting-subtitle">ماذا تريد أن تفعل اليوم؟</p>
-          </div>
-          
-          <div class="quick-actions">
-            <div class="action-card" onclick="app.navigateTo('add-property')"><div class="action-icon">➕</div><h3 class="action-title">أضف عقارك</h3><p class="action-description">قم بإدراج وحدة جديدة</p></div>
-            <div class="action-card" onclick="app.navigateTo('search')"><div class="action-icon">🔍</div><h3 class="action-title">ابحث عن شقة</h3><p class="action-description">تصفح الخيارات المتاحة</p></div>
-            <div class="action-card" onclick="app.navigateTo('favorites')"><div class="action-icon">❤️</div><h3 class="action-title">المفضلة</h3><p class="action-description">العقارات التي حفظتها</p></div>
-            <div class="action-card" onclick="app.navigateTo('messages')"><div class="action-icon">📩</div><h3 class="action-title">طلباتي</h3><p class="action-description">إدارة محادثاتك الحالية</p></div>
-          </div>
-
-          <div class="completion-card">
-            <div class="completion-header"><h2 class="completion-title">✨ حالة اكتمال حسابك التوثيقي</h2><span class="completion-percentage" id="completion-pct">75%</span></div>
-            <div class="progress-bar"><div class="progress-fill" id="completion-bar" style="width: 75%"></div></div>
-            <div class="completion-checklist" id="home-checklist"></div>
-          </div>
-        </section>
-
-        <!-- 2. SECTION SEARCH -->
-        <section id="section-search" class="spa-section">
-          <h2 class="section-title"><i class="fas fa-search"></i> البحث المتقدم عن الوحدات العقارية</h2>
-          <div class="search-filter-panel">
-            <select id="filter-governorate" onchange="app.filterProperties()"><option value="">كل المحافظات</option><option value="القاهرة">القاهرة</option><option value="الجيزة">الجيزة</option></select>
-            <select id="filter-type" onchange="app.filterProperties()"><option value="">كل الأنواع</option><option value="شقة">شقة</option><option value="فيلا">فيلا</option></select>
-            <input type="number" id="filter-max-price" placeholder="الحد الأقصى للسعر" oninput="app.filterProperties()">
-            <select id="filter-furnishing" onchange="app.filterProperties()"><option value="">حالة الفرش</option><option value="furnished">مفروش</option><option value="unfurnished">بدون فرش</option></select>
-          </div>
-          <div class="search-layout-wrapper">
-            <div class="properties-grid" id="search-results-renderer"></div>
-            <div class="map-mock-container"><i class="fas fa-map-marked-alt" style="font-size:3rem; color:var(--primary); margin-bottom:1rem;"></i><p>خريطة التوزيع الجغرافي التفاعلية الذكية</p></div>
-          </div>
-        </section>
-
-        <!-- 3. SECTION ADD PROPERTY (7-STEP WIZARD) -->
-        <section id="section-add-property" class="spa-section">
-          <h2 class="section-title"><i class="fas fa-plus-circle"></i> إضافة عقار جديد (Wizard)</h2>
-          <div class="wizard-container">
-            <div class="wizard-steps-indicator">
-              <div class="step-dot active" data-step="1">1</div>
-              <div class="step-dot" data-step="2">2</div>
-              <div class="step-dot" data-step="3">3</div>
-              <div class="step-dot" data-step="4">4</div>
-              <div class="step-dot" data-step="5">5</div>
-              <div class="step-dot" data-step="6">6</div>
-              <div class="step-dot" data-step="7">7</div>
-              <div class="step-dot" data-step="8">8</div>
+        <!-- Recent Activity & Notifications -->
+        <div class="dashboard-grid">
+          <div class="activity-card">
+            <h2 class="section-title">📋 آخر الأنشطة</h2>
+            <div class="timeline" id="activityTimeline">
+              <!-- سيتم ملأه من JavaScript -->
             </div>
-            <form id="property-wizard-form" onsubmit="event.preventDefault();">
-              <!-- Step 1: Type -->
-              <div class="wizard-step-content active" data-step="1">
-                <h3>الخطوة 1: حدد نوع العقار السكني</h3>
-                <div class="type-selection-grid">
-                  <label class="type-radio-card"><input type="radio" name="prop_type" value="شقة" checked><i class="fas fa-building"></i><span>شقة</span></label>
-                  <label class="type-radio-card"><input type="radio" name="prop_type" value="فيلا"><i class="fas fa-home"></i><span>فيلا</span></label>
-                  <label class="type-radio-card"><input type="radio" name="prop_type" value="استوديو"><i class="fas fa-door-open"></i><span>استوديو</span></label>
-                  <label class="type-radio-card"><input type="radio" name="prop_type" value="شاليه"><i class="fas fa-umbrella-beach"></i><span>شاليه</span></label>
+          </div>
+
+          <div class="notifications-card">
+            <h2 class="section-title">🔔 آخر الإشعارات</h2>
+            <div class="notifications-list" id="notificationsList">
+              <!-- سيتم ملأه من JavaScript -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ADD PROPERTY SECTION -->
+    <section id="add-property-section" class="section">
+      <div class="section-content">
+        <h1 class="section-title">➕ أضف عقارك الجديد</h1>
+        <div class="wizard-container">
+          <!-- Wizard Steps -->
+          <div class="wizard-steps">
+            <button class="wizard-step active" data-step="1">
+              <span class="step-number">1</span>
+              <span class="step-label">النوع</span>
+            </button>
+            <button class="wizard-step" data-step="2">
+              <span class="step-number">2</span>
+              <span class="step-label">الموقع</span>
+            </button>
+            <button class="wizard-step" data-step="3">
+              <span class="step-number">3</span>
+              <span class="step-label">المواصفات</span>
+            </button>
+            <button class="wizard-step" data-step="4">
+              <span class="step-number">4</span>
+              <span class="step-label">الصور</span>
+            </button>
+            <button class="wizard-step" data-step="5">
+              <span class="step-number">5</span>
+              <span class="step-label">الفيديو</span>
+            </button>
+            <button class="wizard-step" data-step="6">
+              <span class="step-number">6</span>
+              <span class="step-label">السعر</span>
+            </button>
+            <button class="wizard-step" data-step="7">
+              <span class="step-number">7</span>
+              <span class="step-label">التحقق</span>
+            </button>
+            <button class="wizard-step" data-step="8">
+              <span class="step-number">8</span>
+              <span class="step-label">مراجعة</span>
+            </button>
+          </div>
+
+          <!-- Wizard Forms -->
+          <div class="wizard-content">
+            <!-- Step 1: Property Type -->
+            <div class="wizard-form active" data-step="1">
+              <h2>اختر نوع العقار</h2>
+              <div class="property-types">
+                <button class="type-card" data-type="apartment">
+                  <i class="fas fa-door-open"></i>
+                  <span>شقة</span>
+                </button>
+                <button class="type-card" data-type="villa">
+                  <i class="fas fa-house"></i>
+                  <span>فيلا</span>
+                </button>
+                <button class="type-card" data-type="room">
+                  <i class="fas fa-bed"></i>
+                  <span>غرفة</span>
+                </button>
+                <button class="type-card" data-type="studio">
+                  <i class="fas fa-compact-disc"></i>
+                  <span>استوديو</span>
+                </button>
+                <button class="type-card" data-type="chalet">
+                  <i class="fas fa-tree"></i>
+                  <span>شاليه</span>
+                </button>
+                <button class="type-card" data-type="duplex">
+                  <i class="fas fa-clone"></i>
+                  <span>دوبلكس</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 2: Location -->
+            <div class="wizard-form" data-step="2">
+              <h2>معلومات الموقع</h2>
+              <div class="form-group">
+                <label>العنوان الكامل</label>
+                <input type="text" placeholder="أدخل العنوان الكامل" id="fullAddress">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>المحافظة</label>
+                  <select id="governorate">
+                    <option>اختر المحافظة</option>
+                    <option>القاهرة</option>
+                    <option>الجيزة</option>
+                    <option>الإسكندرية</option>
+                    <option>المنيا</option>
+                    <option>أسيوط</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>المدينة</label>
+                  <select id="city">
+                    <option>اختر المدينة</option>
+                  </select>
                 </div>
               </div>
-              <!-- Step 2: Location -->
-              <div class="wizard-step-content" data-step="2">
-                <h3>الخطوة 2: الموقع الجغرافي التفصيلي</h3>
-                <div class="form-group-row">
-                  <input type="text" name="prop_gov" placeholder="المحافظة (مثال: القاهرة)" required>
-                  <input type="text" name="prop_city" placeholder="المدينة" required>
-                  <input type="text" name="prop_district" placeholder="الحي السكني" required>
+              <div class="form-group">
+                <label>الحي</label>
+                <input type="text" placeholder="أدخل الحي" id="district">
+              </div>
+              <div class="form-group">
+                <label>موقع على الخريطة</label>
+                <div id="mapContainer" class="map-container">
+                  <p>سيتم إضافة خريطة Google Maps</p>
                 </div>
-                <input type="text" name="prop_maps_link" placeholder="رابط دبوس خريطة Google Maps التفاعلية">
               </div>
-              <!-- Step 3: Features & Specs -->
-              <div class="wizard-step-content" data-step="3">
-                <h3>الخطوة 3: المواصفات والخدمات المتاحة</h3>
-                <div class="form-group-row">
-                  <input type="number" name="prop_rooms" placeholder="عدد الغرف" required>
-                  <input type="number" name="prop_baths" placeholder="عدد الحمامات" required>
-                  <input type="number" name="prop_area" placeholder="المساحة بالمتر المربع" required>
-                  <input type="number" name="prop_floor" placeholder="الدور" required>
+            </div>
+
+            <!-- Step 3: Specifications -->
+            <div class="wizard-form" data-step="3">
+              <h2>مواصفات العقار</h2>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>عدد الغرف</label>
+                  <input type="number" min="0" placeholder="0" id="roomsCount">
                 </div>
-                <div class="amenities-checkbox-grid">
-                  <label><input type="checkbox" name="amenity_elevator"> مصعد</label>
-                  <label><input type="checkbox" name="amenity_ac"> تكييف</label>
-                  <label><input type="checkbox" name="amenity_wifi"> واي فاي</label>
-                  <label><input type="checkbox" name="amenity_kitchen"> مطبخ مجهز</label>
-                  <label><input type="checkbox" name="amenity_parking"> جراج</label>
-                  <label><input type="checkbox" name="amenity_security"> أمن وحراسة</label>
+                <div class="form-group">
+                  <label>عدد الحمامات</label>
+                  <input type="number" min="0" placeholder="0" id="bathroomsCount">
                 </div>
-                <select name="prop_furnishing" required><option value="furnished">مفروش بالكامل</option><option value="semi-furnished">نصف مفروش</option><option value="unfurnished">بدون فرش</option></select>
-              </div>
-              <!-- Step 4: Images Drag & Drop -->
-              <div class="wizard-step-content" data-step="4">
-                <h3>الخطوة 4: صور العقار (حتى 30 صورة مع ميزة الترتيب)</h3>
-                <div class="drag-drop-zone" id="images-drop-zone">
-                  <i class="fas fa-cloud-upload-alt" style="font-size:2.5rem; color:var(--primary)"></i>
-                  <p>اسحب الصور هنا أو اضغط لتصفح الملفات</p>
-                  <input type="file" id="wizard-images-input" multiple accept="image/*" style="display:none;">
+                <div class="form-group">
+                  <label>المساحة (م²)</label>
+                  <input type="number" min="0" placeholder="0" id="area">
                 </div>
-                <div class="images-preview-sortable" id="images-preview-container"></div>
               </div>
-              <!-- Step 5: Video Upload -->
-              <div class="wizard-step-content" data-step="5">
-                <h3>الخطوة 5: فيديو العقار التوضيحي (حتى دقيقة واحدة)</h3>
-                <input type="file" id="wizard-video-input" accept="video/*">
-                <div id="video-preview-wrapper" style="margin-top:1rem;"></div>
-              </div>
-              <!-- Step 6: Pricing & Financials -->
-              <div class="wizard-step-content" data-step="6">
-                <h3>الخطوة 6: السعر وتفاصيل نظام الدفع والشروط</h3>
-                <div class="form-group-row">
-                  <input type="number" name="prop_price" placeholder="الإيجار الشهري (ج.م)" required>
-                  <input type="number" name="prop_insurance" placeholder="مبلغ التأمين (ج.م)" required>
-                  <input type="number" name="prop_min_rent" placeholder="الحد الأدنى للإيجار (بالشهور)" value="1">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>الدور</label>
+                  <select id="floor">
+                    <option>اختر</option>
+                    <option>أرضي</option>
+                    <option>الدور الأول</option>
+                    <option>الدور الثاني</option>
+                    <option>الدور الثالث</option>
+                    <option>الدور الرابع</option>
+                    <option>فوق الكل</option>
+                  </select>
                 </div>
-                <input type="text" name="prop_payment_method" placeholder="طريقة الدفع المقبولة">
-                <textarea name="prop_conditions" placeholder="شروط المالك الخاصة والتعاقدية (إن وجدت)"></textarea>
-                <textarea name="prop_desc" placeholder="الوصف التفصيلي والكامل للعقار الشامل لكافة المزايا والمحيط الجغرافي" required></textarea>
+                <div class="form-group">
+                  <label>الحالة</label>
+                  <select id="furnishStatus">
+                    <option>مفروش</option>
+                    <option>نصف مفروش</option>
+                    <option>بدون فرش</option>
+                  </select>
+                </div>
               </div>
-              <!-- Step 7: Identity Document -->
-              <div class="wizard-step-content" data-step="7">
-                <h3>الخطوة 7: صورة بطاقة الرقم القومي للمطابقة والتأكيد (اختياري)</h3>
-                <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">يتم تشفير وحفظ هذه الوثيقة بصورة أمنة ومستقلة، ولا تظهر للعامة.</p>
-                <input type="file" id="wizard-identity-input" accept="image/*">
+
+              <h3>الخدمات والمرافق</h3>
+              <div class="amenities-grid">
+                <label class="checkbox-item">
+                  <input type="checkbox" class="amenity" value="elevator">
+                  <span>مصعد</span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" class="amenity" value="ac">
+                  <span>تكييف</span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" class="amenity" value="wifi">
+                  <span>واي فاي</span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" class="amenity" value="kitchen">
+                  <span>مطبخ</span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" class="amenity" value="washer">
+                  <span>غسالة</span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" class="amenity" value="balcony">
+                  <span>بلكونة</span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" class="amenity" value="garage">
+                  <span>جراج</span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" class="amenity" value="security">
+                  <span>أمن</span>
+                </label>
               </div>
-              <!-- Step 8: Review & Publish -->
-              <div class="wizard-step-content" data-step="8">
-                <h3>الخطوة الأخيرة: مراجعة كافة البيانات والتأكيد</h3>
-                <div id="wizard-review-summary" class="review-summary-box"></div>
-                <button type="button" class="property-edit-btn" style="margin-top:1.5rem;" onclick="app.submitWizardForm()">نشر الإعلان للتحكيم والمراجعة الفورية</button>
+            </div>
+
+            <!-- Step 4: Images -->
+            <div class="wizard-form" data-step="4">
+              <h2>صور العقار (حتى 30 صورة)</h2>
+              <div class="upload-area" id="imageUploadArea">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>اسحب الصور هنا أو انقر للاختيار</p>
+                <input type="file" multiple accept="image/*" id="imageInput" style="display: none;">
               </div>
-              <!-- Navigation Buttons -->
-              <div class="wizard-navigation-actions">
-                <button type="button" id="wizard-prev-btn" class="property-edit-btn" style="background:var(--bg-tertiary); color:white; display:none;">السابق</button>
-                <button type="button" id="wizard-next-btn" class="property-edit-btn">التالي</button>
+              <div class="images-preview" id="imagesPreview"></div>
+            </div>
+
+            <!-- Step 5: Video -->
+            <div class="wizard-form" data-step="5">
+              <h2>فيديو العقار (حتى دقيقة واحدة)</h2>
+              <div class="upload-area" id="videoUploadArea">
+                <i class="fas fa-video"></i>
+                <p>اسحب الفيديو هنا أو انقر للاختيار</p>
+                <input type="file" accept="video/*" id="videoInput" style="display: none;">
               </div>
+              <div id="videoPreview"></div>
+            </div>
+
+            <!-- Step 6: Pricing -->
+            <div class="wizard-form" data-step="6">
+              <h2>معلومات السعر</h2>
+              <div class="form-group">
+                <label>السعر الشهري (ج.م)</label>
+                <input type="number" min="0" placeholder="0" id="monthlyPrice">
+              </div>
+              <div class="form-group">
+                <label>التأمين (ج.م)</label>
+                <input type="number" min="0" placeholder="0" id="securityDeposit">
+              </div>
+              <div class="form-group">
+                <label>الحد الأدنى للإيجار (بالأشهر)</label>
+                <input type="number" min="1" placeholder="3" id="minRentalMonths">
+              </div>
+              <div class="form-group">
+                <label>طريقة الدفع</label>
+                <select id="paymentMethod">
+                  <option>نقداً</option>
+                  <option>تحويل بنكي</option>
+                  <option>ويسترن يونيون</option>
+                  <option>جميع الطرق</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>الوصف الكامل</label>
+                <textarea placeholder="اكتب وصفاً شاملاً للعقار..." id="description" rows="5"></textarea>
+              </div>
+              <div class="form-group">
+                <label>شروط المالك</label>
+                <textarea placeholder="اكتب شروط الإيجار..." id="ownerTerms" rows="3"></textarea>
+              </div>
+            </div>
+
+            <!-- Step 7: Verification -->
+            <div class="wizard-form" data-step="7">
+              <h2>التحقق من الهوية</h2>
+              <p class="info-text">رفع صورة بطاقتك الشخصية (اختياري)</p>
+              <p class="info-text small">ملاحظة: هذه الصورة تحفظ بأمان ولا تظهر لأي مستخدم. تستخدم فقط للتحقق الداخلي.</p>
+              <div class="upload-area" id="idUploadArea">
+                <i class="fas fa-id-card"></i>
+                <p>اسحب صورة البطاقة هنا أو انقر للاختيار</p>
+                <input type="file" accept="image/*" id="idInput" style="display: none;">
+              </div>
+              <div id="idPreview"></div>
+            </div>
+
+            <!-- Step 8: Review -->
+            <div class="wizard-form" data-step="8">
+              <h2>مراجعة البيانات</h2>
+              <div class="review-container" id="reviewContainer">
+                <!-- سيتم ملأه من JavaScript -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Navigation Buttons -->
+          <div class="wizard-nav">
+            <button class="btn btn-secondary" id="prevBtn">السابق</button>
+            <button class="btn btn-primary" id="nextBtn">التالي</button>
+            <button class="btn btn-success" id="publishBtn" style="display: none;">نشر الإعلان</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MY PROPERTIES SECTION -->
+    <section id="my-properties-section" class="section">
+      <div class="section-content">
+        <div class="section-header">
+          <h1 class="section-title">🏠 عقاراتي</h1>
+          <button class="btn btn-primary" data-action="add-property">
+            <i class="fas fa-plus"></i> أضف عقار جديد
+          </button>
+        </div>
+
+        <div class="filters-bar">
+          <select id="propertyStatusFilter">
+            <option value="">جميع الحالات</option>
+            <option value="review">قيد المراجعة</option>
+            <option value="published">منشور</option>
+            <option value="rented">مؤجر</option>
+            <option value="hidden">مخفي</option>
+            <option value="expired">منتهي</option>
+          </select>
+          <input type="text" placeholder="بحث في العقارات..." id="propertySearch">
+        </div>
+
+        <div class="properties-list" id="propertiesList">
+          <!-- سيتم ملأه من JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- PROFILE SECTION -->
+    <section id="profile-section" class="section">
+      <div class="section-content">
+        <h1 class="section-title">👤 الملف الشخصي</h1>
+
+        <div class="profile-container">
+          <!-- Profile Header -->
+          <div class="profile-header">
+            <div class="profile-avatar-large">
+              <img id="profileAvatar" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop" alt="الملف الشخصي">
+              <button class="avatar-upload-btn" id="avatarUploadBtn">
+                <i class="fas fa-camera"></i>
+              </button>
+            </div>
+            <div class="profile-info">
+              <h2 id="profileName">أحمد محمد علي</h2>
+              <p id="profileJoinDate">انضم في: 15 يناير 2024</p>
+              <p id="profileRating">⭐ 4.8 (45 تقييم)</p>
+            </div>
+          </div>
+
+          <!-- Profile Tabs -->
+          <div class="profile-tabs">
+            <button class="tab-btn active" data-tab="info">المعلومات</button>
+            <button class="tab-btn" data-tab="security">الأمان</button>
+            <button class="tab-btn" data-tab="verification">التحقق</button>
+          </div>
+
+          <!-- Profile Content -->
+          <div class="profile-content">
+            <!-- Info Tab -->
+            <div class="tab-content active" data-tab="info">
+              <form id="profileForm" class="profile-form">
+                <div class="form-section">
+                  <h3>المعلومات الأساسية</h3>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>الاسم الأول</label>
+                      <input type="text" id="firstName" value="أحمد">
+                    </div>
+                    <div class="form-group">
+                      <label>الاسم الأخير</label>
+                      <input type="text" id="lastName" value="محمد علي">
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label>البريد الإلكتروني</label>
+                    <input type="email" id="profileEmail" value="ahmed@example.com">
+                  </div>
+
+                  <div class="form-group">
+                    <label>رقم الهاتف</label>
+                    <input type="tel" id="profilePhone" value="01012345678">
+                  </div>
+                </div>
+
+                <div class="form-section">
+                  <h3>معلومات الموقع</h3>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>المحافظة</label>
+                      <select id="profileGovernorate">
+                        <option>القاهرة</option>
+                        <option>الجيزة</option>
+                        <option>الإسكندرية</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>المدينة</label>
+                      <select id="profileCity">
+                        <option>القاهرة</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-section">
+                  <h3>النبذة الشخصية</h3>
+                  <textarea id="profileBio" rows="4" placeholder="اكتب نبذة عن نفسك...">مالك عقارات محترف بخبرة 5 سنوات</textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+              </form>
+            </div>
+
+            <!-- Security Tab -->
+            <div class="tab-content" data-tab="security">
+              <div class="security-section">
+                <h3>تغيير كلمة المرور</h3>
+                <form id="passwordForm" class="security-form">
+                  <div class="form-group">
+                    <label>كلمة المرور الحالية</label>
+                    <input type="password" id="currentPassword" required>
+                  </div>
+                  <div class="form-group">
+                    <label>كلمة المرور الجديدة</label>
+                    <input type="password" id="newPassword" required>
+                  </div>
+                  <div class="form-group">
+                    <label>تأكيد كلمة المرور</label>
+                    <input type="password" id="confirmNewPassword" required>
+                  </div>
+                  <button type="submit" class="btn btn-primary">تحديث كلمة المرور</button>
+                </form>
+              </div>
+            </div>
+
+            <!-- Verification Tab -->
+            <div class="tab-content" data-tab="verification">
+              <div class="verification-section">
+                <h3>التحقق من الحساب</h3>
+                
+                <div class="verification-item">
+                  <div class="verification-info">
+                    <h4>التحقق من رقم الهاتف</h4>
+                    <p>01012345678</p>
+                  </div>
+                  <div class="verification-status verified">
+                    <i class="fas fa-check-circle"></i> موثق
+                  </div>
+                </div>
+
+                <div class="verification-item">
+                  <div class="verification-info">
+                    <h4>التحقق من البريد الإلكتروني</h4>
+                    <p>ahmed@example.com</p>
+                  </div>
+                  <button class="btn btn-small btn-secondary">إعادة الإرسال</button>
+                </div>
+
+                <div class="verification-item">
+                  <div class="verification-info">
+                    <h4>صورة الهوية</h4>
+                    <p>تساعد على زيادة الثقة بينك وبين المستأجرين</p>
+                  </div>
+                  <button class="btn btn-small btn-primary" id="uploadIdBtn">رفع الهوية</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SEARCH SECTION -->
+    <section id="search-section" class="section">
+      <div class="section-content">
+        <h1 class="section-title">🔍 البحث عن عقار</h1>
+
+        <div class="search-container">
+          <!-- Filters -->
+          <div class="search-filters">
+            <div class="filter-group">
+              <label>نوع العقار</label>
+              <select id="searchPropertyType">
+                <option value="">الكل</option>
+                <option value="apartment">شقة</option>
+                <option value="villa">فيلا</option>
+                <option value="room">غرفة</option>
+                <option value="studio">استوديو</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label>المحافظة</label>
+              <select id="searchGovernorate">
+                <option value="">الكل</option>
+                <option value="cairo">القاهرة</option>
+                <option value="giza">الجيزة</option>
+                <option value="alex">الإسكندرية</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label>المدينة</label>
+              <select id="searchCity">
+                <option value="">الكل</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label>نطاق السعر</label>
+              <div class="price-range">
+                <input type="number" id="minPrice" placeholder="من" min="0">
+                <input type="number" id="maxPrice" placeholder="إلى" min="0">
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <label>عدد الغرف</label>
+              <select id="searchRooms">
+                <option value="">الكل</option>
+                <option value="1">غرفة واحدة</option>
+                <option value="2">غرفتان</option>
+                <option value="3">3 غرف</option>
+                <option value="4">4 غرف</option>
+                <option value="5+">5+ غرف</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label>الفرش</label>
+              <select id="searchFurnish">
+                <option value="">الكل</option>
+                <option value="furnished">مفروش</option>
+                <option value="semi">نصف مفروش</option>
+                <option value="unfurnished">بدون فرش</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label>ترتيب النتائج</label>
+              <select id="searchSort">
+                <option value="newest">الأحدث</option>
+                <option value="price-low">السعر: الأقل</option>
+                <option value="price-high">السعر: الأعلى</option>
+                <option value="popular">الأكثر شهرة</option>
+              </select>
+            </div>
+
+            <button class="btn btn-primary btn-block" id="searchBtn">
+              <i class="fas fa-search"></i> بحث
+            </button>
+          </div>
+
+          <!-- Search Results -->
+          <div class="search-results">
+            <div class="search-results-count" id="resultsCount"></div>
+            <div class="properties-grid" id="searchResults">
+              <!-- سيتم ملأه من JavaScript -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MESSAGES SECTION -->
+    <section id="messages-section" class="section">
+      <div class="section-content">
+        <h1 class="section-title">💬 الرسائل</h1>
+
+        <div class="chat-container">
+          <!-- Conversations List -->
+          <div class="conversations-panel">
+            <div class="conversations-header">
+              <input type="text" placeholder="بحث في الرسائل..." id="messageSearch" class="search-input">
+            </div>
+            <div class="conversations-list" id="conversationsList">
+              <!-- سيتم ملأه من JavaScript -->
+            </div>
+          </div>
+
+          <!-- Chat Area -->
+          <div class="chat-panel">
+            <div class="chat-header" id="chatHeader">
+              اختر محادثة
+            </div>
+            <div class="chat-messages" id="chatMessages">
+              <div class="no-chat-selected">
+                <i class="fas fa-comments"></i>
+                <p>اختر محادثة لبدء الرسائل</p>
+              </div>
+            </div>
+            <div class="chat-input-area" id="chatInputArea" style="display: none;">
+              <div class="message-input-wrapper">
+                <button class="input-icon-btn">
+                  <i class="fas fa-paperclip"></i>
+                </button>
+                <input type="text" placeholder="اكتب رسالتك..." id="messageInput" class="message-input">
+                <button class="input-icon-btn">
+                  <i class="fas fa-microphone"></i>
+                </button>
+                <button class="send-btn" id="sendMessageBtn">
+                  <i class="fas fa-paper-plane"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BOOKINGS SECTION -->
+    <section id="bookings-section" class="section">
+      <div class="section-content">
+        <h1 class="section-title">📅 الحجوزات</h1>
+
+        <div class="bookings-tabs">
+          <button class="tab-btn active" data-booking-tab="all">الكل</button>
+          <button class="tab-btn" data-booking-tab="pending">الانتظار</button>
+          <button class="tab-btn" data-booking-tab="confirmed">المقبولة</button>
+          <button class="tab-btn" data-booking-tab="rejected">المرفوضة</button>
+        </div>
+
+        <div class="bookings-list" id="bookingsList">
+          <!-- سيتم ملأه من JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- FAVORITES SECTION -->
+    <section id="favorites-section" class="section">
+      <div class="section-content">
+        <h1 class="section-title">❤️ المفضلة</h1>
+
+        <div class="properties-grid" id="favoritesList">
+          <!-- سيتم ملأه من JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- NOTIFICATIONS SECTION -->
+    <section id="notifications-section" class="section">
+      <div class="section-content">
+        <h1 class="section-title">🔔 الإشعارات</h1>
+
+        <div class="notifications-container">
+          <div class="notifications-full-list" id="notificationsFullList">
+            <!-- سيتم ملأه من JavaScript -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- REVIEWS SECTION -->
+    <section id="reviews-section" class="section">
+      <div class="section-content">
+        <h1 class="section-title">⭐ التقييمات</h1>
+
+        <div class="reviews-container">
+          <div class="reviews-stats">
+            <div class="rating-box">
+              <div class="rating-number">4.8</div>
+              <div class="rating-stars">⭐⭐⭐⭐⭐</div>
+              <div class="rating-count">45 تقييم</div>
+            </div>
+          </div>
+
+          <div class="reviews-list" id="reviewsList">
+            <!-- سيتم ملأه من JavaScript -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS SECTION -->
+    <section id="settings-section" class="section">
+      <div class="section-content">
+        <h1 class="section-title">⚙️ الإعدادات</h1>
+
+        <div class="settings-container">
+          <div class="settings-section">
+            <h3>إشعارات البريد الإلكتروني</h3>
+            <label class="toggle-item">
+              <input type="checkbox" checked>
+              <span>الرسائل الجديدة</span>
+            </label>
+            <label class="toggle-item">
+              <input type="checkbox" checked>
+              <span>طلبات الحجز</span>
+            </label>
+            <label class="toggle-item">
+              <input type="checkbox" checked>
+              <span>إشعارات النشر</span>
+            </label>
+          </div>
+
+          <div class="settings-section">
+            <h3>الخصوصية</h3>
+            <label class="toggle-item">
+              <input type="checkbox" checked>
+              <span>السماح برؤية ملفي الشخصي</span>
+            </label>
+            <label class="toggle-item">
+              <input type="checkbox">
+              <span>السماح بالرسائل من أي مستخدم</span>
+            </label>
+          </div>
+
+          <div class="settings-section">
+            <h3>حذف الحساب</h3>
+            <p class="danger-text">حذف حسابك سيؤدي إلى حذف جميع بياناتك نهائياً</p>
+            <button class="btn btn-danger">حذف الحساب نهائياً</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SUPPORT SECTION -->
+    <section id="support-section" class="section">
+      <div class="section-content">
+        <h1 class="section-title">🆘 الدعم الفني</h1>
+
+        <div class="support-container">
+          <div class="support-card">
+            <h3>📞 اتصل بنا</h3>
+            <p>الهاتف: +201234567890</p>
+            <p>البريد: support@amrewards.com</p>
+          </div>
+
+          <div class="support-card">
+            <h3>❓ الأسئلة الشائعة</h3>
+            <div class="faq-list">
+              <div class="faq-item">
+                <h4>كيف أضيف عقاري؟</h4>
+                <p>اذهب إلى قائمة "أضف عقارك" واتبع الخطوات الموضحة</p>
+              </div>
+              <div class="faq-item">
+                <h4>كم تستغرق مراجعة الإعلان؟</h4>
+                <p>عادة ما يستغرق 24 ساعة كحد أقصى</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="support-card">
+            <h3>📋 إرسال بلاغ</h3>
+            <form id="reportForm">
+              <textarea placeholder="اكتب تفاصيل المشكلة..." rows="4"></textarea>
+              <button type="submit" class="btn btn-primary">إرسال البلاغ</button>
             </form>
           </div>
-        </section>
+        </div>
+      </div>
+    </section>
+  </main>
 
-        <!-- 4. SECTION MY PROPERTIES -->
-        <section id="section-my-properties" class="spa-section">
-          <h2 class="section-title"><i class="fas fa-building"></i> إدارة عقاراتي المدرجة بالمنصة</h2>
-          <div class="properties-grid" id="my-properties-renderer"></div>
-        </section>
+  <!-- FOOTER -->
+  <footer class="footer">
+    <p>© 2026 AM جميع الحقوق محفوظة</p>
+  </footer>
 
-        <!-- 5. SECTION MESSAGES -->
-        <section id="section-messages" class="spa-section">
-          <h2 class="section-title"><i class="fas fa-envelope"></i> صندوق الرسائل والمحادثات الفورية المباشرة</h2>
-          <div class="chat-main-wrapper glass-panel">
-            <div class="chat-sidebar-list" id="chat-threads-list"></div>
-            <div class="chat-window-viewport">
-              <div class="chat-header-active" id="chat-active-user-bar">اختر محادثة لبدء التواصل</div>
-              <div class="chat-messages-stream" id="chat-messages-stream"></div>
-              <div class="chat-input-action-bar">
-                <button class="notification-btn" onclick="alert('تسجيل فوري...')"><i class="fas fa-microphone"></i></button>
-                <button class="notification-btn" onclick="document.getElementById('chat-file-input').click()"><i class="fas fa-paperclip"></i></button>
-                <input type="file" id="chat-file-input" style="display:none;">
-                <input type="text" id="chat-text-input" placeholder="اكتب رسالتك الاحترافية هنا..." onkeypress="if(event.key==='Enter') app.sendChatMessage()">
-                <button class="property-edit-btn" style="width:auto; padding:0.5rem 1.5rem;" onclick="app.sendChatMessage()"><i class="fas fa-paper-plane"></i></button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- 6. SECTION BOOKINGS -->
-        <section id="section-bookings" class="spa-section">
-          <h2 class="section-title"><i class="fas fa-calendar"></i> سجل ومتابعة طلبات الحجوزات التعاقدية</h2>
-          <div class="timeline" id="bookings-renderer"></div>
-        </section>
-
-        <!-- 7. SECTION FAVORITES -->
-        <section id="section-favorites" class="spa-section">
-          <h2 class="section-title"><i class="fas fa-heart"></i> قائمة الوحدات السكنية المفضلة</h2>
-          <div class="properties-grid" id="favorites-renderer"></div>
-        </section>
-
-        <!-- 8. SECTION NOTIFICATIONS -->
-        <section id="section-notifications" class="spa-section">
-          <h2 class="section-title"><i class="fas fa-bell"></i> مركز الإشعارات الفورية والتنبيهات المباشرة</h2>
-          <div class="timeline" id="notifications-renderer"></div>
-        </section>
-
-        <!-- 9. SECTION REVIEWS -->
-        <section id="section-reviews" class="spa-section">
-          <h2 class="section-title"><i class="fas fa-star"></i> تقييمات النزلاء وآراء العملاء</h2>
-          <div id="reviews-renderer" class="timeline"></div>
-        </section>
-
-        <!-- 10. SECTION PROFILE -->
-        <section id="section-profile" class="spa-section">
-          <h2 class="section-title"><i class="fas fa-user-circle"></i> إدارة بيانات وعناصر الملف الشخصي</h2>
-          <form id="profile-edit-form" class="completion-card" onsubmit="app.saveProfileData(event)">
-            <div class="form-group-row">
-              <input type="text" id="prof-name" placeholder="الاسم بالكامل" required>
-              <input type="email" id="prof-email" placeholder="البريد الإلكتروني" required>
-              <input type="text" id="prof-phone" placeholder="رقم الهاتف">
-            </div>
-            <div class="form-group-row">
-              <input type="text" id="prof-gov" placeholder="المحافظة">
-              <input type="text" id="prof-city" placeholder="المدينة">
-            </div>
-            <textarea id="prof-bio" placeholder="نبذة شخصية تعريفية عن المالك/المستأجر"></textarea>
-            <button type="submit" class="property-edit-btn" style="width:max-content; padding:0.75rem 2.5rem;">حفظ وتحديث الملف الشخصي</button>
-          </form>
-        </section>
-
-        <!-- 11. SECTION SETTINGS -->
-        <section id="section-settings" class="spa-section">
-          <h2 class="section-title"><i class="fas fa-cog"></i> إعدادات المنصة والأمان الرقمي</h2>
-          <div class="completion-card">
-            <h3>تغيير كلمة المرور الشخصية</h3>
-            <input type="password" placeholder="...كلمة المرور الحالية" style="margin-top:1rem;">
-            <input type="password" placeholder="...كلمة المرور الجديدة">
-            <button class="property-edit-btn" style="margin-top:1rem; width:max-content;">تحديث كلمة المرور</button>
-          </div>
-        </section>
-
-        <!-- 12. SECTION SUPPORT -->
-        <section id="section-support" class="spa-section">
-          <h2 class="section-title"><i class="fas fa-headset"></i> الدعم الفني والمساعدة المباشرة</h2>
-          <div class="completion-card">
-            <p>هل تواجه أي مشكلة تقنية أو استفسار تعاقدي؟ افتح تذكرة فورية للدعم الآن.</p>
-            <input type="text" placeholder="عنوان المشكلة" style="margin-top:1rem;">
-            <textarea placeholder="شرح تفصيلي للمشكلة التقنية..."></textarea>
-            <button class="property-edit-btn" style="margin-top:1rem; width:max-content;">إرسال التذكرة الفنية</button>
-          </div>
-        </section>
-
-        <!-- 13. SECTION PROPERTY DETAIL VIEW -->
-        <section id="section-property-detail" class="spa-section">
-          <button class="property-edit-btn" style="width:max-content; background:var(--bg-tertiary); color:white; margin-bottom:1.5rem;" onclick="app.navigateTo('search')"><i class="fas fa-arrow-right"></i> العودة للبحث</button>
-          <div id="property-detail-renderer"></div>
-        </section>
-
-      </main>
+  <!-- Modal for image preview -->
+  <div class="modal" id="imageModal">
+    <div class="modal-content">
+      <button class="modal-close">&times;</button>
+      <img id="modalImage" src="" alt="">
     </div>
   </div>
 
-  <!-- ============================================================================
-       APPLICATION ENGINE SCRIPT (STATE MANAGEMENT & CONTROL)
-       ============================================================================ -->
-  <script>
-    const AppState = {
-      currentUser: {
-        name: "أحمد محمد", email: "ahmed.m@example.com", phone: "01012345678", gov: "القاهرة", city: "المعادي",
-        bio: "مهندس برمجيات مهتم بالبحث عن شقق سكنية راقية وتأجير العقارات الإدارية الخاصة.",
-        checklist: [
-          { label: "صورة شخصية وتأكيد الهوية", done: true },
-          { label: "تأكيد الهاتف برقم موثق", done: true },
-          { label: "اختيار نطاق المحافظة", done: true },
-          { label: "أضف أول عقار لك", done: false }
-        ]
-      },
-      properties: [
-        { id: "prop-1", user_id: "current", type: "شقة", name: "شقة فاخرة بالمعادي ثكنات", governorate: "القاهرة", city: "المعادي", price: 2500, rooms: 3, baths: 2, area: 150, status: "active", views: 245, saves: 18, chats: 12, furnishing: "furnished", image: "https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop" },
-        { id: "prop-2", user_id: "current", type: "شقة", name: "شقة حديثة ومودرن بالنيل مباشرة", governorate: "القاهرة", city: "جزيرة الروضة", price: 3200, rooms: 4, baths: 3, area: 200, status: "pending", views: 0, saves: 0, chats: 0, furnishing: "furnished", image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&fit=crop" },
-        { id: "prop-3", user_id: "other", type: "فيلا", name: "فيلا صف أول بالشيخ زايد", governorate: "الجيزة", city: "الشيخ زايد", price: 9500, rooms: 5, baths: 4, area: 450, status: "active", views: 512, saves: 45, chats: 28, furnishing: "unfurnished", image: "https://images.unsplash.com/photo-1512917774080-9b274b3f0600?w=500&fit=crop" }
-      ],
-      chats: [
-        { id: "chat-1", participantName: "محمود أحمد (مستأجر)", lastMessage: "هل السعر شامل الصيانة؟" },
-        { id: "chat-2", participantName: "كريم عز الدين (مالك)", lastMessage: "مرحبًا بك، يمكنك معاينة الشقة غداً" }
-      ],
-      messages: {
-        "chat-1": [
-          { sender: "other", text: "السلام عليكم، بخصوص شقة المعادي هل هي متاحة؟" },
-          { sender: "me", text: "وعليكم السلام، نعم متاحة للمعاينة في أي وقت." },
-          { sender: "other", text: "هل السعر شامل الصيانة؟" }
-        ],
-        "chat-2": [{ sender: "other", text: "مرحبًا بك، يمكنك معاينة الشقة غداً بالتأكيد." }]
-      },
-      bookings: [
-        { id: "b-1", propertyName: "شقة فاخرة بالمعادي", clientName: "محمود أحمد", date: "2026-07-15", status: "قيد الانتظار" }
-      ],
-      notifications: [
-        { id: "n-1", time: "قبل ساعتين", title: "📊 تحديث السعر", desc: "تم تغيير سعر الشقة بالمعادي بنجاح" },
-        { id: "n-2", time: "أمس", title: "💬 محادثة جديدة", desc: "استقبلت استفساراً من العميل محمود أحمد" }
-      ],
-      reviews: [
-        { id: "r-1", author: "سامح علام", comment: "التعامل راقي جداً والوصف مطابق للحقيقة تماماً المالك ملتزم.", rating: 5 }
-      ],
-      activeChatId: null,
-      activeWizardStep: 1,
-      uploadedWizardImages: []
-    };
-
-    class AM_Dashboard_App {
-      constructor() {
-        this.initDOM();
-        this.initRouting();
-        this.initWizard();
-        this.renderAllModules();
-      }
-
-      initDOM() {
-        this.menuToggle = document.getElementById('menuToggle');
-        this.sidebar = document.getElementById('sidebar');
-        this.overlay = document.getElementById('overlay');
-        this.sidebarClose = document.getElementById('sidebarClose');
-        this.sidebarItems = document.querySelectorAll('.sidebar-item');
-        
-        this.menuToggle.addEventListener('click', () => this.toggleSidebar(true));
-        this.sidebarClose.addEventListener('click', () => this.toggleSidebar(false));
-        this.overlay.addEventListener('click', () => this.toggleSidebar(false));
-      }
-
-      toggleSidebar(open) {
-        this.sidebar.classList.toggle('active', open);
-        this.overlay.classList.toggle('active', open);
-      }
-
-      initRouting() {
-        this.sidebarItems.forEach(item => {
-          item.addEventListener('click', (e) => {
-            const targetSection = item.getAttribute('data-section');
-            if (targetSection) {
-              e.preventDefault();
-              this.navigateTo(targetSection);
-              this.sidebarItems.forEach(i => i.classList.remove('active'));
-              item.classList.add('active');
-              this.toggleSidebar(false);
-            }
-          });
-        });
-      }
-
-      navigateTo(sectionId) {
-        document.querySelectorAll('.spa-section').forEach(sec => sec.classList.remove('active-section'));
-        const activeTarget = document.getElementById(`section-${sectionId}`);
-        if (activeTarget) {
-          activeTarget.classList.add('active-section');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-      }
-
-      initWizard() {
-        const nextBtn = document.getElementById('wizard-next-btn');
-        const prevBtn = document.getElementById('wizard-prev-btn');
-        const imgInput = document.getElementById('wizard-images-input');
-        const dropZone = document.getElementById('images-drop-zone');
-
-        if (dropZone) dropZone.addEventListener('click', () => imgInput.click());
-        if (imgInput) imgInput.addEventListener('change', (e) => this.handleWizardImages(e.target.files));
-        if (nextBtn) nextBtn.addEventListener('click', () => this.handleWizardStepNavigation(1));
-        if (prevBtn) prevBtn.addEventListener('click', () => this.handleWizardStepNavigation(-1));
-      }
-
-      handleWizardStepNavigation(direction) {
-        AppState.activeWizardStep += direction;
-        document.querySelectorAll('.wizard-step-content').forEach(el => el.classList.remove('active'));
-        document.querySelector(`.wizard-step-content[data-step="${AppState.activeWizardStep}"]`).classList.add('active');
-
-        document.querySelectorAll('.step-dot').forEach(dot => {
-          const stepNum = parseInt(dot.getAttribute('data-step'));
-          dot.classList.toggle('active', stepNum <= AppState.activeWizardStep);
-        });
-
-        document.getElementById('wizard-prev-btn').style.display = AppState.activeWizardStep === 1 ? 'none' : 'block';
-        document.getElementById('wizard-next-btn').style.display = AppState.activeWizardStep === 8 ? 'none' : 'block';
-
-        if (AppState.activeWizardStep === 8) this.generateWizardReviewSummary();
-      }
-
-      handleWizardImages(files) {
-        const container = document.getElementById('images-preview-container');
-        Array.from(files).forEach(file => {
-          if (AppState.uploadedWizardImages.length >= 30) return;
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            AppState.uploadedWizardImages.push(e.target.result);
-            const box = document.createElement('div');
-            box.className = 'preview-thumb-box';
-            box.innerHTML = `<img src="${e.target.result}">`;
-            container.appendChild(box);
-          };
-          reader.readAsDataURL(file);
-        });
-      }
-
-      generateWizardReviewSummary() {
-        const form = document.getElementById('property-wizard-form');
-        const formData = new FormData(form);
-        document.getElementById('wizard-review-summary').innerHTML = `
-          <p><strong>نوع الوحدة السكنية:</strong> ${formData.get('prop_type') || 'شقة'}</p>
-          <p><strong>العنوان المحدد:</strong> ${formData.get('prop_gov') || ''} - ${formData.get('prop_city') || ''}</p>
-          <p><strong>المواصفات الفنية:</strong> ${formData.get('prop_rooms') || 0} غرف | ${formData.get('prop_baths') || 0} حمام</p>
-          <p><strong>القيمة الإيجارية الشهري:</strong> ${formData.get('prop_price') || 0} ج.م</p>
-          <p><strong>عدد الصور المرفوعة:</strong> ${AppState.uploadedWizardImages.length} صور تعاقدية</p>
-        `;
-      }
-
-      submitWizardForm() {
-        const form = document.getElementById('property-wizard-form');
-        const formData = new FormData(form);
-
-        AppState.properties.unshift({
-          id: `prop-${Date.now()}`, user_id: "current", type: formData.get('prop_type') || "شقة",
-          name: `وحدة سكنية جديدة في ${formData.get('prop_city') || 'مصر'}`,
-          governorate: formData.get('prop_gov') || "القاهرة", city: formData.get('prop_city') || "القاهرة",
-          price: parseInt(formData.get('prop_price')) || 2000, rooms: parseInt(formData.get('prop_rooms')) || 3,
-          baths: parseInt(formData.get('prop_baths')) || 2, area: parseInt(formData.get('prop_area')) || 120,
-          status: "pending", views: 0, saves: 0, chats: 0, furnishing: formData.get('prop_furnishing') || "furnished",
-          image: AppState.uploadedWizardImages[0] || "https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop"
-        });
-
-        alert("تم إرسال إعلانك بنجاح للتحكيم الإداري!");
-        form.reset();
-        AppState.uploadedWizardImages = [];
-        document.getElementById('images-preview-container').innerHTML = '';
-        AppState.activeWizardStep = 1;
-        this.handleWizardStepNavigation(0);
-        this.renderMyProperties();
-        this.renderSearchModule();
-        this.navigateTo('my-properties');
-      }
-
-      renderAllModules() {
-        this.renderProfile();
-        this.renderMyProperties();
-        this.renderSearchModule();
-        this.renderChatSystem();
-        this.renderBookings();
-        this.renderNotifications();
-        this.renderReviews();
-      }
-
-      renderProfile() {
-        document.getElementById('prof-name').value = AppState.currentUser.name;
-        document.getElementById('prof-email').value = AppState.currentUser.email;
-        document.getElementById('prof-phone').value = AppState.currentUser.phone;
-        document.getElementById('prof-gov').value = AppState.currentUser.gov;
-        document.getElementById('prof-city').value = AppState.currentUser.city;
-        document.getElementById('prof-bio').value = AppState.currentUser.bio;
-
-        document.getElementById('home-checklist').innerHTML = AppState.currentUser.checklist.map(item => `
-          <div class="checklist-item ${item.done ? 'completed' : 'pending'}">
-            <div class="checklist-icon">${item.done ? '✓' : '○'}</div>
-            <div class="checklist-label">${item.label}</div>
-          </div>
-        `).join('');
-      }
-
-      saveProfileData(e) {
-        e.preventDefault();
-        AppState.currentUser.name = document.getElementById('prof-name').value;
-        document.querySelector('.user-name').textContent = AppState.currentUser.name;
-        document.getElementById('dynamic-greeting').textContent = `مرحباً، ${AppState.currentUser.name.split(' ')[0]} 👋`;
-        alert("تم تحديث وحفظ بيانات ملفك الشخصي بأمان.");
-        this.navigateTo('home');
-      }
-
-      renderMyProperties() {
-        const container = document.getElementById('my-properties-renderer');
-        if (!container) return;
-        const myProps = AppState.properties.filter(p => p.user_id === "current");
-
-        container.innerHTML = myProps.map(p => `
-          <div class="property-card">
-            <div class="property-image">
-              <img src="${p.image}">
-              <span class="property-status ${p.status === 'active' ? 'active' : 'review'}">${p.status === 'active' ? 'نشط' : 'قيد المراجعة'}</span>
-            </div>
-            <div class="property-content">
-              <h3 class="property-name">${p.name}</h3>
-              <p class="property-location"><i class="fas fa-map-marker-alt"></i> ${p.city}، ${p.governorate}</p>
-              <div class="property-price">${p.price.toLocaleString()} ج.م / شهر</div>
-              <div class="property-stats">
-                <div class="stat-box"><div class="stat-number">${p.views}</div><div class="stat-label">مشاهدة</div></div>
-                <div class="stat-box"><div class="stat-number">${p.saves}</div><div class="stat-label">حفظ</div></div>
-              </div>
-              <button class="property-edit-btn" onclick="app.loadPropertyDetail('${p.id}')">إدارة العقار التفصيلية</button>
-            </div>
-          </div>
-        `).join('');
-      }
-
-      renderSearchModule() { this.filterProperties(); }
-
-      filterProperties() {
-        const container = document.getElementById('search-results-renderer');
-        if (!container) return;
-        const gov = document.getElementById('filter-governorate').value;
-        const type = document.getElementById('filter-type').value;
-        const maxPrice = document.getElementById('filter-max-price').value;
-
-        const filtered = AppState.properties.filter(p => {
-          if (gov && p.governorate !== gov) return false;
-          if (type && p.type !== type) return false;
-          if (maxPrice && p.price > parseInt(maxPrice)) return false;
-          return true;
-        });
-
-        container.innerHTML = filtered.map(p => `
-          <div class="property-card" onclick="app.loadPropertyDetail('${p.id}')">
-            <div class="property-image"><img src="${p.image}"></div>
-            <div class="property-content">
-              <h3 class="property-name">${p.name}</h3>
-              <p class="property-location">${p.city}، ${p.governorate}</p>
-              <div class="property-price">${p.price.toLocaleString()} ج.م</div>
-              <button class="property-edit-btn"><i class="fas fa-info-circle"></i> تصفح البيانات</button>
-            </div>
-          </div>
-        `).join('');
-        
-        // رندرة شاشة المفضلة تلقائياً لمحاكاة التفاعل الموحد
-        const favContainer = document.getElementById('favorites-renderer');
-        if(favContainer) favContainer.innerHTML = container.innerHTML;
-      }
-
-      loadPropertyDetail(id) {
-        const p = AppState.properties.find(prop => prop.id === id);
-        if (!p) return;
-
-        this.navigateTo('property-detail');
-        document.getElementById('property-detail-renderer').innerHTML = `
-          <div class="completion-card">
-            <img src="${p.image}" style="width:100%; height:280px; object-fit:cover; border-radius:12px; margin-bottom:1.5rem;">
-            <h2>${p.name}</h2>
-            <div class="property-price" style="margin-top:0.5rem;">${p.price.toLocaleString()} ج.م / شهر</div>
-            <p style="margin-top:1rem; color:var(--text-muted)">المواصفات الأساسية المتاحة: ${p.rooms} غرف سكنية و ${p.baths} حمام ومساحة معتمدة تبلغ ${p.area} م² كاملة التشطيب والمرافق.</p>
-            <div style="display:flex; gap:1rem; margin-top:1.5rem;">
-              <button class="property-edit-btn" style="width:auto; padding:0.75rem 2rem;" onclick="app.navigateTo('messages')">فتح تواصل فوري مع المالك</button>
-            </div>
-          </div>
-        `;
-      }
-
-      renderChatSystem() {
-        const listContainer = document.getElementById('chat-threads-list');
-        const streamContainer = document.getElementById('chat-messages-stream');
-        if (!listContainer) return;
-
-        listContainer.innerHTML = AppState.chats.map(c => `
-          <div class="chat-thread-card ${AppState.activeChatId === c.id ? 'active-thread' : ''}" onclick="app.loadChatThread('${c.id}')">
-            <div class="user-avatar" style="width:35px; height:35px; font-size:0.8rem;">CH</div>
-            <div style="flex:1; overflow:hidden;">
-              <h4 style="font-size:0.9rem;">${c.participantName}</h4>
-              <p style="font-size:0.75rem; color:var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${c.lastMessage}</p>
-            </div>
-          </div>
-        `).join('');
-
-        if (AppState.activeChatId && AppState.messages[AppState.activeChatId]) {
-          streamContainer.innerHTML = AppState.messages[AppState.activeChatId].map(m => `
-            <div class="msg-bubble ${m.sender === 'me' ? 'sent' : 'received'}">${m.text}</div>
-          `).join('');
-          streamContainer.scrollTop = streamContainer.scrollHeight;
-        } else {
-          streamContainer.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:2rem;">يرجى تفعيل واختيار محادثة لبدء البث المباشر.</div>`;
-        }
-      }
-
-      loadChatThread(chatId) { AppState.activeChatId = chatId; this.renderChatSystem(); }
-
-      sendChatMessage() {
-        const input = document.getElementById('chat-text-input');
-        if (!input.value.trim() || !AppState.activeChatId) return;
-        AppState.messages[AppState.activeChatId].push({ sender: "me", text: input.value });
-        AppState.chats.find(c => c.id === AppState.activeChatId).lastMessage = input.value;
-        input.value = '';
-        this.renderChatSystem();
-      }
-
-      renderBookings() {
-        document.getElementById('bookings-renderer').innerHTML = AppState.bookings.map(b => `
-          <div class="timeline-item">
-            <div class="timeline-dot"></div>
-            <div class="timeline-content">
-              <div class="timeline-title">${b.propertyName}</div>
-              <p style="font-size:0.85rem; color:var(--text-muted);">المقدم من: ${b.clientName} | الحالة المستهدفة: ${b.status}</p>
-            </div>
-          </div>
-        `).join('');
-      }
-
-      renderNotifications() {
-        document.getElementById('notifications-renderer').innerHTML = AppState.notifications.map(n => `
-          <div class="timeline-item">
-            <div class="timeline-dot"></div>
-            <div class="timeline-content">
-              <div class="timeline-time">${n.time}</div>
-              <div class="timeline-title">${n.title}</div>
-              <div class="timeline-description">${n.desc}</div>
-            </div>
-          </div>
-        `).join('');
-      }
-
-      renderReviews() {
-        document.getElementById('reviews-renderer').innerHTML = AppState.reviews.map(r => `
-          <div class="timeline-item">
-            <div class="timeline-dot" style="background:var(--success);"></div>
-            <div class="timeline-content">
-              <div class="timeline-title">${r.author} ( تقييم ${r.rating}/5 )</div>
-              <div class="timeline-description">${r.comment}</div>
-            </div>
-          </div>
-        `).join('');
-      }
-    }
-
-    let app;
-    document.addEventListener('DOMContentLoaded', () => { app = new AM_Dashboard_App(); });
-  </script>
+  <script src="js/app.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/wizard.js"></script>
+  <script src="js/messages.js"></script>
+  <script src="js/profile.js"></script>
 </body>
 </html>
