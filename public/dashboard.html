@@ -3,425 +3,294 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AM - لوحة التحكم</title>
+  <title>AM. Dashboard - لوحة التحكم العقارية الذكية</title>
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
   <style>
     /* ============================================
-       CSS VARIABLES & GLOBAL STYLES
+       THEME VARIABLES & BASE STYLES
        ============================================ */
     :root {
-      --bg-primary: #030712;
-      --bg-secondary: #111827;
-      --bg-tertiary: #1f2937;
+      --bg-primary: #0b0f19;
+      --bg-secondary: rgba(22, 30, 49, 0.7);
+      --bg-tertiary: #1f293d;
       --primary: #38bdf8;
-      --secondary: #facc15;
-      --success: #22c55e;
+      --primary-hover: #0ea5e9;
+      --text-primary: #f3f4f6;
+      --text-muted: #9ca3af;
+      --border: rgba(255, 255, 255, 0.08);
+      --glass-bg: rgba(15, 23, 42, 0.55);
+      --glass-blur: blur(12px);
+      --success: #10b981;
       --danger: #ef4444;
-      --text-primary: #f1f5f9;
-      --text-secondary: #cbd5e1;
-      --text-muted: #94a3b8;
-      --border: rgba(255, 255, 255, 0.1);
-      --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
-      --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      --glass-bg: rgba(15, 23, 42, 0.8);
       --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
-    }
-
-    html {
-      scroll-behavior: smooth;
     }
 
     body {
       font-family: 'Cairo', sans-serif;
       background-color: var(--bg-primary);
       color: var(--text-primary);
-      line-height: 1.6;
       overflow-x: hidden;
+      min-height: 100vh;
     }
+
+    /* Scrollbar Style */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-primary); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
 
     /* ============================================
-       SCROLLBAR
+       LAYOUT & GLASSMORPHISM UTILITIES
        ============================================ */
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: var(--bg-secondary);
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: var(--primary);
-      border-radius: 4px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: var(--primary);
-      opacity: 0.8;
-    }
-
-    /* ============================================
-       HEADER
-       ============================================ */
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1.25rem 1.5rem;
+    .glass-panel {
       background: var(--glass-bg);
-      backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      gap: 1rem;
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
     }
 
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
-    }
-
-    .menu-toggle {
-      background: none;
-      border: none;
-      color: var(--text-primary);
-      font-size: 1.5rem;
-      cursor: pointer;
-      padding: 0.5rem;
-      transition: var(--transition);
-      display: none;
-    }
-
-    .menu-toggle:hover {
-      color: var(--primary);
-      transform: scale(1.1);
-    }
-
-    .logo {
-      font-size: 1.5rem;
-      font-weight: 900;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
-    }
-
-    .user-section {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .user-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--bg-primary);
-      font-weight: bold;
-      object-fit: cover;
-    }
-
-    .user-name {
-      font-weight: 600;
-      font-size: 0.95rem;
-      display: none;
-    }
-
-    .notification-btn {
-      background: none;
-      border: none;
-      color: var(--text-primary);
-      font-size: 1.25rem;
-      cursor: pointer;
-      position: relative;
-      padding: 0.5rem;
-      transition: var(--transition);
-    }
-
-    .notification-btn:hover {
-      color: var(--primary);
-      transform: scale(1.1);
-    }
-
-    .notification-badge {
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 18px;
-      height: 18px;
-      background: var(--danger);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.7rem;
-      color: white;
-      font-weight: bold;
+    .app-container {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      min-height: 100vh;
     }
 
     /* ============================================
-       SIDEBAR
+       SIDEBAR & NAVIGATION STYLE
        ============================================ */
     .sidebar {
-      position: fixed;
-      right: -300px;
+      background: var(--bg-secondary);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 2rem 1rem;
+      position: sticky;
       top: 0;
-      width: 280px;
       height: 100vh;
-      background: var(--glass-bg);
-      backdrop-filter: blur(20px);
-      border-right: 1px solid var(--border);
-      padding: 2rem 1.5rem;
-      overflow-y: auto;
-      z-index: 200;
+      z-index: 100;
       transition: var(--transition);
-      box-shadow: var(--shadow);
-    }
-
-    .sidebar.active {
-      right: 0;
-    }
-
-    .sidebar-close {
-      position: absolute;
-      top: 1.5rem;
-      left: 1.5rem;
-      background: none;
-      border: none;
-      color: var(--text-primary);
-      font-size: 1.5rem;
-      cursor: pointer;
-      padding: 0.5rem;
-      transition: var(--transition);
-    }
-
-    .sidebar-close:hover {
-      color: var(--primary);
-      transform: rotate(90deg);
     }
 
     .sidebar-title {
-      font-size: 1.25rem;
+      font-size: 1.8rem;
       font-weight: 900;
-      margin-bottom: 2rem;
-      margin-top: 1rem;
       text-align: center;
+      margin-bottom: 2.5rem;
+      letter-spacing: 1px;
     }
 
     .sidebar-menu {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: 0.35rem;
+      flex: 1;
+      overflow-y: auto;
     }
 
     .sidebar-item {
       display: flex;
       align-items: center;
       gap: 1rem;
-      padding: 1rem;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: var(--transition);
-      color: var(--text-secondary);
+      padding: 0.85rem 1.25rem;
+      color: var(--text-muted);
       text-decoration: none;
-      font-weight: 500;
-    }
-
-    .sidebar-item:hover {
-      background: rgba(56, 189, 248, 0.1);
-      color: var(--primary);
-      transform: translateX(-5px);
-    }
-
-    .sidebar-item.active {
-      background: rgba(56, 189, 248, 0.2);
-      color: var(--primary);
-      border-right: 3px solid var(--primary);
+      border-radius: 12px;
+      font-weight: 600;
+      transition: var(--transition);
     }
 
     .sidebar-item i {
+      font-size: 1.2rem;
       width: 24px;
       text-align: center;
+    }
+
+    .sidebar-item:hover, .sidebar-item.active {
+      color: var(--primary);
+      background: rgba(56, 189, 248, 0.08);
     }
 
     .sidebar-divider {
       height: 1px;
       background: var(--border);
-      margin: 1rem 0;
-    }
-
-    .sidebar-logout {
-      margin-top: auto;
-      color: var(--danger);
+      margin: 1.5rem 0;
     }
 
     .sidebar-logout:hover {
-      background: rgba(239, 68, 68, 0.1);
       color: var(--danger);
+      background: rgba(239, 68, 68, 0.08);
+    }
+
+    .sidebar-close {
+      display: none;
+      position: absolute;
+      top: 1.5rem;
+      left: 1.5rem;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
     }
 
     /* ============================================
-       OVERLAY
-       ============================================ */
-    .overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(5px);
-      opacity: 0;
-      visibility: hidden;
-      transition: var(--transition);
-      z-index: 150;
-    }
-
-    .overlay.active {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    /* ============================================
-       MAIN CONTENT
+       TOP BAR & HEADER
        ============================================ */
     .main {
-      padding: 2rem 1.5rem;
-      max-width: 1400px;
-      margin: 0 auto;
+      padding: 2rem;
+      overflow-y: auto;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .menu-toggle {
+      display: none;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      color: white;
+      padding: 0.75rem;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .user-profile-widget {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .user-avatar {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #818cf8);
+      color: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .user-name { font-weight: 700; font-size: 0.95rem; }
+    .user-role { font-size: 0.75rem; color: var(--text-muted); }
+
+    .notification-btn {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      color: white;
+      padding: 0.75rem;
+      border-radius: 50%;
+      cursor: pointer;
+      position: relative;
+      transition: var(--transition);
+    }
+
+    .notification-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .notification-badge {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      background: var(--danger);
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
     }
 
     /* ============================================
-       GREETING SECTION
+       SPA ARCHITECTURE SECTIONS & TRANSITIONS
        ============================================ */
-    .greeting {
-      margin-bottom: 2rem;
-      animation: slideUp 0.6s ease-out;
+    .spa-section {
+      display: none;
+      opacity: 0;
+      transform: translateY(15px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
     }
 
-    .greeting-title {
-      font-size: 2rem;
-      font-weight: 900;
-      margin-bottom: 0.5rem;
-    }
-
-    .greeting-subtitle {
-      color: var(--text-muted);
-      font-size: 1rem;
+    .spa-section.active-section {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
     }
 
     /* ============================================
-       QUICK ACTIONS
+       HOME SECTION (GREETING & ACTIONS & CHECKLIST)
        ============================================ */
+    .greeting { margin-bottom: 2rem; }
+    .greeting-title { font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem; }
+    .greeting-subtitle { color: var(--text-muted); }
+
     .quick-actions {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 1.5rem;
-      margin-bottom: 2rem;
+      margin-bottom: 2.5rem;
     }
 
     .action-card {
-      background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+      background: var(--bg-secondary);
       border: 1px solid var(--border);
       border-radius: 16px;
       padding: 1.5rem;
       cursor: pointer;
       transition: var(--transition);
-      position: relative;
-      overflow: hidden;
-      animation: fadeIn 0.6s ease-out;
-    }
-
-    .action-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(250, 204, 21, 0.1));
-      opacity: 0;
-      transition: var(--transition);
-    }
-
-    .action-card:hover::before {
-      opacity: 1;
     }
 
     .action-card:hover {
-      transform: translateY(-8px);
+      transform: translateY(-5px);
       border-color: var(--primary);
-      box-shadow: 0 20px 40px rgba(56, 189, 248, 0.2);
+      background: rgba(56, 189, 248, 0.02);
     }
 
-    .action-icon {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
+    .action-icon { font-size: 2rem; margin-bottom: 1rem; }
+    .action-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.35rem; }
+    .action-description { font-size: 0.85rem; color: var(--text-muted); }
 
-    .action-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-    }
-
-    .action-description {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-    }
-
-    /* ============================================
-       COMPLETION CARD
-       ============================================ */
     .completion-card {
-      background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+      background: var(--bg-secondary);
       border: 1px solid var(--border);
       border-radius: 16px;
       padding: 2rem;
       margin-bottom: 2rem;
-      animation: slideUp 0.6s ease-out 0.2s both;
     }
 
     .completion-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
     }
 
-    .completion-title {
-      font-size: 1.25rem;
-      font-weight: 700;
-    }
-
-    .completion-percentage {
-      font-size: 1.5rem;
-      font-weight: 900;
-      color: var(--primary);
-    }
+    .completion-title { font-size: 1.2rem; font-weight: 700; }
+    .completion-percentage { color: var(--primary); font-weight: 700; }
 
     .progress-bar {
-      width: 100%;
       height: 8px;
-      background: var(--bg-primary);
+      background: var(--bg-tertiary);
       border-radius: 10px;
       overflow: hidden;
       margin-bottom: 1.5rem;
@@ -429,10 +298,9 @@
 
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, var(--primary), var(--secondary));
-      width: 60%;
+      background: linear-gradient(90deg, var(--primary), #818cf8);
       border-radius: 10px;
-      animation: progressFill 1.5s ease-out;
+      transition: width 0.5s ease;
     }
 
     .completion-checklist {
@@ -445,67 +313,36 @@
       display: flex;
       align-items: center;
       gap: 0.75rem;
+      background: var(--bg-primary);
       padding: 1rem;
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 12px;
-      transition: var(--transition);
-    }
-
-    .checklist-item:hover {
-      background: rgba(56, 189, 248, 0.1);
-      transform: translateX(-4px);
+      border-radius: 10px;
+      border: 1px solid var(--border);
     }
 
     .checklist-icon {
-      width: 24px;
-      height: 24px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 0.8rem;
-      color: white;
-      flex-shrink: 0;
     }
 
-    .checklist-item.completed .checklist-icon {
-      background: var(--success);
-    }
-
-    .checklist-item.pending .checklist-icon {
-      background: var(--text-muted);
-    }
-
-    .checklist-text {
-      flex: 1;
-    }
-
-    .checklist-label {
-      font-size: 0.9rem;
-      font-weight: 600;
-    }
+    .completed .checklist-icon { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+    .pending .checklist-icon { background: rgba(255, 255, 255, 0.05); color: var(--text-muted); }
+    .checklist-label { font-size: 0.9rem; font-weight: 600; }
 
     /* ============================================
-       MY PROPERTIES SECTION
+       PROPERTIES GRID & CARDS UTILITIES
        ============================================ */
-    .section-title {
-      font-size: 1.5rem;
-      font-weight: 900;
-      margin-bottom: 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .section-title i {
-      color: var(--primary);
-    }
+    .section-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; }
+    .section-title i { color: var(--primary); }
 
     .properties-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 1.5rem;
-      margin-bottom: 2rem;
     }
 
     .property-card {
@@ -514,1012 +351,1012 @@
       border-radius: 16px;
       overflow: hidden;
       transition: var(--transition);
-      animation: slideUp 0.6s ease-out 0.3s both;
     }
 
-    .property-card:hover {
-      transform: translateY(-8px);
-      border-color: var(--primary);
-      box-shadow: 0 20px 40px rgba(56, 189, 248, 0.2);
-    }
-
+    .property-card:hover { transform: translateY(-5px); border-color: var(--primary); }
+    
     .property-image {
-      width: 100%;
-      height: 200px;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      height: 180px;
       position: relative;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 3rem;
-      color: rgba(255, 255, 255, 0.2);
+      background: var(--bg-tertiary);
     }
 
-    .property-image img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
+    .property-image img { width: 100%; height: 100%; object-fit: cover; }
+    
     .property-status {
       position: absolute;
       top: 1rem;
       right: 1rem;
-      padding: 0.5rem 1rem;
+      padding: 0.35rem 0.85rem;
       border-radius: 20px;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       font-weight: 700;
-      backdrop-filter: blur(10px);
-      background: rgba(0, 0, 0, 0.4);
     }
 
-    .property-status.active {
-      background: rgba(34, 197, 94, 0.3);
-      color: var(--success);
-    }
+    .property-status.active { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+    .property-status.review { background: rgba(56, 189, 248, 0.15); color: var(--primary); }
 
-    .property-status.review {
-      background: rgba(250, 204, 21, 0.3);
-      color: var(--secondary);
-    }
-
-    .property-status.rented {
-      background: rgba(56, 189, 248, 0.3);
-      color: var(--primary);
-    }
-
-    .property-content {
-      padding: 1.5rem;
-    }
-
-    .property-header {
+    .property-content { padding: 1.25rem; }
+    .property-name { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .property-location { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+    .property-price { font-size: 1.2rem; font-weight: 800; color: var(--primary); margin-bottom: 1rem; }
+    
+    .property-details {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
       margin-bottom: 1rem;
     }
 
-    .property-name {
-      font-size: 1.1rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-    }
-
-    .property-location {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .property-price {
-      font-size: 1.25rem;
-      font-weight: 900;
-      color: var(--primary);
-      margin: 1rem 0;
-    }
-
-    .property-details {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1rem;
-      margin: 1rem 0;
-      padding: 1rem 0;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .detail-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.9rem;
-    }
-
-    .detail-item i {
-      color: var(--primary);
-      width: 20px;
-      text-align: center;
-    }
+    .detail-item { display: flex; flex-direction: column; align-items: center; font-size: 0.8rem; color: var(--text-muted); gap: 0.25rem; }
+    .detail-item i { color: var(--primary); font-size: 0.95rem; }
 
     .property-stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.75rem;
-      margin: 1rem 0;
-    }
-
-    .stat-box {
-      background: rgba(56, 189, 248, 0.1);
-      border: 1px solid rgba(56, 189, 248, 0.2);
-      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      background: var(--bg-primary);
       padding: 0.75rem;
-      text-align: center;
-      transition: var(--transition);
+      border-radius: 10px;
+      margin-bottom: 1rem;
     }
 
-    .stat-box:hover {
-      background: rgba(56, 189, 248, 0.2);
-    }
-
-    .stat-number {
-      font-size: 1.25rem;
-      font-weight: 900;
-      color: var(--primary);
-    }
-
-    .stat-label {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-    }
+    .stat-box { text-align: center; flex: 1; }
+    .stat-number { font-weight: 700; font-size: 0.9rem; }
+    .stat-label { font-size: 0.7rem; color: var(--text-muted); }
 
     .property-edit-btn {
       width: 100%;
-      padding: 0.75rem;
-      background: linear-gradient(90deg, var(--primary), var(--secondary));
-      border: none;
-      border-radius: 8px;
+      background: var(--primary);
       color: var(--bg-primary);
+      border: none;
+      padding: 0.65rem;
+      border-radius: 8px;
       font-weight: 700;
       cursor: pointer;
+      font-family: 'Cairo', sans-serif;
       transition: var(--transition);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
     }
 
-    .property-edit-btn:hover {
-      transform: scale(1.05);
-      box-shadow: 0 10px 20px rgba(56, 189, 248, 0.3);
+    .property-edit-btn:hover { background: var(--primary-hover); }
+
+    /* ============================================
+       SEARCH ENGINE & FILTERS LAYOUT
+       ============================================ */
+    .search-filter-panel {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      background: var(--bg-secondary);
+      padding: 1.25rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border);
+    }
+
+    .search-filter-panel select, .search-filter-panel input {
+      flex: 1;
+      min-width: 160px;
+      margin-bottom: 0;
+    }
+
+    .search-layout-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      gap: 1.5rem;
+    }
+
+    .map-mock-container {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      height: 500px;
+      position: sticky;
+      top: 95px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
     }
 
     /* ============================================
-       STATISTICS SECTION
+       7-STEP WIZARD FORM BUILDER
        ============================================ */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-    }
-
-    .stat-card {
-      background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+    .wizard-container {
+      background: var(--bg-secondary);
       border: 1px solid var(--border);
       border-radius: 16px;
       padding: 2rem;
-      text-align: center;
-      transition: var(--transition);
-      animation: slideUp 0.6s ease-out 0.4s both;
     }
 
-    .stat-card:hover {
-      transform: translateY(-8px);
-      border-color: var(--primary);
-      box-shadow: 0 20px 40px rgba(56, 189, 248, 0.2);
-    }
-
-    .stat-icon {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .stat-value {
-      font-size: 2.5rem;
-      font-weight: 900;
-      margin-bottom: 0.5rem;
-    }
-
-    .stat-description {
-      color: var(--text-muted);
-      font-size: 0.95rem;
-    }
-
-    /* ============================================
-       ACTIVITY TIMELINE
-       ============================================ */
-    .activity-section {
-      margin-bottom: 2rem;
-    }
-
-    .timeline {
+    .wizard-steps-indicator {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2.5rem;
       position: relative;
-      padding: 2rem 0;
     }
 
-    .timeline::before {
+    .wizard-steps-indicator::before {
       content: '';
       position: absolute;
-      right: 20px;
-      top: 0;
-      bottom: 0;
-      width: 3px;
-      background: linear-gradient(180deg, var(--primary), var(--secondary), transparent);
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--border);
+      transform: translateY(-50%);
+      z-index: 1;
     }
 
-    .timeline-item {
-      margin-bottom: 2rem;
-      padding-right: 80px;
-      animation: slideUp 0.6s ease-out 0.5s both;
-    }
-
-    .timeline-dot {
-      position: absolute;
-      right: 11px;
-      top: 6px;
-      width: 18px;
-      height: 18px;
-      background: var(--bg-primary);
-      border: 3px solid var(--primary);
+    .step-dot {
+      width: 35px;
+      height: 35px;
       border-radius: 50%;
+      background: var(--bg-tertiary);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 0.9rem;
       transition: var(--transition);
+      z-index: 2;
     }
 
-    .timeline-item:hover .timeline-dot {
-      width: 24px;
-      height: 24px;
-      right: 8px;
-      box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+    .step-dot.active {
+      background: var(--primary);
+      color: var(--bg-primary);
+      box-shadow: 0 0 15px var(--primary);
     }
 
-    .timeline-content {
-      background: var(--glass-bg);
+    .wizard-step-content { display: none; }
+    .wizard-step-content.active { display: block; animation: fadeIn 0.4s ease-out; }
+
+    .form-group-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    input[type="text"], input[type="number"], input[type="password"], input[type="email"], select, textarea {
+      width: 100%;
+      padding: 0.85rem 1.25rem;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: 'Cairo', sans-serif;
+      transition: var(--transition);
+      margin-bottom: 1rem;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary);
+      outline: none;
+      box-shadow: 0 0 10px rgba(56,189,248,0.2);
+    }
+
+    .type-selection-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .type-radio-card {
+      background: var(--bg-primary);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 1rem;
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
       transition: var(--transition);
     }
 
-    .timeline-item:hover .timeline-content {
+    .type-radio-card input { display: none; }
+    .type-radio-card:hover, .type-radio-card:has(input:checked) {
       border-color: var(--primary);
-      box-shadow: 0 10px 30px rgba(56, 189, 248, 0.1);
+      background: rgba(56, 189, 248, 0.05);
     }
 
-    .timeline-time {
-      color: var(--text-muted);
-      font-size: 0.85rem;
-      margin-bottom: 0.25rem;
+    .amenities-checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
     }
 
-    .timeline-title {
-      font-weight: 700;
-      margin-bottom: 0.25rem;
+    .amenities-checkbox-grid label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--bg-primary);
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      cursor: pointer;
     }
 
-    .timeline-description {
-      color: var(--text-secondary);
-      font-size: 0.9rem;
-    }
-
-    /* ============================================
-       FOOTER
-       ============================================ */
-    .footer {
+    .drag-drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 3rem 1.5rem;
       text-align: center;
-      padding: 2rem 1.5rem;
-      border-top: 1px solid var(--border);
-      color: var(--text-muted);
-      margin-top: 4rem;
+      cursor: pointer;
+      transition: var(--transition);
     }
 
+    .drag-drop-zone:hover { border-color: var(--primary); background: rgba(56, 189, 248, 0.02); }
+    .images-preview-sortable { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+    
+    .preview-thumb-box {
+      width: 100%;
+      height: 100px;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid var(--border);
+    }
+
+    .preview-thumb-box img { width: 100%; height: 100%; object-fit: cover; }
+    .wizard-navigation-actions { display: flex; justify-content: space-between; margin-top: 2rem; gap: 1rem; }
+    .review-summary-box { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; margin-top: 1rem; }
+    .review-summary-box p { margin-bottom: 0.5rem; font-size: 0.95rem; }
+
     /* ============================================
-       ANIMATIONS
+       REALTIME CHAT COMPONENT
        ============================================ */
+    .chat-main-wrapper {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      height: 600px;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .chat-sidebar-list { background: rgba(17, 24, 39, 0.6); border-left: 1px solid var(--border); overflow-y: auto; }
+    
+    .chat-thread-card {
+      padding: 1.25rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.02);
+      transition: var(--transition);
+    }
+
+    .chat-thread-card:hover, .chat-thread-card.active-thread { background: rgba(56, 189, 248, 0.08); }
+    .chat-window-viewport { display: flex; flex-direction: column; background: rgba(15, 23, 42, 0.4); }
+    .chat-header-active { padding: 1.25rem; background: var(--bg-secondary); border-bottom: 1px solid var(--border); font-weight: 700; }
+    .chat-messages-stream { flex: 1; padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; }
+    
+    .msg-bubble { max-width: 70%; padding: 0.85rem 1.25rem; border-radius: 12px; font-size: 0.95rem; line-height: 1.5; }
+    .msg-bubble.sent { background: var(--primary); color: var(--bg-primary); align-self: flex-start; border-top-right-radius: 2px; }
+    .msg-bubble.received { background: var(--bg-tertiary); color: var(--text-primary); align-self: flex-end; border-top-left-radius: 2px; }
+    
+    .chat-input-action-bar { padding: 1rem; background: var(--bg-secondary); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 0.75rem; }
+    .chat-input-action-bar input { margin-bottom: 0; }
+
+    /* ============================================
+       TIMELINE & NOTIFICATIONS STYLE
+       ============================================ */
+    .timeline { position: relative; padding: 1rem 0; }
+    .timeline::before { content: ''; position: absolute; right: 16px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+    
+    .timeline-item { position: relative; margin-bottom: 2rem; padding-right: 45px; }
+    .timeline-dot { position: absolute; right: 10px; top: 5px; width: 14px; height: 14px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 10px var(--primary); }
+    
+    .timeline-content { background: var(--bg-secondary); border: 1px solid var(--border); padding: 1.25rem; border-radius: 12px; }
+    .timeline-time { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; }
+    .timeline-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.35rem; }
+    .timeline-description { font-size: 0.85rem; color: var(--text-muted); }
+
+    /* Overlay Background */
+    .overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 90;
+      display: none;
+      opacity: 0;
+      transition: var(--transition);
+    }
+
+    .overlay.active { display: block; opacity: 1; }
+
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
-    }
-
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes progressFill {
-      from {
-        width: 0;
-      }
-    }
-
-    @keyframes ripple {
-      0% {
-        transform: scale(0);
-        opacity: 1;
-      }
-      100% {
-        transform: scale(4);
-        opacity: 0;
-      }
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     /* ============================================
-       RESPONSIVE
+       RESPONSIVE MEDIA QUERIES
        ============================================ */
-    @media (max-width: 768px) {
-      .menu-toggle {
-        display: block;
-      }
-
-      .user-name {
-        display: none;
-      }
-
-      .main {
-        padding: 1.5rem 1rem;
-      }
-
-      .greeting-title {
-        font-size: 1.5rem;
-      }
-
-      .quick-actions {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 1rem;
-      }
-
-      .action-card {
-        padding: 1rem;
-      }
-
-      .action-icon {
-        font-size: 2rem;
-        margin-bottom: 0.5rem;
-      }
-
-      .action-title {
-        font-size: 0.95rem;
-      }
-
-      .action-description {
-        font-size: 0.8rem;
-        display: none;
-      }
-
-      .completion-card {
-        padding: 1.5rem;
-      }
-
-      .completion-checklist {
-        grid-template-columns: 1fr;
-      }
-
-      .properties-grid {
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      }
-
-      .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .stat-card {
-        padding: 1.5rem;
-      }
-
-      .stat-icon {
-        font-size: 2rem;
-      }
-
-      .stat-value {
-        font-size: 1.75rem;
-      }
-
-      .timeline::before {
-        right: 10px;
-      }
-
-      .timeline-item {
-        padding-right: 50px;
-      }
-
-      .timeline-dot {
-        right: 3px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .header {
-        padding: 1rem;
-        gap: 0.5rem;
-      }
-
-      .logo {
-        font-size: 1.25rem;
-      }
-
-      .greeting-title {
-        font-size: 1.25rem;
-      }
-
-      .quick-actions {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.75rem;
-      }
-
-      .action-icon {
-        font-size: 1.5rem;
-        margin-bottom: 0.25rem;
-      }
-
-      .action-title {
-        font-size: 0.85rem;
-      }
-
-      .properties-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .stats-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .sidebar {
-        width: 100%;
-        right: -100%;
-      }
-
-      .property-details {
-        grid-template-columns: 1fr;
-      }
-
-      .section-title {
-        font-size: 1.25rem;
-      }
+    @media (max-width: 1024px) {
+      .app-container { grid-template-columns: 1fr; }
+      .sidebar { position: fixed; right: -280px; top: 0; bottom: 0; width: 260px; height: 100vh; background: var(--bg-primary); box-shadow: -5px 0 25px rgba(0,0,0,0.5); }
+      .sidebar.active { right: 0; }
+      .sidebar-close { display: block; }
+      .menu-toggle { display: block; }
+      .chat-main-wrapper { grid-template-columns: 1fr; }
+      .search-layout-wrapper { grid-template-columns: 1fr; }
+      .map-mock-container { display: none; }
     }
   </style>
 </head>
 <body>
 
-  <!-- HEADER -->
-  <header class="header">
-    <div class="header-left">
-      <button class="menu-toggle" id="menuToggle">
-        <i class="fas fa-bars"></i>
-      </button>
-      <div class="logo">AM</div>
-    </div>
-
-    <div class="header-right">
-      <div class="user-section">
-        <div class="user-avatar">
-          <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop" alt="المستخدم">
-        </div>
-        <span class="user-name">أحمد محمد</span>
-      </div>
-      <button class="notification-btn" id="notificationBtn">
-        <i class="fas fa-bell"></i>
-        <span class="notification-badge">3</span>
-      </button>
-    </div>
-  </header>
-
-  <!-- OVERLAY -->
   <div class="overlay" id="overlay"></div>
 
-  <!-- SIDEBAR -->
-  <aside class="sidebar" id="sidebar">
-    <button class="sidebar-close" id="sidebarClose">
-      <i class="fas fa-times"></i>
-    </button>
-    <div class="sidebar-title">AM</div>
+  <div class="app-container">
+    
+    <!-- ==========================================
+         SIDEBAR NAVIGATION COMPONENT
+         ========================================== -->
+    <aside class="sidebar" id="sidebar">
+      <button class="sidebar-close" id="sidebarClose"><i class="fas fa-times"></i></button>
+      <div class="sidebar-title">AM<span style="color:var(--primary)">.</span></div>
+      <nav class="sidebar-menu">
+        <a href="#" class="sidebar-item active" data-section="home"><i class="fas fa-home"></i> <span>الرئيسية</span></a>
+        <a href="#" class="sidebar-item" data-section="search"><i class="fas fa-search"></i> <span>البحث عن شقة</span></a>
+        <a href="#" class="sidebar-item" data-section="add-property"><i class="fas fa-plus-circle"></i> <span>إضافة عقار</span></a>
+        <a href="#" class="sidebar-item" data-section="my-properties"><i class="fas fa-building"></i> <span>عقاراتي</span></a>
+        <a href="#" class="sidebar-item" data-section="messages"><i class="fas fa-envelope"></i> <span>الرسائل</span></a>
+        <a href="#" class="sidebar-item" data-section="bookings"><i class="fas fa-calendar"></i> <span>الحجوزات</span></a>
+        <a href="#" class="sidebar-item" data-section="favorites"><i class="fas fa-heart"></i> <span>المفضلة</span></a>
+        <a href="#" class="sidebar-item" data-section="notifications"><i class="fas fa-bell"></i> <span>الإشعارات</span></a>
+        <a href="#" class="sidebar-item" data-section="reviews"><i class="fas fa-star"></i> <span>التقييمات</span></a>
+        <a href="#" class="sidebar-item" data-section="profile"><i class="fas fa-user-circle"></i> <span>الملف الشخصي</span></a>
+        <a href="#" class="sidebar-item" data-section="settings"><i class="fas fa-cog"></i> <span>الإعدادات</span></a>
+        <a href="#" class="sidebar-item" data-section="support"><i class="fas fa-headset"></i> <span>الدعم الفني</span></a>
+        <div class="sidebar-divider"></div>
+        <a href="#" class="sidebar-item sidebar-logout"><i class="fas fa-sign-out-alt"></i> <span>تسجيل الخروج</span></a>
+      </nav>
+    </aside>
 
-    <nav class="sidebar-menu">
-      <a href="#" class="sidebar-item active" data-section="home">
-        <i class="fas fa-home"></i>
-        <span>الرئيسية</span>
-      </a>
-      <a href="#" class="sidebar-item" data-section="search">
-        <i class="fas fa-search"></i>
-        <span>البحث عن شقة</span>
-      </a>
-      <a href="#" class="sidebar-item" data-section="add">
-        <i class="fas fa-plus-circle"></i>
-        <span>أضف عقارك</span>
-      </a>
-      <a href="#" class="sidebar-item" data-section="my-properties">
-        <i class="fas fa-building"></i>
-        <span>عقاراتي</span>
-      </a>
-      <a href="#" class="sidebar-item" data-section="favorites">
-        <i class="fas fa-heart"></i>
-        <span>المفضلة</span>
-      </a>
-      <a href="#" class="sidebar-item" data-section="messages">
-        <i class="fas fa-envelope"></i>
-        <span>الرسائل</span>
-      </a>
-      <a href="#" class="sidebar-item" data-section="bookings">
-        <i class="fas fa-calendar"></i>
-        <span>الحجوزات</span>
-      </a>
-      <a href="#" class="sidebar-item" data-section="reviews">
-        <i class="fas fa-star"></i>
-        <span>التقييمات</span>
-      </a>
-      <a href="#" class="sidebar-item" data-section="settings">
-        <i class="fas fa-cog"></i>
-        <span>الإعدادات</span>
-      </a>
-
-      <div class="sidebar-divider"></div>
-
-      <a href="#" class="sidebar-item sidebar-logout">
-        <i class="fas fa-sign-out-alt"></i>
-        <span>تسجيل الخروج</span>
-      </a>
-    </nav>
-  </aside>
-
-  <!-- MAIN CONTENT -->
-  <main class="main">
-    <!-- GREETING -->
-    <section class="greeting">
-      <h1 class="greeting-title">مرحباً، أحمد 👋</h1>
-      <p class="greeting-subtitle">ماذا تريد أن تفعل اليوم؟</p>
-    </section>
-
-    <!-- QUICK ACTIONS -->
-    <section class="quick-actions">
-      <div class="action-card">
-        <div class="action-icon">➕</div>
-        <h3 class="action-title">أضف عقارك</h3>
-        <p class="action-description">قائم بتأجير عقار جديد</p>
-      </div>
-      <div class="action-card">
-        <div class="action-icon">🔍</div>
-        <h3 class="action-title">ابحث عن شقة</h3>
-        <p class="action-description">ابحث عن أحلامك</p>
-      </div>
-      <div class="action-card">
-        <div class="action-icon">❤️</div>
-        <h3 class="action-title">المفضلة</h3>
-        <p class="action-description">عرض عقاراتك المفضلة</p>
-      </div>
-      <div class="action-card">
-        <div class="action-icon">📩</div>
-        <h3 class="action-title">طلباتي</h3>
-        <p class="action-description">إدارة طلبات التواصل</p>
-      </div>
-    </section>
-
-    <!-- COMPLETION CARD -->
-    <section class="completion-card">
-      <div class="completion-header">
-        <h2 class="completion-title">✨ اكتمل حسابك</h2>
-        <span class="completion-percentage">60%</span>
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill"></div>
-      </div>
-      <div class="completion-checklist">
-        <div class="checklist-item completed">
-          <div class="checklist-icon">✓</div>
-          <div class="checklist-text">
-            <div class="checklist-label">صورة شخصية</div>
-          </div>
-        </div>
-        <div class="checklist-item completed">
-          <div class="checklist-icon">✓</div>
-          <div class="checklist-text">
-            <div class="checklist-label">تأكيد الهاتف</div>
-          </div>
-        </div>
-        <div class="checklist-item completed">
-          <div class="checklist-icon">✓</div>
-          <div class="checklist-text">
-            <div class="checklist-label">اختيار المدينة</div>
-          </div>
-        </div>
-        <div class="checklist-item pending">
-          <div class="checklist-icon">○</div>
-          <div class="checklist-text">
-            <div class="checklist-label">أضف أول عقار</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- MY PROPERTIES -->
-    <section class="activity-section">
-      <h2 class="section-title">
-        <i class="fas fa-home"></i>
-        عقاراتي
-      </h2>
-      <div class="properties-grid">
-        <!-- Property 1 -->
-        <div class="property-card">
-          <div class="property-image">
-            <img src="https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&h=300&fit=crop" alt="شقة فاخرة">
-            <span class="property-status active">نشط</span>
-          </div>
-          <div class="property-content">
-            <div class="property-header">
-              <h3 class="property-name">شقة فاخرة بالمعادي</h3>
-              <p class="property-location">
-                <i class="fas fa-map-marker-alt"></i>
-                المعادي، القاهرة
-              </p>
-            </div>
-            <div class="property-price">2,500 ج.م/الشهر</div>
-            <div class="property-details">
-              <div class="detail-item">
-                <i class="fas fa-door-open"></i>
-                <span>3 غرف</span>
-              </div>
-              <div class="detail-item">
-                <i class="fas fa-bath"></i>
-                <span>2 حمام</span>
-              </div>
-              <div class="detail-item">
-                <i class="fas fa-ruler"></i>
-                <span>150 م²</span>
-              </div>
-              <div class="detail-item">
-                <i class="fas fa-tv"></i>
-                <span>مفروش</span>
-              </div>
-            </div>
-            <div class="property-stats">
-              <div class="stat-box">
-                <div class="stat-number">245</div>
-                <div class="stat-label">مشاهدة</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-number">18</div>
-                <div class="stat-label">حفظ</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-number">12</div>
-                <div class="stat-label">تواصل</div>
-              </div>
-            </div>
-            <button class="property-edit-btn">
-              <i class="fas fa-edit"></i>
-              تعديل
+    <!-- ==========================================
+         MAIN INTERFACE ENGINE (SPA CONTROLLER)
+         ========================================== -->
+    <div style="display: flex; flex-direction: column; min-width: 0;">
+      
+      <!-- GLOBAL TOP BAR -->
+      <header class="main" style="padding-bottom: 0;">
+        <div class="top-bar">
+          <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+          
+          <div style="display: flex; align-items: center; gap: 1.5rem; margin-right: auto;">
+            <button class="notification-btn" onclick="app.navigateTo('notifications')">
+              <i class="fas fa-bell"></i>
+              <div class="notification-badge"></div>
             </button>
-          </div>
-        </div>
-
-        <!-- Property 2 -->
-        <div class="property-card">
-          <div class="property-image">
-            <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&h=300&fit=crop" alt="شقة حديثة">
-            <span class="property-status review">قيد المراجعة</span>
-          </div>
-          <div class="property-content">
-            <div class="property-header">
-              <h3 class="property-name">شقة حديثة بالنيل</h3>
-              <p class="property-location">
-                <i class="fas fa-map-marker-alt"></i>
-                جزيرة الروضة، القاهرة
-              </p>
-            </div>
-            <div class="property-price">3,200 ج.م/الشهر</div>
-            <div class="property-details">
-              <div class="detail-item">
-                <i class="fas fa-door-open"></i>
-                <span>4 غرف</span>
-              </div>
-              <div class="detail-item">
-                <i class="fas fa-bath"></i>
-                <span>3 حمام</span>
-              </div>
-              <div class="detail-item">
-                <i class="fas fa-ruler"></i>
-                <span>200 م²</span>
-              </div>
-              <div class="detail-item">
-                <i class="fas fa-tv"></i>
-                <span>مفروش</span>
+            
+            <div class="user-profile-widget" style="cursor: pointer;" onclick="app.navigateTo('profile')">
+              <div class="user-avatar">أم</div>
+              <div class="user-info">
+                <span class="user-name">أحمد محمد</span>
+                <span class="user-role">مالك ومستأجر</span>
               </div>
             </div>
-            <div class="property-stats">
-              <div class="stat-box">
-                <div class="stat-number">0</div>
-                <div class="stat-label">مشاهدة</div>
+          </div>
+        </div>
+      </header>
+
+      <!-- SECTIONS CORE WRAPPER -->
+      <main class="main" style="padding-top: 0;">
+        
+        <!-- 1. SECTION HOME -->
+        <section id="section-home" class="spa-section active-section">
+          <div class="greeting">
+            <h1 class="greeting-title" id="dynamic-greeting">مرحباً، أحمد 👋</h1>
+            <p class="greeting-subtitle">ماذا تريد أن تفعل اليوم؟</p>
+          </div>
+          
+          <div class="quick-actions">
+            <div class="action-card" onclick="app.navigateTo('add-property')"><div class="action-icon">➕</div><h3 class="action-title">أضف عقارك</h3><p class="action-description">قم بإدراج وحدة جديدة</p></div>
+            <div class="action-card" onclick="app.navigateTo('search')"><div class="action-icon">🔍</div><h3 class="action-title">ابحث عن شقة</h3><p class="action-description">تصفح الخيارات المتاحة</p></div>
+            <div class="action-card" onclick="app.navigateTo('favorites')"><div class="action-icon">❤️</div><h3 class="action-title">المفضلة</h3><p class="action-description">العقارات التي حفظتها</p></div>
+            <div class="action-card" onclick="app.navigateTo('messages')"><div class="action-icon">📩</div><h3 class="action-title">طلباتي</h3><p class="action-description">إدارة محادثاتك الحالية</p></div>
+          </div>
+
+          <div class="completion-card">
+            <div class="completion-header"><h2 class="completion-title">✨ حالة اكتمال حسابك التوثيقي</h2><span class="completion-percentage" id="completion-pct">75%</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="completion-bar" style="width: 75%"></div></div>
+            <div class="completion-checklist" id="home-checklist"></div>
+          </div>
+        </section>
+
+        <!-- 2. SECTION SEARCH -->
+        <section id="section-search" class="spa-section">
+          <h2 class="section-title"><i class="fas fa-search"></i> البحث المتقدم عن الوحدات العقارية</h2>
+          <div class="search-filter-panel">
+            <select id="filter-governorate" onchange="app.filterProperties()"><option value="">كل المحافظات</option><option value="القاهرة">القاهرة</option><option value="الجيزة">الجيزة</option></select>
+            <select id="filter-type" onchange="app.filterProperties()"><option value="">كل الأنواع</option><option value="شقة">شقة</option><option value="فيلا">فيلا</option></select>
+            <input type="number" id="filter-max-price" placeholder="الحد الأقصى للسعر" oninput="app.filterProperties()">
+            <select id="filter-furnishing" onchange="app.filterProperties()"><option value="">حالة الفرش</option><option value="furnished">مفروش</option><option value="unfurnished">بدون فرش</option></select>
+          </div>
+          <div class="search-layout-wrapper">
+            <div class="properties-grid" id="search-results-renderer"></div>
+            <div class="map-mock-container"><i class="fas fa-map-marked-alt" style="font-size:3rem; color:var(--primary); margin-bottom:1rem;"></i><p>خريطة التوزيع الجغرافي التفاعلية الذكية</p></div>
+          </div>
+        </section>
+
+        <!-- 3. SECTION ADD PROPERTY (7-STEP WIZARD) -->
+        <section id="section-add-property" class="spa-section">
+          <h2 class="section-title"><i class="fas fa-plus-circle"></i> إضافة عقار جديد (Wizard)</h2>
+          <div class="wizard-container">
+            <div class="wizard-steps-indicator">
+              <div class="step-dot active" data-step="1">1</div>
+              <div class="step-dot" data-step="2">2</div>
+              <div class="step-dot" data-step="3">3</div>
+              <div class="step-dot" data-step="4">4</div>
+              <div class="step-dot" data-step="5">5</div>
+              <div class="step-dot" data-step="6">6</div>
+              <div class="step-dot" data-step="7">7</div>
+              <div class="step-dot" data-step="8">8</div>
+            </div>
+            <form id="property-wizard-form" onsubmit="event.preventDefault();">
+              <!-- Step 1: Type -->
+              <div class="wizard-step-content active" data-step="1">
+                <h3>الخطوة 1: حدد نوع العقار السكني</h3>
+                <div class="type-selection-grid">
+                  <label class="type-radio-card"><input type="radio" name="prop_type" value="شقة" checked><i class="fas fa-building"></i><span>شقة</span></label>
+                  <label class="type-radio-card"><input type="radio" name="prop_type" value="فيلا"><i class="fas fa-home"></i><span>فيلا</span></label>
+                  <label class="type-radio-card"><input type="radio" name="prop_type" value="استوديو"><i class="fas fa-door-open"></i><span>استوديو</span></label>
+                  <label class="type-radio-card"><input type="radio" name="prop_type" value="شاليه"><i class="fas fa-umbrella-beach"></i><span>شاليه</span></label>
+                </div>
               </div>
-              <div class="stat-box">
-                <div class="stat-number">0</div>
-                <div class="stat-label">حفظ</div>
+              <!-- Step 2: Location -->
+              <div class="wizard-step-content" data-step="2">
+                <h3>الخطوة 2: الموقع الجغرافي التفصيلي</h3>
+                <div class="form-group-row">
+                  <input type="text" name="prop_gov" placeholder="المحافظة (مثال: القاهرة)" required>
+                  <input type="text" name="prop_city" placeholder="المدينة" required>
+                  <input type="text" name="prop_district" placeholder="الحي السكني" required>
+                </div>
+                <input type="text" name="prop_maps_link" placeholder="رابط دبوس خريطة Google Maps التفاعلية">
               </div>
-              <div class="stat-box">
-                <div class="stat-number">0</div>
-                <div class="stat-label">تواصل</div>
+              <!-- Step 3: Features & Specs -->
+              <div class="wizard-step-content" data-step="3">
+                <h3>الخطوة 3: المواصفات والخدمات المتاحة</h3>
+                <div class="form-group-row">
+                  <input type="number" name="prop_rooms" placeholder="عدد الغرف" required>
+                  <input type="number" name="prop_baths" placeholder="عدد الحمامات" required>
+                  <input type="number" name="prop_area" placeholder="المساحة بالمتر المربع" required>
+                  <input type="number" name="prop_floor" placeholder="الدور" required>
+                </div>
+                <div class="amenities-checkbox-grid">
+                  <label><input type="checkbox" name="amenity_elevator"> مصعد</label>
+                  <label><input type="checkbox" name="amenity_ac"> تكييف</label>
+                  <label><input type="checkbox" name="amenity_wifi"> واي فاي</label>
+                  <label><input type="checkbox" name="amenity_kitchen"> مطبخ مجهز</label>
+                  <label><input type="checkbox" name="amenity_parking"> جراج</label>
+                  <label><input type="checkbox" name="amenity_security"> أمن وحراسة</label>
+                </div>
+                <select name="prop_furnishing" required><option value="furnished">مفروش بالكامل</option><option value="semi-furnished">نصف مفروش</option><option value="unfurnished">بدون فرش</option></select>
+              </div>
+              <!-- Step 4: Images Drag & Drop -->
+              <div class="wizard-step-content" data-step="4">
+                <h3>الخطوة 4: صور العقار (حتى 30 صورة مع ميزة الترتيب)</h3>
+                <div class="drag-drop-zone" id="images-drop-zone">
+                  <i class="fas fa-cloud-upload-alt" style="font-size:2.5rem; color:var(--primary)"></i>
+                  <p>اسحب الصور هنا أو اضغط لتصفح الملفات</p>
+                  <input type="file" id="wizard-images-input" multiple accept="image/*" style="display:none;">
+                </div>
+                <div class="images-preview-sortable" id="images-preview-container"></div>
+              </div>
+              <!-- Step 5: Video Upload -->
+              <div class="wizard-step-content" data-step="5">
+                <h3>الخطوة 5: فيديو العقار التوضيحي (حتى دقيقة واحدة)</h3>
+                <input type="file" id="wizard-video-input" accept="video/*">
+                <div id="video-preview-wrapper" style="margin-top:1rem;"></div>
+              </div>
+              <!-- Step 6: Pricing & Financials -->
+              <div class="wizard-step-content" data-step="6">
+                <h3>الخطوة 6: السعر وتفاصيل نظام الدفع والشروط</h3>
+                <div class="form-group-row">
+                  <input type="number" name="prop_price" placeholder="الإيجار الشهري (ج.م)" required>
+                  <input type="number" name="prop_insurance" placeholder="مبلغ التأمين (ج.م)" required>
+                  <input type="number" name="prop_min_rent" placeholder="الحد الأدنى للإيجار (بالشهور)" value="1">
+                </div>
+                <input type="text" name="prop_payment_method" placeholder="طريقة الدفع المقبولة">
+                <textarea name="prop_conditions" placeholder="شروط المالك الخاصة والتعاقدية (إن وجدت)"></textarea>
+                <textarea name="prop_desc" placeholder="الوصف التفصيلي والكامل للعقار الشامل لكافة المزايا والمحيط الجغرافي" required></textarea>
+              </div>
+              <!-- Step 7: Identity Document -->
+              <div class="wizard-step-content" data-step="7">
+                <h3>الخطوة 7: صورة بطاقة الرقم القومي للمطابقة والتأكيد (اختياري)</h3>
+                <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">يتم تشفير وحفظ هذه الوثيقة بصورة أمنة ومستقلة، ولا تظهر للعامة.</p>
+                <input type="file" id="wizard-identity-input" accept="image/*">
+              </div>
+              <!-- Step 8: Review & Publish -->
+              <div class="wizard-step-content" data-step="8">
+                <h3>الخطوة الأخيرة: مراجعة كافة البيانات والتأكيد</h3>
+                <div id="wizard-review-summary" class="review-summary-box"></div>
+                <button type="button" class="property-edit-btn" style="margin-top:1.5rem;" onclick="app.submitWizardForm()">نشر الإعلان للتحكيم والمراجعة الفورية</button>
+              </div>
+              <!-- Navigation Buttons -->
+              <div class="wizard-navigation-actions">
+                <button type="button" id="wizard-prev-btn" class="property-edit-btn" style="background:var(--bg-tertiary); color:white; display:none;">السابق</button>
+                <button type="button" id="wizard-next-btn" class="property-edit-btn">التالي</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- 4. SECTION MY PROPERTIES -->
+        <section id="section-my-properties" class="spa-section">
+          <h2 class="section-title"><i class="fas fa-building"></i> إدارة عقاراتي المدرجة بالمنصة</h2>
+          <div class="properties-grid" id="my-properties-renderer"></div>
+        </section>
+
+        <!-- 5. SECTION MESSAGES -->
+        <section id="section-messages" class="spa-section">
+          <h2 class="section-title"><i class="fas fa-envelope"></i> صندوق الرسائل والمحادثات الفورية المباشرة</h2>
+          <div class="chat-main-wrapper glass-panel">
+            <div class="chat-sidebar-list" id="chat-threads-list"></div>
+            <div class="chat-window-viewport">
+              <div class="chat-header-active" id="chat-active-user-bar">اختر محادثة لبدء التواصل</div>
+              <div class="chat-messages-stream" id="chat-messages-stream"></div>
+              <div class="chat-input-action-bar">
+                <button class="notification-btn" onclick="alert('تسجيل فوري...')"><i class="fas fa-microphone"></i></button>
+                <button class="notification-btn" onclick="document.getElementById('chat-file-input').click()"><i class="fas fa-paperclip"></i></button>
+                <input type="file" id="chat-file-input" style="display:none;">
+                <input type="text" id="chat-text-input" placeholder="اكتب رسالتك الاحترافية هنا..." onkeypress="if(event.key==='Enter') app.sendChatMessage()">
+                <button class="property-edit-btn" style="width:auto; padding:0.5rem 1.5rem;" onclick="app.sendChatMessage()"><i class="fas fa-paper-plane"></i></button>
               </div>
             </div>
-            <button class="property-edit-btn">
-              <i class="fas fa-edit"></i>
-              تعديل
-            </button>
           </div>
-        </div>
+        </section>
 
-        <!-- Property 3 -->
-        <div class="property-card">
-          <div class="property-image">
-            <img src="https://images.unsplash.com/photo-1512917774080-9b274b3f0600?w=500&h=300&fit=crop" alt="شقة مؤجرة">
-            <span class="property-status rented">مؤجّر</span>
-          </div>
-          <div class="property-content">
-            <div class="property-header">
-              <h3 class="property-name">شقة بالدقي</h3>
-              <p class="property-location">
-                <i class="fas fa-map-marker-alt"></i>
-                الدقي، الجيزة
-              </p>
+        <!-- 6. SECTION BOOKINGS -->
+        <section id="section-bookings" class="spa-section">
+          <h2 class="section-title"><i class="fas fa-calendar"></i> سجل ومتابعة طلبات الحجوزات التعاقدية</h2>
+          <div class="timeline" id="bookings-renderer"></div>
+        </section>
+
+        <!-- 7. SECTION FAVORITES -->
+        <section id="section-favorites" class="spa-section">
+          <h2 class="section-title"><i class="fas fa-heart"></i> قائمة الوحدات السكنية المفضلة</h2>
+          <div class="properties-grid" id="favorites-renderer"></div>
+        </section>
+
+        <!-- 8. SECTION NOTIFICATIONS -->
+        <section id="section-notifications" class="spa-section">
+          <h2 class="section-title"><i class="fas fa-bell"></i> مركز الإشعارات الفورية والتنبيهات المباشرة</h2>
+          <div class="timeline" id="notifications-renderer"></div>
+        </section>
+
+        <!-- 9. SECTION REVIEWS -->
+        <section id="section-reviews" class="spa-section">
+          <h2 class="section-title"><i class="fas fa-star"></i> تقييمات النزلاء وآراء العملاء</h2>
+          <div id="reviews-renderer" class="timeline"></div>
+        </section>
+
+        <!-- 10. SECTION PROFILE -->
+        <section id="section-profile" class="spa-section">
+          <h2 class="section-title"><i class="fas fa-user-circle"></i> إدارة بيانات وعناصر الملف الشخصي</h2>
+          <form id="profile-edit-form" class="completion-card" onsubmit="app.saveProfileData(event)">
+            <div class="form-group-row">
+              <input type="text" id="prof-name" placeholder="الاسم بالكامل" required>
+              <input type="email" id="prof-email" placeholder="البريد الإلكتروني" required>
+              <input type="text" id="prof-phone" placeholder="رقم الهاتف">
             </div>
-            <div class="property-price">1,800 ج.م/الشهر</div>
-            <div class="property-details">
-              <div class="detail-item">
-                <i class="fas fa-door-open"></i>
-                <span>2 غرفة</span>
-              </div>
-              <div class="detail-item">
-                <i class="fas fa-bath"></i>
-                <span>1 حمام</span>
-              </div>
-              <div class="detail-item">
-                <i class="fas fa-ruler"></i>
-                <span>100 م²</span>
-              </div>
-              <div class="detail-item">
-                <i class="fas fa-tv"></i>
-                <span>مفروش</span>
-              </div>
+            <div class="form-group-row">
+              <input type="text" id="prof-gov" placeholder="المحافظة">
+              <input type="text" id="prof-city" placeholder="المدينة">
             </div>
-            <div class="property-stats">
-              <div class="stat-box">
-                <div class="stat-number">512</div>
-                <div class="stat-label">مشاهدة</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-number">45</div>
-                <div class="stat-label">حفظ</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-number">28</div>
-                <div class="stat-label">تواصل</div>
-              </div>
-            </div>
-            <button class="property-edit-btn">
-              <i class="fas fa-edit"></i>
-              تعديل
-            </button>
+            <textarea id="prof-bio" placeholder="نبذة شخصية تعريفية عن المالك/المستأجر"></textarea>
+            <button type="submit" class="property-edit-btn" style="width:max-content; padding:0.75rem 2.5rem;">حفظ وتحديث الملف الشخصي</button>
+          </form>
+        </section>
+
+        <!-- 11. SECTION SETTINGS -->
+        <section id="section-settings" class="spa-section">
+          <h2 class="section-title"><i class="fas fa-cog"></i> إعدادات المنصة والأمان الرقمي</h2>
+          <div class="completion-card">
+            <h3>تغيير كلمة المرور الشخصية</h3>
+            <input type="password" placeholder="...كلمة المرور الحالية" style="margin-top:1rem;">
+            <input type="password" placeholder="...كلمة المرور الجديدة">
+            <button class="property-edit-btn" style="margin-top:1rem; width:max-content;">تحديث كلمة المرور</button>
           </div>
-        </div>
-      </div>
-    </section>
+        </section>
 
-    <!-- STATISTICS -->
-    <section class="activity-section">
-      <h2 class="section-title">
-        <i class="fas fa-chart-line"></i>
-        الإحصائيات
-      </h2>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon">👁️</div>
-          <div class="stat-value">1,257</div>
-          <div class="stat-description">إجمالي المشاهدات</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">📞</div>
-          <div class="stat-value">84</div>
-          <div class="stat-description">طلبات التواصل</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">❤️</div>
-          <div class="stat-value">123</div>
-          <div class="stat-description">عدد مرات الحفظ</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">⭐</div>
-          <div class="stat-value">4.8</div>
-          <div class="stat-description">متوسط التقييم</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ACTIVITY TIMELINE -->
-    <section class="activity-section">
-      <h2 class="section-title">
-        <i class="fas fa-history"></i>
-        آخر النشاط
-      </h2>
-      <div class="timeline">
-        <div class="timeline-item">
-          <div class="timeline-dot"></div>
-          <div class="timeline-content">
-            <div class="timeline-time">قبل 2 ساعة</div>
-            <div class="timeline-title">📊 تم تحديث السعر</div>
-            <div class="timeline-description">تم تغيير سعر الشقة بالمعادي من 2,300 إلى 2,500 ج.م</div>
+        <!-- 12. SECTION SUPPORT -->
+        <section id="section-support" class="spa-section">
+          <h2 class="section-title"><i class="fas fa-headset"></i> الدعم الفني والمساعدة المباشرة</h2>
+          <div class="completion-card">
+            <p>هل تواجه أي مشكلة تقنية أو استفسار تعاقدي؟ افتح تذكرة فورية للدعم الآن.</p>
+            <input type="text" placeholder="عنوان المشكلة" style="margin-top:1rem;">
+            <textarea placeholder="شرح تفصيلي للمشكلة التقنية..."></textarea>
+            <button class="property-edit-btn" style="margin-top:1rem; width:max-content;">إرسال التذكرة الفنية</button>
           </div>
-        </div>
+        </section>
 
-        <div class="timeline-item">
-          <div class="timeline-dot"></div>
-          <div class="timeline-content">
-            <div class="timeline-time">أمس الساعة 3:45 م</div>
-            <div class="timeline-title">💬 رسالة جديدة</div>
-            <div class="timeline-description">استقبلت رسالة من محمود أحمد بخصوص شقة الدقي</div>
-          </div>
-        </div>
+        <!-- 13. SECTION PROPERTY DETAIL VIEW -->
+        <section id="section-property-detail" class="spa-section">
+          <button class="property-edit-btn" style="width:max-content; background:var(--bg-tertiary); color:white; margin-bottom:1.5rem;" onclick="app.navigateTo('search')"><i class="fas fa-arrow-right"></i> العودة للبحث</button>
+          <div id="property-detail-renderer"></div>
+        </section>
 
-        <div class="timeline-item">
-          <div class="timeline-dot"></div>
-          <div class="timeline-content">
-            <div class="timeline-time">أمس الساعة 1:20 م</div>
-            <div class="timeline-title">❤️ تم حفظ الإعلان</div>
-            <div class="timeline-description">3 مستخدمين أضافوا شقة الدقي للمفضلة</div>
-          </div>
-        </div>
+      </main>
+    </div>
+  </div>
 
-        <div class="timeline-item">
-          <div class="timeline-dot"></div>
-          <div class="timeline-content">
-            <div class="timeline-time">الأربعاء - 2 ساعة</div>
-            <div class="timeline-title">✅ تم نشر إعلان جديد</div>
-            <div class="timeline-description">تم نشر الشقة الحديثة بالنيل بنجاح وقيد المراجعة</div>
-          </div>
-        </div>
-
-        <div class="timeline-item">
-          <div class="timeline-dot"></div>
-          <div class="timeline-content">
-            <div class="timeline-time">الثلاثاء - صباحاً</div>
-            <div class="timeline-title">🎯 وصلت 100 مشاهدة</div>
-            <div class="timeline-description">الشقة بالمعادي وصلت لـ 100 مشاهدة في اليوم الأول</div>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- FOOTER -->
-  <footer class="footer">
-    <p>© 2026 AM جميع الحقوق محفوظة</p>
-  </footer>
-
+  <!-- ============================================================================
+       APPLICATION ENGINE SCRIPT (STATE MANAGEMENT & CONTROL)
+       ============================================================================ -->
   <script>
-    // ============================================
-    // JAVASCRIPT FUNCTIONALITY
-    // ============================================
-
-    // DOM Elements
-    const menuToggle = document.getElementById('menuToggle');
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('overlay');
-    const sidebarClose = document.getElementById('sidebarClose');
-    const notificationBtn = document.getElementById('notificationBtn');
-    const sidebarItems = document.querySelectorAll('.sidebar-item');
-
-    // Toggle Sidebar
-    function toggleSidebar() {
-      sidebar.classList.toggle('active');
-      overlay.classList.toggle('active');
-    }
-
-    function closeSidebar() {
-      sidebar.classList.remove('active');
-      overlay.classList.remove('active');
-    }
-
-    // Event Listeners
-    menuToggle.addEventListener('click', toggleSidebar);
-    sidebarClose.addEventListener('click', closeSidebar);
-    overlay.addEventListener('click', closeSidebar);
-
-    // Close sidebar when clicking on a menu item
-    sidebarItems.forEach(item => {
-      item.addEventListener('click', (e) => {
-        if (item.getAttribute('data-section')) {
-          sidebarItems.forEach(i => i.classList.remove('active'));
-          item.classList.add('active');
-          closeSidebar();
-          e.preventDefault();
-        }
-      });
-    });
-
-    // Notification Click Animation
-    notificationBtn.addEventListener('click', function() {
-      this.style.animation = 'none';
-      setTimeout(() => {
-        this.style.animation = 'slideUp 0.3s ease-out';
-      }, 10);
-    });
-
-    // Ripple Effect for Buttons
-    document.querySelectorAll('.property-edit-btn, .action-card').forEach(button => {
-      button.addEventListener('click', function(e) {
-        const ripple = document.createElement('span');
-        const rect = this.getBoundingClientRect();
-        const size = Math.max(rect.width, rect.height);
-        const x = e.clientX - rect.left - size / 2;
-        const y = e.clientY - rect.top - size / 2;
-
-        ripple.style.width = ripple.style.height = size + 'px';
-        ripple.style.left = x + 'px';
-        ripple.style.top = y + 'px';
-        ripple.classList.add('ripple');
-
-        // Only add ripple to edit buttons
-        if (this.classList.contains('property-edit-btn')) {
-          this.appendChild(ripple);
-          setTimeout(() => ripple.remove(), 600);
-        }
-      });
-    });
-
-    // Add CSS for ripple animation
-    const style = document.createElement('style');
-    style.textContent = `
-      .ripple {
-        position: absolute;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.6);
-        pointer-events: none;
-        animation: ripple 0.6s ease-out;
-      }
-    `;
-    document.head.appendChild(style);
-
-    // Smooth animations on scroll (optional)
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
+    const AppState = {
+      currentUser: {
+        name: "أحمد محمد", email: "ahmed.m@example.com", phone: "01012345678", gov: "القاهرة", city: "المعادي",
+        bio: "مهندس برمجيات مهتم بالبحث عن شقق سكنية راقية وتأجير العقارات الإدارية الخاصة.",
+        checklist: [
+          { label: "صورة شخصية وتأكيد الهوية", done: true },
+          { label: "تأكيد الهاتف برقم موثق", done: true },
+          { label: "اختيار نطاق المحافظة", done: true },
+          { label: "أضف أول عقار لك", done: false }
+        ]
+      },
+      properties: [
+        { id: "prop-1", user_id: "current", type: "شقة", name: "شقة فاخرة بالمعادي ثكنات", governorate: "القاهرة", city: "المعادي", price: 2500, rooms: 3, baths: 2, area: 150, status: "active", views: 245, saves: 18, chats: 12, furnishing: "furnished", image: "https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop" },
+        { id: "prop-2", user_id: "current", type: "شقة", name: "شقة حديثة ومودرن بالنيل مباشرة", governorate: "القاهرة", city: "جزيرة الروضة", price: 3200, rooms: 4, baths: 3, area: 200, status: "pending", views: 0, saves: 0, chats: 0, furnishing: "furnished", image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&fit=crop" },
+        { id: "prop-3", user_id: "other", type: "فيلا", name: "فيلا صف أول بالشيخ زايد", governorate: "الجيزة", city: "الشيخ زايد", price: 9500, rooms: 5, baths: 4, area: 450, status: "active", views: 512, saves: 45, chats: 28, furnishing: "unfurnished", image: "https://images.unsplash.com/photo-1512917774080-9b274b3f0600?w=500&fit=crop" }
+      ],
+      chats: [
+        { id: "chat-1", participantName: "محمود أحمد (مستأجر)", lastMessage: "هل السعر شامل الصيانة؟" },
+        { id: "chat-2", participantName: "كريم عز الدين (مالك)", lastMessage: "مرحبًا بك، يمكنك معاينة الشقة غداً" }
+      ],
+      messages: {
+        "chat-1": [
+          { sender: "other", text: "السلام عليكم، بخصوص شقة المعادي هل هي متاحة؟" },
+          { sender: "me", text: "وعليكم السلام، نعم متاحة للمعاينة في أي وقت." },
+          { sender: "other", text: "هل السعر شامل الصيانة؟" }
+        ],
+        "chat-2": [{ sender: "other", text: "مرحبًا بك، يمكنك معاينة الشقة غداً بالتأكيد." }]
+      },
+      bookings: [
+        { id: "b-1", propertyName: "شقة فاخرة بالمعادي", clientName: "محمود أحمد", date: "2026-07-15", status: "قيد الانتظار" }
+      ],
+      notifications: [
+        { id: "n-1", time: "قبل ساعتين", title: "📊 تحديث السعر", desc: "تم تغيير سعر الشقة بالمعادي بنجاح" },
+        { id: "n-2", time: "أمس", title: "💬 محادثة جديدة", desc: "استقبلت استفساراً من العميل محمود أحمد" }
+      ],
+      reviews: [
+        { id: "r-1", author: "سامح علام", comment: "التعامل راقي جداً والوصف مطابق للحقيقة تماماً المالك ملتزم.", rating: 5 }
+      ],
+      activeChatId: null,
+      activeWizardStep: 1,
+      uploadedWizardImages: []
     };
 
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.style.animation = 'slideUp 0.6s ease-out forwards';
-          observer.unobserve(entry.target);
+    class AM_Dashboard_App {
+      constructor() {
+        this.initDOM();
+        this.initRouting();
+        this.initWizard();
+        this.renderAllModules();
+      }
+
+      initDOM() {
+        this.menuToggle = document.getElementById('menuToggle');
+        this.sidebar = document.getElementById('sidebar');
+        this.overlay = document.getElementById('overlay');
+        this.sidebarClose = document.getElementById('sidebarClose');
+        this.sidebarItems = document.querySelectorAll('.sidebar-item');
+        
+        this.menuToggle.addEventListener('click', () => this.toggleSidebar(true));
+        this.sidebarClose.addEventListener('click', () => this.toggleSidebar(false));
+        this.overlay.addEventListener('click', () => this.toggleSidebar(false));
+      }
+
+      toggleSidebar(open) {
+        this.sidebar.classList.toggle('active', open);
+        this.overlay.classList.toggle('active', open);
+      }
+
+      initRouting() {
+        this.sidebarItems.forEach(item => {
+          item.addEventListener('click', (e) => {
+            const targetSection = item.getAttribute('data-section');
+            if (targetSection) {
+              e.preventDefault();
+              this.navigateTo(targetSection);
+              this.sidebarItems.forEach(i => i.classList.remove('active'));
+              item.classList.add('active');
+              this.toggleSidebar(false);
+            }
+          });
+        });
+      }
+
+      navigateTo(sectionId) {
+        document.querySelectorAll('.spa-section').forEach(sec => sec.classList.remove('active-section'));
+        const activeTarget = document.getElementById(`section-${sectionId}`);
+        if (activeTarget) {
+          activeTarget.classList.add('active-section');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-      });
-    }, observerOptions);
+      }
 
-    // Observe cards for animation
-    document.querySelectorAll('.action-card, .property-card, .stat-card, .timeline-item').forEach(card => {
-      observer.observe(card);
-    });
+      initWizard() {
+        const nextBtn = document.getElementById('wizard-next-btn');
+        const prevBtn = document.getElementById('wizard-prev-btn');
+        const imgInput = document.getElementById('wizard-images-input');
+        const dropZone = document.getElementById('images-drop-zone');
 
-    // Add smooth page transitions
-    window.addEventListener('load', () => {
-      document.body.style.opacity = '0';
-      setTimeout(() => {
-        document.body.style.transition = 'opacity 0.5s ease-in';
-        document.body.style.opacity = '1';
-      }, 100);
-    });
+        if (dropZone) dropZone.addEventListener('click', () => imgInput.click());
+        if (imgInput) imgInput.addEventListener('change', (e) => this.handleWizardImages(e.target.files));
+        if (nextBtn) nextBtn.addEventListener('click', () => this.handleWizardStepNavigation(1));
+        if (prevBtn) prevBtn.addEventListener('click', () => this.handleWizardStepNavigation(-1));
+      }
 
-    // Update user greeting based on time
-    function updateGreeting() {
-      const hour = new Date().getHours();
-      const greetingTitle = document.querySelector('.greeting-title');
-      const greeting = hour < 12 ? '🌅 صباح الخير' : hour < 18 ? '🌤️ مساء الخير' : '🌙 تصبح على خير';
-      greetingTitle.textContent = `${greeting}, أحمد`;
+      handleWizardStepNavigation(direction) {
+        AppState.activeWizardStep += direction;
+        document.querySelectorAll('.wizard-step-content').forEach(el => el.classList.remove('active'));
+        document.querySelector(`.wizard-step-content[data-step="${AppState.activeWizardStep}"]`).classList.add('active');
+
+        document.querySelectorAll('.step-dot').forEach(dot => {
+          const stepNum = parseInt(dot.getAttribute('data-step'));
+          dot.classList.toggle('active', stepNum <= AppState.activeWizardStep);
+        });
+
+        document.getElementById('wizard-prev-btn').style.display = AppState.activeWizardStep === 1 ? 'none' : 'block';
+        document.getElementById('wizard-next-btn').style.display = AppState.activeWizardStep === 8 ? 'none' : 'block';
+
+        if (AppState.activeWizardStep === 8) this.generateWizardReviewSummary();
+      }
+
+      handleWizardImages(files) {
+        const container = document.getElementById('images-preview-container');
+        Array.from(files).forEach(file => {
+          if (AppState.uploadedWizardImages.length >= 30) return;
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            AppState.uploadedWizardImages.push(e.target.result);
+            const box = document.createElement('div');
+            box.className = 'preview-thumb-box';
+            box.innerHTML = `<img src="${e.target.result}">`;
+            container.appendChild(box);
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      generateWizardReviewSummary() {
+        const form = document.getElementById('property-wizard-form');
+        const formData = new FormData(form);
+        document.getElementById('wizard-review-summary').innerHTML = `
+          <p><strong>نوع الوحدة السكنية:</strong> ${formData.get('prop_type') || 'شقة'}</p>
+          <p><strong>العنوان المحدد:</strong> ${formData.get('prop_gov') || ''} - ${formData.get('prop_city') || ''}</p>
+          <p><strong>المواصفات الفنية:</strong> ${formData.get('prop_rooms') || 0} غرف | ${formData.get('prop_baths') || 0} حمام</p>
+          <p><strong>القيمة الإيجارية الشهري:</strong> ${formData.get('prop_price') || 0} ج.م</p>
+          <p><strong>عدد الصور المرفوعة:</strong> ${AppState.uploadedWizardImages.length} صور تعاقدية</p>
+        `;
+      }
+
+      submitWizardForm() {
+        const form = document.getElementById('property-wizard-form');
+        const formData = new FormData(form);
+
+        AppState.properties.unshift({
+          id: `prop-${Date.now()}`, user_id: "current", type: formData.get('prop_type') || "شقة",
+          name: `وحدة سكنية جديدة في ${formData.get('prop_city') || 'مصر'}`,
+          governorate: formData.get('prop_gov') || "القاهرة", city: formData.get('prop_city') || "القاهرة",
+          price: parseInt(formData.get('prop_price')) || 2000, rooms: parseInt(formData.get('prop_rooms')) || 3,
+          baths: parseInt(formData.get('prop_baths')) || 2, area: parseInt(formData.get('prop_area')) || 120,
+          status: "pending", views: 0, saves: 0, chats: 0, furnishing: formData.get('prop_furnishing') || "furnished",
+          image: AppState.uploadedWizardImages[0] || "https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop"
+        });
+
+        alert("تم إرسال إعلانك بنجاح للتحكيم الإداري!");
+        form.reset();
+        AppState.uploadedWizardImages = [];
+        document.getElementById('images-preview-container').innerHTML = '';
+        AppState.activeWizardStep = 1;
+        this.handleWizardStepNavigation(0);
+        this.renderMyProperties();
+        this.renderSearchModule();
+        this.navigateTo('my-properties');
+      }
+
+      renderAllModules() {
+        this.renderProfile();
+        this.renderMyProperties();
+        this.renderSearchModule();
+        this.renderChatSystem();
+        this.renderBookings();
+        this.renderNotifications();
+        this.renderReviews();
+      }
+
+      renderProfile() {
+        document.getElementById('prof-name').value = AppState.currentUser.name;
+        document.getElementById('prof-email').value = AppState.currentUser.email;
+        document.getElementById('prof-phone').value = AppState.currentUser.phone;
+        document.getElementById('prof-gov').value = AppState.currentUser.gov;
+        document.getElementById('prof-city').value = AppState.currentUser.city;
+        document.getElementById('prof-bio').value = AppState.currentUser.bio;
+
+        document.getElementById('home-checklist').innerHTML = AppState.currentUser.checklist.map(item => `
+          <div class="checklist-item ${item.done ? 'completed' : 'pending'}">
+            <div class="checklist-icon">${item.done ? '✓' : '○'}</div>
+            <div class="checklist-label">${item.label}</div>
+          </div>
+        `).join('');
+      }
+
+      saveProfileData(e) {
+        e.preventDefault();
+        AppState.currentUser.name = document.getElementById('prof-name').value;
+        document.querySelector('.user-name').textContent = AppState.currentUser.name;
+        document.getElementById('dynamic-greeting').textContent = `مرحباً، ${AppState.currentUser.name.split(' ')[0]} 👋`;
+        alert("تم تحديث وحفظ بيانات ملفك الشخصي بأمان.");
+        this.navigateTo('home');
+      }
+
+      renderMyProperties() {
+        const container = document.getElementById('my-properties-renderer');
+        if (!container) return;
+        const myProps = AppState.properties.filter(p => p.user_id === "current");
+
+        container.innerHTML = myProps.map(p => `
+          <div class="property-card">
+            <div class="property-image">
+              <img src="${p.image}">
+              <span class="property-status ${p.status === 'active' ? 'active' : 'review'}">${p.status === 'active' ? 'نشط' : 'قيد المراجعة'}</span>
+            </div>
+            <div class="property-content">
+              <h3 class="property-name">${p.name}</h3>
+              <p class="property-location"><i class="fas fa-map-marker-alt"></i> ${p.city}، ${p.governorate}</p>
+              <div class="property-price">${p.price.toLocaleString()} ج.م / شهر</div>
+              <div class="property-stats">
+                <div class="stat-box"><div class="stat-number">${p.views}</div><div class="stat-label">مشاهدة</div></div>
+                <div class="stat-box"><div class="stat-number">${p.saves}</div><div class="stat-label">حفظ</div></div>
+              </div>
+              <button class="property-edit-btn" onclick="app.loadPropertyDetail('${p.id}')">إدارة العقار التفصيلية</button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      renderSearchModule() { this.filterProperties(); }
+
+      filterProperties() {
+        const container = document.getElementById('search-results-renderer');
+        if (!container) return;
+        const gov = document.getElementById('filter-governorate').value;
+        const type = document.getElementById('filter-type').value;
+        const maxPrice = document.getElementById('filter-max-price').value;
+
+        const filtered = AppState.properties.filter(p => {
+          if (gov && p.governorate !== gov) return false;
+          if (type && p.type !== type) return false;
+          if (maxPrice && p.price > parseInt(maxPrice)) return false;
+          return true;
+        });
+
+        container.innerHTML = filtered.map(p => `
+          <div class="property-card" onclick="app.loadPropertyDetail('${p.id}')">
+            <div class="property-image"><img src="${p.image}"></div>
+            <div class="property-content">
+              <h3 class="property-name">${p.name}</h3>
+              <p class="property-location">${p.city}، ${p.governorate}</p>
+              <div class="property-price">${p.price.toLocaleString()} ج.م</div>
+              <button class="property-edit-btn"><i class="fas fa-info-circle"></i> تصفح البيانات</button>
+            </div>
+          </div>
+        `).join('');
+        
+        // رندرة شاشة المفضلة تلقائياً لمحاكاة التفاعل الموحد
+        const favContainer = document.getElementById('favorites-renderer');
+        if(favContainer) favContainer.innerHTML = container.innerHTML;
+      }
+
+      loadPropertyDetail(id) {
+        const p = AppState.properties.find(prop => prop.id === id);
+        if (!p) return;
+
+        this.navigateTo('property-detail');
+        document.getElementById('property-detail-renderer').innerHTML = `
+          <div class="completion-card">
+            <img src="${p.image}" style="width:100%; height:280px; object-fit:cover; border-radius:12px; margin-bottom:1.5rem;">
+            <h2>${p.name}</h2>
+            <div class="property-price" style="margin-top:0.5rem;">${p.price.toLocaleString()} ج.م / شهر</div>
+            <p style="margin-top:1rem; color:var(--text-muted)">المواصفات الأساسية المتاحة: ${p.rooms} غرف سكنية و ${p.baths} حمام ومساحة معتمدة تبلغ ${p.area} م² كاملة التشطيب والمرافق.</p>
+            <div style="display:flex; gap:1rem; margin-top:1.5rem;">
+              <button class="property-edit-btn" style="width:auto; padding:0.75rem 2rem;" onclick="app.navigateTo('messages')">فتح تواصل فوري مع المالك</button>
+            </div>
+          </div>
+        `;
+      }
+
+      renderChatSystem() {
+        const listContainer = document.getElementById('chat-threads-list');
+        const streamContainer = document.getElementById('chat-messages-stream');
+        if (!listContainer) return;
+
+        listContainer.innerHTML = AppState.chats.map(c => `
+          <div class="chat-thread-card ${AppState.activeChatId === c.id ? 'active-thread' : ''}" onclick="app.loadChatThread('${c.id}')">
+            <div class="user-avatar" style="width:35px; height:35px; font-size:0.8rem;">CH</div>
+            <div style="flex:1; overflow:hidden;">
+              <h4 style="font-size:0.9rem;">${c.participantName}</h4>
+              <p style="font-size:0.75rem; color:var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${c.lastMessage}</p>
+            </div>
+          </div>
+        `).join('');
+
+        if (AppState.activeChatId && AppState.messages[AppState.activeChatId]) {
+          streamContainer.innerHTML = AppState.messages[AppState.activeChatId].map(m => `
+            <div class="msg-bubble ${m.sender === 'me' ? 'sent' : 'received'}">${m.text}</div>
+          `).join('');
+          streamContainer.scrollTop = streamContainer.scrollHeight;
+        } else {
+          streamContainer.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:2rem;">يرجى تفعيل واختيار محادثة لبدء البث المباشر.</div>`;
+        }
+      }
+
+      loadChatThread(chatId) { AppState.activeChatId = chatId; this.renderChatSystem(); }
+
+      sendChatMessage() {
+        const input = document.getElementById('chat-text-input');
+        if (!input.value.trim() || !AppState.activeChatId) return;
+        AppState.messages[AppState.activeChatId].push({ sender: "me", text: input.value });
+        AppState.chats.find(c => c.id === AppState.activeChatId).lastMessage = input.value;
+        input.value = '';
+        this.renderChatSystem();
+      }
+
+      renderBookings() {
+        document.getElementById('bookings-renderer').innerHTML = AppState.bookings.map(b => `
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="timeline-title">${b.propertyName}</div>
+              <p style="font-size:0.85rem; color:var(--text-muted);">المقدم من: ${b.clientName} | الحالة المستهدفة: ${b.status}</p>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      renderNotifications() {
+        document.getElementById('notifications-renderer').innerHTML = AppState.notifications.map(n => `
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="timeline-time">${n.time}</div>
+              <div class="timeline-title">${n.title}</div>
+              <div class="timeline-description">${n.desc}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      renderReviews() {
+        document.getElementById('reviews-renderer').innerHTML = AppState.reviews.map(r => `
+          <div class="timeline-item">
+            <div class="timeline-dot" style="background:var(--success);"></div>
+            <div class="timeline-content">
+              <div class="timeline-title">${r.author} ( تقييم ${r.rating}/5 )</div>
+              <div class="timeline-description">${r.comment}</div>
+            </div>
+          </div>
+        `).join('');
+      }
     }
 
-    updateGreeting();
-
-    // Console message
-    console.log('%c🚀 AM Dashboard Loaded Successfully', 'color: #38bdf8; font-size: 16px; font-weight: bold;');
+    let app;
+    document.addEventListener('DOMContentLoaded', () => { app = new AM_Dashboard_App(); });
   </script>
-
 </body>
-  </html>
+</html>
