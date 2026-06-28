@@ -833,6 +833,47 @@
       border-style: solid;
     }
 
+    /* Modal / Dialog Styles for Support Options */
+    .custom-modal {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: #151f32;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      width: 90%;
+      max-width: 400px;
+      z-index: 1000;
+      display: none;
+      opacity: 0;
+      transition: var(--transition);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .custom-modal.active {
+      display: block;
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    .modal-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 1rem; text-align: center; color: var(--text-primary); }
+    .modal-options-list { display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem; }
+    .modal-opt-btn {
+      display: flex; align-items: center; gap: 1rem;
+      width: 100%; padding: 1rem; background: var(--bg-tertiary);
+      border: 1px solid var(--border); border-radius: 12px;
+      color: var(--text-primary); font-family: 'Cairo', sans-serif;
+      font-weight: 600; cursor: pointer; transition: var(--transition);
+      text-decoration: none;
+    }
+    .modal-opt-btn:hover { border-color: var(--primary); background: rgba(56,189,248,0.05); }
+    .modal-opt-btn i { font-size: 1.3rem; }
+    .modal-close-btn {
+      margin-top: 1.5rem; width: 100%; background: transparent;
+      border: none; color: var(--text-muted); cursor: pointer;
+      font-family: 'Cairo', sans-serif; font-size: 0.9rem; text-align: center;
+    }
+    .modal-close-btn:hover { color: var(--danger); }
+
     @media (max-width: 1024px) {
       .app-container { grid-template-columns: 1fr; }
       .sidebar { position: fixed; right: -280px; top: 0; bottom: 0; width: 260px; height: 100vh; background: var(--bg-primary); box-shadow: -5px 0 25px rgba(0,0,0,0.5); }
@@ -849,6 +890,22 @@
 <body>
 
   <div class="overlay" id="overlay"></div>
+
+  <!-- Support Options Modal -->
+  <div class="custom-modal" id="supportModal">
+    <h3 class="modal-title"><i class="fas fa-headset" style="color: var(--primary);"></i> خيارات الدعم الفني</h3>
+    <div class="modal-options-list">
+      <a href="feedback.html" class="modal-opt-btn">
+        <i class="fas fa-comments" style="color: var(--primary);"></i>
+        <span>التواصل عبر الموقع</span>
+      </a>
+      <a href="https://wa.me/201210709490" target="_blank" class="modal-opt-btn">
+        <i class="fab fa-whatsapp" style="color: #25d366;"></i>
+        <span>التواصل عبر واتساب</span>
+      </a>
+    </div>
+    <button class="modal-close-btn" onclick="app.toggleSupportModal(false)">إغلاق النافذة</button>
+  </div>
 
   <div class="app-container">
     
@@ -970,7 +1027,7 @@
         </section>
 
         <section id="section-notifications" class="spa-section">
-          <h2 class="section-title"><i class="fas fa-bell"></i> مركز الإشعارات الفورية والتنبيهات المباشرة</h2>
+          <h2 class="section-title"><i class="fas fa-bell"></i> مركز الإشعارات الفورية والتنببهات المباشرة</h2>
           <div class="timeline" id="notifications-renderer"></div>
         </section>
 
@@ -1287,10 +1344,27 @@
         this.overlay.classList.toggle('active', open);
       }
 
+      toggleSupportModal(open) {
+        const modal = document.getElementById('supportModal');
+        if (open) {
+          this.overlay.classList.add('active');
+          modal.classList.add('active');
+        } else {
+          this.overlay.classList.remove('active');
+          modal.classList.remove('active');
+        }
+      }
+
       initRouting() {
         this.sidebarItems.forEach(item => {
           item.addEventListener('click', (e) => {
             const targetSection = item.getAttribute('data-section');
+            if (targetSection === 'support') {
+              e.preventDefault();
+              this.toggleSupportModal(true);
+              this.toggleSidebar(false);
+              return;
+            }
             if (targetSection) {
               e.preventDefault();
               this.navigateTo(targetSection);
