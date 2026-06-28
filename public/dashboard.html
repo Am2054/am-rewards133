@@ -303,6 +303,7 @@
       background: linear-gradient(90deg, var(--primary), #818cf8);
       border-radius: 10px;
       transition: width 0.5s ease;
+      width: 0%;
     }
 
     .completion-checklist {
@@ -395,23 +396,75 @@
     .detail-item { display: flex; flex-direction: column; align-items: center; font-size: 0.8rem; color: var(--text-muted); gap: 0.25rem; }
     .detail-item i { color: var(--primary); font-size: 0.95rem; }
 
-    /* ============================================
-       REALTIME CHAT COMPONENT
-       ============================================ */
-    .chat-main-wrapper {
-      display: grid;
-      grid-template-columns: 300px 1fr;
-      height: 600px;
-      border-radius: 16px;
-      overflow: hidden;
+    .property-stats {
+      display: flex;
+      justify-content: space-between;
+      background: var(--bg-primary);
+      padding: 0.75rem;
+      border-radius: 10px;
+      margin-bottom: 1rem;
     }
 
-    .chat-sidebar-list { background: rgba(17, 24, 39, 0.6); border-left: 1px solid var(--border); overflow-y: auto; }
-    .chat-window-viewport { display: flex; flex-direction: column; background: rgba(15, 23, 42, 0.4); }
-    .chat-header-active { padding: 1.25rem; background: var(--bg-secondary); border-bottom: 1px solid var(--border); font-weight: 700; }
-    .chat-messages-stream { flex: 1; padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; }
-    .chat-input-action-bar { padding: 1rem; background: var(--bg-secondary); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 0.75rem; }
-    .chat-input-action-bar input { margin-bottom: 0; }
+    .stat-box { text-align: center; flex: 1; }
+    .stat-number { font-weight: 700; font-size: 0.9rem; }
+    .stat-label { font-size: 0.7rem; color: var(--text-muted); }
+
+    .property-edit-btn {
+      width: 100%;
+      background: var(--primary);
+      color: var(--bg-primary);
+      border: none;
+      padding: 0.65rem;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Cairo', sans-serif;
+      transition: var(--transition);
+    }
+
+    .property-edit-btn:hover { background: var(--primary-hover); }
+
+    /* ============================================
+       SEARCH ENGINE & FILTERS LAYOUT
+       ============================================ */
+    .search-filter-panel {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      background: var(--bg-secondary);
+      padding: 1.25rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border);
+    }
+
+    .search-filter-panel select, .search-filter-panel input {
+      flex: 1;
+      min-width: 160px;
+      margin-bottom: 0;
+    }
+
+    .search-layout-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      gap: 1.5rem;
+    }
+
+    .map-mock-container {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      height: 500px;
+      position: sticky;
+      top: 95px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+    }
 
     /* ============================================
        TIMELINE & NOTIFICATIONS STYLE
@@ -423,7 +476,11 @@
     .timeline-dot { position: absolute; right: 10px; top: 5px; width: 14px; height: 14px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 10px var(--primary); }
     
     .timeline-content { background: var(--bg-secondary); border: 1px solid var(--border); padding: 1.25rem; border-radius: 12px; }
+    .timeline-time { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; }
+    .timeline-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.35rem; }
+    .timeline-description { font-size: 0.85rem; color: var(--text-muted); }
 
+    /* Overlay Background */
     .overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -438,7 +495,7 @@
     .overlay.active { display: block; opacity: 1; }
 
     /* ============================================
-       PROFILE ENHANCED STYLES
+       PROFILE ENHANCED SPECIFIC STYLES
        ============================================ */
     .profile-grid-layout {
       display: grid;
@@ -568,20 +625,22 @@
       font-weight: 600;
     }
 
-    .id-preview-box {
-      width: 100%;
-      height: 150px;
-      border: 1px dashed var(--border);
-      border-radius: 10px;
-      margin-top: 10px;
+    /* Upload ID Styling */
+    .id-upload-btn-wrapper {
       display: flex;
       align-items: center;
-      justify-content: center;
-      background-size: contain;
-      background-repeat: no-repeat;
-      background-position: center;
+      gap: 1rem;
+      background: var(--bg-primary);
+      padding: 0.75rem 1.25rem;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: var(--transition);
       color: var(--text-muted);
-      font-size: 0.85rem;
+    }
+    .id-upload-btn-wrapper:hover {
+      border-color: var(--primary);
+      color: var(--primary);
     }
 
     @media (max-width: 1024px) {
@@ -598,13 +657,16 @@
 
   <div class="overlay" id="overlay"></div>
 
-  <div class="app-container" id="appContent" style="display: none;">
+  <div class="app-container">
     
     <aside class="sidebar" id="sidebar">
       <button class="sidebar-close" id="sidebarClose"><i class="fas fa-times"></i></button>
       <div class="sidebar-title">AM<span style="color:var(--primary)">.</span></div>
       <nav class="sidebar-menu">
         <a href="#" class="sidebar-item active" data-section="home"><i class="fas fa-home"></i> <span>الرئيسية</span></a>
+        <a href="#" class="sidebar-item" data-section="search"><i class="fas fa-search"></i> <span>البحث عن شقة</span></a>
+        <a href="#" class="sidebar-item" data-section="add-property"><i class="fas fa-plus-circle"></i> <span>إضافة عقار</span></a>
+        <a href="#" class="sidebar-item" data-section="my-properties"><i class="fas fa-building"></i> <span>عقاراتي</span></a>
         <a href="#" class="sidebar-item" data-section="profile"><i class="fas fa-user-circle"></i> <span>الملف الشخصي</span></a>
         <div class="sidebar-divider"></div>
         <a href="#" class="sidebar-item sidebar-logout" onclick="app.handleLogout()"><i class="fas fa-sign-out-alt"></i> <span>تسجيل الخروج</span></a>
@@ -618,6 +680,11 @@
           <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
           
           <div style="display: flex; align-items: center; gap: 1.5rem; margin-right: auto;">
+            <button class="notification-btn" onclick="app.navigateTo('profile')">
+              <i class="fas fa-bell"></i>
+              <div class="notification-badge"></div>
+            </button>
+            
             <div class="user-profile-widget" style="cursor: pointer;" onclick="app.navigateTo('profile')">
               <div class="user-avatar" id="global-user-avatar">..</div>
               <div class="user-info">
@@ -634,14 +701,39 @@
         <section id="section-home" class="spa-section active-section">
           <div class="greeting">
             <h1 class="greeting-title" id="dynamic-greeting">مرحباً 👋</h1>
-            <p class="greeting-subtitle">مرحباً بك في لوحة التحكم الخاصة بك</p>
+            <p class="greeting-subtitle">ماذا تريد أن تفعل اليوم؟</p>
+          </div>
+          
+          <div class="quick-actions">
+            <div class="action-card" onclick="app.navigateTo('add-property')"><div class="action-icon">➕</div><h3 class="action-title">أضف عقارك</h3><p class="action-description">قم بإدرراج وحدة جديدة</p></div>
+            <div class="action-card" onclick="app.navigateTo('search')"><div class="action-icon">🔍</div><h3 class="action-title">ابحث عن شقة</h3><p class="action-description">تصفح الخيارات المتاحة</p></div>
+            <div class="action-card" onclick="app.navigateTo('profile')"><div class="action-icon">❤️</div><h3 class="action-title">الملف الشخصي</h3><p class="action-description">التحكم في حسابك بالكامل</p></div>
           </div>
 
           <div class="completion-card">
             <div class="completion-header"><h2 class="completion-title">✨ حالة اكتمال حسابك التوثيقي</h2><span class="completion-percentage" id="completion-pct">0%</span></div>
-            <div class="progress-bar"><div class="progress-fill" id="completion-bar" style="width: 0%"></div></div>
+            <div class="progress-bar"><div class="progress-fill" id="completion-bar"></div></div>
             <div class="completion-checklist" id="home-checklist"></div>
           </div>
+        </section>
+
+        <section id="section-search" class="spa-section">
+          <h2 class="section-title"><i class="fas fa-search"></i> البحث المتقدم عن الوحدات العقارية</h2>
+          <div class="search-layout-wrapper">
+            <div class="properties-grid" id="search-results-renderer"></div>
+          </div>
+        </section>
+
+        <section id="section-add-property" class="spa-section">
+          <h2 class="section-title"><i class="fas fa-plus-circle"></i> إضافة عقار جديد</h2>
+          <div class="wizard-container">
+            <p style="color: var(--text-muted)">يمكنك إضافة البيانات من هنا...</p>
+          </div>
+        </section>
+
+        <section id="section-my-properties" class="spa-section">
+          <h2 class="section-title"><i class="fas fa-building"></i> إدارة عقاراتي المدرجة بالمنصة</h2>
+          <div class="properties-grid" id="my-properties-renderer"></div>
         </section>
 
         <section id="section-profile" class="spa-section">
@@ -679,6 +771,10 @@
                     <div class="info-display-label">البريد الإلكتروني</div>
                     <div class="info-display-value" id="view-email">-</div>
                   </div>
+                  <div class="info-display-item" style="grid-column: span 2;">
+                    <div class="info-display-label">تاريخ الانضمام</div>
+                    <div class="info-display-value" id="view-joined-at">-</div>
+                  </div>
                 </div>
                 
                 <button class="property-edit-btn" style="margin-top: 1.5rem; width: max-content; padding: 0.75rem 2rem;" onclick="app.toggleProfileEditMode(true)">
@@ -695,9 +791,9 @@
                       <label class="avatar-edit-label" for="profile-image-input">
                         <i class="fas fa-camera"></i>
                       </label>
-                      <input type="file" id="profile-image-input" accept="image/*" style="display:none;" onchange="app.handleProfileImageSelection(event)">
+                      <input type="file" id="profile-image-input" accept="image/*" style="display:none;" onchange="app.handleProfileImageFirebaseUpload(event)">
                     </div>
-                    <p style="font-size: 0.85rem; color: var(--text-muted);">اضغط على الأيقونة لتغيير الصورة الشخصية</p>
+                    <p style="font-size: 0.85rem; color: var(--text-muted);">اضغط لتغيير صورتك الشخصية ورفعها مباشرة إلى Firebase Storage</p>
                   </div>
 
                   <div class="form-group-row">
@@ -728,19 +824,37 @@
               </div>
 
               <div class="completion-card">
-                <h3 style="margin-bottom: 1.25rem;"><i class="fas fa-id-card" style="color: var(--primary);"></i> توثيق البطاقة الشخصية (اختياري)</h3>
+                <h3 style="margin-bottom: 1.25rem;"><i class="fas fa-map-marker-alt" style="color: var(--primary);"></i> الموقع والمنطقة الجغرافية</h3>
+                <form onsubmit="app.updateLocationData(event)">
+                  <div class="form-group-row">
+                    <div>
+                      <label style="font-size: 0.85rem; color: var(--text-muted);">المحافظة</label>
+                      <input type="text" id="input-governorate" placeholder="مثال: القاهرة" required>
+                    </div>
+                    <div>
+                      <label style="font-size: 0.85rem; color: var(--text-muted);">المدينة / المنطقة</label>
+                      <input type="text" id="input-city" placeholder="مثال: المعادي" required>
+                    </div>
+                  </div>
+                  <button type="submit" class="property-edit-btn" style="width: max-content; padding: 0.65rem 1.5rem;">تحديث الموقع</button>
+                </form>
+              </div>
+
+              <!-- قسم رفع بطاقة الهوية الاختياري المنظم والرايق -->
+              <div class="completion-card">
+                <h3 style="margin-bottom: 1.25rem;"><i class="fas fa-id-card" style="color: var(--primary);"></i> وثائق الهوية الرسمية (ميزة اختيارية)</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">يمكنك رفع صورة واضحة لبطاقتك الشخصية لتسريع عملية التوثيق وزيادة مستوى الأمان بحسابك.</p>
                 <div style="display: flex; flex-direction: column; gap: 1rem;">
-                  <p style="font-size: 0.85rem; color: var(--text-muted);">يمكنك رفع صورة واضحة للبطاقة الشخصية لتسريع عملية التوثيق وزيادة مستوى الثقة بالحساب.</p>
+                  <label class="id-upload-btn-wrapper" for="id-card-file-input">
+                    <i class="fas fa-cloud-upload-alt" style="font-size: 1.4rem;"></i>
+                    <span id="id-upload-status-text">اضغط هنا لاختيار صورة البطاقة الشخصية وترقيتها</span>
+                  </label>
                   <input type="file" id="id-card-file-input" accept="image/*" style="display: none;" onchange="app.handleIdCardUpload(event)">
-                  <button class="property-edit-btn" style="width: max-content; padding: 0.65rem 1.5rem; background: var(--bg-tertiary); color: white;" onclick="document.getElementById('id-card-file-input').click()">
-                    <i class="fas fa-upload"></i> اختر صورة البطاقة
-                  </button>
-                  <div class="id-preview-box" id="id-card-preview-element">لم يتم رفع صورة بعد</div>
                 </div>
               </div>
 
               <div class="completion-card">
-                <h3 style="margin-bottom: 1.25rem;"><i class="fas fa-shield-alt" style="color: var(--primary);"></i> إعدادات التحقق المباشر</h3>
+                <h3 style="margin-bottom: 1.25rem;"><i class="fas fa-shield-alt" style="color: var(--primary);"></i> إعدادات الأمان والتحقق</h3>
                 
                 <div class="security-action-row">
                   <div>
@@ -788,7 +902,17 @@
                     <span style="color: var(--primary); font-weight: 700;" id="profile-trust-pct">0%</span>
                   </div>
                   <div class="progress-bar" style="margin-bottom: 0;">
-                    <div class="progress-fill" id="profile-trust-bar" style="width: 0%"></div>
+                    <div class="progress-fill" id="profile-trust-bar"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="completion-card">
+                <h3 style="margin-bottom: 1.25rem;"><i class="fas fa-chart-pie" style="color: var(--primary);"></i> إحصائيات الأداء الرقمي</h3>
+                <div class="stats-dashboard-grid">
+                  <div class="stat-dashboard-card">
+                    <div class="stat-dashboard-val" id="stat-properties">0</div>
+                    <div class="stat-dashboard-lbl">عدد العقارات</div>
                   </div>
                 </div>
               </div>
@@ -818,23 +942,30 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, doc, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
+      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
       projectId: "am--rewards",
       storageBucket: "am--rewards.firebasestorage.app",
       messagingSenderId: "744783579735",
-      appId: "1:744783579735:web:45e00de9998893bbc9b112"
+      appId: "1:744783579735:web:45e00de9998893bbc9b112",
+      measurementId: "G-CV3GLT2TTJ"
     };
 
     const firebaseApp = initializeApp(firebaseConfig);
     const db = getFirestore(firebaseApp);
     const auth = getAuth(firebaseApp);
+    const storage = getStorage(firebaseApp);
 
     const AppState = {
       currentUser: null,
-      currentUserId: null
+      currentUserId: null,
+      properties: [
+        { id: "prop-1", user_id: "example_uid", type: "شقة", name: "شقة فاخرة بالمعادي ثكنات", governorate: "القاهرة", city: "المعادي", price: 2500, rooms: 3, baths: 2, area: 150, status: "active", views: 245, saves: 18, chats: 12, furnishing: "furnished", image: "https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop" }
+      ]
     };
 
     class AM_Dashboard_App {
@@ -852,9 +983,9 @@
         this.sidebarClose = document.getElementById('sidebarClose');
         this.sidebarItems = document.querySelectorAll('.sidebar-item');
         
-        if (this.menuToggle) this.menuToggle.addEventListener('click', () => this.toggleSidebar(true));
-        if (this.sidebarClose) this.sidebarClose.addEventListener('click', () => this.toggleSidebar(false));
-        if (this.overlay) this.overlay.addEventListener('click', () => this.toggleSidebar(false));
+        this.menuToggle.addEventListener('click', () => this.toggleSidebar(true));
+        this.sidebarClose.addEventListener('click', () => this.toggleSidebar(false));
+        this.overlay.addEventListener('click', () => this.toggleSidebar(false));
       }
 
       toggleSidebar(open) {
@@ -889,7 +1020,7 @@
       initAuthAndSnapshotListener() {
         onAuthStateChanged(auth, (user) => {
           if (!user) {
-            console.log("No authenticated user found. Redirecting to login.");
+            console.log("No authenticated user. Redirecting to login.html...");
             window.location.href = "login.html";
             return;
           }
@@ -901,20 +1032,16 @@
 
           this.unsubscribeUser = onSnapshot(userDocRef, (snapshot) => {
             if (!snapshot.exists()) {
-              console.error(`Document for user.uid: ${user.uid} does not exist in Firestore. Redirecting.`);
+              console.error(`Document for user.uid: ${user.uid} does not exist. Redirecting to login.html...`);
               window.location.href = "login.html";
               return;
             }
 
             AppState.currentUser = snapshot.data();
-            
-            // إظهار المحتوى فقط بعد التأكد التام من تحميل بيانات المستخدم الحقيقية
-            document.getElementById('appContent').style.display = 'grid';
             this.renderProfileDOM();
-            this.calculateAndRenderProgress();
+            this.calculateAndRenderProgressAndTrust();
           }, (error) => {
-            console.error("Firestore error context:", error);
-            window.location.href = "login.html";
+            console.error("Firestore Error context:", error);
           });
         });
       }
@@ -942,6 +1069,7 @@
         document.getElementById('view-display-name').textContent = user.display_name || "-";
         document.getElementById('view-phone').textContent = user.phone || "-";
         document.getElementById('view-email').textContent = user.email || "-";
+        document.getElementById('view-joined-at').textContent = user.joined_at || "-";
 
         const viewAvatar = document.getElementById('view-profile-image');
         const editAvatarPreview = document.getElementById('edit-profile-image-preview');
@@ -958,6 +1086,9 @@
         document.getElementById('input-phone').value = user.phone || "";
         document.getElementById('input-email').value = user.email || "";
 
+        document.getElementById('input-governorate').value = user.governorate || "";
+        document.getElementById('input-city').value = user.city || "";
+
         document.getElementById('sec-phone-check').innerHTML = user.phone_verified ? '<i class="fas fa-check-circle" style="color:var(--success)"></i>' : '';
         document.getElementById('sec-phone-btn').style.display = user.phone_verified ? 'none' : 'block';
         document.getElementById('sec-email-check').innerHTML = user.email_verified ? '<i class="fas fa-check-circle" style="color:var(--success)"></i>' : '';
@@ -967,55 +1098,48 @@
         this.renderBadge('badge-email', user.email_verified, "البريد الإلكتروني مؤكد", "البريد غير مؤكد");
         this.renderBadge('badge-id-card', user.id_card_uploaded, "البطاقة الشخصية مرفوعة", "البطاقة الشخصية غير مرفوعة");
 
-        const previewEl = document.getElementById('id-card-preview-element');
-        if (user.id_card_image) {
-          previewEl.style.backgroundImage = `url(${user.id_card_image})`;
-          previewEl.textContent = '';
-        } else {
-          previewEl.style.backgroundImage = 'none';
-          previewEl.textContent = 'لم يتم رفع صورة بعد';
+        if (user.id_card_uploaded) {
+          document.getElementById('id-upload-status-text').textContent = "✅ تم رفع صورة البطاقة الشخصية بنجاح";
         }
+
+        document.getElementById('stat-properties').textContent = AppState.properties.filter(p => p.user_id === AppState.currentUserId).length;
+        
+        this.renderHomeChecklist();
       }
 
-      calculateAndRenderProgress() {
-        const user = AppState.currentUser;
-        if (!user) return;
+      /* حل وإصلاح مشكلة الـ Progress Bar وحساب نسبة الاكتمال ديناميكياً بدقة */
+      calculateAndRenderProgressAndTrust() {
+        const u = AppState.currentUser;
+        if (!u) return;
 
-        let totalSteps = 4;
-        let completedSteps = 0;
+        let totalPoints = 0;
+        let earnedPoints = 0;
 
-        if (user.phone_verified) completedSteps++;
-        if (user.email_verified) completedSteps++;
-        if (user.id_card_uploaded) completedSteps++;
-        if (user.name && user.display_name) completedSteps++;
-
-        const percentage = Math.round((completedSteps / totalSteps) * 100);
-
-        // تحديث شريط حالة الحساب في الصفحة الرئيسية
-        document.getElementById('completion-pct').textContent = `${percentage}%`;
-        document.getElementById('completion-bar').style.width = `${percentage}%`;
-
-        // تحديث شريط مستوى الثقة في صفحة الملف الشخصي
-        document.getElementById('profile-trust-pct').textContent = `${percentage}%`;
-        document.getElementById('profile-trust-bar').style.width = `${percentage}%`;
-
-        // رندرة قائمة الـ Checklist
-        const list = [
-          { label: "تأكيد بيانات الاسم والمعروض", done: (user.name && user.display_name) },
-          { label: "تأكيد الهاتف برقم موثق", done: user.phone_verified },
-          { label: "توثيق البريد الإلكتروني", done: user.email_verified },
-          { label: "رفع البطاقة الشخصية (اختياري)", done: user.id_card_uploaded }
+        const checklistItems = [
+          { checked: u.phone_verified, weight: 25 },
+          { checked: u.email_verified, weight: 25 },
+          { checked: !!u.governorate && !!u.city, weight: 25 },
+          { checked: u.id_card_uploaded, weight: 25 }
         ];
 
-        const checklistContainer = document.getElementById('home-checklist');
-        if (checklistContainer) {
-          checklistContainer.innerHTML = list.map(item => `
-            <div class="checklist-item ${item.done ? 'completed' : 'pending'}">
-              <div class="checklist-icon">${item.done ? '✓' : '○'}</div>
-              <div class="checklist-label">${item.label}</div>
-            </div>
-          `).join('');
-        }
+        checklistItems.forEach(item => {
+          totalPoints += item.weight;
+          if (item.checked) earnedPoints += item.weight;
+        });
+
+        const scorePercentage = Math.round((earnedPoints / totalPoints) * 100);
+
+        // تحديث الـ Progress Bar في الصفحة الرئيسية
+        const completionPctEl = document.getElementById('completion-pct');
+        const completionBarEl = document.getElementById('completion-bar');
+        if (completionPctEl) completionPctEl.textContent = `${scorePercentage}%`;
+        if (completionBarEl) completionBarEl.style.width = `${scorePercentage}%`;
+
+        // تحديث الـ Trust Score في الجانب الأيسر لتبويب الملف الشخصي
+        const profileTrustPctEl = document.getElementById('profile-trust-pct');
+        const profileTrustBarEl = document.getElementById('profile-trust-bar');
+        if (profileTrustPctEl) profileTrustPctEl.textContent = `${scorePercentage}%`;
+        if (profileTrustBarEl) profileTrustBarEl.style.width = `${scorePercentage}%`;
       }
 
       renderBadge(elementId, isVerified, verifiedText, unverifiedText) {
@@ -1056,41 +1180,73 @@
         }
       }
 
-      handleProfileImageSelection(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-          if (!AppState.currentUserId) return;
-          try {
-            await updateDoc(doc(db, "users", AppState.currentUserId), {
-              profile_image: event.target.result
-            });
-          } catch(err) {
-            console.error("Error updating avatar image: ", err);
-          }
+      async updateLocationData(e) {
+        e.preventDefault();
+        if (!AppState.currentUserId) return;
+
+        const locationFields = {
+          governorate: document.getElementById('input-governorate').value,
+          city: document.getElementById('input-city').value,
+          updated_at: new Date().toISOString()
         };
-        reader.readAsDataURL(file);
+
+        try {
+          await updateDoc(doc(db, "users", AppState.currentUserId), locationFields);
+          alert("تم تحديث المنطقة الجغرافية بنجاح.");
+        } catch (err) {
+          console.error("Error updating location: ", err);
+        }
       }
 
-      handleIdCardUpload(e) {
+      /* ميزة رفع الصورة الشخصية لـ Firebase Storage وحفظ الـ Download URL */
+      async handleProfileImageFirebaseUpload(e) {
         const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-          if (!AppState.currentUserId) return;
-          try {
-            await updateDoc(doc(db, "users", AppState.currentUserId), {
-              id_card_image: event.target.result,
-              id_card_uploaded: true,
-              updated_at: new Date().toISOString()
-            });
-            alert("تم رفع صورة البطاقة الشخصية بنجاح.");
-          } catch(err) {
-            console.error("Error uploading ID card: ", err);
-          }
-        };
-        reader.readAsDataURL(file);
+        if (!file || !AppState.currentUserId) return;
+
+        try {
+          document.getElementById('edit-profile-image-preview').textContent = "⏳";
+          const storageRef = ref(storage, `users/${AppState.currentUserId}/profile_picture.jpg`);
+          
+          // رفع الملف الأصلي
+          const snapshot = await uploadBytes(storageRef, file);
+          const downloadURL = await getDownloadURL(snapshot.ref);
+
+          // تحديث رابط الصورة في الـ Document المخصص للمستخدم بـ Firestore
+          await updateDoc(doc(db, "users", AppState.currentUserId), {
+            profile_image: downloadURL,
+            updated_at: new Date().toISOString()
+          });
+
+        } catch (err) {
+          console.error("Error uploading profile image to Storage: ", err);
+          alert("فشل رفع الصورة الشخصية، يرجى المحاولة مرة أخرى.");
+        }
+      }
+
+      /* ميزة رفع بطاقة الهوية الوطنية الاختيارية إلى Firebase Storage وثم تحديث الحالة بـ Firestore */
+      async handleIdCardUpload(e) {
+        const file = e.target.files[0];
+        if (!file || !AppState.currentUserId) return;
+
+        const statusText = document.getElementById('id-upload-status-text');
+        try {
+          statusText.textContent = "⏳ جاري رفع صورة الهوية الشخصية...";
+          const idCardStorageRef = ref(storage, `users/${AppState.currentUserId}/id_card.jpg`);
+          
+          await uploadBytes(idCardStorageRef, file);
+          const idCardDownloadURL = await getDownloadURL(idCardStorageRef);
+
+          await updateDoc(doc(db, "users", AppState.currentUserId), {
+            id_card_uploaded: true,
+            id_card_url: idCardDownloadURL,
+            updated_at: new Date().toISOString()
+          });
+
+          statusText.textContent = "✅ تم رفع صورة البطاقة الشخصية بنجاح";
+        } catch (err) {
+          console.error("Error uploading ID card to Storage: ", err);
+          statusText.textContent = "❌ فشل رفع ملف الهوية، أعد المحاولة";
+        }
       }
 
       async verifyField(type) {
@@ -1106,49 +1262,72 @@
         }
       }
 
+      /* عملية تسجيل الخروج الحقيقية ثم التحويل الفوري */
       handleLogout() {
         if (confirm("هل تريد تسجيل الخروج؟")) {
           if (this.unsubscribeUser) this.unsubscribeUser();
-          signOut(auth)
-            .then(() => {
-              window.location.href = "login.html";
-            })
-            .catch((err) => {
-              console.error("Logout Error:", err);
-            });
+          signOut(auth).then(() => {
+            window.location.href = "login.html";
+          }).catch(err => console.error("Logout Error:", err));
         }
       }
 
+      /* عملية حذف كافة البيانات والملفات الحقيقية من الفايربيس ثم الحساب النهائي */
       async handleDeleteAccount() {
-        if (confirm("🚨 تحذير نهائي: سيتم مسح بياناتك بالكامل وحذف المستند الخاص بك وحسابك نهائياً من النظام. هل أنت متأكد؟")) {
-          if (!AppState.currentUserId) return;
-          const userInstance = auth.currentUser;
+        if (confirm("🚨 تحذير نهائي: سيتم مسح مستند Firestore الخاص بك وجميع الصور المرفوعة بـ Storage ثم إلغاء الحساب بالكامل!")) {
+          if (!AppState.currentUserId || !auth.currentUser) return;
           
+          const userAuth = auth.currentUser;
+          const currentUid = AppState.currentUserId;
+
           try {
             if (this.unsubscribeUser) this.unsubscribeUser();
-            
-            const userId = AppState.currentUserId;
-            
-            // 1. حذف مستند المستخدم الرئيسي
-            await deleteDoc(doc(db, "users", userId));
-            console.log("User document deleted successfully.");
 
-            // 2. إذا كان هناك بيانات أخرى مرتبطة مثل حقول فرعية أو تابعة يمكن إضافتها هنا
+            // 1. مسح ملفات السيرفر في Storage إذا وجدت
+            try {
+              const avatarRef = ref(storage, `users/${currentUid}/profile_picture.jpg`);
+              await deleteObject(avatarRef);
+            } catch (e) { console.log("No profile avatar file found to delete."); }
 
-            // 3. حذف الحساب من Firebase Authentication إذا سمحت الصلاحيات
-            if (userInstance) {
-              await deleteUser(userInstance);
-              console.log("Auth user account deleted successfully.");
-            }
-            
-            alert("تم حذف الحساب والبيانات بالكامل.");
+            try {
+              const idCardRef = ref(storage, `users/${currentUid}/id_card.jpg`);
+              await deleteObject(idCardRef);
+            } catch (e) { console.log("No ID card file found to delete."); }
+
+            // 2. حذف مستند البيانات من Firestore
+            await deleteDoc(doc(db, "users", currentUid));
+
+            // 3. حذف حساب Authentication الخاص بالمستخدم النهائي
+            await deleteUser(userAuth);
+
+            alert("تم حذف بياناتك وتدمير حسابك بنجاح.");
             window.location.href = "login.html";
+
           } catch(e) {
-            console.error("Error during account deletion process: ", e);
-            alert("حدث خطأ أثناء حذف الحساب. قد يتطلب الأمر إعادة تسجيل الدخول لتنفيذ هذا الإجراء الحساس.");
-            window.location.href = "login.html";
+            console.error("Error during full account deletion process: ", e);
+            alert("حدث خطأ أثناء تصفية الحساب، قد تحتاج لتسجيل الدخول مجدداً لحذف الحساب بسبب الصلاحيات الحساسة.");
           }
         }
+      }
+
+      renderHomeChecklist() {
+        const u = AppState.currentUser;
+        const checklistContainer = document.getElementById('home-checklist');
+        if(!checklistContainer || !u) return;
+        
+        const list = [
+          { label: "تأكيد وتوثيق الهاتف برقم موثق", done: u.phone_verified },
+          { label: "تأكيد وتوثيق البريد الإلكتروني", done: u.email_verified },
+          { label: "اختيار وتحديث المحافظة والمدينة الجغرافية", done: !!u.governorate && !!u.city },
+          { label: "رفع الهوية الوطنية الرسمية (اختياري)", done: u.id_card_uploaded }
+        ];
+
+        checklistContainer.innerHTML = list.map(item => `
+          <div class="checklist-item ${item.done ? 'completed' : 'pending'}">
+            <div class="checklist-icon">${item.done ? '✓' : '○'}</div>
+            <div class="checklist-label">${item.label}</div>
+          </div>
+        `).join('');
       }
     }
 
