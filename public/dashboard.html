@@ -288,6 +288,22 @@
     }
 
     .completion-title { font-size: 1.2rem; font-weight: 700; }
+    .completion-percentage { color: var(--primary); font-weight: 700; }
+
+    .progress-bar {
+      height: 8px;
+      background: var(--bg-tertiary);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), #818cf8);
+      border-radius: 10px;
+      transition: width 0.5s ease;
+    }
 
     .completion-checklist {
       display: grid;
@@ -682,6 +698,43 @@
       padding-bottom: 1.5rem;
       margin-bottom: 1.5rem;
     }
+    .profile-avatar-wrapper {
+      position: relative;
+    }
+    .profile-avatar-large {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #818cf8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: var(--bg-primary);
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+    }
+    .avatar-edit-label {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      background: var(--primary);
+      color: var(--bg-primary);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: var(--transition);
+    }
+    .avatar-edit-label:hover {
+      background: var(--primary-hover);
+    }
     .info-display-list {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -916,7 +969,8 @@
           </div>
 
           <div class="completion-card">
-            <div class="completion-header"><h2 class="completion-title">✨ حالة اكتمال حسابك التوثيقي</h2></div>
+            <div class="completion-header"><h2 class="completion-title">✨ حالة اكتمال حسابك التوثيقي</h2><span class="completion-percentage" id="completion-pct">0%</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="completion-bar" style="width: 0%"></div></div>
             <div class="completion-checklist" id="home-checklist"></div>
           </div>
         </section>
@@ -991,6 +1045,9 @@
               
               <div class="completion-card" id="profile-view-mode">
                 <div class="profile-card-header">
+                  <div class="profile-avatar-wrapper">
+                    <div class="profile-avatar-large" id="view-profile-image">..</div>
+                  </div>
                   <div>
                     <h2 id="view-name" style="font-size: 1.4rem; font-weight: 700;">جاري التحميل...</h2>
                     <p id="view-display-name-top" style="color: var(--text-muted); font-size: 0.9rem;">@...</p>
@@ -1028,6 +1085,17 @@
               <div class="completion-card" id="profile-edit-mode" style="display: none;">
                 <h3 style="margin-bottom: 1.5rem;"><i class="fas fa-user-edit" style="color: var(--primary);"></i> تعديل البيانات الشخصية</h3>
                 <form id="firebase-profile-form" onsubmit="app.updateProfileData(event)">
+                  <div style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+                    <div class="profile-avatar-wrapper">
+                      <div class="profile-avatar-large" id="edit-profile-image-preview">..</div>
+                      <label class="avatar-edit-label" for="profile-image-input">
+                        <i class="fas fa-camera"></i>
+                      </label>
+                      <input type="file" id="profile-image-input" accept="image/*" style="display:none;" onchange="app.handleProfileImageUpload(event)">
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--text-muted);">اضغط على الكاميرا لاختيار صورة شخصية ورفعها مباشرة إلى Firebase Storage</p>
+                  </div>
+
                   <div class="form-group-row">
                     <div>
                       <label style="font-size: 0.85rem; color: var(--text-muted);">الاسم الكامل</label>
@@ -1125,7 +1193,7 @@
               <div class="completion-card">
                 <h3 style="margin-bottom: 1.25rem;"><i class="fas fa-user-check" style="color: var(--primary);"></i> حالة التوثيق المعتمدة</h3>
                 
-                <div class="badge-status-container">
+                <div class="badge-status-container" style="margin-bottom: 1.5rem;">
                   <div class="verification-badge-item" id="badge-phone">
                     <span>الهاتف المحمول</span> <span class="status-lbl"></span>
                   </div>
@@ -1134,6 +1202,16 @@
                   </div>
                   <div class="verification-badge-item" id="badge-id-card">
                     <span>البطاقة الشخصية</span> <span class="status-lbl"></span>
+                  </div>
+                </div>
+
+                <div style="border-top: 1px solid var(--border); padding-top: 1rem;">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span style="font-weight: 600; font-size: 0.9rem;">مستوى الثقة في المنصة</span>
+                    <span style="color: var(--primary); font-weight: 700;" id="profile-trust-pct">0%</span>
+                  </div>
+                  <div class="progress-bar" style="margin-bottom: 0;">
+                    <div class="progress-fill" id="profile-trust-bar" style="width: 0%"></div>
                   </div>
                 </div>
               </div>
@@ -1307,6 +1385,9 @@
         }
       }
 
+      /* ============================================================================
+         الاستماع لـ Firebase Authentication المباشر ثم مراقبة الـ Document الفعلي
+         ============================================================================ */
       initAuthAndSnapshotListener() {
         onAuthStateChanged(auth, (user) => {
           if (!user) {
@@ -1339,9 +1420,14 @@
         window.location.href = "login.html";
       }
 
+      /* ============================================================================
+         رندرة البيانات الحقيقية وتحديث الـ Progress Bar بالكامل
+         ============================================================================ */
       renderProfileDOM() {
         const user = AppState.currentUser;
         if (!user) return;
+
+        const trustScore = user.trust_score || 0;
 
         // تحديث الـ Header العام بالمنصة
         document.getElementById('global-user-name').textContent = user.name || "بدون اسم";
@@ -1357,6 +1443,12 @@
           avatarEl.textContent = avatarInitial;
         }
 
+        // تحديث الـ Progress Bar الرئيسي والـ Percentage بناءً على حقل الـ trust_score الفعلي
+        const compPct = document.getElementById('completion-pct');
+        const compBar = document.getElementById('completion-bar');
+        if (compPct) compPct.textContent = `${trustScore}%`;
+        if (compBar) compBar.style.width = `${trustScore}%`;
+
         // --- المعلومات الشخصية ---
         document.getElementById('view-name').textContent = user.name || "-";
         document.getElementById('view-display-name-top').textContent = `@${user.display_name || ''}`;
@@ -1365,6 +1457,16 @@
         document.getElementById('view-phone').textContent = user.phone || "-";
         document.getElementById('view-email').textContent = user.email || "-";
         document.getElementById('view-joined-at').textContent = user.joined_at || "-";
+
+        const viewAvatar = document.getElementById('view-profile-image');
+        const editAvatarPreview = document.getElementById('edit-profile-image-preview');
+        if (user.profile_image) {
+          viewAvatar.style.backgroundImage = `url(${user.profile_image})`; viewAvatar.textContent = '';
+          editAvatarPreview.style.backgroundImage = `url(${user.profile_image})`; editAvatarPreview.textContent = '';
+        } else {
+          viewAvatar.style.backgroundImage = 'none'; viewAvatar.textContent = avatarInitial;
+          editAvatarPreview.style.backgroundImage = 'none'; editAvatarPreview.textContent = avatarInitial;
+        }
 
         // تعبئة حقول النموذج مسبقاً
         document.getElementById('input-name').value = user.name || "";
@@ -1388,10 +1490,13 @@
           idCardStatusText.textContent = user.id_card_uploaded ? "تم رفع صورة البطاقة بنجاح وجاري المراجعة" : "لم يتم رفع أي ملف بعد";
         }
 
-        // --- حالة التوثيق ---
+        // --- حالة التوثيق ومستوى الثقة البياني في الجانب ---
         this.renderBadge('badge-phone', user.phone_verified, "الهاتف مؤكد", "الهاتف غير مؤكد");
         this.renderBadge('badge-email', user.email_verified, "البريد الإلكتروني مؤكد", "البريد غير مؤكد");
         this.renderBadge('badge-id-card', user.id_card_uploaded, "البطاقة الشخصية مرفوعة", "البطاقة الشخصية غير مرفوعة");
+
+        document.getElementById('profile-trust-pct').textContent = `${trustScore}%`;
+        document.getElementById('profile-trust-bar').style.width = `${trustScore}%`;
 
         // --- إحصائيات الحساب العقارية ---
         document.getElementById('stat-properties').textContent = AppState.properties.filter(p=>p.user_id===AppState.currentUserId).length;
@@ -1455,6 +1560,39 @@
         }
       }
 
+      /* ============================================================================
+         ميزة رفع الصورة الشخصية إلى Firebase Storage وحفظ الـ Download URL في Firestore
+         ============================================================================ */
+      async handleProfileImageUpload(e) {
+        const file = e.target.files[0];
+        if (!file || !AppState.currentUserId) return;
+
+        try {
+          // إنشاء مسار فريد للملف الشخصي داخل Storage
+          const storageRef = ref(storage, `users/${AppState.currentUserId}/profile_picture_${file.name}`);
+          
+          // عملية الرفع
+          const snapshot = await uploadBytes(storageRef, file);
+          
+          // جلب رابط التحميل الفعلي
+          const downloadURL = await getDownloadURL(snapshot.ref);
+          
+          // تحديث الحقل مباشرة في مستند Firestore الفعلي
+          await updateDoc(doc(db, "users", AppState.currentUserId), {
+            profile_image: downloadURL,
+            updated_at: new Date().toISOString()
+          });
+
+          console.log("Profile picture successfully uploaded to Storage and Firestore sync accomplished.");
+        } catch (err) {
+          console.error("Error during profile image upload: ", err);
+          alert("حدث خطأ أثناء رفع الصورة الشخصية، حاول مرة أخرى.");
+        }
+      }
+
+      /* ============================================================================
+         ميزة رفع صورة تحقيق الشخصية (البطاقة) اختيارياً إلى Firebase Storage
+         ============================================================================ */
       async handleIdCardUpload(e) {
         const file = e.target.files[0];
         if (!file || !AppState.currentUserId) return;
@@ -1464,9 +1602,14 @@
           const snapshot = await uploadBytes(storageRef, file);
           const downloadURL = await getDownloadURL(snapshot.ref);
 
+          // حساب الـ trust_score الجديد بشكل تلقائي عند اكتمال الرفع لرفع معدل التقدم
+          const currentScore = AppState.currentUser?.trust_score || 0;
+          const nextScore = AppState.currentUser?.id_card_uploaded ? currentScore : Math.min(currentScore + 25, 100);
+
           await updateDoc(doc(db, "users", AppState.currentUserId), {
             id_card_uploaded: true,
             id_card_url: downloadURL,
+            trust_score: nextScore,
             updated_at: new Date().toISOString()
           });
 
@@ -1480,12 +1623,15 @@
       async verifyField(type) {
         if (!AppState.currentUserId) return;
         const payload = {};
+        const currentScore = AppState.currentUser?.trust_score || 0;
         
         if(type === 'phone' && !AppState.currentUser?.phone_verified) {
           payload.phone_verified = true;
+          payload.trust_score = Math.min(currentScore + 25, 100);
         }
         if(type === 'email' && !AppState.currentUser?.email_verified) {
           payload.email_verified = true;
+          payload.trust_score = Math.min(currentScore + 25, 100);
         }
 
         try {
@@ -1495,6 +1641,9 @@
         }
       }
 
+      /* ============================================================================
+         تنفيذ الخروج المباشر بناءً على تعليمات التوجيه لـ login.html
+         ============================================================================ */
       async handleLogout() {
         if (confirm("هل تريد تسجيل الخروج؟")) {
           try {
@@ -1507,12 +1656,23 @@
         }
       }
 
+      /* ============================================================================
+         حذف الحساب والملفات الحقيقية بالكامل من Storage و Firestore و Authentication
+         ============================================================================ */
       async handleDeleteAccount() {
         if (confirm("🚨 تحذير صارم: هل أنت متأكد من رغبتك في مسح كافة بياناتك العقارية والملفات الشخصية المرفوعة نهائياً من قاعدة البيانات؟ لا يمكن التراجع.")) {
           if (!AppState.currentUserId) return;
           try {
             if (this.unsubscribeUser) this.unsubscribeUser();
             
+            // 1. محاولة حذف الملف الشخصي والبطاقة من Storage إذا كان لديه مسار مسجل
+            if (AppState.currentUser?.profile_image && AppState.currentUser.profile_image.includes("firebase")) {
+              try {
+                const imgRef = ref(storage, AppState.currentUser.profile_image);
+                await deleteObject(imgRef);
+              } catch (e) { console.warn("Storage image not found or already missing."); }
+            }
+
             if (AppState.currentUser?.id_card_url && AppState.currentUser.id_card_url.includes("firebase")) {
               try {
                 const idRef = ref(storage, AppState.currentUser.id_card_url);
@@ -1520,8 +1680,10 @@
               } catch (e) { console.warn("Storage ID card not found or already missing."); }
             }
 
+            // 2. مسح مستند الـ Document الحقيقي الخاص بالمستخدم تماماً من Firestore
             await deleteDoc(doc(db, "users", AppState.currentUserId));
 
+            // 3. حذف حساب المستخدم من Firebase Authentication
             const user = auth.currentUser;
             if (user) {
               await deleteUser(user);
