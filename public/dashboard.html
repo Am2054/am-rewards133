@@ -801,7 +801,7 @@
       border-radius: 12px;
       text-align: center;
     }
-    .stat-dashboard-val {
+    .stats-dashboard-val {
       font-size: 1.75rem;
       font-weight: 900;
       color: var(--primary);
@@ -881,7 +881,7 @@
         <section id="section-home" class="spa-section active-section">
           <div class="greeting">
             <h1 class="greeting-title" id="dynamic-greeting">مرحباً 👋</h1>
-            <p class="greeting-subtitle">ماذا تريد أن تفعل اليوم؟</p>
+            <p class="greeting-subtitle">ماذا تريد أن تفعل اليوم?</p>
           </div>
           
           <div class="quick-actions">
@@ -1200,7 +1200,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, doc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     // الإعدادات الخاصة بك والمستخرجة من طلبك بدقة
     const firebaseConfig = {
@@ -1219,7 +1219,7 @@
     const db = getFirestore(firebaseApp);
 
     // معرف افتراضي للمستخدم الحالي للتشغيل السريع والاختبار (يتم استبداله بمعرف المحادثة أو الـ Auth لاحقاً)
-    const CURRENT_USER_ID = "ahmed_user_id";
+    let CURRENT_USER_ID = "ahmed_user_id";
 
     // الهيكل الأساسي لحالة التطبيق الموحدة
     const AppState = {
@@ -1234,7 +1234,8 @@
       constructor() {
         this.initDOM();
         this.initRouting();
-        this.fetchProfileDataFromFirebase();
+        this.unsubscribeUser = null;
+        this.listenToProfileDataFromFirebase();
       }
 
       initDOM() {
@@ -1279,17 +1280,22 @@
       }
 
       /* ============================================================================
-         جلب ومزامنة البيانات من FIREBASE FIRESTORE
+         الاستماع الفوري واللحظي لبيانات السجل المحدد من FIREBASE FIRESTORE (onSnapshot)
          ============================================================================ */
-      async fetchProfileDataFromFirebase() {
-        try {
-          const userDocRef = doc(db, "users", CURRENT_USER_ID);
-          const userSnapshot = await getDoc(userDocRef);
+      listenToProfileDataFromFirebase() {
+        // إلغاء أي استماع سابق لتجنب تسريب الذاكرة والتكرار
+        if (this.unsubscribeUser) {
+          this.unsubscribeUser();
+        }
 
+        const userDocRef = doc(db, "users", CURRENT_USER_ID);
+
+        this.unsubscribeUser = onSnapshot(userDocRef, (userSnapshot) => {
           if (userSnapshot.exists()) {
             AppState.currentUser = userSnapshot.data();
+            this.renderProfileDOM();
           } else {
-            // إنشاء بيانات أولية متطابقة مع الـ Schema المطلوبة إذا لم تكن موجودة
+            // إنشاء بيانات أولية متطابقة مع الـ Schema المطلوبة إذا لم تكن موجودة نهائياً
             AppState.currentUser = {
               id: CURRENT_USER_ID,
               name: "أحمد محمد",
@@ -1309,12 +1315,12 @@
               created_at: "2026-01-10",
               updated_at: "2026-06-28"
             };
+            this.renderProfileDOM();
           }
-          this.renderProfileDOM();
-        } catch (error) {
-          console.error("Error connecting to Firestore: ", error);
-          alert("حدث خطأ أثناء جلب البيانات من الفايربيس، سيتم عرض المحاكي المؤقت.");
-        }
+        }, (error) => {
+          console.error("Error connecting to Firestore via onSnapshot: ", error);
+          alert("حدث خطأ أثناء الاستماع للبيانات الحية، سيتم عرض المحاكي المؤقت.");
+        });
       }
 
       /* ============================================================================
@@ -1493,6 +1499,9 @@
       /* --- القسم السادس: إعدادات الحساب الحساسة --- */
       handleLogout() {
         if (confirm("هل أنت متأكد من رغبتك في تسجيل الخروج الفوري من النظام؟")) {
+          if (this.unsubscribeUser) {
+            this.unsubscribeUser();
+          }
           alert("تم تسجيل الخروج بنجاح.");
           window.location.reload();
         }
@@ -1501,6 +1510,7 @@
       async handleDeleteAccount() {
         if (confirm("🚨 تحذير: هل أنت متأكد تماماً من حذف حسابك نهائياً؟ هذا الإجراء لا يمكن التراجع عنه وسيتم مسح كافة عقاراتك وبياناتك التوثيقية المسجلة.")) {
           try {
+            if (this.unsubscribeUser) this.unsubscribeUser();
             await deleteDoc(doc(db, "users", CURRENT_USER_ID));
           } catch(e) {}
           alert("تم حذف الحساب والبيانات التابعة بالكامل من الخادم.");
