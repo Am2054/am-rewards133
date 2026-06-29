@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إضافة عقار جديد</title>
-    <!-- احتفظ بملفات الـ CSS والتصميم الخاصة بمشروعك هنا دون أي تغيير -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AM. Dashboard - إضافة عقار جديد</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
@@ -35,245 +34,174 @@
     }
     input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 10px rgba(56,189,248,0.2); }
     .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
-    .checkbox-item { display: flex; align-items: center; gap: 0.75rem; background: var(--bg-primary); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; user-select: none; }
+    .checkbox-item { display: flex; align-items: center; gap: 0.75rem; background: var(--bg-primary); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; }
     .checkbox-item input { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
-    .upload-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 2.5rem 1.5rem; text-align: center; cursor: pointer; transition: var(--transition); background: var(--bg-primary); }
-    .upload-zone:hover { border-color: var(--primary); }
+    .upload-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 2.5rem 1.5rem; text-align: center; cursor: pointer; background: var(--bg-primary); }
     .preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
-    .preview-box { width: 100%; height: 100px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); position: relative; }
+    .preview-box { width: 100%; height: 100px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
     .preview-box img { width: 100%; height: 100%; object-fit: cover; }
-    .btn-submit { width: 100%; background: var(--primary); color: var(--bg-primary); border: none; padding: 1rem; border-radius: 8px; font-weight: 700; font-size: 1.1rem; cursor: pointer; font-family: 'Cairo', sans-serif; transition: var(--transition); margin-top: 2rem; }
-    .btn-submit:hover { background: var(--primary-hover); }
-    .btn-back { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-muted); text-decoration: none; font-weight: 600; margin-bottom: 1.5rem; transition: var(--transition); }
-    .btn-back:hover { color: var(--primary); }
-       </style>
+    .btn-submit { width: 100%; background: var(--primary); color: var(--bg-primary); border: none; padding: 1rem; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 2rem; transition: var(--transition); }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-back { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-muted); text-decoration: none; font-weight: 600; margin-bottom: 1.5rem; }
+    .hidden { display: none !important; }
+  </style>
 </head>
 <body>
 
-    <!-- أولاً: إصلاح زر العودة ليغلق أو يعود للوحة التحكم دائماً -->
-    <div class="navigation-actions">
-        <a href="dashboard.html" class="btn btn-secondary">العودة للوحة التحكم</a>
-    </div>
+  <div class="container">
+    <a href="dashboard.html" class="btn-back"><i class="fas fa-arrow-right"></i> العودة للوحة التحكم</a>
+    <h2><i class="fas fa-plus-circle"></i> إضافة عقار استثماري جديد</h2>
+    
+    <form id="addPropertyForm">
+      <div class="form-row">
+        <div class="form-group"><label>عنوان العقار *</label><input type="text" id="title" required></div>
+      </div>
 
-    <!-- نموذج إضافة العقار -->
-    <form id="add-property-form">
-        
-        <!-- حقل نوع العقار الذي يعتمد عليه الفلترة الذكية -->
-        <div class="form-group">
-            <label for="property-type">نوع العقار</label>
-            <select id="property-type" required>
-                <option value="">اختر نوع العقار</option>
-                <option value="أرض">أرض</option>
-                <option value="محل">محل</option>
-                <option value="مكتب">مكتب</option>
-                <option value="شقة">شقة</option>
-                <option value="فيلا">فيلا</option>
-                <option value="دوبلكس">دوبلكس</option>
-            </select>
+      <div class="form-row">
+        <div class="form-group"><label>نوع العملية *</label><select id="purpose" required><option value="sale">بيع</option><option value="rent">إيجار</option></select></div>
+        <div class="form-group"><label>نوع العقار *</label><select id="propertyType" id="propertyType" required>
+            <option value="شقة">شقة</option><option value="فيلا">فيلا</option><option value="دوبلكس">دوبلكس</option>
+            <option value="مكتب">مكتب</option><option value="محل">محل</option><option value="أرض">أرض</option>
+        </select></div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group"><label>المحافظة *</label><input type="text" id="governorate" required></div>
+        <div class="form-group"><label>المدينة *</label><input type="text" id="city" required></div>
+        <div class="form-group"><label>المنطقة *</label><input type="text" id="district" required></div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group"><label>السعر (ج.م) *</label><input type="number" id="price" required></div>
+        <div class="form-group"><label>المساحة (م) *</label><input type="number" id="area" required></div>
+        <div class="form-group"><label>التشطيب *</label><select id="finishing"><option value="سوبر لوكس">سوبر لوكس</option><option value="بدون">بدون</option></select></div>
+      </div>
+
+      <div class="form-row" id="dynamicFields">
+        <div class="form-group" id="field-rooms"><label>عدد الغرف *</label><input type="number" id="rooms" value="0"></div>
+        <div class="form-group" id="field-bathrooms"><label>عدد الحمامات *</label><input type="number" id="bathrooms" value="0"></div>
+        <div class="form-group" id="field-floor"><label>الدور *</label><input type="text" id="floor" value="الأرضي"></div>
+      </div>
+
+      <div class="form-group"><label>وصف العقار *</label><textarea id="description" rows="4" required></textarea></div>
+
+      <label>المميزات الإضافية</label>
+      <div class="checkbox-grid" id="featuresGrid">
+        <label class="checkbox-item feat-item"><input type="checkbox" id="feat-elevator"><span>مصعد</span></label>
+        <label class="checkbox-item feat-item"><input type="checkbox" id="feat-garage"><span>جراج</span></label>
+        <label class="checkbox-item feat-item"><input type="checkbox" id="feat-furnished"><span>مفروش</span></label>
+        <label class="checkbox-item feat-item"><input type="checkbox" id="feat-airConditioner"><span>تكييف</span></label>
+        <label class="checkbox-item feat-item"><input type="checkbox" id="feat-balcony"><span>بلكونة</span></label>
+      </div>
+
+      <div class="form-group" style="margin-top: 1.5rem;">
+        <label>ألبوم صور العقار «يجب رفع من 5 إلى 10 صور للعقار.» *</label>
+        <div class="upload-zone" onclick="document.getElementById('imageFiles').click()">
+          <p>اضغط لاختيار الصور</p>
+          <input type="file" id="imageFiles" multiple accept="image/*" class="hidden">
         </div>
+        <div class="preview-grid" id="previewGrid"></div>
+      </div>
 
-        <!-- الحقول والمميزات المستهدفة بالإخفاء والإظهار (تأكد أن الـ IDs تطابق مشروعك) -->
-        <div id="rooms-group" class="form-group">
-            <label for="rooms">عدد الغرفة</label>
-            <input type="number" id="rooms">
-        </div>
-
-        <div id="bathrooms-group" class="form-group">
-            <label for="bathrooms">عدد الحمامات</label>
-            <input type="number" id="bathrooms">
-        </div>
-
-        <div id="floor-group" class="form-group">
-            <label for="floor">الدور</label>
-            <input type="number" id="floor">
-        </div>
-
-        <!-- قسم المميزات (مقسمة لسهولة التحكم بها) -->
-        <div id="features-section">
-            <label><input type="checkbox" id="feature-elevator"> مصعد</label>
-            <label><input type="checkbox" id="feature-furnished"> مفروش</label>
-            <label><input type="checkbox" id="feature-ac"> تكييف</label>
-            <label><input type="checkbox" id="feature-balcony"> بلكونة</label>
-            <!-- باقي المميزات الأخرى تترك هنا وتظل ظاهرة دائماً -->
-        </div>
-
-        <!-- ثالثاً: تعديل نظام الصور وتحديث النص المعروض -->
-        <div class="form-group">
-            <label for="property-images">صور العقار</label>
-            <p class="help-text">يجب رفع من 5 إلى 10 صور للعقار.</p>
-            <input type="file" id="property-images" multiple accept="image/*" required>
-        </div>
-
-        <!-- زر إرسال العقار للمراجعة -->
-        <button type="submit" id="submit-btn" class="btn btn-primary">إرسال العقار للمراجعة</button>
-        <div id="error-message" style="color: red; margin-top: 10px; display: none;"></div>
+      <button type="submit" class="btn-submit" id="submitBtn">إرسال العقار للمراجعة</button>
     </form>
+  </div>
 
-    <!-- ========================================== -->
-    <!-- السكريبت البرمجي لإدارة الصفحة والـ Firebase -->
-    <!-- ========================================== -->
-    <script type="module">
-        // احتفظ باستيراد الـ Firebase والحقول الخاصة بـ Config كما هي في مشروعك دون تغيير
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.x/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.x/firebase-auth.js";
-        import { getFirestore, collection, addDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.x/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.x/firebase-storage.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-        // الـ config والـ Initialization الحالي لمشروعك يوضع هنا
-        // const app = initializeApp(firebaseConfig);
-        // const auth = getAuth(app);
-        // const db = getFirestore(app);
-        // const storage = getStorage(app);
+    const firebaseConfig = {
+        apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+        authDomain: "am--rewards.firebaseapp.com",
+        projectId: "am--rewards",
+        storageBucket: "am--rewards.firebasestorage.app"
+    };
 
-        // العناصر الأساسية في الصفحة
-        const propertyTypeSelect = document.getElementById('property-type');
-        const roomsGroup = document.getElementById('rooms-group');
-        const bathroomsGroup = document.getElementById('bathrooms-group');
-        const floorGroup = document.getElementById('floor-group');
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    const storage = getStorage(app);
+
+    const typeSelect = document.getElementById('propertyType');
+    
+    // فلترة الحقول ديناميكياً
+    typeSelect.addEventListener('change', () => {
+        const type = typeSelect.value;
+        const isLand = type === 'أرض';
+        const isComm = (type === 'محل' || type === 'مكتب');
+
+        document.getElementById('field-rooms').classList.toggle('hidden', isLand || isComm);
+        document.getElementById('field-bathrooms').classList.toggle('hidden', isLand);
+        document.getElementById('field-floor').classList.toggle('hidden', isLand);
         
-        const featureElevator = document.getElementById('feature-elevator')?.parentElement;
-        const featureFurnished = document.getElementById('feature-furnished')?.parentElement;
-        const featureAc = document.getElementById('feature-ac')?.parentElement;
-        const featureBalcony = document.getElementById('feature-balcony')?.parentElement;
-
-        const imageInput = document.getElementById('property-images');
-        const propertyForm = document.getElementById('add-property-form');
-        const submitBtn = document.getElementById('submit-btn');
-        const errorDiv = document.getElementById('error-message');
-
-        // --- ثانياً: الفلترة الذكية للحقول حسب نوع العقار ---
-        function handleFieldFiltering() {
-            const selectedType = propertyTypeSelect.value;
-
-            // إعادة إظهار كل شيء كحالة افتراضية أولاً
-            roomsGroup.style.display = 'block';
-            bathroomsGroup.style.display = 'block';
-            floorGroup.style.display = 'block';
-            if(featureElevator) featureElevator.style.display = 'inline-block';
-            if(featureFurnished) featureFurnished.style.display = 'inline-block';
-            if(featureAc) featureAc.style.display = 'inline-block';
-            if(featureBalcony) featureBalcony.style.display = 'inline-block';
-
-            if (selectedType === 'أرض') {
-                // إخفاء الحقول والمميزات التي لا تنطبق على الأراضي
-                roomsGroup.style.display = 'none';
-                bathroomsGroup.style.display = 'none';
-                floorGroup.style.display = 'none';
-                if(featureElevator) featureElevator.style.display = 'none';
-                if(featureFurnished) featureFurnished.style.display = 'none';
-                if(featureAc) featureAc.style.display = 'none';
-                if(featureBalcony) featureBalcony.style.display = 'none';
-            } 
-            else if (selectedType === 'محل' || selectedType === 'مكتب') {
-                // إخفاء عدد الغرف مع الإبقاء على الحمامات والدور
-                roomsGroup.style.display = 'none';
-            }
-            // بالنسبة لـ شقة، فيلا، دوبلكس تظل ظاهرة بالكامل تلقائياً
-        }
-
-        // الاستماع للتغيير الفوري بدون إعادة تحميل الصفحة
-        propertyTypeSelect.addEventListener('change', handleFieldFiltering);
-
-
-        // --- رابعاً وخامساً: تشخيص زر الإرسال وتحسين تجربة المستخدم مع تتبع الـ Firebase ---
-        propertyForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            errorDiv.style.display = 'none';
-            errorDiv.innerText = '';
-
-            // 1. التحقق البرمجي من عدد الصور المرفوعة (ثالثاً)
-            const files = imageInput.files;
-            if (files.length < 5) {
-                alert('يجب رفع 5 صور على الأقل قبل نشر العقار.');
-                return;
-            }
-            if (files.length > 10) {
-                alert('الحد الأقصى هو 10 صور فقط.');
-                return;
-            }
-
-            // تفعيل حالة التحميل وتعطيل الزر لـ UX ممتاز
-            submitBtn.disabled = true;
-            submitBtn.innerText = 'جاري رفع الصور وحفظ البيانات...';
-
-            try {
-                // الخطوة 1: التأكد أن المستخدم مسجل دخول بالفعل
-                const currentUser = auth.currentUser;
-                if (!currentUser) {
-                    throw new Error("المستخدم غير مسجل دخول. يرجى تسجيل الدخول أولاً.");
-                }
-
-                // الخطوة 2: التأكد من تحميل بيانات المستخدم من الـ Collection المسمى users
-                let userData = null;
-                try {
-                    const userDocRef = doc(db, "users", currentUser.uid);
-                    const userDocSnap = await getDoc(userDocRef);
-                    if (userDocSnap.exists()) {
-                        userData = userDocSnap.data();
-                    } else {
-                        console.warn("جاري المتابعة بدون بيانات إضافية: لم يتم العثور على Document للمستخدم في Collection 'users'.");
-                    }
-                } catch (firestoreUserError) {
-                    console.error("Firestore Users Error:", firestoreUserError);
-                    throw new Error("فشل قراءة بيانات المستخدم أو انتهاء صلاحية الجلسة.");
-                }
-
-                // الخطوة 3 + 4: رفع الصور إلى Firebase Storage والحصول على روابط getDownloadURL
-                const imageUrls = [];
-                for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
-                    // إنشاء مسار فريد لكل صورة داخل الـ Storage
-                    const storageRef = ref(storage, `properties/${Date.now()}_${file.name}`);
-                    
-                    try {
-                        const snapshot = await uploadBytes(storageRef, file);
-                        const downloadUrl = await getDownloadURL(snapshot.ref);
-                        imageUrls.push(downloadUrl);
-                    } catch (storageError) {
-                        console.error("Firebase Storage Error during upload:", storageError);
-                        throw new Error("فشل رفع الصور. قد يكون السبب حجم الملفات أو أن Storage Rules تمنع الرفع.");
-                    }
-                }
-
-                // تجميع بيانات العقار بشكل يوافق الحقول الحالية في مشروعك
-                const propertyData = {
-                    type: propertyTypeSelect.value,
-                    images: imageUrls,
-                    userId: currentUser.uid,
-                    status: "pending", // للمراجعة
-                    createdAt: new Date(),
-                    // يتم إدراج باقي الحقول بناءً على الفلترة السابقة
-                    rooms: propertyTypeSelect.value === 'أرض' || propertyTypeSelect.value === 'محل' || propertyTypeSelect.value === 'مكتب' ? 0 : Number(document.getElementById('rooms').value),
-                    bathrooms: propertyTypeSelect.value === 'أرض' ? 0 : Number(document.getElementById('bathrooms').value),
-                    floor: propertyTypeSelect.value === 'أرض' ? 0 : Number(document.getElementById('floor').value)
-                    // أضف أي حقول مخصصة أخرى موجودة لديك هنا لضمان عدم ضياعها...
-                };
-
-                // الخطوة 5: التأكد من نجاح إضافة المستند لـ properties
-                try {
-                    await addDoc(collection(db, "properties"), propertyData);
-                } catch (firestoreDocsError) {
-                    console.error("Firestore Properties Rules/Network Error:", firestoreDocsError);
-                    throw new Error("فشل الاتصال بـ Firestore أو أن الـ Firestore Rules تمنع إنشاء Document جديد.");
-                }
-
-                // الخطوة 6: نجاح العملية بالكامل والتوجه للصفحة المطلوبة
-                alert("تم إرسال العقار للمراجعة بنجاح!");
-                window.location.href = "pending-properties.html";
-
-            } catch (error) {
-                // في حالة الفشل: طباعة الخطأ الحقيقي في الـ Console لتشخيصه بدقة
-                console.error("خطأ حركي أثناء معالجة العقار:", error.message, error);
-                
-                // عرض رسالة الخطأ الواضحة والمحددة للمستخدم في الواجهة
-                errorDiv.innerText = error.message || "حدث خطأ غير متوقع أثناء معالجة البيانات.";
-                errorDiv.style.display = 'block';
-
-                // إعادة تفعيل الزر وإرجاع النص الأصلي (خامساً)
-                submitBtn.disabled = false;
-                submitBtn.innerText = 'إرسال العقار للمراجعة';
-            }
+        // إخفاء المميزات للأراضي
+        document.querySelectorAll('.feat-item').forEach(el => {
+            el.classList.toggle('hidden', isLand);
         });
-    </script>
+    });
+
+    let selectedFiles = [];
+    document.getElementById('imageFiles').addEventListener('change', (e) => {
+        const files = Array.from(e.target.files);
+        if (selectedFiles.length + files.length > 10) { alert("الحد الأقصى 10 صور فقط"); return; }
+        files.forEach(file => {
+            selectedFiles.push(file);
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const div = document.createElement('div');
+                div.className = 'preview-box';
+                div.innerHTML = `<img src="${ev.target.result}">`;
+                document.getElementById('previewGrid').appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+
+    document.getElementById('addPropertyForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        
+        if (selectedFiles.length < 5) { alert("يجب رفع 5 صور على الأقل."); return; }
+        
+        btn.disabled = true;
+        btn.textContent = "جاري رفع الصور وحفظ البيانات...";
+
+        try {
+            const user = auth.currentUser;
+            if (!user) throw new Error("المستخدم غير مسجل دخول");
+
+            const userSnap = await getDoc(doc(db, "users", user.uid));
+            if (!userSnap.exists()) throw new Error("فشل قراءة بيانات المستخدم");
+            
+            const imageUrls = [];
+            for (const file of selectedFiles) {
+                const storageRef = ref(storage, `properties/${user.uid}_${Date.now()}_${Math.random()}`);
+                const snapshot = await uploadBytes(storageRef, file);
+                imageUrls.push(await getDownloadURL(snapshot.ref));
+            }
+
+            await addDoc(collection(db, "properties"), {
+                ownerId: user.uid,
+                ownerName: userSnap.data().name,
+                title: document.getElementById('title').value,
+                propertyType: typeSelect.value,
+                images: imageUrls,
+                status: "pending",
+                createdAt: serverTimestamp()
+            });
+
+            alert("تم النجاح!");
+            window.location.href = "pending-properties.html";
+        } catch (err) {
+            console.error("خطأ تقني:", err);
+            alert("فشل العملية: " + err.message);
+            btn.disabled = false;
+            btn.textContent = "إرسال العقار للمراجعة";
+        }
+    });
+  </script>
 </body>
 </html>
