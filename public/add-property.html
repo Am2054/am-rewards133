@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AM. Dashboard - إضافة عقار جديد</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: rgba(22, 30, 49, 0.7);
+      --bg-tertiary: #1f293d;
+      --primary: #38bdf8;
+      --primary-hover: #0ea5e9;
+      --text-primary: #f3f4f6;
+      --text-muted: #9ca3af;
+      --border: rgba(255, 255, 255, 0.08);
+      --success: #10b981;
+      --danger: #ef4444;
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Cairo', sans-serif; background-color: var(--bg-primary); color: var(--text-primary); min-height: 100vh; padding: 2rem; }
+    .container { max-width: 900px; margin: 0 auto; background: var(--bg-secondary); border: 1px solid var(--border); padding: 2.5rem; border-radius: 16px; }
+    h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.75rem; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 1rem;}
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
+    .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+    label { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+    input[type="text"], input[type="number"], select, textarea {
+      width: 100%; padding: 0.85rem 1.25rem; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-family: 'Cairo', sans-serif; transition: var(--transition);
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 10px rgba(56,189,248,0.2); }
+    .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+    .checkbox-item { display: flex; align-items: center; gap: 0.75rem; background: var(--bg-primary); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; user-select: none; }
+    .checkbox-item input { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+    .upload-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 2.5rem 1.5rem; text-align: center; cursor: pointer; transition: var(--transition); background: var(--bg-primary); }
+    .upload-zone:hover { border-color: var(--primary); }
+    .preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+    .preview-box { width: 100%; height: 100px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); position: relative; }
+    .preview-box img { width: 100%; height: 100%; object-fit: cover; }
+    .btn-submit { width: 100%; background: var(--primary); color: var(--bg-primary); border: none; padding: 1rem; border-radius: 8px; font-weight: 700; font-size: 1.1rem; cursor: pointer; font-family: 'Cairo', sans-serif; transition: var(--transition); margin-top: 2rem; }
+    .btn-submit:hover { background: var(--primary-hover); }
+    .btn-back { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-muted); text-decoration: none; font-weight: 600; margin-bottom: 1.5rem; transition: var(--transition); }
+    .btn-back:hover { color: var(--primary); }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <a href="index.html" class="btn-back"><i class="fas fa-arrow-right"></i> العودة للوحة التحكم</a>
+    <h2><i class="fas fa-plus-circle"></i> إضافة عقار استثماري جديد</h2>
+    
+    <form id="addPropertyForm">
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>عنوان العقار (بالكامل) *</label>
+          <input type="text" id="title" required placeholder="مثال: شقة فاخرة بإطلالة مباشرة على النيل">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>نوع العملية *</label>
+          <select id="purpose" required>
+            <option value="sale">بيع</option>
+            <option value="rent">إيجار</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>نوع العقار *</label>
+          <select id="propertyType" required>
+            <option value="شقة">شقة</option>
+            <option value="فيلا">فيلا</option>
+            <option value="دوبلكس">دوبلكس</option>
+            <option value="مكتب">مكتب</option>
+            <option value="محل">محل</option>
+            <option value="أرض">أرض</option>
+            <option value="غير ذلك">غير ذلك</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>المحافظة *</label>
+          <input type="text" id="governorate" required placeholder="مثال: القاهرة">
+        </div>
+        <div class="form-group">
+          <label>المدينة *</label>
+          <input type="text" id="city" required placeholder="مثال: المعادي">
+        </div>
+        <div class="form-group">
+          <label>المنطقة أو الحي *</label>
+          <input type="text" id="district" required placeholder="مثال: ثكنات المعادي">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>السعر (ج.م) *</label>
+          <input type="number" id="price" required placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>المساحة بالمتر *</label>
+          <input type="number" id="area" required placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>حالة التشطيب *</label>
+          <select id="finishing" required>
+            <option value="بدون تشطيب">بدون تشطيب</option>
+            <option value="نصف تشطيب">نصف تشطيب</option>
+            <option value="سوبر لوكس">سوبر لوكس</option>
+            <option value="الترا لوكس">الترا لوكس</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>عدد الغرف *</label>
+          <input type="number" id="rooms" required placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>عدد الحمامات *</label>
+          <input type="number" id="bathrooms" required placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>الدور *</label>
+          <input type="text" id="floor" required placeholder="مثال: الأرضي / الثالث">
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 1.5rem;">
+        <label>وصف العقار تفصيلياً *</label>
+        <textarea id="description" rows="4" required placeholder="اكتب تفاصيل ومزايا العقار هنا..."></textarea>
+      </div>
+
+      <label>المميزات الإضافية للعقار</label>
+      <div class="checkbox-grid">
+        <label class="checkbox-item"><input type="checkbox" id="feat-elevator"><span>مصعد</span></label>
+        <label class="checkbox-item"><input type="checkbox" id="feat-garage"><span>جراج</span></label>
+        <label class="checkbox-item"><input type="checkbox" id="feat-furnished"><span>مفروش</span></label>
+        <label class="checkbox-item"><input type="checkbox" id="feat-airConditioner"><span>تكييف</span></label>
+        <label class="checkbox-item"><input type="checkbox" id="feat-balcony"><span>بلكونة</span></label>
+        <label class="checkbox-item"><input type="checkbox" id="feat-security"><span>أمن</span></label>
+        <label class="checkbox-item"><input type="checkbox" id="feat-naturalGas"><span>غاز طبيعي</span></label>
+        <label class="checkbox-item"><input type="checkbox" id="feat-electricityMeter"><span>عداد كهرباء</span></label>
+        <label class="checkbox-item"><input type="checkbox" id="feat-waterMeter"><span>عداد مياه</span></label>
+      </div>
+
+      <div class="form-group" style="margin-top: 1.5rem;">
+        <label>ألبوم صور العقار (من 1 إلى 10 صور كحد أقصى) *</label>
+        <div class="upload-zone" onclick="document.getElementById('imageFiles').click()">
+          <i class="fas fa-images" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 0.5rem;"></i>
+          <p>اضغط هنا لاختيار أو رفع صور الوحدة العقارية</p>
+          <input type="file" id="imageFiles" multiple accept="image/*" style="display: none;">
+        </div>
+        <div class="preview-grid" id="previewGrid"></div>
+      </div>
+
+      <button type="submit" class="btn-submit" id="submitBtn">إرسال العقار للمراجعة</button>
+
+    </form>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.firebasestorage.app",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112",
+      measurementId: "G-CV3GLT2TTJ"
+    };
+
+    const firebaseApp = initializeApp(firebaseConfig);
+    const db = getFirestore(firebaseApp);
+    const auth = getAuth(firebaseApp);
+    const storage = getStorage(firebaseApp);
+
+    let selectedFiles = [];
+    let userData = { uid: "", name: "" };
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+        return;
+      }
+      userData.uid = user.uid;
+      try {
+        const userSnap = await getDoc(doc(db, "users", user.uid));
+        if (userSnap.exists()) {
+          userData.name = userSnap.data().name || "مالك العقار";
+        }
+      } catch (err) { console.error("Error retrieving user info:", err); }
+    });
+
+    const imageFilesInput = document.getElementById('imageFiles');
+    const previewGrid = document.getElementById('previewGrid');
+
+    imageFilesInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      if (selectedFiles.length + files.length > 10) {
+        alert("الحد الأقصى المسموح به هو 10 صور فقط.");
+        return;
+      }
+      files.forEach(file => {
+        selectedFiles.push(file);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const div = document.createElement('div');
+          div.className = 'preview-box';
+          div.innerHTML = `<img src="${event.target.result}">`;
+          previewGrid.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    document.getElementById('addPropertyForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (selectedFiles.length === 0) {
+        alert("يرجى اختيار صورة واحدة على الأقل للعقار.");
+        return;
+      }
+
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = "جاري رفع الصور وحفظ البيانات...";
+
+      try {
+        const imageUrls = [];
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const file = selectedFiles[i];
+          const storageRef = ref(storage, `properties/${userData.uid}_${Date.now()}_${i}`);
+          const snapshot = await uploadBytes(storageRef, file);
+          const url = await getDownloadURL(snapshot.ref);
+          imageUrls.push(url);
+        }
+
+        const propertyPayload = {
+          ownerId: userData.uid,
+          ownerName: userData.name,
+          title: document.getElementById('title').value,
+          description: document.getElementById('description').value,
+          purpose: document.getElementById('purpose').value,
+          propertyType: document.getElementById('propertyType').value,
+          price: Number(document.getElementById('price').value),
+          area: Number(document.getElementById('area').value),
+          rooms: Number(document.getElementById('rooms').value),
+          bathrooms: Number(document.getElementById('bathrooms').value),
+          floor: document.getElementById('floor').value,
+          governorate: document.getElementById('governorate').value,
+          city: document.getElementById('city').value,
+          district: document.getElementById('district').value,
+          finishing: document.getElementById('finishing').value,
+          features: {
+            elevator: document.getElementById('feat-elevator').checked,
+            garage: document.getElementById('feat-garage').checked,
+            furnished: document.getElementById('feat-furnished').checked,
+            airConditioner: document.getElementById('feat-airConditioner').checked,
+            balcony: document.getElementById('feat-balcony').checked,
+            security: document.getElementById('feat-security').checked,
+            naturalGas: document.getElementById('feat-naturalGas').checked,
+            electricityMeter: document.getElementById('feat-electricityMeter').checked,
+            waterMeter: document.getElementById('feat-waterMeter').checked
+          },
+          images: imageUrls,
+          status: "pending",
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          views: 0,
+          phoneViews: 0,
+          favorites: 0
+        };
+
+        await addDoc(collection(db, "properties"), propertyPayload);
+        alert("تم إرسال العقار بنجاح وهو قيد المراجعة حالياً.");
+        window.location.href = "pending-properties.html";
+
+      } catch (err) {
+        console.error("Error publishing property:", err);
+        alert("حدث خطأ أثناء حفظ البيانات، يرجى المحاولة مرة أخرى.");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "إرسال العقار للمراجعة";
+      }
+    });
+  </script>
+</body>
+</html>
