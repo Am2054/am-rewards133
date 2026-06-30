@@ -440,26 +440,57 @@
 
 const fd = new FormData();
 
-// إرسال كل الصور مرة واحدة
-uploadedImages.forEach(image => {
-    fd.append("files", image);
-});
+const uploadedImageUrls = [];
 
-// إرسال الفيديو إن وجد
+for (let i = 0; i < uploadedImages.length; i++) {
+
+    const fd = new FormData();
+
+    fd.append("files", uploadedImages[i]);
+
+    const response = await fetch("/api/upload-media", {
+        method: "POST",
+        body: fd
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.error || ("فشل رفع الصورة " + (i + 1)));
+    }
+
+    uploadedImageUrls.push(data.images[0]);
+
+    progBar.style.width = `${20 + ((i + 1) / uploadedImages.length) * 50}%`;
+}
+
+let uploadedVideoUrl = null;
+
 if (uploadedVideoFile) {
+
+    const fd = new FormData();
+
     fd.append("files", uploadedVideoFile);
+
+    const response = await fetch("/api/upload-media", {
+        method: "POST",
+        body: fd
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.error || "فشل رفع الفيديو");
+    }
+
+    uploadedVideoUrl = data.video;
 }
 
-const response = await fetch("/api/upload-media", {
-    method: "POST",
-    body: fd
-});
-
-const mediaResult = await response.json();
-
-if (!response.ok) {
-    throw new Error(mediaResult.error || "فشل رفع الملفات");
-}
+const mediaResult = {
+    coverImage: uploadedImageUrls[0],
+    images: uploadedImageUrls,
+    video: uploadedVideoUrl
+};
 
 progBar.style.width = "80%";
 
