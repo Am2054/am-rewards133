@@ -1,4 +1,3 @@
-import { pipeline } from "stream/promises";
 import { put } from "@vercel/blob";
 import formidable from "formidable";
 import fs from "fs";
@@ -166,6 +165,10 @@ export default async function handler(req, res) {
   return res.status(500).json({
     error: e.message,
     stack: e.stack
+  });
+
+}
+
   });
 
 } 
