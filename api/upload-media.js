@@ -18,9 +18,12 @@ export default async function handler(req, res) {
   }
 
   const form = formidable({
-    multiples: true,
-    keepExtensions: true,
-  });
+  multiples: true,
+  keepExtensions: true,
+
+  maxFileSize: 100 * 1024 * 1024,      // 100MB لكل ملف
+  maxTotalFileSize: 250 * 1024 * 1024, // إجمالي الملفات
+});
 
   form.parse(req, async (err, fields, files) => {
 
