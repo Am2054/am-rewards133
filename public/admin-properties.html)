@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة الإدارة - مراجعة العقارات</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: rgba(22, 30, 49, 0.7);
+      --bg-tertiary: #1f293d;
+      --primary: #38bdf8;
+      --text-primary: #f3f4f6;
+      --text-muted: #9ca3af;
+      --border: rgba(255, 255, 255, 0.08);
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --transition: all 0.3s ease;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Cairo', sans-serif; background-color: var(--bg-primary); color: var(--text-primary); padding: 2rem 1rem; }
+    
+    .admin-container { max-width: 1100px; margin: 0 auto; }
+    
+    .btn-back { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-muted); text-decoration: none; font-weight: 600; margin-bottom: 1.5rem; font-size: 0.95rem; transition: var(--transition); }
+    .btn-back:hover { color: var(--primary); }
+
+    .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+    h1 { font-weight: 900; color: var(--primary); font-size: 1.8rem; }
+    
+    .filter-badge { background: var(--bg-tertiary); border: 1px solid var(--border); padding: 0.5rem 1.25rem; border-radius: 30px; cursor: pointer; font-size: 0.85rem; font-weight: 700; transition: var(--transition); color: var(--text-muted); }
+    .filter-badge.active { background: var(--primary); color: var(--bg-primary); border-color: var(--primary); }
+    .filters-wrapper { display: flex; gap: 0.75rem; }
+
+    .admin-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; display: flex; gap: 1.5rem; align-items: flex-start; transition: var(--transition); position: relative; }
+    .admin-card:hover { border-color: rgba(255,255,255,0.15); }
+    
+    .prop-img { width: 160px; height: 120px; border-radius: 12px; object-fit: cover; background: var(--bg-tertiary); flex-shrink: 0; }
+    .prop-info { flex: 1; display: flex; flex-direction: column; gap: 0.4rem; }
+    .prop-title { font-size: 1.3rem; font-weight: 700; color: #fff; }
+    
+    .status-tag { width: max-content; padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .status-tag.pending { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+    .status-tag.approved { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+    .status-tag.rejected { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+
+    .meta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.5rem; margin: 0.5rem 0; font-size: 0.85rem; color: var(--text-muted); }
+    .meta-item { display: flex; align-items: center; gap: 0.4rem; }
+
+    .actions-wrapper { display: flex; flex-direction: column; gap: 0.75rem; justify-content: center; align-items: flex-end; height: 100%; min-width: 160px; }
+    .btn-action { width: 100%; padding: 0.6rem 1rem; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; transition: var(--transition); font-family: 'Cairo'; }
+    .btn-approve { background: var(--success); color: #fff; }
+    .btn-approve:hover { background: #059669; }
+    .btn-reject { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+    .btn-reject:hover { background: var(--danger); color: #fff; }
+
+    .mini-gallery { display: flex; gap: 0.4rem; margin-top: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem; }
+    .mini-gallery img { width: 45px; height: 35px; border-radius: 4px; object-fit: cover; border: 1px solid var(--border); cursor: pointer; }
+
+    @media (max-width: 768px) {
+      .admin-card { flex-direction: column; align-items: stretch; gap: 1rem; }
+      .prop-img { width: 100%; height: 180px; }
+      .actions-wrapper { flex-direction: row; width: 100%; }
+      .btn-action { flex: 1; }
+    }
+
+    .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 9999; opacity: 0; pointer-events: none; transition: var(--transition); }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .modal-content { background: #111827; border: 1px solid var(--border); padding: 2rem; border-radius: 16px; max-width: 450px; width: 90%; text-align: right; }
+    .modal-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem; color: var(--danger); }
+    .modal-textarea { width: 100%; padding: 0.75rem; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; color: #fff; font-family: 'Cairo'; margin-bottom: 1.5rem; resize: none; }
+    .modal-textarea:focus { border-color: var(--danger); outline: none; }
+    .modal-buttons { display: flex; gap: 1rem; }
+  </style>
+</head>
+<body>
+
+  <div class="admin-container">
+    <a href="dashboard.html" class="btn-back"><i class="fas fa-arrow-right"></i> العودة للوحة الإحصائيات</a>
+    
+    <div class="header-section">
+      <h1><i class="fas fa-shield-alt"></i> مراجعة واعتماد طلبات العقارات</h1>
+      <div class="filters-wrapper">
+        <div class="filter-badge active" id="filter-pending" onclick="filterData('pending')">المعلقة فقط</div>
+        <div class="filter-badge" id="filter-all" onclick="filterData('all')">كل العقارات</div>
+      </div>
+    </div>
+
+    <div id="adminPropertiesList">جاري جلب المستندات المعلقة حالياً...</div>
+  </div>
+
+  <div class="modal-overlay" id="rejectModal">
+    <div class="modal-content">
+      <div class="modal-title"><i class="fas fa-exclamation-triangle"></i> تحديد سبب رفض الإعلان</div>
+      <p style="font-size:0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">برجاء كتابة سبب واضح للمستثمر:</p>
+      <textarea id="rejectReasonInput" class="modal-textarea" rows="4" placeholder="مثال: الصور المرفوعة غير واضحة..."></textarea>
+      <div class="modal-buttons">
+        <button class="btn-action" style="background:var(--danger); color:white;" id="btnConfirmReject">تأكيد الرفض النهائي</button>
+        <button class="btn-action" style="background:var(--bg-tertiary); color:white;" onclick="closeRejectModal()">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+        authDomain: "am--rewards.firebaseapp.com",
+        projectId: "am--rewards",
+        storageBucket: "am--rewards.firebasestorage.app"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // عنوان الـ API الموحد على Vercel Serverless
+    const API_URL = "https://your-domain.vercel.app/api/manage-property";
+
+    let currentFilter = 'pending';
+    let activeRejectDocId = null;
+
+    onAuthStateChanged(auth, (user) => {
+        if (!user) {
+            document.getElementById('adminPropertiesList').innerHTML = "غير مسموح بالدخول لغير مسؤولي النظام.";
+            return;
+        }
+        loadAdminData();
+    });
+
+    async function loadAdminData() {
+        const listContainer = document.getElementById('adminPropertiesList');
+        listContainer.innerHTML = 'جاري تحديث البيانات...';
+
+        try {
+            let q = currentFilter === 'pending' 
+                ? query(collection(db, "properties"), where("status", "==", "pending"), orderBy("createdAt", "desc"))
+                : query(collection(db, "properties"), orderBy("createdAt", "desc"));
+
+            const querySnapshot = await getDocs(q);
+            listContainer.innerHTML = '';
+
+            if (querySnapshot.empty) {
+                listContainer.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding: 3rem 0;">لا يوجد طلبات عقارات حالياً.</p>`;
+                return;
+            }
+
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                const id = docSnap.id;
+
+                const card = document.createElement('div');
+                card.className = 'admin-card';
+                const imgUrl = data.coverImage || (data.images && data.images[0]) || '';
+                
+                let galleryHtml = '';
+                if(data.images && data.images.length > 0) {
+                    galleryHtml = `<div class="mini-gallery">`;
+                    data.images.forEach(url => { galleryHtml += `<img src="${url}" onclick="window.open('${url}', '_blank')">`; });
+                    galleryHtml += `</div>`;
+                }
+
+                let statusClass = 'pending', statusText = 'معلق';
+                if (data.status === 'approved') { statusClass = 'approved'; statusText = 'تم النشر'; }
+                if (data.status === 'rejected') { statusClass = 'rejected'; statusText = 'مرفوض'; }
+
+                card.innerHTML = `
+                    <img src="${imgUrl}" class="prop-img" alt="Property Cover">
+                    <div class="prop-info">
+                        <span class="status-tag ${statusClass}">${statusText}</span>
+                        <div class="prop-title">${data.title || 'بدون عنوان'}</div>
+                        <p style="color:var(--text-muted); font-size:0.85rem;">${data.description ? data.description.substring(0, 100) + '...' : ''}</p>
+                        <div class="meta-grid">
+                            <div class="meta-item"><i class="fas fa-map-marker-alt"></i> ${data.governorate} - ${data.city}</div>
+                            <div class="meta-item"><i class="fas fa-tags"></i> ${data.price} ج.م</div>
+                            <div class="meta-item"><i class="fas fa-ruler-combined"></i> ${data.area} م²</div>
+                        </div>
+                        ${galleryHtml}
+                    </div>
+                    <div class="actions-wrapper">
+                        ${data.status === 'pending' ? `
+                            <button class="btn-action btn-approve" data-id="${id}"><i class="fas fa-check"></i> موافقة ونشر</button>
+                            <button class="btn-action btn-reject" data-id="${id}"><i class="fas fa-ban"></i> رفض الطلب</button>
+                        ` : `<span style="font-size:0.8rem; color:var(--text-muted)">تم اتخاذ إجراء مسبق</span>`}
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            });
+
+            document.querySelectorAll('.btn-approve').forEach(btn => {
+                btn.addEventListener('click', (e) => handlePropertyAction(e.target.dataset.id, 'approve'));
+            });
+            document.querySelectorAll('.btn-reject').forEach(btn => {
+                btn.addEventListener('click', (e) => openRejectModal(e.target.dataset.id));
+            });
+
+        } catch (error) {
+            listContainer.innerHTML = "فشل تحميل البيانات من السيرفر.";
+        }
+    }
+
+    // دالة الإرسال الموحدة للـ API بناءً على نوع الـ Action
+    async function handlePropertyAction(docId, actionType, rejectReason = null) {
+        try {
+            const idToken = await auth.currentUser.getIdToken(true);
+
+            const payload = { propertyId: docId, action: actionType };
+            if (rejectReason) payload.reason = rejectReason;
+
+            const response = await fetch(API_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${idToken}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            if (response.ok && result.success) {
+                alert(result.message);
+                if(actionType === 'reject') closeRejectModal();
+                loadAdminData();
+            } else {
+                alert("خطأ: " + result.error);
+            }
+        } catch (err) {
+            alert("فشل الاتصال بـ Vercel API: " + err.message);
+        }
+    }
+
+    window.openRejectModal = function(docId) {
+        activeRejectDocId = docId;
+        document.getElementById('rejectReasonInput').value = '';
+        document.getElementById('rejectModal').classList.add('open');
+    }
+
+    window.closeRejectModal = function() {
+        document.getElementById('rejectModal').classList.remove('open');
+        activeRejectDocId = null;
+    }
+
+    document.getElementById('btnConfirmReject').addEventListener('click', () => {
+        const reason = document.getElementById('rejectReasonInput').value.trim();
+        if(!reason) { alert("من فضلك اكتب سبب الرفض"); return; }
+        handlePropertyAction(activeRejectDocId, 'reject', reason);
+    });
+
+    window.filterData = function(filterType) {
+        currentFilter = filterType;
+        document.querySelectorAll('.filter-badge').forEach(b => b.classList.remove('active'));
+        if(filterType === 'pending') document.getElementById('filter-pending').classList.add('active');
+        else document.getElementById('filter-all').classList.add('active');
+        loadAdminData();
+    }
+  </script>
+</body>
+</html>
