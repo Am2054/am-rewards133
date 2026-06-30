@@ -1,3 +1,4 @@
+import { pipeline } from "stream/promises";
 import { put } from "@vercel/blob";
 import formidable from "formidable";
 import fs from "fs";
@@ -91,10 +92,10 @@ export default async function handler(req, res) {
             `properties/images/${Date.now()}-${crypto.randomUUID()}-${file.originalFilename}`;
 
           const blob = await put(filename, stream, {
-            access: "public",
-            contentType: mime,
-          });
-
+  access: "public",
+  contentType: mime,
+  token: process.env.BLOB_READ_WRITE_TOKEN,
+});
           images.push(blob.url);
 
         }
@@ -125,10 +126,10 @@ export default async function handler(req, res) {
             `properties/videos/${Date.now()}-${crypto.randomUUID()}-${file.originalFilename}`;
 
           const blob = await put(filename, stream, {
-            access: "public",
-            contentType: mime,
-          });
-
+  access: "public",
+  contentType: mime,
+  token: process.env.BLOB_READ_WRITE_TOKEN,
+});
           video = blob.url;
         }
 
