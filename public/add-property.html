@@ -436,25 +436,60 @@
             const ownerName = userSnap.exists() ? (userSnap.data().name || "مستخدم غير مسمى") : "مستخدم عام";
             const ownerPhone = userSnap.exists() ? (userSnap.data().phone || "غير مسجل") : "غير مسجل";
 
-            // رفع الميديا بالكامل (الصور والفيديو) في طلب FormData واحد للـ API الجديدة
-            const formData = new FormData();
-            uploadedImages.forEach((file) => formData.append('files', file));
-            if(uploadedVideoFile) {
-                formData.append('files', uploadedVideoFile);
-                formData.append('hasVideo', 'true');
-            }
+            progBar.style.width = "20%";
 
-            progBar.style.width = '40%';
+const uploadedImageUrls = [];
 
-            const res = await fetch('/api/upload-media', {
-                method: 'POST',
-                body: formData
-            });
-            
-            if(!res.ok) throw new Error('فشل رفع الملفات والميديا إلى خوادم Vercel Blob API');
-            const mediaResult = await res.json();
-            
-            progBar.style.width = '80%';
+for (let i = 0; i < uploadedImages.length; i++) {
+
+    const fd = new FormData();
+    fd.append("file", uploadedImages[i]);
+
+    const response = await fetch("/api/upload-media", {
+        method: "POST",
+        body: fd
+    });
+
+    if (!response.ok) {
+        throw new Error("فشل رفع صورة رقم " + (i + 1));
+    }
+
+    const data = await response.json();
+
+    uploadedImageUrls.push(data.url);
+
+    progBar.style.width = `${20 + ((i + 1) / uploadedImages.length) * 50}%`;
+}
+
+let uploadedVideoUrl = null;
+
+if (uploadedVideoFile) {
+
+    const fd = new FormData();
+
+    fd.append("file", uploadedVideoFile);
+
+    const response = await fetch("/api/upload-media", {
+        method: "POST",
+        body: fd
+    });
+
+    if (!response.ok) {
+        throw new Error("فشل رفع الفيديو");
+    }
+
+    const data = await response.json();
+
+    uploadedVideoUrl = data.url;
+}
+
+const mediaResult = {
+    coverImage: uploadedImageUrls[0],
+    images: uploadedImageUrls,
+    video: uploadedVideoUrl
+};
+
+progBar.style.width = "80%";
 
             // بناء كائن العقار بكافة الحقول القديمة والجديدة المطلوبة
             const propertyPayload = {
