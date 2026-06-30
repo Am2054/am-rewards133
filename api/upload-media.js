@@ -134,17 +134,6 @@ export default async function handler(req, res) {
 
       }
 
-      if (images.length < 5) {
-        return res.status(400).json({
-          error: "You must upload at least 5 images.",
-        });
-      }
-
-      if (images.length > 15) {
-        return res.status(400).json({
-          error: "Maximum allowed images is 15.",
-        });
-      }
 
       return res.status(200).json({
 
