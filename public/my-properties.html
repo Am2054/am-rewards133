@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>عقاراتي - AM. Rewards</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: rgba(22, 30, 49, 0.7);
+      --bg-tertiary: #1f293d;
+      --primary: #38bdf8;
+      --text-primary: #f3f4f6;
+      --text-muted: #9ca3af;
+      --border: rgba(255, 255, 255, 0.08);
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+    body { font-family: 'Cairo', sans-serif; background-color: var(--bg-primary); color: var(--text-primary); padding: 2rem; }
+    .properties-container { max-width: 1000px; margin: 0 auto; }
+    h1 { font-weight: 900; margin-bottom: 2rem; color: var(--primary); }
+    
+    .prop-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; display: flex; gap: 1.5rem; align-items: center; position: relative;}
+    .prop-img { width: 150px; height: 110px; border-radius: 8px; object-fit: cover; background: var(--bg-tertiary); }
+    .prop-details { flex: 1; }
+    .prop-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; }
+    
+    /* بادجات تصنيف الحالات الجديدة والمعلقة والمرفوضة */
+    .status-badge { inline-size: max-content; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: 700; display: inline-block; margin-bottom: 0.5rem; }
+    .status-pending { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+    .status-approved { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+    .status-rejected { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+    
+    .reason-box { background: rgba(239,68,68,0.06); border: 1px dashed var(--danger); padding: 0.75rem; border-radius: 6px; margin-top: 0.5rem; font-size: 0.85rem; color: #fca5a5; }
+    
+    /* صندوق التنبيه الإرشادي لتحسين نتائج البحث وعمق البيانات المكتملة */
+    .seo-alert-box { background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56,189,248,0.3); padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.85rem; margin-top: 0.75rem; display: flex; align-items: center; gap: 0.5rem; color: #e0f2fe; }
+    
+    .btn-edit { background: var(--primary); color: var(--bg-primary); padding: 0.5rem 1.25rem; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; text-decoration: none; font-size: 0.85rem; position: absolute; left: 1.5rem; bottom: 1.5rem; }
+  </style>
+</head>
+<body>
+
+  <div class="properties-container">
+    <h1>أصول عقاراتي الاستثمارية</h1>
+    <div id="myPropertiesList">جاري تحميل قائمة العقارات الخاصة بك...</div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+        authDomain: "am--rewards.firebaseapp.com",
+        projectId: "am--rewards",
+        storageBucket: "am--rewards.firebasestorage.app"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            document.getElementById('myPropertiesList').innerHTML = "يرجى تسجيل الدخول لعرض عقاراتك المعلقة والنشطة.";
+            return;
+        }
+        
+        try {
+            const q = query(collection(db, "properties"), where("ownerId", "==", user.uid), orderBy("createdAt", "desc"));
+            const querySnapshot = await getDocs(q);
+            const listContainer = document.getElementById('myPropertiesList');
+            listContainer.innerHTML = '';
+
+            if(querySnapshot.empty) {
+                listContainer.innerHTML = "لم تقم بإضافة أي عقارات حتى الآن بالموقع.";
+                return;
+            }
+
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                const id = docSnap.id;
+                
+                const card = document.createElement('div');
+                card.className = 'prop-card';
+
+                // استخدام كفر الغلاف الجديد المستخرج من Vercel Blob
+                const imgUrl = data.coverImage || (data.images && data.images[0]) || '';
+                
+                let statusMarkup = '';
+                let seoMarkup = '';
+
+                // فحص وإسناد البيانات بناءً على مستندات التحديث الجديدة
+                if (data.status === 'pending') {
+                    statusMarkup = `<span class="status-badge status-pending"><i class="fas fa-hourglass-half"></i> قيد المراجعة الإدارية</span>`;
+                } else if (data.status === 'approved') {
+                    statusMarkup = `<span class="status-badge status-approved"><i class="fas fa-check-circle"></i> تم النشر بالموقع تلقائياً</span>`;
+                } else if (data.status === 'rejected') {
+                    statusMarkup = `
+                        <span class="status-badge status-rejected"><i class="fas fa-times-circle"></i> تم رفض الإعلان</span>
+                        <div class="reason-box"><strong>سبب الرفض الإداري:</strong> ${data.rejectReason || 'مخالف لسياسة المحتوى'}</div>
+                    `;
+                }
+
+                // النظام العاشر: حساب اكتمال البيانات الجانبية لتنبيه الـ SEO والنتائج
+                const hasOptionalDetails = data.finishing || data.electricityCard || (data.features && Object.values(data.features).includes(true));
+                if (!hasOptionalDetails && data.status === 'approved') {
+                    seoMarkup = `
+                        <div class="seo-alert-box">
+                          <i class="fas fa-lightbulb" style="color:var(--primary)"></i>
+                          <span>أضف المزيد من التفاصيل (مثل التشطيب، المميزات والخدمات) لتحسين ظهور إعلانك في نتائج البحث والترشيحات المتقدمة.</span>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <img src="${imgUrl}" class="prop-img" alt="Property Cover">
+                    <div class="prop-details">
+                        ${statusMarkup}
+                        <div class="prop-title">${data.title}</div>
+                        <p style="color:var(--text-muted); font-size:0.9rem;">${data.governorate}، ${data.city} | ${data.price} ج.م</p>
+                        ${seoMarkup}
+                    </div>
+                    <a href="edit-property.html?id=${id}" class="btn-edit"><i class="fas fa-edit"></i> تعديل العقار</a>
+                `;
+
+                listContainer.appendChild(card);
+            });
+
+        } catch (err) {
+            console.error("Error loading customer properties:", err);
+            document.getElementById('myPropertiesList').innerHTML = "حدث خطأ غير متوقع أثناء استدعاء قائمة عقاراتك الاستثمارية.";
+        }
+    });
+  </script>
+</body>
+</html>
