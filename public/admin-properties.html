@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>لوحة الإدارة - مراجعة العقارات</title>
+  <title>لوحة الإدارة - مراجعة العقارات المتقدمة</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
@@ -23,59 +23,119 @@
       --transition: all 0.3s ease;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Cairo', sans-serif; background-color: var(--bg-primary); color: var(--text-primary); padding: 2rem 1rem; }
+    body { font-family: 'Cairo', sans-serif; background-color: var(--bg-primary); color: var(--text-primary); padding: 1.5rem 1rem; position: relative; min-height: 100vh; }
     
-    .admin-container { max-width: 1100px; margin: 0 auto; }
+    .admin-container { max-width: 1200px; margin: 0 auto; }
     
-    .btn-back { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-muted); text-decoration: none; font-weight: 600; margin-bottom: 1.5rem; font-size: 0.95rem; transition: var(--transition); }
+    .btn-back { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-muted); text-decoration: none; font-weight: 600; margin-bottom: 1rem; font-size: 0.95rem; transition: var(--transition); }
     .btn-back:hover { color: var(--primary); }
 
-    .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+    .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
     h1 { font-weight: 900; color: var(--primary); font-size: 1.8rem; }
     
-    .filter-badge { background: var(--bg-tertiary); border: 1px solid var(--border); padding: 0.5rem 1.25rem; border-radius: 30px; cursor: pointer; font-size: 0.85rem; font-weight: 700; transition: var(--transition); color: var(--text-muted); }
-    .filter-badge.active { background: var(--primary); color: var(--bg-primary); border-color: var(--primary); }
-    .filters-wrapper { display: flex; gap: 0.75rem; }
+    /* تقسيم لوحة الإدارة إلى قسمين رئيسيين */
+    .tab-wrapper { display: flex; gap: 1rem; background: var(--bg-tertiary); padding: 0.4rem; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 1.5rem; width: max-content; }
+    .tab-btn { padding: 0.6rem 1.5rem; border-radius: 8px; border: none; background: transparent; color: var(--text-muted); font-weight: 700; cursor: pointer; font-family: 'Cairo'; transition: var(--transition); }
+    .tab-btn.active { background: var(--primary); color: var(--bg-primary); }
 
-    .admin-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; display: flex; gap: 1.5rem; align-items: flex-start; transition: var(--transition); position: relative; }
-    .admin-card:hover { border-color: rgba(255,255,255,0.15); }
+    /* شريط الأدوات المتقدم والمحسن */
+    .toolbar { background: var(--bg-secondary); border: 1px solid var(--border); padding: 1.25rem; border-radius: 16px; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+    .search-row { width: 100%; position: relative; }
+    .search-input { width: 100%; padding: 0.75rem 2.5rem 0.75rem 1rem; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 10px; color: #fff; font-family: 'Cairo'; font-size: 0.95rem; }
+    .search-input:focus { border-color: var(--primary); outline: none; }
+    .search-row i { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+
+    .filters-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; }
+    .filter-select { background: var(--bg-primary); border: 1px solid var(--border); padding: 0.6rem; border-radius: 8px; color: #fff; font-family: 'Cairo'; font-size: 0.85rem; cursor: pointer; }
+    .filter-select:focus { border-color: var(--primary); outline: none; }
+
+    /* كروت العرض المتطورة */
+    .admin-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem; margin-bottom: 1.25rem; display: flex; gap: 1.5rem; align-items: stretch; transition: var(--transition); cursor: pointer; }
+    .admin-card:hover { border-color: rgba(255,255,255,0.15); transform: translateY(-2px); }
     
-    .prop-img { width: 160px; height: 120px; border-radius: 12px; object-fit: cover; background: var(--bg-tertiary); flex-shrink: 0; }
-    .prop-info { flex: 1; display: flex; flex-direction: column; gap: 0.4rem; }
-    .prop-title { font-size: 1.3rem; font-weight: 700; color: #fff; }
+    .img-container { width: 180px; height: 135px; border-radius: 12px; overflow: hidden; position: relative; flex-shrink: 0; background: var(--bg-tertiary); }
+    .prop-img { width: 100%; height: 100%; object-fit: cover; }
+    .media-badges { position: absolute; bottom: 0.5rem; left: 0.5rem; display: flex; gap: 0.3rem; }
+    .m-badge { background: rgba(0,0,0,0.75); color: #fff; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.2rem; }
+
+    .prop-info { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+    .title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+    .prop-title { font-size: 1.25rem; font-weight: 700; color: #fff; line-height: 1.4; }
     
-    .status-tag { width: max-content; padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .status-tag { padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; width: max-content; }
     .status-tag.pending { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
     .status-tag.approved { background: rgba(16, 185, 129, 0.15); color: var(--success); }
     .status-tag.rejected { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
 
-    .meta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.5rem; margin: 0.5rem 0; font-size: 0.85rem; color: var(--text-muted); }
-    .meta-item { display: flex; align-items: center; gap: 0.4rem; }
+    .reject-reason-box { background: rgba(239, 68, 68, 0.08); border-right: 3px solid var(--danger); padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.85rem; color: #fca5a5; margin: 0.5rem 0; }
 
-    .actions-wrapper { display: flex; flex-direction: column; gap: 0.75rem; justify-content: center; align-items: flex-end; height: 100%; min-width: 160px; }
-    .btn-action { width: 100%; padding: 0.6rem 1rem; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; transition: var(--transition); font-family: 'Cairo'; }
+    .meta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.4rem; margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted); }
+    .meta-item { display: flex; align-items: center; gap: 0.4rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+    .meta-item i { color: var(--primary); width: 14px; text-align: center; }
+
+    .actions-wrapper { display: flex; flex-direction: column; gap: 0.5rem; justify-content: center; min-width: 140px; }
+    .btn-action { width: 100%; padding: 0.55rem 0.8rem; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; transition: var(--transition); font-family: 'Cairo'; }
     .btn-approve { background: var(--success); color: #fff; }
     .btn-approve:hover { background: #059669; }
-    .btn-reject { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
-    .btn-reject:hover { background: var(--danger); color: #fff; }
+    .btn-reject { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
+    .btn-reject:hover { background: var(--warning); color: #111; }
+    .btn-edit { background: rgba(56, 189, 248, 0.1); color: var(--primary); border: 1px solid rgba(56, 189, 248, 0.2); }
+    .btn-edit:hover { background: var(--primary); color: #111; }
+    .btn-delete { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+    .btn-delete:hover { background: var(--danger); color: #fff; }
 
-    .mini-gallery { display: flex; gap: 0.4rem; margin-top: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem; }
-    .mini-gallery img { width: 45px; height: 35px; border-radius: 4px; object-fit: cover; border: 1px solid var(--border); cursor: pointer; }
+    /* نظام الـ Pagination */
+    .pagination-container { display: flex; justify-content: center; align-items: center; gap: 1rem; margin: 2rem 0; }
+    .btn-page { background: var(--bg-tertiary); border: 1px solid var(--border); color: #fff; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-family: 'Cairo'; font-weight: 600; }
+    .btn-page:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    @media (max-width: 768px) {
-      .admin-card { flex-direction: column; align-items: stretch; gap: 1rem; }
-      .prop-img { width: 100%; height: 180px; }
-      .actions-wrapper { flex-direction: row; width: 100%; }
-      .btn-action { flex: 1; }
-    }
-
-    .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 9999; opacity: 0; pointer-events: none; transition: var(--transition); }
+    /* النوافذ المنبثقة الـ Modals الاحترافية */
+    .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 9999; opacity: 0; pointer-events: none; transition: var(--transition); padding: 1rem; overflow-y: auto; }
     .modal-overlay.open { opacity: 1; pointer-events: auto; }
-    .modal-content { background: #111827; border: 1px solid var(--border); padding: 2rem; border-radius: 16px; max-width: 450px; width: 90%; text-align: right; }
-    .modal-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem; color: var(--danger); }
-    .modal-textarea { width: 100%; padding: 0.75rem; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; color: #fff; font-family: 'Cairo'; margin-bottom: 1.5rem; resize: none; }
-    .modal-textarea:focus { border-color: var(--danger); outline: none; }
-    .modal-buttons { display: flex; gap: 1rem; }
+    .modal-content { background: #111827; border: 1px solid var(--border); padding: 1.5rem; border-radius: 16px; max-width: 750px; width: 100%; text-align: right; max-height: 90vh; overflow-y: auto; position: relative; }
+    .modal-close { position: absolute; left: 1rem; top: 1rem; background: var(--bg-tertiary); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+    /* تفاصيل المعاينة ومستعرض الصور الفخم */
+    .detail-section-title { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin: 1.25rem 0 0.5rem 0; border-bottom: 1px solid var(--border); padding-bottom: 0.25rem; }
+    .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; background: rgba(255,255,255,0.02); padding: 0.75rem; border-radius: 8px; }
+    .detail-item { font-size: 0.9rem; }
+    .detail-item strong { color: var(--text-muted); }
+    
+    .copy-btn { background: var(--bg-tertiary); border: 1px solid var(--border); color: var(--primary); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; margin-right: 0.5rem; display: inline-flex; align-items: center; gap: 0.2rem; }
+
+    /* معرض صور التفاصيل الاحترافي */
+    .gallery-viewer { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+    .main-preview-box { width: 100%; height: 300px; background: #000; border-radius: 12px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; }
+    .main-preview-box img, .main-preview-box video { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .nav-arrow { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: #fff; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; }
+    .nav-arrow.prev-arr { right: 1rem; }
+    .nav-arrow.next-arr { left: 1rem; }
+    .thumb-strip { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem; }
+    .thumb-strip img { width: 70px; height: 50px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 2px solid transparent; opacity: 0.6; }
+    .thumb-strip img.active { border-color: var(--primary); opacity: 1; }
+
+    /* الـ Toast System المدمج السريع */
+    .toast-container { position: fixed; bottom: 2rem; left: 2rem; display: flex; flex-direction: column; gap: 0.75rem; z-index: 100000; }
+    .toast { background: #1f293d; border-right: 4px solid var(--primary); color: #fff; padding: 1rem 1.5rem; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 0.75rem; transform: translateX(-120%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); min-width: 280px; font-weight: 600; }
+    .toast.show { transform: translateX(0); }
+    .toast.success { border-color: var(--success); }
+    .toast.danger { border-color: var(--danger); }
+    .toast.warning { border-color: var(--warning); }
+
+    /* الـ Loading الوميضي الشامل */
+    .loading-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(11, 15, 25, 0.8); display: none; align-items: center; justify-content: center; z-index: 100001; flex-direction: column; gap: 1rem; }
+    .spinner { width: 50px; height: 50px; border: 4px solid rgba(56, 189, 248, 0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* التجاوب مع شاشات الهواتف المحمولة */
+    @media (max-width: 768px) {
+      .admin-card { flex-direction: column; }
+      .img-container { width: 100%; height: 180px; }
+      .actions-wrapper { flex-direction: row; flex-wrap: wrap; width: 100%; }
+      .btn-action { flex: 1; min-width: 110px; }
+      .tab-wrapper { width: 100%; justify-content: center; }
+    }
   </style>
 </head>
 <body>
@@ -84,33 +144,143 @@
     <a href="dashboard.html" class="btn-back"><i class="fas fa-arrow-right"></i> العودة للوحة الإحصائيات</a>
     
     <div class="header-section">
-      <h1><i class="fas fa-shield-alt"></i> مراجعة واعتماد طلبات العقارات</h1>
-      <div class="filters-wrapper">
-        <div class="filter-badge active" id="filter-pending" onclick="filterData('pending')">المعلقة فقط</div>
-        <div class="filter-badge" id="filter-all" onclick="filterData('all')">كل العقارات</div>
+      <h1><i class="fas fa-shield-alt"></i> لوحة تحكم العقارات الاحترافية</h1>
+      
+      <!-- تقسيم الإدارة لقسمين -->
+      <div class="tab-wrapper">
+        <button class="tab-btn active" id="tabPending" onclick="switchPanel('pending')">الطلبات الجديدة (المعلقة)</button>
+        <button class="tab-btn" id="tabAll" onclick="switchPanel('all')">إدارة جميع العقارات</button>
       </div>
     </div>
 
-    <div id="adminPropertiesList">جاري جلب المستندات المعلقة حالياً...</div>
+    <!-- شريط الأدوات: الفلاتر المتقدمة، البحث اللحظي، والترتيب -->
+    <div class="toolbar">
+      <div class="search-row">
+        <i class="fas fa-search"></i>
+        <input type="text" id="adminSearchInput" class="search-input" placeholder="بحث فوري بالعنوان، رقم العقار، اسم المعلن، هاتف المعلن، أو البريد الإلكتروني...">
+      </div>
+      <div class="filters-row">
+        <select id="filterStatus" class="filter-select" onchange="applyFiltersAndRender()">
+          <option value="all">كل الحالات</option>
+          <option value="pending">قيد الانتظار (Pending)</option>
+          <option value="approved">تمت الموافقة (Approved)</option>
+          <option value="rejected">المرفوضة (Rejected)</option>
+        </select>
+        <select id="filterPurpose" class="filter-select" onchange="applyFiltersAndRender()">
+          <option value="all">كل العمليات (بيع/إيجار)</option>
+          <option value="sale">بيع</option>
+          <option value="rent">إيجار</option>
+        </select>
+        <select id="filterType" class="filter-select" onchange="applyFiltersAndRender()"></select>
+        <select id="filterGov" class="filter-select" onchange="applyFiltersAndRender()"></select>
+        <select id="sortOrder" class="filter-select" onchange="applyFiltersAndRender()">
+          <option value="newest">الأحدث تدوينًا</option>
+          <option value="oldest">الأقدم تدوينًا</option>
+          <option value="price-high">الأعلى سعراً</option>
+          <option value="price-low">الأقل سعراً</option>
+          <option value="area-high">الأكبر مساحة</option>
+          <option value="area-low">الأصغر مساحة</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- قائمة عرض الطلبات المستهدفة -->
+    <div id="adminPropertiesList">جاري جلب البيانات من السيرفر وبناء واجهة التحكم المتطورة...</div>
+
+    <!-- أدوات التنقل بين الصفحات Pagination -->
+    <div class="pagination-container" id="paginationBox"></div>
   </div>
 
-  <div class="modal-overlay" id="rejectModal">
+  <!-- مودال تفاصيل العقار الكاملة الاحترافية والمعرض الفخم -->
+  <div class="modal-overlay" id="detailsModal">
     <div class="modal-content">
-      <div class="modal-title"><i class="fas fa-exclamation-triangle"></i> تحديد سبب رفض الإعلان</div>
-      <p style="font-size:0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">برجاء كتابة سبب واضح للمستثمر:</p>
-      <textarea id="rejectReasonInput" class="modal-textarea" rows="4" placeholder="مثال: الصور المرفوعة غير واضحة..."></textarea>
-      <div class="modal-buttons">
+      <button class="modal-close" onclick="closeDetailsModal()"><i class="fas fa-times"></i></button>
+      <h2 id="mdTitle" style="color:var(--primary); margin-bottom:1rem; padding-left:2rem;"></h2>
+      
+      <!-- معرض الميديا المتكامل -->
+      <div class="gallery-viewer">
+        <div class="main-preview-box" id="mainPreviewBox"></div>
+        <div class="thumb-strip" id="thumbStrip"></div>
+      </div>
+
+      <div class="detail-section-title"><i class="fas fa-info-circle"></i> مواصفات وبيانات العقار الهيكلية</div>
+      <div class="detail-grid">
+        <div class="detail-item"><strong>نوع العملية:</strong> <span id="mdPurpose"></span></div>
+        <div class="detail-item"><strong>نوع العقار:</strong> <span id="mdType"></span></div>
+        <div class="detail-item"><strong>المساحة:</strong> <span id="mdArea"></span> م²</div>
+        <div class="detail-item"><strong>السعر:</strong> <span id="mdPrice"></span> ج.م</div>
+        <div class="detail-item"><strong>الغرف:</strong> <span id="mdRooms"></span></div>
+        <div class="detail-item"><strong>الحمامات:</strong> <span id="mdBaths"></span></div>
+        <div class="detail-item"><strong>الدور:</strong> <span id="mdFloor"></span></div>
+        <div class="detail-item"><strong>التشطيب:</strong> <span id="mdFinish"></span></div>
+        <div class="detail-item"><strong>الموقع:</strong> <span id="mdLocation"></span></div>
+        <div class="detail-item"><strong>العدادات:</strong> <span id="mdMeters"></span></div>
+      </div>
+
+      <div class="detail-section-title"><i class="fas fa-star"></i> المميزات الإضافية والملحقات</div>
+      <p id="mdFeatures" style="font-size:0.9rem; color:var(--text-primary); line-height:1.6; background:rgba(255,255,255,0.02); padding:0.75rem; border-radius:8px;"></p>
+
+      <div class="detail-section-title"><i class="fas fa-align-left"></i> الوصف الكتابي والتفاصيل الحرة</div>
+      <p id="mdDesc" style="font-size:0.9rem; color:var(--text-muted); line-height:1.6; background:rgba(255,255,255,0.02); padding:0.75rem; border-radius:8px; white-space:pre-line;"></p>
+
+      <div class="detail-section-title"><i class="fas fa-user-shield"></i> معلومات وبيانات معلن العقار</div>
+      <div class="detail-grid">
+        <div class="detail-item"><strong>اسم المعلن:</strong> <span id="mdOwnerName"></span> <button class="copy-btn" onclick="copyTxt('mdOwnerName')"><i class="far fa-copy"></i> نسخ</button></div>
+        <div class="detail-item"><strong>رقم الهاتف:</strong> <span id="mdOwnerPhone"></span> <button class="copy-btn" onclick="copyTxt('mdOwnerPhone')"><i class="far fa-copy"></i> نسخ</button></div>
+        <div class="detail-item"><strong>البريد الإلكتروني:</strong> <span id="mdOwnerEmail"></span> <button class="copy-btn" onclick="copyTxt('mdOwnerEmail')"><i class="far fa-copy"></i> نسخ</button></div>
+        <div class="detail-item"><strong>معرف المستخدم UID:</strong> <span id="mdOwnerUid"></span> <button class="copy-btn" onclick="copyTxt('mdOwnerUid')"><i class="far fa-copy"></i> نسخ</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- مودال إدخال سبب الرفض السريع -->
+  <div class="modal-overlay" id="rejectModal">
+    <div class="modal-content" style="max-width: 450px;">
+      <div class="modal-title" style="font-size:1.2rem; font-weight:700; margin-bottom:1rem; color:var(--danger);"><i class="fas fa-exclamation-triangle"></i> تحديد سبب رفض إعلان العقار</div>
+      <textarea id="rejectReasonInput" class="modal-textarea" style="width:100%; padding:0.75rem; background:var(--bg-primary); border:1px solid var(--border); border-radius:8px; color:#fff; font-family:'Cairo'; margin-bottom:1.5rem; resize:none;" rows="4" placeholder="اكتب سبب الرفض هنا..."></textarea>
+      <div class="modal-buttons" style="display:flex; gap:1rem;">
         <button class="btn-action" style="background:var(--danger); color:white;" id="btnConfirmReject">تأكيد الرفض النهائي</button>
         <button class="btn-action" style="background:var(--bg-tertiary); color:white;" onclick="closeRejectModal()">إلغاء</button>
       </div>
     </div>
   </div>
 
+  <!-- مودال التعديل السريع على البيانات الأساسية للعقار -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal-content" style="max-width: 500px;">
+      <h3 style="color:var(--primary); margin-bottom:1rem;"><i class="fas fa-edit"></i> تعديل سريع لبيانات العقار</h3>
+      <div style="display:flex; flex-direction:column; gap:0.75rem;">
+        <label style="font-size:0.85rem; color:var(--text-muted)">عنوان العقار الرئيسي:</label>
+        <input type="text" id="editTitle" class="search-input" style="padding:0.6rem;">
+        
+        <label style="font-size:0.85rem; color:var(--text-muted)">السعر (ج.م):</label>
+        <input type="number" id="editPrice" class="search-input" style="padding:0.6rem;">
+        
+        <label style="font-size:0.85rem; color:var(--text-muted)">المساحة (م²):</label>
+        <input type="number" id="editArea" class="search-input" style="padding:0.6rem;">
+      </div>
+      <div class="modal-buttons" style="display:flex; gap:1rem; margin-top:1.5rem;">
+        <button class="btn-action btn-approve" id="btnConfirmEdit">حفظ التغييرات</button>
+        <button class="btn-action" style="background:var(--bg-tertiary); color:white;" onclick="closeEditModal()">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- حاوية التنبيهات الاحترافية Toasts -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- الـ Loading الشامل المعتم للعمليات الحساسة -->
+  <div class="loading-overlay" id="globalLoading">
+    <div class="spinner"></div>
+    <p style="color:var(--primary); font-weight:700;" id="loadingText">جاري معالجة طلبك الإداري...</p>
+  </div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, query, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+    // إبقاء الإعدادات الأصلية لمشروعك كما هي بالملي
     const firebaseConfig = {
         apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
         authDomain: "am--rewards.firebaseapp.com",
@@ -122,98 +292,276 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    // عنوان الـ API الموحد على Vercel Serverless
+    // عنوان الـ API الموحد والمسار على خوادم Vercel Serverless
     const API_URL = "https://your-domain.vercel.app/api/manage-property";
 
-    let currentFilter = 'pending';
+    // مصفوفات ومتغيرات اللوحة الهيكلية لإدارة البيانات محلياً للسرعة القصوى
+    let allRawProperties = []; 
+    let filteredProperties = []; 
+    let panelMode = 'pending'; // الوضع الافتراضي للتبويب العلوي (مراجعة الطلبات الجديدة)
     let activeRejectDocId = null;
+    let activeEditDocId = null;
+    
+    // متغيرات ميديا المعاينة
+    let activeMediaArray = [];
+    let activeMediaIndex = 0;
 
+    // متغيرات الـ Pagination الـ 20 عنصر
+    let currentPage = 1;
+    const itemsPerPage = 20;
+
+    // تشغيل نظام التحقق والمراقبة
     onAuthStateChanged(auth, (user) => {
         if (!user) {
-            document.getElementById('adminPropertiesList').innerHTML = "غير مسموح بالدخول لغير مسؤولي النظام.";
+            document.getElementById('adminPropertiesList').innerHTML = "<div style='padding:2rem; text-align:center;'>غير مسموح بالدخول لغير مسؤولي النظام. سجل دخولك أولاً.</div>";
             return;
         }
-        loadAdminData();
+        fetchInitialDataFromServer();
     });
 
-    async function loadAdminData() {
-        const listContainer = document.getElementById('adminPropertiesList');
-        listContainer.innerHTML = 'جاري تحديث البيانات...';
-
+    // جلب البيانات الأساسية دفعة واحدة لضمان تصفية وفلترة فائقة السرعة ولحظية
+    async function fetchInitialDataFromServer() {
+        showLoading("جاري جلب قائمة العقارات والبيانات...");
         try {
-            let q = currentFilter === 'pending' 
-                ? query(collection(db, "properties"), where("status", "==", "pending"), orderBy("createdAt", "desc"))
-                : query(collection(db, "properties"), orderBy("createdAt", "desc"));
-
+            const q = query(collection(db, "properties"), orderBy("createdAt", "desc"));
             const querySnapshot = await getDocs(q);
-            listContainer.innerHTML = '';
-
-            if (querySnapshot.empty) {
-                listContainer.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding: 3rem 0;">لا يوجد طلبات عقارات حالياً.</p>`;
-                return;
-            }
-
+            allRawProperties = [];
+            
             querySnapshot.forEach((docSnap) => {
-                const data = docSnap.data();
-                const id = docSnap.id;
-
-                const card = document.createElement('div');
-                card.className = 'admin-card';
-                const imgUrl = data.coverImage || (data.images && data.images[0]) || '';
-                
-                let galleryHtml = '';
-                if(data.images && data.images.length > 0) {
-                    galleryHtml = `<div class="mini-gallery">`;
-                    data.images.forEach(url => { galleryHtml += `<img src="${url}" onclick="window.open('${url}', '_blank')">`; });
-                    galleryHtml += `</div>`;
-                }
-
-                let statusClass = 'pending', statusText = 'معلق';
-                if (data.status === 'approved') { statusClass = 'approved'; statusText = 'تم النشر'; }
-                if (data.status === 'rejected') { statusClass = 'rejected'; statusText = 'مرفوض'; }
-
-                card.innerHTML = `
-                    <img src="${imgUrl}" class="prop-img" alt="Property Cover">
-                    <div class="prop-info">
-                        <span class="status-tag ${statusClass}">${statusText}</span>
-                        <div class="prop-title">${data.title || 'بدون عنوان'}</div>
-                        <p style="color:var(--text-muted); font-size:0.85rem;">${data.description ? data.description.substring(0, 100) + '...' : ''}</p>
-                        <div class="meta-grid">
-                            <div class="meta-item"><i class="fas fa-map-marker-alt"></i> ${data.governorate} - ${data.city}</div>
-                            <div class="meta-item"><i class="fas fa-tags"></i> ${data.price} ج.م</div>
-                            <div class="meta-item"><i class="fas fa-ruler-combined"></i> ${data.area} م²</div>
-                        </div>
-                        ${galleryHtml}
-                    </div>
-                    <div class="actions-wrapper">
-                        ${data.status === 'pending' ? `
-                            <button class="btn-action btn-approve" data-id="${id}"><i class="fas fa-check"></i> موافقة ونشر</button>
-                            <button class="btn-action btn-reject" data-id="${id}"><i class="fas fa-ban"></i> رفض الطلب</button>
-                        ` : `<span style="font-size:0.8rem; color:var(--text-muted)">تم اتخاذ إجراء مسبق</span>`}
-                    </div>
-                `;
-                listContainer.appendChild(card);
+                allRawProperties.push({
+                    id: docSnap.id,
+                    ...docSnap.data()
+                });
             });
 
-            document.querySelectorAll('.btn-approve').forEach(btn => {
-                btn.addEventListener('click', (e) => handlePropertyAction(e.target.dataset.id, 'approve'));
-            });
-            document.querySelectorAll('.btn-reject').forEach(btn => {
-                btn.addEventListener('click', (e) => openRejectModal(e.target.dataset.id));
-            });
-
-        } catch (error) {
-            listContainer.innerHTML = "فشل تحميل البيانات من السيرفر.";
+            // بناء خيارات الفلاتر الديناميكية بناءً على المتوفر الفعلي بالعقارات
+            populateDynamicFilters();
+            
+            // تطبيق الفلترة والعرض المبدئي للمعلومات
+            applyFiltersAndRender();
+        } catch (err) {
+            showToast("فشل في تحميل المستندات من Firestore: " + err.message, "danger");
+        } finally {
+            hideLoading();
         }
     }
 
-    // دالة الإرسال الموحدة للـ API بناءً على نوع الـ Action
-    async function handlePropertyAction(docId, actionType, rejectReason = null) {
+    // تعبئة فلاتر المحافظات والأنواع ديناميكياً لتجنب القيم الفارغة
+    function populateDynamicFilters() {
+        const typeSelect = document.getElementById('filterType');
+        const govSelect = document.getElementById('filterGov');
+        
+        const types = new Set(["all"]);
+        const govs = new Set(["all"]);
+
+        allRawProperties.forEach(p => {
+            if(p.propertyType) types.add(p.propertyType);
+            if(p.governorate) govs.add(p.governorate);
+        });
+
+        typeSelect.innerHTML = '<option value="all">كل أنواع العقارات</option>';
+        types.forEach(t => { if(t !== 'all') typeSelect.innerHTML += `<option value="${t}">${t}</option>`; });
+
+        govSelect.innerHTML = '<option value="all">كل المحافظات</option>';
+        govs.forEach(g => { if(g !== 'all') govSelect.innerHTML += `<option value="${g}">${g}</option>`; });
+    }
+
+    // التبديل الكلي بين قسمي الإدارة (الطلبات الجديدة المعلقة / إدارة جميع العقارات)
+    window.switchPanel = function(mode) {
+        panelMode = mode;
+        currentPage = 1;
+        
+        document.getElementById('tabPending').classList.remove('active');
+        document.getElementById('tabAll').classList.remove('active');
+        
+        const statusSelector = document.getElementById('filterStatus');
+
+        if(mode === 'pending') {
+            document.getElementById('tabPending').classList.add('active');
+            statusSelector.value = 'pending';
+            statusSelector.style.display = 'none'; // نخفيه لأن تبويب المعلق يفرض الحالة تلقائياً
+        } else {
+            document.getElementById('tabAll').classList.add('add', 'active');
+            statusSelector.value = 'all';
+            statusSelector.style.display = 'block';
+        }
+        applyFiltersAndRender();
+    }
+
+    // المحرك الأساسي الذكي لمعالجة الفلترة اللحظية المتعددة، الترتيب، والبحث
+    window.applyFiltersAndRender = function() {
+        const searchText = document.getElementById('adminSearchInput').value.toLowerCase().trim();
+        const statusVal = document.getElementById('filterStatus').value;
+        const purposeVal = document.getElementById('filterPurpose').value;
+        const typeVal = document.getElementById('filterType').value;
+        const govVal = document.getElementById('filterGov').value;
+        const sortVal = document.getElementById('sortOrder').value;
+
+        // 1. التصفية والفلاتر
+        filteredProperties = allRawProperties.filter(p => {
+            // التحقق من توافق تبويب اللوحة المفروض
+            if (panelMode === 'pending' && p.status !== 'pending') return false;
+            
+            // الفلاتر المتعددة المدمجة بالوقت ذاته
+            if (panelMode === 'all' && statusVal !== 'all' && p.status !== statusVal) return false;
+            if (purposeVal !== 'all' && p.purpose !== purposeVal) return false;
+            if (typeVal !== 'all' && p.propertyType !== typeVal) return false;
+            if (govVal !== 'all' && p.governorate !== govVal) return false;
+
+            // كود البحث اللحظي الموسع والشامل لـ 5 معايير مختلفة
+            if (searchText) {
+                const titleMatch = (p.title || "").toLowerCase().includes(searchText);
+                const idMatch = (p.id || "").toLowerCase().includes(searchText);
+                const ownerNameMatch = (p.ownerName || "").toLowerCase().includes(searchText);
+                const ownerPhoneMatch = (p.ownerPhone || "").toLowerCase().includes(searchText);
+                const ownerEmailMatch = (p.ownerEmail || "").toLowerCase().includes(searchText);
+
+                if (!titleMatch && !idMatch && !ownerNameMatch && !ownerPhoneMatch && !ownerEmailMatch) {
+                    return false;
+                }
+            }
+            return true;
+        });
+
+        // 2. محرك الترتيب المتقدم
+        filteredProperties.sort((a, b) => {
+            if (sortVal === 'newest') return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+            if (sortVal === 'oldest') return (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0);
+            if (sortVal === 'price-high') return (b.price || 0) - (a.price || 0);
+            if (sortVal === 'price-low') return (a.price || 0) - (b.price || 0);
+            if (sortVal === 'area-high') return (b.area || 0) - (a.area || 0);
+            if (sortVal === 'area-low') return (a.area || 0) - (b.area || 0);
+            return 0;
+        });
+
+        renderPropertiesList();
+    }
+
+    // ربط مستمع الحدث للبحث الفوري اللحظي بمجرد الكتاية
+    document.getElementById('adminSearchInput').addEventListener('input', () => {
+        currentPage = 1;
+        applyFiltersAndRender();
+    });
+
+    // رسم وعرض كروت قائمة العقارات في الصفحة الحالية طبقاً للـ Pagination
+    function renderPropertiesList() {
+        const listContainer = document.getElementById('adminPropertiesList');
+        const paginationBox = document.getElementById('paginationBox');
+        listContainer.innerHTML = '';
+
+        if (filteredProperties.length === 0) {
+            listContainer.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:3rem 0;">لا توجد نتائج تطابق خيارات الفلترة أو البحث الحالية.</p>`;
+            paginationBox.innerHTML = '';
+            return;
+        }
+
+        // حسابات الـ Pagination (20 عنصر لكل صفحة)
+        const totalItems = filteredProperties.length;
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        if (currentPage > totalPages) currentPage = totalPages || 1;
+
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+        const paginatedSlice = filteredProperties.slice(startIndex, endIndex);
+
+        // بناء كروت العقارات المتطورة
+        paginatedSlice.forEach((p) => {
+            const card = document.createElement('div');
+            card.className = 'admin-card';
+            
+            // حماية ومعالجة الميديا (الصور والفيديو) داخل بطاقة العقار
+            const imgUrl = p.coverImage || (p.images && p.images[0]) || '';
+            const imgCount = p.images ? p.images.length : 0;
+            const hasVideo = p.videoUrl ? true : false;
+            
+            let statusClass = 'pending', statusText = 'معلق';
+            if (p.status === 'approved') { statusClass = 'approved'; statusText = 'مقبول ومنشور'; }
+            if (p.status === 'rejected') { statusClass = 'rejected'; statusText = 'مرفوض من الإدارة'; }
+
+            let dateString = "غير محدد";
+            if(p.createdAt && p.createdAt.seconds) {
+                dateString = new Date(p.createdAt.seconds * 1000).toLocaleDateString('ar-EG');
+            }
+
+            // إظهار صندوق سبب الرفض داخل كرت العقار مباشرة إذا كان مرفوضاً
+            let rejectBoxHtml = '';
+            if(p.status === 'rejected' && p.rejectReason) {
+                rejectBoxHtml = `<div class="reject-reason-box"><i class="fas fa-comment-slash"></i> <strong>سبب الرفض الحالي:</strong> ${p.rejectReason}</div>`;
+            }
+
+            card.innerHTML = `
+                <div class="img-container">
+                    <img src="${imgUrl}" class="prop-img" alt="Property Cover">
+                    <div class="media-badges">
+                        <span class="m-badge"><i class="fas fa-image"></i> ${imgCount}</span>
+                        ${hasVideo ? `<span class="m-badge" style="color:var(--primary);"><i class="fas fa-video"></i> فيديو</span>` : ''}
+                    </div>
+                </div>
+                <div class="prop-info" onclick="openDetailsModal('${p.id}')">
+                    <div class="title-row">
+                        <div class="prop-title">${p.title || 'عقار بدون عنوان إعلاني ثابث'}</div>
+                        <span class="status-tag ${statusClass}">${statusText}</span>
+                    </div>
+                    
+                    ${rejectBoxHtml}
+
+                    <div class="meta-grid">
+                        <div class="meta-item"><i class="fas fa-money-bill-wave"></i> السعر: ${p.price || 0} ج.م</div>
+                        <div class="meta-item"><i class="fas fa-th-large"></i> المساحة: ${p.area || 0} م²</div>
+                        <div class="meta-item"><i class="fas fa-bullseye"></i> المعاملة: ${p.purpose === 'sale' ? 'بيع' : 'إيجار'}</div>
+                        <div class="meta-item"><i class="fas fa-building"></i> النوع: ${p.propertyType || 'غير محدد'}</div>
+                        <div class="meta-item"><i class="fas fa-map-marked-alt"></i> الموقع: ${p.governorate || ''} - ${p.city || ''}</div>
+                        <div class="meta-item"><i class="fas fa-calendar-alt"></i> أرسل في: ${dateString}</div>
+                    </div>
+                </div>
+                <div class="actions-wrapper" onclick="event.stopPropagation();">
+                    <button class="btn-action btn-approve" onclick="handleApiAction('${p.id}', 'approve')"><i class="fas fa-check"></i> موافقة</button>
+                    <button class="btn-action btn-reject" onclick="openRejectModal('${p.id}')"><i class="fas fa-ban"></i> رفض</button>
+                    <button class="btn-action btn-edit" onclick="openEditModal('${p.id}')"><i class="fas fa-edit"></i> تعديل</button>
+                    <button class="btn-action btn-delete" onclick="handleDeleteProperty('${p.id}')"><i class="fas fa-trash-alt"></i> حذف نهائي</button>
+                </div>
+            `;
+            listContainer.appendChild(card);
+        });
+
+        // رسم أزرار الترقيم الآلي والتحكم (Pagination)
+        renderPaginationControls(totalPages);
+    }
+
+    function renderPaginationControls(totalPages) {
+        const paginationBox = document.getElementById('paginationBox');
+        paginationBox.innerHTML = '';
+        if(totalPages <= 1) return;
+
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'btn-page';
+        prevBtn.innerText = 'السابق';
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.onclick = () => { currentPage--; renderPropertiesList(); };
+        paginationBox.appendChild(prevBtn);
+
+        const infoSpan = document.createElement('span');
+        infoSpan.style.fontSize = '0.9rem';
+        infoSpan.innerText = `صفحة ${currentPage} من ${totalPages}`;
+        paginationBox.appendChild(infoSpan);
+
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'btn-page';
+        nextBtn.innerText = 'التالي';
+        nextBtn.disabled = currentPage === totalPages;
+        nextBtn.onclick = () => { currentPage++; renderPropertiesList(); };
+        paginationBox.appendChild(nextBtn);
+    }
+
+    // إرسال الإجراء والطلب التحديثي الموحد لـ Vercel Serverless
+    async function handleApiAction(docId, actionType, rejectReason = null, updateData = null) {
+        showLoading(actionType === 'approve' ? 'جاري الموافقة ونشر الإعلان...' : 'جاري تحديث البيانات...');
         try {
             const idToken = await auth.currentUser.getIdToken(true);
-
             const payload = { propertyId: docId, action: actionType };
+            
             if (rejectReason) payload.reason = rejectReason;
+            if (updateData) payload.updateData = updateData;
 
             const response = await fetch(API_URL, {
                 method: "POST",
@@ -226,17 +574,156 @@
 
             const result = await response.json();
             if (response.ok && result.success) {
-                alert(result.message);
-                if(actionType === 'reject') closeRejectModal();
-                loadAdminData();
+                showToast(result.message, "success");
+                
+                // تحديث مصفوفة البيانات محلياً بدون عمل إعادة تحميل كاملة من الـ Firestore لتوفير الـ Reads والتكلفة
+                const index = allRawProperties.findIndex(p => p.id === docId);
+                if (index !== -1) {
+                    if (actionType === 'approve') {
+                        allRawProperties[index].status = 'approved';
+                        delete allRawProperties[index].rejectReason;
+                    } else if (actionType === 'reject') {
+                        allRawProperties[index].status = 'rejected';
+                        allRawProperties[index].rejectReason = rejectReason;
+                    } else if (actionType === 'edit') {
+                        allRawProperties[index] = { ...allRawProperties[index], ...updateData };
+                    }
+                }
+                applyFiltersAndRender();
             } else {
-                alert("خطأ: " + result.error);
+                showToast("حدث خطأ من السيرفر: " + result.error, "danger");
             }
         } catch (err) {
-            alert("فشل الاتصال بـ Vercel API: " + err.message);
+            showToast("فشل الاتصال بالـ Backend: " + err.message, "danger");
+        } finally {
+            hideLoading();
         }
     }
 
+    // إجراء الحذف النهائي مع نافذة التأكيد المطلوبة
+    window.handleDeleteProperty = async function(docId) {
+        if(!confirm("⚠️ تنبيه هام للغاية: هل أنت متأكد تماماً من قرار حذف هذا العقار بشكل نهائي ولا يمكن الرجوع عنه من السيرفر؟")) return;
+        
+        showLoading("جاري الحذف النهائي للمستند...");
+        try {
+            const idToken = await auth.currentUser.getIdToken(true);
+            const response = await fetch(API_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${idToken}`
+                },
+                body: JSON.stringify({ propertyId: docId, action: 'delete' })
+            });
+
+            const result = await response.json();
+            if (response.ok && result.success) {
+                showToast(result.message, "success");
+                allRawProperties = allRawProperties.filter(p => p.id !== docId);
+                applyFiltersAndRender();
+            } else {
+                showToast("خطأ الحذف: " + result.error, "danger");
+            }
+        } catch(err) {
+            showToast("فشل الاتصال: " + err.message, "danger");
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // فتح مودال وعارض التفاصيل الكامل للعقار والميديا الشاملة والمعلن
+    window.openDetailsModal = function(docId) {
+        const p = allRawProperties.find(item => item.id === docId);
+        if(!p) return;
+
+        document.getElementById('mdTitle').innerText = p.title || 'تفاصيل العقار المعاين';
+        document.getElementById('mdPurpose').innerText = p.purpose === 'sale' ? 'بيع' : 'إيجار';
+        document.getElementById('mdType').innerText = p.propertyType || 'غير محدد';
+        document.getElementById('mdArea').innerText = p.area || 0;
+        document.getElementById('mdPrice').innerText = p.price || 0;
+        document.getElementById('mdRooms').innerText = p.rooms || 'غير متوفر';
+        document.getElementById('mdBaths').innerText = p.bathrooms || 'غير متوفر';
+        document.getElementById('mdFloor').innerText = p.floor || 'غير متوفر';
+        document.getElementById('mdFinish').innerText = p.finishing || 'غير متوفر';
+        document.getElementById('mdLocation').innerText = `${p.governorate || ''} - ${p.city || ''} - ${p.region || ''}`;
+        document.getElementById('mdMeters').innerText = p.meters || 'لا يوجد';
+        document.getElementById('mdDesc').innerText = p.description || 'لا يوجد وصف مضاف للعقار.';
+        
+        // معالجة الميزات
+        if(p.features && p.features.length > 0) {
+            document.getElementById('mdFeatures').innerText = p.features.join(' ✦ ');
+        } else {
+            document.getElementById('mdFeatures').innerText = 'لم يتم تحديد أي ميزات إضافية للعقار.';
+        }
+
+        // بيانات المعلن كاملة والـ UID
+        document.getElementById('mdOwnerName').innerText = p.ownerName || 'غير متوفر';
+        document.getElementById('mdOwnerPhone').innerText = p.ownerPhone || 'غير متوفر';
+        document.getElementById('mdOwnerEmail').innerText = p.ownerEmail || 'غير متوفر';
+        document.getElementById('mdOwnerUid').innerText = p.ownerId || p.uid || 'غير متوفر';
+
+        // تهيئة محرك معرض الوسائط والميديا الفخم (صور وفيديو معاً في شريط تنقل واحد)
+        activeMediaArray = [];
+        if(p.images && p.images.length > 0) {
+            p.images.forEach(url => activeMediaArray.push({ type: 'image', url: url }));
+        }
+        if(p.videoUrl) {
+            activeMediaArray.push({ type: 'video', url: p.videoUrl });
+        }
+        
+        activeMediaIndex = 0;
+        renderMediaGalleryViewer();
+
+        document.getElementById('detailsModal').classList.add('open');
+    }
+
+    function renderMediaGalleryViewer() {
+        const previewBox = document.getElementById('mainPreviewBox');
+        const thumbStrip = document.getElementById('thumbStrip');
+        previewBox.innerHTML = '';
+        thumbStrip.innerHTML = '';
+
+        if(activeMediaArray.length === 0) {
+            previewBox.innerHTML = '<p style="color:var(--text-muted)">لا توجد صور أو فيديوهات مرفوعة لهذا العقار</p>';
+            return;
+        }
+
+        // رسم الوسيط النشط الحالي
+        const currentMedia = activeMediaArray[activeMediaIndex];
+        if(currentMedia.type === 'image') {
+            previewBox.innerHTML = `<img src="${currentMedia.url}" alt="Preview" onclick="window.open('${currentMedia.url}', '_blank')">`;
+        } else {
+            previewBox.innerHTML = `<video src="${currentMedia.url}" controls></video>`;
+        }
+
+        // أزرار التنقل السريع
+        if(activeMediaArray.length > 1) {
+            previewBox.innerHTML += `<button class="nav-arrow prev-arr" onclick="navigateMedia(1)"><i class="fas fa-chevron-right"></i></button>`;
+            previewBox.innerHTML += `<button class="nav-arrow next-arr" onclick="navigateMedia(-1)"><i class="fas fa-chevron-left"></i></button>`;
+        }
+
+        // رسم الشريط السفلي المصغر (Thumbnails)
+        activeMediaArray.forEach((media, idx) => {
+            const thumb = document.createElement('img');
+            thumb.src = media.type === 'image' ? media.url : 'https://img.icons8.com/flat-style/2x/video.png';
+            if(idx === activeMediaIndex) thumb.className = 'active';
+            thumb.onclick = () => { activeMediaIndex = idx; renderMediaGalleryViewer(); };
+            thumbStrip.appendChild(thumb);
+        });
+    }
+
+    window.navigateMedia = function(direction) {
+        activeMediaIndex += direction;
+        if(activeMediaIndex >= activeMediaArray.length) activeMediaIndex = 0;
+        if(activeMediaIndex < 0) activeMediaIndex = activeMediaArray.length - 1;
+        renderMediaGalleryViewer();
+    }
+
+    window.closeDetailsModal = function() {
+        document.getElementById('detailsModal').classList.remove('open');
+    }
+
+    // نوافذ الرفض السريع
     window.openRejectModal = function(docId) {
         activeRejectDocId = docId;
         document.getElementById('rejectReasonInput').value = '';
@@ -245,21 +732,81 @@
 
     window.closeRejectModal = function() {
         document.getElementById('rejectModal').classList.remove('open');
-        activeRejectDocId = null;
     }
 
     document.getElementById('btnConfirmReject').addEventListener('click', () => {
         const reason = document.getElementById('rejectReasonInput').value.trim();
-        if(!reason) { alert("من فضلك اكتب سبب الرفض"); return; }
-        handlePropertyAction(activeRejectDocId, 'reject', reason);
+        if(!reason) { showToast("من فضلك اكتب سبب الرفض أولاً ليتم توثيقه", "warning"); return; }
+        handleApiAction(activeRejectDocId, 'reject', reason);
+        closeRejectModal();
     });
 
-    window.filterData = function(filterType) {
-        currentFilter = filterType;
-        document.querySelectorAll('.filter-badge').forEach(b => b.classList.remove('active'));
-        if(filterType === 'pending') document.getElementById('filter-pending').classList.add('active');
-        else document.getElementById('filter-all').classList.add('active');
-        loadAdminData();
+    // نوافذ التعديل السريع (ميزة مضافة جديدة)
+    window.openEditModal = function(docId) {
+        const p = allRawProperties.find(item => item.id === docId);
+        if(!p) return;
+        activeEditDocId = docId;
+        document.getElementById('editTitle').value = p.title || '';
+        document.getElementById('editPrice').value = p.price || 0;
+        document.getElementById('editArea').value = p.area || 0;
+        document.getElementById('editModal').classList.add('open');
+    }
+
+    window.closeEditModal = function() {
+        document.getElementById('editModal').classList.remove('open');
+    }
+
+    document.getElementById('btnConfirmEdit').addEventListener('click', () => {
+        const uTitle = document.getElementById('editTitle').value.trim();
+        const uPrice = parseFloat(document.getElementById('editPrice').value);
+        const uArea = parseFloat(document.getElementById('editArea').value);
+
+        if(!uTitle || isNaN(uPrice) || isNaN(uArea)) {
+            showToast("يرجى التأكد من ملء جميع حقول التعديل بشكل صحيح", "warning");
+            return;
+        }
+
+        handleApiAction(activeEditDocId, 'edit', null, { title: uTitle, price: uPrice, area: uArea });
+        closeEditModal();
+    });
+
+    // دالة نسخ النصوص ومحتويات لوحة المفاتيح
+    window.copyTxt = function(elementId) {
+        const txt = document.getElementById(elementId).innerText;
+        navigator.clipboard.writeText(txt).then(() => {
+            showToast("تم النسخ إلى الحافظة بنجاح!", "success");
+        }).catch(() => {
+            showToast("فشل النسخ التلقائي", "danger");
+        });
+    }
+
+    // محرك الـ Toast Notification المخصص والاحترافي البديل لـ alert()
+    function showToast(message, type = "success") {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        let icon = '<i class="fas fa-check-circle"></i>';
+        if(type === 'danger') icon = '<i class="fas fa-times-circle"></i>';
+        if(type === 'warning') icon = '<i class="fas fa-exclamation-circle"></i>';
+
+        toast.innerHTML = `${icon} <span>${message}</span>`;
+        container.appendChild(toast);
+
+        setTimeout(() => toast.classList.add('show'), 50);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+
+    // دوال الـ Loading التفاعلية الشاملة للوحة القيادة
+    function showLoading(msg) {
+        document.getElementById('loadingText').innerText = msg;
+        document.getElementById('globalLoading').style.display = 'flex';
+    }
+    function hideLoading() {
+        document.getElementById('globalLoading').style.display = 'none';
     }
   </script>
 </body>
