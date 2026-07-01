@@ -1,4 +1,4 @@
-// /api/register.js - معالج التسجيل المحسّن (تعديل نظام كشف الاحتيال ليعرض الأخطاء الفعلية)
+// /api/register.js - معالج التسجيل المطور مع تفعيل فحص VPN ونظام تراجع وحماية متكاملة
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
@@ -25,12 +25,17 @@ const auth = getAuth();
 
 // ✅ VPN Detection API
 async function checkVPN(ip) {
+  if (!process.env.VPN_API_KEY) {
+    console.warn("VPN_API_KEY is not configured. VPN Check skipped.");
+    return false;
+  }
   try {
     const response = await fetch(`https://vpnapi.io/?ip=${ip}&key=${process.env.VPN_API_KEY}`);
     const data = await response.json();
-    return data.security?.vpn || false;
+    // التحقق من الـ VPN أو الـ Proxy أو شبكة Tor
+    return !!(data.security?.vpn || data.security?.proxy || data.security?.tor);
   } catch (e) {
-    console.warn("VPN Check failed:", e.message);
+    console.warn("VPN Check API failed:", e.message);
     return false;
   }
 }
@@ -41,7 +46,14 @@ class FraudDetection {
     let riskScore = 0;
     const reasons = [];
 
-    // فحص 1: تكرار الـ Fingerprint (مؤشر احتيال)
+    // فحص 1: كشف الـ VPN والبروكسي (تأثير مباشر وحظر فوري بموجب السياسة)
+    const isVpn = await checkVPN(ip);
+    if (isVpn) {
+      riskScore += 60; // يؤدي للحظر فوراً لتخطيه عتبة الـ 60
+      reasons.push("VPN, Proxy, or Tor Connection Detected");
+    }
+
+    // فحص 2: تكرار الـ Fingerprint (مؤشر احتيال)
     const fpSnap = await db.collection("userDevices")
       .where("fingerprint", "==", fingerprint)
       .limit(5)
@@ -52,7 +64,7 @@ class FraudDetection {
       reasons.push("Duplicate device fingerprint detected");
     }
 
-    // فحص 2: تكرار الـ IP في وقت قصير (مؤشر احتيال)
+    // فحص 3: تكرار الـ IP في وقت قصير (مؤشر احتيال)
     const ipSnap = await db.collection("registrations")
       .where("ip", "==", ip)
       .where("createdAt", ">=", new Date(Date.now() - 3600000)) // آخر ساعة
@@ -63,12 +75,9 @@ class FraudDetection {
       reasons.push("Multiple registrations from same IP in 1 hour");
     }
 
-    // 💡 تم إزالة فحص الهاتف والبريد الإلكتروني من هنا لكي لا يتسببا في إظهار رسالة الحظر الأمنية،
-    // وتم نقل الفحص بالكامل إلى الأسفل ليعطي الرسالة الفعلية المحددة للمستخدم.
-
     return {
       riskScore,
-      isSuspicious: riskScore >= 60, // يتم الحظر فقط لو تخطى الـ 60 نتيجة الـ IP أو Fingerprint
+      isSuspicious: riskScore >= 60, 
       reasons
     };
   }
@@ -97,15 +106,19 @@ export default async function handler(req, res) {
       });
     }
 
-    if (name.length < 3) {
+    const cleanName = name.trim();
+    const cleanPhone = phone.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (cleanName.length < 3) {
       return res.status(400).json({ 
         error: "يجب أن يتكون الاسم من 3 أحرف على الأقل" 
       });
     }
 
-    if (!/^01[0125]\d{8}$/.test(phone)) {
+    if (!/^01[0125]\d{8}$/.test(cleanPhone)) {
       return res.status(400).json({ 
-        error: "صيغة رقم الهاتف غير صحيحة" 
+        error: "صيغة رقم الهاتف غير صحيحة، يجب أن يكون رقماً مصرياً صالحاً" 
       });
     }
 
@@ -124,8 +137,8 @@ export default async function handler(req, res) {
     // ======== 2. التحقق من البيانات المكررة أولاً (لإظهار الرسائل الفعلية) ========
     const [deviceSnap, phoneSnap, emailSnap] = await Promise.all([
       db.collection("userDevices").where("deviceId", "==", deviceId).limit(1).get(),
-      db.collection("users").where("phone", "==", phone).limit(1).get(),
-      db.collection("users").where("email", "==", email.toLowerCase()).limit(1).get()
+      db.collection("users").where("phone", "==", cleanPhone).limit(1).get(),
+      db.collection("users").where("email", "==", cleanEmail).limit(1).get()
     ]);
 
     if (!deviceSnap.empty) {
@@ -148,7 +161,7 @@ export default async function handler(req, res) {
 
     // التحقق الإضافي من الـ Auth الخاص بـ Firebase للبريد الإلكتروني
     try {
-      await auth.getUserByEmail(email.toLowerCase());
+      await auth.getUserByEmail(cleanEmail);
       return res.status(400).json({ 
         error: "البريد الإلكتروني هذا مسجل بحساب آخر بالفعل." 
       });
@@ -156,24 +169,24 @@ export default async function handler(req, res) {
       // البريد غير مكرر في الـ Auth، يمكن المتابعة بأمان
     }
 
-    // ======== 3. كشف الاحتيال الفعلي (للأجهزة الـ Spam والـ IPs فقط) ========
-    const fraudCheck = await FraudDetection.analyzeSignup({ email, phone }, ip, fingerprint);
+    // ======== 3. كشف الاحتيال والـ VPN ========
+    const fraudCheck = await FraudDetection.analyzeSignup({ email: cleanEmail, phone: cleanPhone }, ip, fingerprint);
     
     if (fraudCheck.isSuspicious) {
-      console.warn(`[FRAUD ALERT] High risk signup from ${ip}:`, fraudCheck.reasons);
+      console.warn(`[FRAUD ALERT] High risk signup blocked from ${ip}:`, fraudCheck.reasons);
       
       await db.collection("fraudLogs").add({
         ip,
-        fingerprint,
-        email,
-        phone,
+        fingerprint: fingerprint || "legacy",
+        email: cleanEmail,
+        phone: cleanPhone,
         reasons: fraudCheck.reasons,
         riskScore: fraudCheck.riskScore,
         timestamp: FieldValue.serverTimestamp()
       });
 
       return res.status(403).json({ 
-        error: "تم حظر التسجيل لأسباب أمنية لحماية المنصة. يرجى الاتصال بالدعم الفني." 
+        error: "تم حظر التسجيل تلقائياً لمخالفة شروط وسياسة المنصة (استخدام VPN أو نشاط مريب). يرجى الاتصال بالدعم الفني." 
       });
     }
 
@@ -187,7 +200,7 @@ export default async function handler(req, res) {
       const data = rateLimitSnap.data();
       if (data.count >= 5 && (now - data.lastAttempt < 3600000)) {
         return res.status(429).json({ 
-          error: "محاولات تسجيل كثيرة جداً من هذا الجهاز. يرجى المحاولة مرة أخرى لاحقاً." 
+          error: "محاولات تسجيل كثيرة جداً من هذا الجهاز. يرجى المحاولة مرة أخرى بعد ساعة." 
         });
       }
       
@@ -207,9 +220,9 @@ export default async function handler(req, res) {
     let userRecord;
     try {
       userRecord = await auth.createUser({
-        email: email.toLowerCase(),
+        email: cleanEmail,
         password,
-        displayName: name
+        displayName: cleanName
       });
     } catch (authError) {
       if (authError.code === 'auth/email-already-exists') {
@@ -222,60 +235,72 @@ export default async function handler(req, res) {
 
     const uid = userRecord.uid;
 
-    // ======== 6. حفظ البيانات في Firestore ========
-    await db.runTransaction(async (tr) => {
-      tr.set(db.collection("users").doc(uid), {
-        uid,
-        email: email.toLowerCase(),
-        name,
-        phone,
-        deviceId,
-        points: 0,
-        withdrawn: 0,
-        isBanned: false,
-        registeredIp: ip,
-        createdAt: FieldValue.serverTimestamp(),
-        loginStreak: 1,
-        lastLoginDate: FieldValue.serverTimestamp(),
-        totalChallengesCompleted: 0,
-        challengesCompletedToday: [],
-        twoFAEnabled: false,
-        trustLevel: 'new'
+    // ======== 6. حفظ البيانات في Firestore مع آلية التراجع عند الفشل ========
+    try {
+      await db.runTransaction(async (tr) => {
+        tr.set(db.collection("users").doc(uid), {
+          uid,
+          email: cleanEmail,
+          name: cleanName,
+          phone: cleanPhone,
+          deviceId,
+          points: 0,
+          withdrawn: 0,
+          isBanned: false,
+          registeredIp: ip,
+          createdAt: FieldValue.serverTimestamp(),
+          loginStreak: 1,
+          lastLoginDate: FieldValue.serverTimestamp(),
+          totalChallengesCompleted: 0,
+          challengesCompletedToday: [],
+          twoFAEnabled: false,
+          trustLevel: 'new'
+        });
+
+        tr.set(db.collection("userDevices").doc(), {
+          uid,
+          deviceId,
+          fingerprint: fingerprint || "legacy",
+          ip,
+          userAgent,
+          createdAt: FieldValue.serverTimestamp(),
+          lastUsed: FieldValue.serverTimestamp()
+        });
+
+        tr.set(db.collection("registrations").doc(), {
+          uid,
+          email: cleanEmail,
+          phone: cleanPhone,
+          ip,
+          fingerprint,
+          deviceId,
+          timestamp: FieldValue.serverTimestamp(),
+          status: "success"
+        });
       });
 
-      tr.set(db.collection("userDevices").doc(), {
-        uid,
-        deviceId,
-        fingerprint: fingerprint || "legacy",
-        ip,
-        userAgent,
-        createdAt: FieldValue.serverTimestamp(),
-        lastUsed: FieldValue.serverTimestamp()
+      console.log(`[SUCCESS] User registered: ${uid} - ${cleanEmail}`);
+
+      return res.status(200).json({
+        success: true,
+        message: "✅ تم إنشاء الحساب بنجاح! جاري تسجيل الدخول..."
       });
 
-      tr.set(db.collection("registrations").doc(), {
-        uid,
-        email: email.toLowerCase(),
-        phone,
-        ip,
-        fingerprint,
-        deviceId,
-        timestamp: FieldValue.serverTimestamp(),
-        status: "success"
-      });
-    });
-
-    console.log(`[SUCCESS] User registered: ${uid} - ${email}`);
-
-    return res.status(200).json({
-      success: true,
-      message: "✅ تم إنشاء الحساب بنجاح! جاري تسجيل الدخول..."
-    });
+    } catch (dbError) {
+      // تراجع وحذف المستخدم من Auth لضمان عدم تعليق حسابات فارغة
+      console.error("[ROLLBACK] Database transaction failed, deleting Auth user...", dbError);
+      try {
+        await auth.deleteUser(uid);
+      } catch (authDeleteError) {
+        console.error("Failed to delete orphaned Auth user:", authDeleteError.message);
+      }
+      throw dbError; // تمرير الخطأ للمعالجة الخارجية
+    }
 
   } catch (err) {
     console.error("[ERROR] Signup error:", err);
     return res.status(500).json({ 
-      error: "حدث خطأ غير متوقع أثناء التسجيل. يرجى المحاولة مرة أخرى." 
+      error: "حدث خطأ غير متوقع أثناء التسجيل. يرجى المحاولة مرة أخرى لاحقاً." 
     });
   }
 }
