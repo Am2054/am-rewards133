@@ -1046,9 +1046,9 @@
     </div>
   </div>
 
-  <script type="module">
+    <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, doc, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, onSnapshot, updateDoc, deleteDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
@@ -1071,9 +1071,7 @@
     const AppState = {
       currentUser: null,
       currentUserId: null,
-      properties: [
-        { id: "prop-1", user_id: "example_uid", type: "شقة", name: "شقة فاخرة بالمعادي ثكنات", governorate: "القاهرة", city: "المعادي", price: 2500, rooms: 3, baths: 2, area: 150, status: "active", views: 245, saves: 18, chats: 12, furnishing: "furnished", image: "https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop" }
-      ]
+      properties: [] 
     };
 
     class AM_Dashboard_App {
@@ -1128,6 +1126,10 @@
               this.sidebarItems.forEach(i => i.classList.remove('active'));
               item.classList.add('active');
               this.toggleSidebar(false);
+              
+              if (targetSection === 'search') {
+                this.fetchApprovedProperties();
+              }
             }
           });
         });
@@ -1164,6 +1166,7 @@
 
             AppState.currentUser = snapshot.data();
             this.renderProfileDOM();
+            this.fetchApprovedProperties();
           }, (error) => {
             console.error("Firestore Error context:", error);
           });
@@ -1172,6 +1175,31 @@
 
       redirectToLogin() {
         window.location.href = "login.html";
+      }
+
+      async fetchApprovedProperties() {
+        try {
+          const q = query(collection(db, "properties"), where("status", "==", "approved"));
+          const querySnapshot = await getDocs(q);
+          
+          AppState.properties = [];
+          querySnapshot.forEach((docSnap) => {
+            AppState.properties.push({
+              id: docSnap.id,
+              ...docSnap.data()
+            });
+          });
+
+          const myOwnedProperties = AppState.properties.filter(p => p.ownerId === AppState.currentUserId || p.uid === AppState.currentUserId);
+          const statElement = document.getElementById('stat-properties');
+          if (statElement) {
+            statElement.textContent = myOwnedProperties.length;
+          }
+          
+          this.filterProperties();
+        } catch (err) {
+          console.error("Error fetching approved properties: ", err);
+        }
       }
 
       renderProfileDOM() {
@@ -1221,8 +1249,6 @@
         this.renderBadge('badge-email', user.email_verified, "البريد الإلكتروني مؤكد", "البريد غير مؤكد");
         this.renderBadge('badge-id-card', user.id_card_uploaded, "البطاقة الشخصية مرفوعة", "البطاقة الشخصية غير مرفوعة");
 
-        document.getElementById('stat-properties').textContent = AppState.properties.filter(p=>p.user_id===AppState.currentUserId).length;
-        
         this.renderHomeChecklist();
       }
 
@@ -1367,17 +1393,51 @@
       filterProperties() {
         const container = document.getElementById('search-results-renderer');
         if (!container) return;
-        container.innerHTML = AppState.properties.map(p => `
-          <div class="property-card">
-            <div class="property-image"><img src="${p.image}"></div>
-            <div class="property-content">
-              <h3 class="property-name">${p.name}</h3>
-              <p class="property-location">${p.city}، ${p.governorate}</p>
-              <div class="property-price">${p.price.toLocaleString()} ج.م</div>
-              <button class="property-edit-btn"><i class="fas fa-info-circle"></i> تصفح البيانات</button>
+
+        const govFilter = document.getElementById('filter-governorate').value;
+        const typeFilter = document.getElementById('filter-type').value;
+        const maxPriceFilter = document.getElementById('filter-max-price').value;
+        const furnishingFilter = document.getElementById('filter-furnishing').value;
+
+        const filtered = AppState.properties.filter(p => {
+          if (govFilter && p.governorate !== govFilter) return false;
+          if (typeFilter && p.propertyType !== typeFilter && p.type !== typeFilter) return false;
+          if (maxPriceFilter && Number(p.price) > Number(maxPriceFilter)) return false;
+          if (furnishingFilter && p.furnishing !== furnishingFilter) return false;
+          return true;
+        });
+
+        if (filtered.length === 0) {
+          container.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 2rem;">لا توجد عقارات معتمدة تطابق الفلاتر حالياً.</p>`;
+          return;
+        }
+
+        container.innerHTML = filtered.map(p => {
+          const imgUrl = p.coverImage || (p.images && p.images[0]) || 'https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop';
+          return `
+            <div class="property-card">
+              <div class="property-image">
+                <img src="${imgUrl}" alt="Property Image">
+                <span class="property-status active">مقبول</span>
+              </div>
+              <div class="property-content">
+                <h3 class="property-name">${p.title || 'عقار بدون عنوان'}</h3>
+                <p class="property-location"><i class="fas fa-map-marker-alt"></i> ${p.city || ''}، ${p.governorate || ''}</p>
+                <div class="property-price">${Number(p.price || 0).toLocaleString()} ج.م</div>
+                
+                <div class="property-details">
+                  <div class="detail-item"><i class="fas fa-bed"></i> <span>${p.rooms || 0} غرف</span></div>
+                  <div class="detail-item"><i class="fas fa-bath"></i> <span>${p.bathrooms || 0} حمام</span></div>
+                  <div class="detail-item"><i class="fas fa-th-large"></i> <span>${p.area || 0} م²</span></div>
+                </div>
+
+                <button class="property-edit-btn" onclick="alert('معرف العقار: ${p.id}')">
+                  <i class="fas fa-info-circle"></i> تصفح البيانات
+                </button>
+              </div>
             </div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
       }
 
       renderHomeChecklist() {
