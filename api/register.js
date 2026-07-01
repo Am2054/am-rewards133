@@ -1,8 +1,7 @@
-// /api/register.js - معالج التسجيل المطور مع تفعيل فحص VPN ونظام تراجع وحماية متكاملة
+// /api/register.js - معالج التسجيل المطور لسرعة قصوى (بدون فحص VPN خارجي)
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
-import fetch from 'node-fetch';
 
 // تهيئة Firebase Admin
 if (!getApps().length) {
@@ -23,37 +22,13 @@ if (!getApps().length) {
 const db = getFirestore();
 const auth = getAuth();
 
-// ✅ VPN Detection API
-async function checkVPN(ip) {
-  if (!process.env.VPN_API_KEY) {
-    console.warn("VPN_API_KEY is not configured. VPN Check skipped.");
-    return false;
-  }
-  try {
-    const response = await fetch(`https://vpnapi.io/?ip=${ip}&key=${process.env.VPN_API_KEY}`);
-    const data = await response.json();
-    // التحقق من الـ VPN أو الـ Proxy أو شبكة Tor
-    return !!(data.security?.vpn || data.security?.proxy || data.security?.tor);
-  } catch (e) {
-    console.warn("VPN Check API failed:", e.message);
-    return false;
-  }
-}
-
-// ✅ Fraud Detection System
+// ✅ Fraud Detection System (محلي بالكامل ومجاني ويعتمد على قاعدة بياناتك)
 class FraudDetection {
   static async analyzeSignup(userData, ip, fingerprint) {
     let riskScore = 0;
     const reasons = [];
 
-    // فحص 1: كشف الـ VPN والبروكسي (تأثير مباشر وحظر فوري بموجب السياسة)
-    const isVpn = await checkVPN(ip);
-    if (isVpn) {
-      riskScore += 60; // يؤدي للحظر فوراً لتخطيه عتبة الـ 60
-      reasons.push("VPN, Proxy, or Tor Connection Detected");
-    }
-
-    // فحص 2: تكرار الـ Fingerprint (مؤشر احتيال)
+    // فحص 1: تكرار الـ Fingerprint (مؤشر احتيال لإنشاء حسابات متعددة من نفس المتصفح)
     const fpSnap = await db.collection("userDevices")
       .where("fingerprint", "==", fingerprint)
       .limit(5)
@@ -64,7 +39,7 @@ class FraudDetection {
       reasons.push("Duplicate device fingerprint detected");
     }
 
-    // فحص 3: تكرار الـ IP في وقت قصير (مؤشر احتيال)
+    // فحص 2: تكرار الـ IP في وقت قصير (مؤشر احتيال لمنع هجمات الـ Spam)
     const ipSnap = await db.collection("registrations")
       .where("ip", "==", ip)
       .where("createdAt", ">=", new Date(Date.now() - 3600000)) // آخر ساعة
@@ -77,7 +52,7 @@ class FraudDetection {
 
     return {
       riskScore,
-      isSuspicious: riskScore >= 60, 
+      isSuspicious: riskScore >= 60, // يتم الحظر التلقائي فقط لو تخطى الـ 60 (مثلاً تكرار IP وبصمة جهاز معاً)
       reasons
     };
   }
@@ -118,7 +93,7 @@ export default async function handler(req, res) {
 
     if (!/^01[0125]\d{8}$/.test(cleanPhone)) {
       return res.status(400).json({ 
-        error: "صيغة رقم الهاتف غير صحيحة، يجب أن يكون رقماً مصرياً صالحاً" 
+        error: "صيغة رقم الهاتف غير صحيحة، يجب أن يكون رقماً مصرياً صالحاً يتكون من 11 رقماً" 
       });
     }
 
@@ -169,7 +144,7 @@ export default async function handler(req, res) {
       // البريد غير مكرر في الـ Auth، يمكن المتابعة بأمان
     }
 
-    // ======== 3. كشف الاحتيال والـ VPN ========
+    // ======== 3. كشف الاحتيال وتعدد الحسابات (فحوصات محلية وسريعة) ========
     const fraudCheck = await FraudDetection.analyzeSignup({ email: cleanEmail, phone: cleanPhone }, ip, fingerprint);
     
     if (fraudCheck.isSuspicious) {
@@ -186,11 +161,11 @@ export default async function handler(req, res) {
       });
 
       return res.status(403).json({ 
-        error: "تم حظر التسجيل تلقائياً لمخالفة شروط وسياسة المنصة (استخدام VPN أو نشاط مريب). يرجى الاتصال بالدعم الفني." 
+        error: "تم حظر التسجيل تلقائياً لأسباب أمنية (تعدد الحسابات أو نشاط مريب من نفس الجهاز). يرجى الاتصال بالدعم." 
       });
     }
 
-    // ======== 4. Rate Limiting ========
+    // ======== 4. Rate Limiting (تحديد معدل التسجيل لمنع الإغراق) ========
     const rateLimitDocId = ip.trim().replace(/[\.\:\s]/g, "_");
     const rateLimitRef = db.collection("rateLimits").doc(rateLimitDocId);
     const rateLimitSnap = await rateLimitRef.get();
@@ -235,7 +210,7 @@ export default async function handler(req, res) {
 
     const uid = userRecord.uid;
 
-    // ======== 6. حفظ البيانات في Firestore مع آلية التراجع عند الفشل ========
+    // ======== 6. حفظ البيانات في Firestore مع نظام التراجع الذاتي عند حدوث أي خطأ ========
     try {
       await db.runTransaction(async (tr) => {
         tr.set(db.collection("users").doc(uid), {
@@ -279,7 +254,7 @@ export default async function handler(req, res) {
         });
       });
 
-      console.log(`[SUCCESS] User registered: ${uid} - ${cleanEmail}`);
+      console.log(`[SUCCESS] User registered successfully: ${uid} - ${cleanEmail}`);
 
       return res.status(200).json({
         success: true,
@@ -287,14 +262,14 @@ export default async function handler(req, res) {
       });
 
     } catch (dbError) {
-      // تراجع وحذف المستخدم من Auth لضمان عدم تعليق حسابات فارغة
+      // التراجع وحذف حساب الـ Auth فوراً في حال فشل تخزين Firestore لعدم حدوث تعليق للبيانات
       console.error("[ROLLBACK] Database transaction failed, deleting Auth user...", dbError);
       try {
         await auth.deleteUser(uid);
       } catch (authDeleteError) {
         console.error("Failed to delete orphaned Auth user:", authDeleteError.message);
       }
-      throw dbError; // تمرير الخطأ للمعالجة الخارجية
+      throw dbError;
     }
 
   } catch (err) {
