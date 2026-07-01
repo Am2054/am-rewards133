@@ -736,31 +736,6 @@
       box-shadow: 0 0 12px rgba(0, 242, 255, 0.15);
     }
 
-    /* نصائح واقتراحات الذكاء الاصطناعي */
-    .recommendations-box {
-      margin-top: 2rem;
-    }
-    .rec-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 1rem;
-      background: rgba(250, 204, 21, 0.03);
-      border: 1px solid rgba(250, 204, 21, 0.15);
-      padding: 1.25rem;
-      border-radius: 12px;
-      margin-bottom: 1rem;
-    }
-    .rec-icon {
-      font-size: 1.4rem;
-      color: var(--warning);
-    }
-    .rec-text {
-      font-size: 0.88rem;
-      font-weight: 600;
-      line-height: 1.6;
-      color: var(--text-main);
-    }
-
     /* مظهر معرض الصور العقاري المتجاوب */
     .property-gallery-grid {
       display: grid;
@@ -825,7 +800,7 @@
       <div class="sidebar-title">AM<span style="color:var(--neon-cyan)">.</span></div>
       <nav class="sidebar-menu">
         <a href="#" class="sidebar-item active" data-section="home"><i class="fas fa-home"></i> <span>الرئيسية</span></a>
-        <a href="#" class="sidebar-item" data-section="search"><i class="fas fa-search"></i> <span>البحث عن شقة</span></a>
+        <a href="#" class="sidebar-item" data-section="search"><i class="fas fa-search"></i> <span>البحث العقاري المتقدم</span></a>
         <a href="add-property.html" class="sidebar-item"><i class="fas fa-plus-circle"></i> <span>إضافة عقار</span></a>
         <a href="my-properties.html" class="sidebar-item"><i class="fas fa-building"></i> <span>عقاراتي</span></a>
         <a href="#" class="sidebar-item" data-section="messages"><i class="fas fa-envelope"></i> <span>الرسائل</span></a>
@@ -882,14 +857,6 @@
             <div class="action-card" onclick="app.navigateTo('messages')"><div class="action-icon">📩</div><h3 class="action-title">طلباتي</h3><p class="action-description">إدارة محادثاتك الحالية</p></div>
           </div>
 
-          <!-- اقتراحات الذكاء الاصطناعي الذكية لتحسين الأداء -->
-          <div class="completion-card">
-            <h3 class="completion-title"><i class="fas fa-lightbulb" style="color:var(--warning);"></i> نصائح واقتراحات ذكية لتحسين أداء عقاراتك</h3>
-            <div class="recommendations-box" id="ai-recommendations-container">
-              <!-- يتم تعبئتها ديناميكياً بناءً على حالة حساب المستخدم -->
-            </div>
-          </div>
-
           <div class="completion-card">
             <div class="completion-header"><h2 class="completion-title">✨ حالة اكتمال حسابك التوثيقي</h2></div>
             <div class="completion-checklist" id="home-checklist"></div>
@@ -900,7 +867,15 @@
           <h2 class="section-title"><i class="fas fa-search"></i> البحث المتقدم عن الوحدات العقارية</h2>
           <div class="search-filter-panel">
             <select id="filter-governorate" onchange="app.filterProperties()"><option value="">كل المحافظات</option><option value="القاهرة">القاهرة</option><option value="الجيزة">الجيزة</option></select>
-            <select id="filter-type" onchange="app.filterProperties()"><option value="">كل الأنواع</option><option value="شقة">شقة</option><option value="فيلا">فيلا</option></select>
+            <select id="filter-type" onchange="app.filterProperties()">
+              <option value="">كل الأنواع</option>
+              <option value="شقة">شقة</option>
+              <option value="فيلا">فيلا</option>
+              <option value="دوبلكس">دوبلكس</option>
+              <option value="مكتب">مكتب</option>
+              <option value="محل">محل</option>
+              <option value="أرض">أرض</option>
+            </select>
             <input type="number" id="filter-max-price" placeholder="الحد الأقصى للسعر" oninput="app.filterProperties()">
             <select id="filter-furnishing" onchange="app.filterProperties()"><option value="">حالة الفرش</option><option value="furnished">مفروش</option><option value="unfurnished">بدون فرش</option></select>
           </div>
@@ -1271,24 +1246,28 @@
               this.sidebarItems.forEach(i => i.classList.remove('active'));
               item.classList.add('active');
               this.toggleSidebar(false);
-              
-              if (targetSection === 'search') {
-                this.fetchApprovedProperties();
-              }
-              if (targetSection === 'messages') {
-                this.initChatListener();
-              }
             }
           });
         });
       }
 
+      // توجيه ملاحة مركزي لضمان تحديث البيانات حياً عند الانتقال من أي زر في الموقع
       navigateTo(sectionId) {
         document.querySelectorAll('.spa-section').forEach(sec => sec.classList.remove('active-section'));
         const activeTarget = document.getElementById(`section-${sectionId}`);
         if (activeTarget) {
           activeTarget.classList.add('active-section');
           window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // إصلاح فوري: جلب البيانات وتحديث العقارات حياً عند الانتقال للبحث من أي زر بالصفحة الرئيسية
+        if (sectionId === 'search') {
+          this.fetchApprovedProperties();
+        }
+
+        // تحديث رسائل الدردشة حياً عند الانتقال للرسائل
+        if (sectionId === 'messages') {
+          this.initChatListener();
         }
       }
 
@@ -1316,7 +1295,6 @@
             this.initNotificationListener();
             this.initBookingsListener();
             this.initStatsAndReviews();
-            this.renderAIRecommendations();
           }, (error) => {
             console.error("Firestore error state:", error);
           });
@@ -1480,7 +1458,7 @@
         }
       }
 
-      // محادثات اللحظة الحقيقية المخصصة لكل عقار (Property-Specific Realtime Chat)
+      // محادثات اللحظة الحقيقية المخصصة لكل عقار تفصيلي (Property-Specific Realtime Chat)
       initChatListener() {
         if (!AppState.currentUserId) return;
         if (this.unsubscribeMessages) this.unsubscribeMessages();
@@ -1541,7 +1519,6 @@
         const stream = document.getElementById('chat-messages-stream');
         if (!stream) return;
 
-        // جلب الرسائل المتبادلة الخاصة بهذا العقار تحديداً لضمان السرية والخصوصية
         const q = query(
           collection(db, "messages"),
           where("propertyId", "==", propertyId),
@@ -1577,9 +1554,6 @@
         if (!text || !AppState.activeChatThreadId || !AppState.currentUserId || !AppState.activeChatPropertyId) return;
 
         try {
-          const activeThreadKey = `${AppState.activeChatPropertyId}_${AppState.activeChatThreadId}`;
-          
-          // ابحث عن عنوان العقار النشط
           const activeProp = AppState.properties.find(p => p.id === AppState.activeChatPropertyId);
           const propTitle = activeProp ? activeProp.title : "استفسار عقاري";
 
@@ -1607,14 +1581,13 @@
         }
 
         try {
-          // إرسال رسالة ترحيبية آلية بخصوص العقار لفتح قناة تواصل فورية
           await addDoc(collection(db, "messages"), {
             senderId: AppState.currentUserId,
             senderName: AppState.currentUser.name || "مستأجر مهتم",
             receiverId: ownerId,
             propertyId: propertyId,
             propertyTitle: propertyTitle,
-            message: `أهلاً بك، أنا مهتم جداً بعقارك [ ${propertyTitle} ] الموضح بالمنصة وأريد الاستفسار عن بعض التفاصيل الإضافية للتأجير.`,
+            message: `أهلاً بك، أنا مهتم بعقارك [ ${propertyTitle} ] الموضح بالمنصة وأريد الاستفسار عن تفاصيل الحجز والتعاقد.`,
             timestamp: new Date()
           });
 
@@ -1668,7 +1641,6 @@
             });
           });
 
-          // تصفية وحساب عدد العقارات المملوكة
           const myOwnedProperties = AppState.properties.filter(p => p.ownerId === AppState.currentUserId || p.uid === AppState.currentUserId);
           const statProperties = document.getElementById('stat-properties');
           if (statProperties) statProperties.textContent = myOwnedProperties.length;
@@ -1695,13 +1667,11 @@
         this.renderFilteredProperties(filtered);
       }
 
-      // دعم عرض ميزات الأداء الإضافية كعدد المشاهدات والمحفوظات للمالك مباشرة
       renderFilteredProperties(list) {
         const container = document.getElementById('search-results-renderer');
         let html = "";
 
         list.forEach((p) => {
-          // حساب وحقن عدد المشاهدات والمحفوظات العشوائية والتفاعلية لتجميل المظهر الفني للوحة التحكم
           const simulatedViews = p.views || Math.floor(Math.random() * 240) + 12;
           const simulatedSaves = p.favorites || Math.floor(Math.random() * 45) + 3;
 
@@ -1723,7 +1693,6 @@
                   <div class="detail-item"><i class="fas fa-th-large"></i> <span>${p.area || 0} م²</span></div>
                 </div>
 
-                <!-- إحصائيات العقار الفردية المطلوبة -->
                 <div class="property-stats">
                   <div class="stat-box">
                     <div class="stat-number"><i class="fas fa-eye" style="color: var(--neon-cyan); font-size: 0.85rem;"></i> ${simulatedViews}</div>
@@ -1748,7 +1717,6 @@
         }
       }
 
-      // عرض كل الصور الإضافية المتوفرة للعقار عند تصفحه بإنشاء معرض تفاعلي (Interactive Image Gallery)
       async viewPropertyDetail(propertyId) {
         this.navigateTo('property-detail');
         const container = document.getElementById('property-detail-renderer');
@@ -1764,15 +1732,12 @@
           const defaultImg = 'https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop';
           const mainImgUrl = propDoc.coverImage || (propDoc.images && propDoc.images[0]) || defaultImg;
           
-          // تجميع مصفوفة الصور الإضافية المتوفرة بداخل وثيقة العقار في Firestore
           const allImages = propDoc.images || [];
           
-          // إذا لم تكن الصورة الرئيسية مضافة للمصفوفة، نضيفها في المقدمة ليكون المعرض غنياً ومتكاملاً
           if (propDoc.coverImage && !allImages.includes(propDoc.coverImage)) {
             allImages.unshift(propDoc.coverImage);
           }
 
-          // بناء هيكل معرض الصور التفاعلي (Gallery)
           let galleryHtml = "";
           if (allImages.length > 0) {
             galleryHtml = `
@@ -1797,7 +1762,6 @@
                 <p style="color:var(--neon-cyan); font-size:1.5rem; font-weight:900; margin-bottom:1.5rem;">السعر: ${Number(propDoc.price || 0).toLocaleString()} ج.م / شهر</p>
                 <p style="color:var(--muted); line-height:1.8; margin-bottom:2rem;">${propDoc.description || 'لم يتم إضافة شرح تفصيلي للعقار بعد.'}</p>
                 
-                <!-- إدراج معرض الصور هنا -->
                 ${galleryHtml}
 
                 <h3 style="margin-top:2.5rem; margin-bottom:1rem; color:#fff;">🏠 التفاصيل الأساسية</h3>
@@ -1851,7 +1815,6 @@
             timestamp: new Date()
           });
 
-          // إضافة تنبيه لحظي لمالك العقار بداخل قاعدة البيانات
           await addDoc(collection(db, "notifications"), {
             userId: ownerId,
             title: "📬 طلب حجز جديد!",
@@ -1905,35 +1868,7 @@
         document.getElementById('sec-email-check').innerHTML = user.email_verified ? '<i class="fas fa-check-circle" style="color:var(--success)"></i>' : '';
         document.getElementById('sec-email-btn').style.display = user.email_verified ? 'none' : 'block';
 
-        this.renderBadge('badge-phone', user.phone_verified, "الهاتف مؤكد", "الهاتف غير مؤكد");
-        this.renderBadge('badge-email', user.email_verified, "البريد الإلكتروني مؤكد", "البريد غير مؤكد");
-        this.renderBadge('badge-id-card', user.id_card_uploaded, "البطاقة الشخصية مرفوعة", "البطاقة الشخصية غير مرفوعة");
-
-        const idCardStatusText = document.getElementById('id-card-status-text');
-        if (idCardStatusText) {
-          idCardStatusText.textContent = user.id_card_uploaded ? "تم رفع صورة البطاقة بنجاح وجاري المراجعة" : "لم يتم رفع أي ملف بعد";
-        }
-
         this.renderHomeChecklist();
-        this.renderAIRecommendations();
-      }
-
-      renderBadge(elementId, isVerified, verifiedText, unverifiedText) {
-        const el = document.getElementById(elementId);
-        if (!el) return;
-        const statusLbl = el.querySelector('.status-lbl');
-        if (isVerified) {
-          el.className = "verification-badge-item verified";
-          statusLbl.innerHTML = `✅ ${verifiedText}`;
-        } else {
-          el.className = "verification-badge-item unverified";
-          statusLbl.innerHTML = `🟡 ${unverifiedText}`;
-        }
-      }
-
-      toggleProfileEditMode(isEdit) {
-        document.getElementById('profile-view-mode').style.display = isEdit ? 'none' : 'block';
-        document.getElementById('profile-edit-mode').style.display = isEdit ? 'block' : 'none';
       }
 
       async updateProfileData(e) {
