@@ -3,7 +3,7 @@ import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 
-// تهيئة Firebase Admin بنفس طريقتك الحالية
+// تهيئة Firebase Admin المعتمدة والمطابقة لكودك تماماً
 if (!getApps().length) {
   try {
     let rawKey = process.env.FIREBASE_ADMIN_KEY;
@@ -23,25 +23,26 @@ const db = getFirestore();
 const auth = getAuth();
 
 export default async function handler(req, res) {
-  // إعدادات CORS المتوافقة مع Vercel Serverless
-  res.setHeader('Access-Control-Allow-Credentials', true);
+  // تفعيل CORS كامل وصحيح لـ Vercel لمنع فشل الاتصال نهائياً
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
 
+  // الاستجابة لطلب الـ Preflight (OPTIONS) بنجاح
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'الطريقة غير مسموح بها، استخدم POST فقط' });
+    return res.status(405).json({ error: 'الطريقة غير مسموح بها' });
   }
 
   const { propertyId, action, reason, updateData } = req.body;
   const authHeader = req.headers.authorization;
 
   if (!propertyId || !action) {
-    return res.status(400).json({ error: 'الحقول الأساسية (propertyId, action) مطلوبة' });
+    return res.status(400).json({ error: 'الحقول الأساسية مطلوبة' });
   }
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -51,11 +52,11 @@ export default async function handler(req, res) {
   const idToken = authHeader.split('Bearer ')[1];
 
   try {
+    // التحقق من التوكن وصلاحية الإيميل
     const decodedToken = await auth.verifyIdToken(idToken);
     
-    // تأكيد صلاحية الأدمن عبر الـ Email
     if (decodedToken.email !== "ahmed_admin@example.com") {
-      return res.status(403).json({ error: 'عذراً، لا تملك صلاحيات المسؤول الإدارية' });
+      return res.status(403).json({ error: 'عذراً، لا تملك صلاحيات المسؤول' });
     }
 
     const docRef = db.collection('properties').doc(propertyId);
@@ -65,7 +66,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'مستند العقار غير موجود بالنظام' });
     }
 
-    // 1. إجراء الموافقة والنشر
+    // التنفيذ بناءً على الـ action
     if (action === 'approve') {
       await docRef.update({
         status: 'approved',
@@ -74,10 +75,9 @@ export default async function handler(req, res) {
       });
       return res.status(200).json({ success: true, message: 'تمت الموافقة على العقار ونشره بنجاح!' });
 
-    // 2. إجراء الرفض مع كتابة السبب
     } else if (action === 'reject') {
       if (!reason || reason.trim() === '') {
-        return res.status(400).json({ error: 'يجب تحديد سبب الرفض لإشعار المستثمر' });
+        return res.status(400).json({ error: 'يجب تحديد سبب الرفض' });
       }
       await docRef.update({
         status: 'rejected',
@@ -86,17 +86,14 @@ export default async function handler(req, res) {
       });
       return res.status(200).json({ success: true, message: 'تم رفض العقار بنجاح وتوثيق السبب.' });
 
-    // 3. إجراء الحذف النهائي (ميزة مضافة جديدة)
     } else if (action === 'delete') {
       await docRef.delete();
-      return res.status(200).json({ success: true, message: 'تم حذف العقار نهائياً من قاعدة البيانات.' });
+      return res.status(200).json({ success: true, message: 'تم حذف العقار نهائياً بنجاح.' });
 
-    // 4. إجراء التعديل السريع (ميزة مضافة جديدة)
     } else if (action === 'edit') {
       if (!updateData || typeof updateData !== 'object') {
-        return res.status(400).json({ error: 'البيانات المطلوب تحديثها مفقودة' });
+        return res.status(400).json({ error: 'البيانات مفقودة' });
       }
-      // إزالة الحقول التي قد تسبب مشاكل أمان أو تحديث عشوائي
       delete updateData.id;
       delete updateData.createdAt;
       
@@ -105,13 +102,12 @@ export default async function handler(req, res) {
         lastEditedAt: FieldValue.serverTimestamp()
       });
       return res.status(200).json({ success: true, message: 'تم تحديث بيانات العقار بنجاح.' });
-
-    } else {
-      return res.status(400).json({ error: 'الإجراء المطلوب (action) غير مدعوم' });
     }
 
+    return res.status(400).json({ error: 'الإجراء المطلوب غير مدعوم' });
+
   } catch (error) {
-    console.error("Manage Property API Error:", error.message);
+    console.error("API Error:", error.message);
     return res.status(500).json({ error: 'حدث خطأ في السيرفر الداخلي: ' + error.message });
   }
 }
