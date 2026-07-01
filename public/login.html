@@ -1,4 +1,4 @@
-<!-- login.html - النسخة النهائية الموحدة والمطابقة تماماً لصفحة إنشاء الحساب 100% -->
+<!-- login.html - النسخة النهائية الموحدة والمطابقة تماماً لصفحة إنشاء الحساب 100% (بدون لوحة المسؤول) -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -377,7 +377,6 @@
     const rememberMeCheckbox = document.getElementById("remember-me");
     const forgotPasswordBtn = document.getElementById("forgot-password-btn");
 
-    const ADMIN_PAGE = "admin.html";
     const USER_PAGE = "dashboard.html";
 
     const loginAttempts = {};
@@ -560,27 +559,15 @@
         clearLoginAttempts(email);
         await updateLastLogin(uid);
 
-        const serverRes = await fetch("/api/admin-auth", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "login", email, password })
-        });
+        // تم اختصار كود التوجيه ليتوجه العميل فوراً للوحة التحكم بعد نجاح التحقق دون استدعاء أي كود مشرفين
+        showMessage("✅ تم تسجيل الدخول بنجاح!", "success");
+        setTimeout(() => window.location.href = USER_PAGE, 1200);
 
-        if (serverRes.ok) {
-          sessionStorage.setItem("isAdmin", "true");
-          showMessage("✅ تم التصريح بالدخول لمركز التحكم", "success");
-          setTimeout(() => window.location.href = ADMIN_PAGE, 1200);
-        } else {
-          sessionStorage.setItem("isAdmin", "false");
-          showMessage("✅ تم تسجيل الدخول بنجاح!", "success");
-          setTimeout(() => window.location.href = USER_PAGE, 1200);
-        }
       } catch (error) {
         recordFailedAttempt(email);
         loginBtn.disabled = false;
         btnText.textContent = "تسجيل الدخول";
         showMessage(translateError(error.code), "error");
-        sessionStorage.removeItem("isAdmin");
       }
     }
 
@@ -601,4 +588,4 @@
     loginForm.addEventListener("submit", login);
   </script>
 </body>
-  </html>
+</html>
