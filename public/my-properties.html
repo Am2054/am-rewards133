@@ -1,4 +1,4 @@
-<!-- my-properties.html - النسخة الهندسية النهائية لإدارة الملاك المتكاملة مع نظام 2FA والطلبات العقارية -->
+<!-- my-properties.html - النسخة الهندسية النهائية لإدارة الملاك المتكاملة مع نظام التحقق الأمني من الاعتماد -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -141,22 +141,6 @@
     .review-item p { font-size: 0.88rem; font-weight: 600; line-height: 1.6; color: #fff; }
 
     .seo-alert-box { background: rgba(0, 242, 255, 0.03); border: 1px solid rgba(0,242,255,0.15); padding: 0.85rem 1.1rem; border-radius: 10px; font-size: 0.85rem; margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem; color: #fff; font-weight: 600; line-height: 1.6; }
-    
-    /* حاوية إحصائيات العقار الفاخرة */
-    .prop-quick-stats {
-      display: flex;
-      gap: 1.5rem;
-      margin: 0.5rem 0;
-      flex-wrap: wrap;
-    }
-    .prop-stat-unit {
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: var(--muted);
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-    }
 
     /* مظهر مخصص ومحسّن لأزرار التحكم والعمليات المزدوجة */
     .actions-panel-row {
@@ -259,7 +243,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, doc, updateDoc, deleteDoc, collection, query, where, getDocs, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, updateDoc, deleteDoc, collection, query, where, getDocs, orderBy, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -352,12 +336,7 @@
                     const priceFormatted = Number(data.price || 0).toLocaleString('ar-EG');
                     const priceText = isRent ? `${priceFormatted} ج.م / ${data.rentCycle || 'شهر'}` : `${priceFormatted} ج.م كاش`;
 
-                    // 6. إحصائيات العقار الفردية حية
-                    const simulatedViews = data.views || Math.floor(Math.random() * 150) + 14;
-                    const simulatedSaves = data.favorites || Math.floor(Math.random() * 30) + 2;
-                    const simulatedMsgs = data.messagesCount || Math.floor(Math.random() * 12) + 1;
-
-                    // 7. شريط تغطية الكارد في حال عدم الإتاحة
+                    // 6. شريط تغطية الكارد في حال عدم الإتاحة
                     let ribbonMarkup = '';
                     if (data.isHidden) {
                         ribbonMarkup = `<div class="asset-overlay-ribbon" style="background: rgba(239, 68, 68, 0.85);"><i class="fas fa-eye-slash"></i> إعلان مخفي مؤقتاً</div>`;
@@ -385,19 +364,15 @@
                             <p style="color:var(--neon-cyan); font-weight:900; font-size:1.15rem; margin-top:2px;">${priceText}</p>
                             <p style="color:var(--muted); font-size:0.85rem; font-weight:600;"><i class="fas fa-map-marker-alt"></i> ${data.governorate}، ${data.city} | ${data.area || 0} م²</p>
                             
-                            <!-- إحصائيات الأداء المطلوبة حياً -->
-                            <div class="prop-quick-stats">
-                              <span class="prop-stat-unit"><i class="fas fa-eye" style="color:var(--neon-cyan);"></i> ${simulatedViews} مشاهدة</span>
-                              <span class="prop-stat-unit"><i class="fas fa-heart" style="color:var(--danger);"></i> ${simulatedSaves} حفظ</span>
-                              <span class="prop-stat-unit"><i class="fas fa-envelope" style="color:var(--neon-purple);"></i> ${simulatedMsgs} رسائل</span>
-                            </div>
-
                             ${seoMarkup}
 
-                            <!-- لوحة أزرار العمليات والتحكم المتكاملة -->
+                            <!-- لوحة أزرار العمليات والتحكم المتكاملة المعدلة بالمسارات القياسية والأمان -->
                             <div class="actions-panel-row">
-                              <a href="dashboard.html?section=property-detail&id=${id}" class="btn-action-asset"><i class="fas fa-eye"></i> معاينة</a>
-                              <a href="add-property.html?id=${id}" class="btn-action-asset ${data.status === 'rejected' ? 'btn-action-edit-resubmit' : ''}">
+                              <!-- التحقق من حالة الاعتماد قبل المعاينة لراحة وأمان النزلاء والمالك -->
+                              <button class="btn-action-asset" onclick="window.previewProperty('${id}', '${data.status}')"><i class="fas fa-eye"></i> معاينة</button>
+                              
+                              <!-- زر تعديل العقار يوجه لصفحة التعديل التلقائي لنسختك الأصلية edit-property.html لمنع بدء الإضافة من جديد -->
+                              <a href="edit-property.html?id=${id}" class="btn-action-asset ${data.status === 'rejected' ? 'btn-action-edit-resubmit' : ''}">
                                 <i class="fas fa-edit"></i> ${data.status === 'rejected' ? 'تعديل وإعادة الإرسال' : 'تعديل البيانات'}
                               </a>
                               <button class="btn-action-asset" onclick="window.toggleRequestsPanel('${id}', '${data.title}')"><i class="fas fa-tasks"></i> 📋 الطلبات</button>
@@ -436,6 +411,16 @@
             document.getElementById('myPropertiesList').innerHTML = "حدث خطأ غير متوقع أثناء استدعاء قائمة عقاراتك الاستثمارية.";
         }
     });
+
+    // دالة المعاينة والتحقق من حالة الاعتماد قبل توجيه المستخدم لضمان سلامة العمليات العقارية
+    window.previewProperty = function(propertyId, status) {
+      if (status !== 'approved') {
+        alert("⚠️ هذا العقار قيد المراجعة الإدارية أو مرفوض حالياً، ولا يمكن معاينته كإعلان نشط للجمهور حتى يتم اعتماده من قبل الإدارة أولاً.");
+        return;
+      }
+      // التوجيه التلقائي إلى لوحة تحكم النزيل لمعاينة العقار كأنك مستخدم خارجي
+      window.location.href = `dashboard.html?view=prop&id=${propertyId}`;
+    };
 
     // دالة تغيير حالة الوفرة حياً بداخل الـ Firestore
     window.updateAssetAvailability = async function(propertyId, newStatus) {
@@ -523,7 +508,7 @@
           status: "approved"
         });
 
-        // إضافة إشعار لحظي للنزيل
+        // إضافة إشعار للنزيل
         await addDoc(collection(db, "notifications"), {
           userId: tenantId,
           title: "🎉 تم قبول حجزك بنجاح!",
