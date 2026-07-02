@@ -1,4 +1,4 @@
-<!-- dashboard.html - لوحة التحكم العقارية المتقدمة بالأبعاد والتبويبات المحدثة 100% -->
+<!-- dashboard.html - لوحة التحكم العقارية المتقدمة بالأبعاد والتبويبات المحدثة 100% (بدون حجز أو إشعارات) -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -214,27 +214,6 @@
     .user-name { font-weight: 900; font-size: 0.95rem; color: #fff; }
     .user-role { font-size: 0.75rem; color: var(--muted); font-weight: 600; }
 
-    .notification-btn {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid var(--glass-border);
-      color: white;
-      padding: 0.75rem;
-      border-radius: 50%;
-      cursor: pointer;
-      position: relative;
-    }
-
-    .notification-btn:hover { border-color: var(--neon-cyan); color: var(--neon-cyan); }
-    .notification-badge {
-      position: absolute;
-      top: -2px;
-      right: -2px;
-      background: var(--danger);
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-
     /* ============================================
        SPA ARCHITECTURE SECTIONS & TRANSITIONS
        ============================================ */
@@ -406,6 +385,7 @@
     .detail-item { display: flex; flex-direction: column; align-items: center; font-size: 0.8rem; color: var(--muted); gap: 0.35rem; font-weight: 700; }
     .detail-item i { color: var(--neon-cyan); font-size: 1rem; }
 
+    /* تفاصيل إحصائيات العقار المتطورة */
     .property-stats {
       display: flex;
       justify-content: space-between;
@@ -579,9 +559,7 @@
     }
     .chat-input-action-bar input:focus { border-color: var(--neon-cyan); }
 
-    /* ============================================
-       TIMELINE & NOTIFICATIONS STYLE
-       ============================================ */
+    /* Timeline Style */
     .timeline { position: relative; padding: 1rem 0; }
     .timeline::before { content: ''; position: absolute; right: 16px; top: 0; bottom: 0; width: 2px; background: var(--glass-border); }
     
@@ -855,7 +833,6 @@
         <a href="my-properties.html" class="sidebar-item"><i class="fas fa-building"></i> <span>عقاراتي</span></a>
         <a href="#" class="sidebar-item" data-section="messages"><i class="fas fa-envelope"></i> <span>الرسائل</span></a>
         <a href="#" class="sidebar-item" data-section="bookings"><i class="fas fa-calendar"></i> <span>الطلبات والحجوزات</span></a>
-        <a href="#" class="sidebar-item" data-section="notifications"><i class="fas fa-bell"></i> <span>الإشعارات</span></a>
         <a href="#" class="sidebar-item" data-section="profile"><i class="fas fa-user-circle"></i> <span>الملف الشخصي</span></a>
         <a href="ghost-chat.html" class="sidebar-item"><i class="fas fa-ghost" style="color: #ff007f;"></i> <span>شات الأشباح</span></a>
         <a href="#" class="sidebar-item" data-section="support"><i class="fas fa-headset"></i> <span>الدعم الفني</span></a>
@@ -871,11 +848,6 @@
           <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
           
           <div style="display: flex; align-items: center; gap: 1.5rem; margin-right: auto;">
-            <button class="notification-btn" onclick="app.navigateTo('notifications')">
-              <i class="fas fa-bell"></i>
-              <div class="notification-badge" id="notification-bell-badge" style="display:none;"></div>
-            </button>
-            
             <div class="user-profile-widget" style="cursor: pointer;" onclick="app.navigateTo('profile')">
               <div class="user-avatar" id="global-user-avatar">..</div>
               <div class="user-info">
@@ -905,7 +877,6 @@
             <div class="action-card" onclick="window.location.href='add-property.html'"><div class="action-icon">➕</div><h3 class="action-title">أضف عقارك</h3><p class="action-description">قم بإدراج وحدة جديدة</p></div>
             <div class="action-card" onclick="app.navigateTo('search')"><div class="action-icon">🔍</div><h3 class="action-title">ابحث عن شقة</h3><p class="action-description">تصفح الخيارات المتاحة</p></div>
             <div class="action-card" onclick="app.navigateTo('favorites')"><div class="action-icon">❤️</div><h3 class="action-title">المفضلة</h3><p class="action-description">العقارات التي حفظتها</p></div>
-            <div class="action-card" onclick="app.navigateTo('messages')"><div class="action-icon">📩</div><h3 class="action-title">طلباتي</h3><p class="action-description">إدارة محادثاتك الحالية</p></div>
           </div>
 
           <div class="completion-card">
@@ -1022,11 +993,6 @@
         <section id="section-favorites" class="spa-section">
           <h2 class="section-title"><i class="fas fa-heart"></i> قائمة الوحدات السكنية المفضلة</h2>
           <div class="properties-grid" id="favorites-renderer"></div>
-        </section>
-
-        <section id="section-notifications" class="spa-section">
-          <h2 class="section-title"><i class="fas fa-bell"></i> مركز الإشعارات الفورية والتنبيهات المباشرة</h2>
-          <div class="timeline" id="notifications-renderer"></div>
         </section>
 
         <section id="section-reviews" class="spa-section">
@@ -1367,7 +1333,7 @@
         });
       }
 
-      // توجيه ملاحة مركزي يقوم بتحديث وجلب البيانات حياً من أي زر أو كارد بالموقع
+      // توجيه ملاحة مركزي لضمان تحديث وجلب البيانات حياً من أي زر أو كارد بالموقع
       navigateTo(sectionId) {
         document.querySelectorAll('.spa-section').forEach(sec => sec.classList.remove('active-section'));
         const activeTarget = document.getElementById(`section-${sectionId}`);
@@ -1376,9 +1342,8 @@
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // إصلاح فوري: جلب وتحديث العقارات حياً عند الانتقال للبحث من أي زر بالصفحة الرئيسية أو الجانبية
+        // إصلاح فوري: جلب وتحديث العقارات حياً عند الانتقال للبحث من أي زر بالصفحة الرئيسية
         if (sectionId === 'search') {
-          this.resetSearchStep(); // إعادة ضبط شاشة التصنيف المبدئي
           this.fetchApprovedProperties();
         }
 
@@ -1526,7 +1491,7 @@
         });
       }
 
-      // حساب وعرض عدادات الحجوزات الأربعة الفوقية
+      // حساب وعرض عدادات الحجوزات الأربعة الفوقية باستخدام خوارزمية فحص السلاسل النصية المتقدمة (Robust String Matching Logic)
       updateBookingStats() {
         let pending = 0;
         let approved = 0;
@@ -1580,8 +1545,8 @@
                   <div class="timeline-title">${b.propertyTitle || 'طلب حجز وحدة'}</div>
                   <div class="timeline-description">
                     <strong>القيمة المقترحة:</strong> ${Number(b.deposit || 0).toLocaleString()} ج.م <br>
-                    <strong>المالك:</strong> ${b.ownerName || 'مالك معتمد'} <br>
-                    <strong>الحالة:</strong> <span style="color: var(--warning); font-weight:700;">🟡 بانتظار الرد</span>
+                    <strong>المالك المعتمد:</strong> ${b.ownerName || 'مالك معتمد'} <br>
+                    <strong>الحالة:</strong> <span style="color: var(--warning); font-weight:700;"> must_reply 🟡 بانتظار الرد</span>
                   </div>
                   <div style="display:flex; gap: 10px; margin-top: 15px;">
                     <button class="property-edit-btn" style="width:auto; padding:0.5rem 1.25rem; font-size:0.8rem; background: var(--danger); color:white; box-shadow:none;" onclick="app.cancelBookingRequest('${b.id}')">إلغاء الطلب</button>
@@ -1607,7 +1572,7 @@
                 <div class="timeline-content">
                   <div class="timeline-title">${b.propertyTitle || 'طلب حجز مقبول'}</div>
                   <div class="timeline-description">
-                    <strong>الحالة:</strong> <span style="color: var(--success); font-weight:700;">🟢 تمت الموافقة</span> <br>
+                    <strong>الحالة الحالية:</strong> <span style="color: var(--success); font-weight:700;">🟢 تمت الموافقة</span> <br>
                     <strong>موعد المعاينة المقترح:</strong> السبت القادم الساعة 5:00 مساءً <br>
                     <strong>عنوان وموقع العقار:</strong> تواصل مع المالك لتحديد الإحداثيات بدقة.
                   </div>
@@ -2310,4 +2275,4 @@
     });
   </script>
 </body>
-</html> 
+</html>
