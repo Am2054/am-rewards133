@@ -1,4 +1,4 @@
-<!-- my-properties.html - النسخة الهندسية النهائية لإدارة الملاك المتكاملة مع نظام التحقق الأمني من الاعتماد -->
+<!-- my-properties.html - النسخة الهندسية النهائية لإدارة الملاك (خالية تماماً من الحجوزات والمعاينة) -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -68,7 +68,7 @@
     }
     .prop-card:hover { border-color: var(--neon-cyan); box-shadow: 0 15px 30px rgba(0, 242, 255, 0.05); }
     
-    /* تقليل الشفافية وتطبيق شريط مميز في حال تأجير العقار أو بيعه */
+    /* تقليل الشفافية وتطبيق شريط مميز في حال تأجير العقار أو بيعه أو إخفائه */
     .prop-card.inactive-asset {
       opacity: 0.7;
     }
@@ -122,6 +122,8 @@
     }
     .avail-available { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
     .avail-reserved { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
+    .avail-rented { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
+    .avail-sold { background: rgba(112, 0, 255, 0.1); color: var(--neon-cyan); border: 1px solid rgba(112, 0, 255, 0.2); }
     .avail-rejected { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
 
     .reason-box {
@@ -135,10 +137,6 @@
       margin-top: 10px;
       line-height: 1.6;
     }
-
-    .review-item { background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 10px; border: 1px solid var(--glass-border); margin-bottom: 0.75rem; }
-    .review-item h4 { color: var(--neon-cyan); font-size: 0.95rem; font-weight: 900; margin-bottom: 0.35rem; }
-    .review-item p { font-size: 0.88rem; font-weight: 600; line-height: 1.6; color: #fff; }
 
     .seo-alert-box { background: rgba(0, 242, 255, 0.03); border: 1px solid rgba(0,242,255,0.15); padding: 0.85rem 1.1rem; border-radius: 10px; font-size: 0.85rem; margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem; color: #fff; font-weight: 600; line-height: 1.6; }
 
@@ -203,25 +201,6 @@
       border-color: var(--neon-cyan);
     }
 
-    /* حاوية عرض طلبات الحجز المباشرة الفردية للعقار */
-    .requests-dropdown-panel {
-      width: 100%;
-      margin-top: 1.5rem;
-      background: rgba(0,0,0,0.3);
-      border: 1px solid var(--glass-border);
-      border-radius: 12px;
-      padding: 1.5rem;
-      display: none;
-    }
-    .request-row-unit {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem 0;
-      border-bottom: 1px solid rgba(255,255,255,0.03);
-    }
-    .request-row-unit:last-child { border-bottom: none; }
-
     @media (max-width: 768px) {
       .prop-card { flex-direction: column; align-items: stretch; padding: 1.5rem; }
       .prop-img-wrapper { width: 100%; height: 200px; }
@@ -243,7 +222,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, doc, updateDoc, deleteDoc, collection, query, where, getDocs, orderBy, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, updateDoc, deleteDoc, collection, query, where, getDocs, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -308,9 +287,9 @@
                     } else if (avail === 'reserved') {
                         availBadge = `<span class="availability-badge avail-reserved"><i class="fas fa-circle" style="font-size:0.6rem;"></i> محجوز مؤقتاً</span>`;
                     } else if (avail === 'rented') {
-                        availBadge = `<span class="availability-badge avail-reserved"><i class="fas fa-circle" style="font-size:0.6rem;"></i> مؤجر للنزلاء</span>`;
+                        availBadge = `<span class="availability-badge avail-rented"><i class="fas fa-circle" style="font-size:0.6rem;"></i> مؤجر للنزلاء</span>`;
                     } else if (avail === 'sold') {
-                        availBadge = `<span class="availability-badge avail-rejected"><i class="fas fa-circle" style="font-size:0.6rem;"></i> تم البيع</span>`;
+                        availBadge = `<span class="availability-badge avail-sold"><i class="fas fa-circle" style="font-size:0.6rem;"></i> تم البيع</span>`;
                     } else if (avail === 'unavailable') {
                         availBadge = `<span class="availability-badge avail-rejected"><i class="fas fa-circle" style="font-size:0.6rem;"></i> غير متاح حالياً</span>`;
                     }
@@ -363,19 +342,15 @@
                             </div>
                             <p style="color:var(--neon-cyan); font-weight:900; font-size:1.15rem; margin-top:2px;">${priceText}</p>
                             <p style="color:var(--muted); font-size:0.85rem; font-weight:600;"><i class="fas fa-map-marker-alt"></i> ${data.governorate}، ${data.city} | ${data.area || 0} م²</p>
-                            
+
                             ${seoMarkup}
 
-                            <!-- لوحة أزرار العمليات والتحكم المتكاملة المعدلة بالمسارات القياسية والأمان -->
+                            <!-- لوحة أزرار العمليات والتحكم المتكاملة الخالية من المعاينة والطلبات -->
                             <div class="actions-panel-row">
-                              <!-- التحقق من حالة الاعتماد قبل المعاينة لراحة وأمان النزلاء والمالك -->
-                              <button class="btn-action-asset" onclick="window.previewProperty('${id}', '${data.status}')"><i class="fas fa-eye"></i> معاينة</button>
-                              
-                              <!-- زر تعديل العقار يوجه لصفحة التعديل التلقائي لنسختك الأصلية edit-property.html لمنع بدء الإضافة من جديد -->
+                              <!-- زر تعديل العقار يوجه لصفحة التعديل التلقائية edit-property.html لمنع بدء الإضافة من جديد -->
                               <a href="edit-property.html?id=${id}" class="btn-action-asset ${data.status === 'rejected' ? 'btn-action-edit-resubmit' : ''}">
                                 <i class="fas fa-edit"></i> ${data.status === 'rejected' ? 'تعديل وإعادة الإرسال' : 'تعديل البيانات'}
                               </a>
-                              <button class="btn-action-asset" onclick="window.toggleRequestsPanel('${id}', '${data.title}')"><i class="fas fa-tasks"></i> 📋 الطلبات</button>
                               
                               <!-- منسدل تعديل الوفرة حياً -->
                               <div class="status-select-wrapper">
@@ -393,12 +368,6 @@
                                 <i class="${data.isHidden ? 'fas fa-eye' : 'fas fa-eye-slash'}"></i> ${data.isHidden ? 'إظهار ونشر الإعلان' : 'إخفاء الإعلان'}
                               </button>
                             </div>
-
-                            <!-- حاوية منسدلة ديناميكية لعرض طلبات الحجز المباشرة والدردشة مع العملاء -->
-                            <div class="requests-dropdown-panel" id="requests-panel-${id}">
-                              <h4 style="color:var(--neon-cyan); font-weight:900; border-bottom:1px solid var(--glass-border); padding-bottom:10px; margin-bottom:15px;"><i class="fas fa-clipboard-list"></i> طلبات العملاء بانتظار موافقتك</h4>
-                              <div class="requests-stream-list" id="requests-list-${id}">جاري سحب وفحص طلبات الحجز...</div>
-                            </div>
                         </div>
                     `;
 
@@ -411,16 +380,6 @@
             document.getElementById('myPropertiesList').innerHTML = "حدث خطأ غير متوقع أثناء استدعاء قائمة عقاراتك الاستثمارية.";
         }
     });
-
-    // دالة المعاينة والتحقق من حالة الاعتماد قبل توجيه المستخدم لضمان سلامة العمليات العقارية
-    window.previewProperty = function(propertyId, status) {
-      if (status !== 'approved') {
-        alert("⚠️ هذا العقار قيد المراجعة الإدارية أو مرفوض حالياً، ولا يمكن معاينته كإعلان نشط للجمهور حتى يتم اعتماده من قبل الإدارة أولاً.");
-        return;
-      }
-      // التوجيه التلقائي إلى لوحة تحكم النزيل لمعاينة العقار كأنك مستخدم خارجي
-      window.location.href = `dashboard.html?view=prop&id=${propertyId}`;
-    };
 
     // دالة تغيير حالة الوفرة حياً بداخل الـ Firestore
     window.updateAssetAvailability = async function(propertyId, newStatus) {
@@ -445,105 +404,6 @@
         alert(currentIsHidden ? "✅ تم إعادة نشر وتفعيل الإعلان بنجاح." : "✅ تم إيقاف وإخفاء الإعلان مؤقتاً بنجاح.");
       } catch (e) {
         console.error("Failed to toggle visibility: ", e);
-      }
-    };
-
-    // دالة فتح وإغلاق لوحة الطلبات وحشد طلبات الحجز من الـ Firestore
-    window.toggleRequestsPanel = async function(propertyId, propertyTitle) {
-      const panel = document.getElementById(`requests-panel-${propertyId}`);
-      const listContainer = document.getElementById(`requests-list-${propertyId}`);
-      
-      if (!panel || !listContainer) return;
-
-      if (panel.style.display === "block") {
-        panel.style.display = "none";
-        return;
-      }
-
-      panel.style.display = "block";
-      listContainer.innerHTML = "⏳ جاري فحص الحجوزات الواردة لعقارك...";
-
-      try {
-        // جلب طلبات الحجز المرتبطة بهذا العقار حياً
-        const q = query(collection(db, "bookings"), where("propertyId", "==", propertyId));
-        const snap = await getDocs(q);
-        let html = "";
-
-        if (snap.empty) {
-          listContainer.innerHTML = `<p style="color: var(--muted); font-size: 0.85rem;">لا توجد طلبات حجز معلقة على هذا العقار حالياً.</p>`;
-          return;
-        }
-
-        snap.forEach((docSnap) => {
-          const b = docSnap.data();
-          html += `
-            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; border:1px solid var(--glass-border); display:flex; justify-content:space-between; align-items:center; gap: 15px; margin-bottom: 10px; flex-wrap:wrap;">
-              <div style="font-size:0.85rem; line-height:1.6; color:#fff;">
-                <strong>العميل:</strong> ${b.tenantName || 'نزيل موثق'} <br>
-                <strong>العربون المقترح:</strong> <span style="color:var(--neon-cyan); font-weight:900;">${Number(b.deposit || 0).toLocaleString()} ج.م</span> <br>
-                <strong>الهاتف للتواصل المباشر:</strong> ${b.tenantPhone || '-'}
-              </div>
-              <div style="display:flex; gap:10px;">
-                <button class="property-edit-btn" style="width:auto; padding: 5px 15px; font-size:0.75rem; background: var(--success); box-shadow:none;" onclick="window.approveBookingRequest('${docSnap.id}', '${propertyTitle}', '${b.tenantId}')">قبول الطلب</button>
-                <button class="property-edit-btn" style="width:auto; padding: 5px 15px; font-size:0.75rem; background: var(--danger); box-shadow:none;" onclick="window.rejectBookingRequest('${docSnap.id}', '${propertyTitle}', '${b.tenantId}')">رفض</button>
-              </div>
-            </div>
-          `;
-        });
-
-        listContainer.innerHTML = html;
-
-      } catch (e) {
-        console.error("Failed to fetch requests: ", e);
-        listContainer.innerHTML = `<p style="color: var(--danger); font-size: 0.85rem;">❌ خطأ أثناء استدعاء طلبات العقار.</p>`;
-      }
-    };
-
-    // قبول طلب الحجز وإشعار العميل فورياً
-    window.approveBookingRequest = async function(bookingId, propertyTitle, tenantId) {
-      if(!confirm("هل تريد قبول طلب الحجز وتأكيده للعميل؟")) return;
-      try {
-        await updateDoc(doc(db, "bookings", bookingId), {
-          statusText: "تم قبول طلب الحجز وتأكيده من المالك! 🎉",
-          status: "approved"
-        });
-
-        // إضافة إشعار للنزيل
-        await addDoc(collection(db, "notifications"), {
-          userId: tenantId,
-          title: "🎉 تم قبول حجزك بنجاح!",
-          message: `مبروك! وافق المالك على طلب حجزك الخاص بعقار [ ${propertyTitle} ]. يرجى فتح الطلب لمتابعة المعاينة والتواصل المباشر.`,
-          read: false,
-          timestamp: new Date()
-        });
-
-        alert("✅ تم قبول الطلب وإشعار النزيل بنجاح.");
-      } catch (e) {
-        console.error(e);
-      }
-    };
-
-    // رفض طلب الحجز وإشعار العميل
-    window.rejectBookingRequest = async function(bookingId, propertyTitle, tenantId) {
-      if(!confirm("هل تريد رفض طلب الحجز هذا؟")) return;
-      try {
-        await updateDoc(doc(db, "bookings", bookingId), {
-          statusText: "تم رفض طلب الحجز من المالك لمخالفة الشروط أو عدم توفر الموعد.",
-          status: "rejected"
-        });
-
-        // إضافة إشعار للنزيل
-        await addDoc(collection(db, "notifications"), {
-          userId: tenantId,
-          title: "❌ تم رفض طلب الحجز",
-          message: `عذراً، تم الاعتذار عن طلب حجزك لعقار [ ${propertyTitle} ] من المالك. تصفح عقارات مشابهة متوفرة الآن بالمنصة.`,
-          read: false,
-          timestamp: new Date()
-        });
-
-        alert("✅ تم رفض الطلب وإشعار النزيل بنجاح.");
-      } catch (e) {
-        console.error(e);
       }
     };
   </script>
