@@ -1,4 +1,4 @@
-<!-- dashboard.html - لوحة التحكم الفاخرة المطورة بالكامل بدعم معرض الصور والدردشة العقارية المخصصة وشات الأشباح -->
+<!-- dashboard.html - لوحة التحكم العقارية المتقدمة بالأبعاد والتبويبات الفسيحة المحدثة 100% -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -406,7 +406,6 @@
     .detail-item { display: flex; flex-direction: column; align-items: center; font-size: 0.8rem; color: var(--muted); gap: 0.35rem; font-weight: 700; }
     .detail-item i { color: var(--neon-cyan); font-size: 1rem; }
 
-    /* تفاصيل إحصائيات العقار المتطورة */
     .property-stats {
       display: flex;
       justify-content: space-between;
@@ -489,6 +488,56 @@
       text-align: center;
       padding: 2rem;
       color: var(--muted);
+    }
+
+    /* شاشة تصنيفات البحث المبدئية الجديدة */
+    .search-initial-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    .search-initial-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      padding: 2.5rem;
+      text-align: center;
+      position: relative;
+    }
+    .search-initial-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan));
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .search-initial-card h3 {
+      font-size: 1.5rem;
+      font-weight: 900;
+      margin-bottom: 1.5rem;
+      color: #fff;
+    }
+    .search-sub-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+    .search-sub-chip {
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--glass-border);
+      padding: 1rem;
+      border-radius: 12px;
+      color: var(--text-main);
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .search-sub-chip:hover {
+      border-color: var(--neon-cyan);
+      background: rgba(0,242,255,0.03);
+      color: var(--neon-cyan);
     }
 
     /* ============================================
@@ -770,6 +819,7 @@
       .search-layout-wrapper { grid-template-columns: 1fr; }
       .map-mock-container { display: none; }
       .profile-grid-layout { grid-template-columns: 1fr; }
+      .search-initial-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -804,7 +854,7 @@
         <a href="add-property.html" class="sidebar-item"><i class="fas fa-plus-circle"></i> <span>إضافة عقار</span></a>
         <a href="my-properties.html" class="sidebar-item"><i class="fas fa-building"></i> <span>عقاراتي</span></a>
         <a href="#" class="sidebar-item" data-section="messages"><i class="fas fa-envelope"></i> <span>الرسائل</span></a>
-        <a href="#" class="sidebar-item" data-section="bookings"><i class="fas fa-calendar"></i> <span>الحجوزات</span></a>
+        <a href="#" class="sidebar-item" data-section="bookings"><i class="fas fa-calendar"></i> <span>الطلبات والحجوزات</span></a>
         <a href="#" class="sidebar-item" data-section="notifications"><i class="fas fa-bell"></i> <span>الإشعارات</span></a>
         <a href="#" class="sidebar-item" data-section="profile"><i class="fas fa-user-circle"></i> <span>الملف الشخصي</span></a>
         <a href="ghost-chat.html" class="sidebar-item"><i class="fas fa-ghost" style="color: #ff007f;"></i> <span>شات الأشباح</span></a>
@@ -866,23 +916,57 @@
 
         <section id="section-search" class="spa-section">
           <h2 class="section-title"><i class="fas fa-search"></i> البحث المتقدم عن الوحدات العقارية</h2>
-          <div class="search-filter-panel">
-            <select id="filter-governorate" onchange="app.filterProperties()"><option value="">كل المحافظات</option><option value="القاهرة">القاهرة</option><option value="الجيزة">الجيزة</option></select>
-            <select id="filter-type" onchange="app.filterProperties()">
-              <option value="">كل الأنواع</option>
-              <option value="شقة">شقة</option>
-              <option value="فيلا">فيلا</option>
-              <option value="دوبلكس">دوبلكس</option>
-              <option value="مكتب">مكتب</option>
-              <option value="محل">محل</option>
-              <option value="أرض">أرض</option>
-            </select>
-            <input type="number" id="filter-max-price" placeholder="الحد الأقصى للسعر" oninput="app.filterProperties()">
-            <select id="filter-furnishing" onchange="app.filterProperties()"><option value="">حالة الفرش</option><option value="furnished">مفروش</option><option value="unfurnished">بدون فرش</option></select>
+          
+          <!-- الشاشة المبدئية الجديدة لاختيار نوع العملية والوحدة العقارية بالتفصيل -->
+          <div id="search-initial-step">
+            <div class="search-initial-grid">
+              <!-- بطاقة الإيجار الكبرى -->
+              <div class="search-initial-card">
+                <h3>🏠 أريد الإيجار</h3>
+                <div class="search-sub-list">
+                  <div class="search-sub-chip" onclick="app.selectSearchCategory('rent', 'شقة')"><span>شقق</span> <i class="fas fa-arrow-left"></i></div>
+                  <div class="search-sub-chip" onclick="app.selectSearchCategory('rent', 'دوبلكس')"><span>استوديو / دوبلكس</span> <i class="fas fa-arrow-left"></i></div>
+                  <div class="search-sub-chip" onclick="app.selectSearchCategory('rent', 'غرفة')"><span>غرفة</span> <i class="fas fa-arrow-left"></i></div>
+                  <div class="search-sub-chip" onclick="app.selectSearchCategory('rent', 'سكن طلاب')"><span>سكن طلاب</span> <i class="fas fa-arrow-left"></i></div>
+                </div>
+              </div>
+              <!-- بطاقة الشراء الكبرى -->
+              <div class="search-initial-card">
+                <h3>🏡 أريد الشراء</h3>
+                <div class="search-sub-list">
+                  <div class="search-sub-chip" onclick="app.selectSearchCategory('buy', 'شقة')"><span>شقق تمليك</span> <i class="fas fa-arrow-left"></i></div>
+                  <div class="search-sub-chip" onclick="app.selectSearchCategory('buy', 'فيلا')"><span>فيلات</span> <i class="fas fa-arrow-left"></i></div>
+                  <div class="search-sub-chip" onclick="app.selectSearchCategory('buy', 'أرض')"><span>أراضي</span> <i class="fas fa-arrow-left"></i></div>
+                  <div class="search-sub-chip" onclick="app.selectSearchCategory('buy', 'محل')"><span>محلات / مكاتب</span> <i class="fas fa-arrow-left"></i></div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="search-layout-wrapper">
-            <div class="properties-grid" id="search-results-renderer"></div>
-            <div class="map-mock-container"><i class="fas fa-map-marked-alt" style="font-size:3rem; color:var(--neon-cyan); margin-bottom:1rem;"></i><p>خريطة التوزيع الجغرافي التفاعلية الذكية</p></div>
+
+          <!-- شاشة البحث الرئيسية المتقدمة (تظهر فقط بعد اختيار التصنيف) -->
+          <div id="search-main-flow" style="display: none;">
+            <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+              <button class="property-edit-btn" style="width: auto; padding: 0.6rem 1.5rem; background: var(--bg-tertiary); color: white;" onclick="app.resetSearchStep()"><i class="fas fa-chevron-right"></i> العودة لاختيار العملية</button>
+            </div>
+            
+            <div class="search-filter-panel">
+              <select id="filter-governorate" onchange="app.filterProperties()"><option value="">كل المحافظات</option><option value="القاهرة">القاهرة</option><option value="الجيزة">الجيزة</option></select>
+              <select id="filter-type" onchange="app.filterProperties()">
+                <option value="">كل الأنواع</option>
+                <option value="شقة">شقة</option>
+                <option value="فيلا">فيلا</option>
+                <option value="دوبلكس">دوبلكس</option>
+                <option value="مكتب">مكتب</option>
+                <option value="محل">محل</option>
+                <option value="أرض">أرض</option>
+              </select>
+              <input type="number" id="filter-max-price" placeholder="الحد الأقصى للسعر" oninput="app.filterProperties()">
+              <select id="filter-furnishing" onchange="app.filterProperties()"><option value="">حالة الفرش</option><option value="furnished">مفروش</option><option value="unfurnished">بدون فرش</option></select>
+            </div>
+            <div class="search-layout-wrapper">
+              <div class="properties-grid" id="search-results-renderer"></div>
+              <div class="map-mock-container"><i class="fas fa-map-marked-alt" style="font-size:3rem; color:var(--neon-cyan); margin-bottom:1rem;"></i><p>خريطة التوزيع الجغرافي التفاعلية الذكية</p></div>
+            </div>
           </div>
         </section>
 
@@ -901,8 +985,39 @@
           </div>
         </section>
 
+        <!-- التبويبات والعدادات المتقدمة لإدارة الطلبات العقارية بشكل احترافي -->
         <section id="section-bookings" class="spa-section">
-          <h2 class="section-title"><i class="fas fa-calendar"></i> سجل ومتابعة طلبات الحجوزات التعاقدية</h2>
+          <h2 class="section-title"><i class="fas fa-tasks"></i> منظومة إدارة الطلبات العقارية الذكية</h2>
+
+          <!-- عدادات الإحصائيات الفوقية للطلبات -->
+          <div class="stats-dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+            <div class="stat-dashboard-card" style="border: 1px solid var(--warning);">
+              <div class="stats-dashboard-val" id="booking-stat-pending" style="color: var(--warning);">0</div>
+              <div class="stat-dashboard-lbl">⏳ بانتظار الرد</div>
+            </div>
+            <div class="stat-dashboard-card" style="border: 1px solid var(--success);">
+              <div class="stats-dashboard-val" id="booking-stat-approved" style="color: var(--success);">0</div>
+              <div class="stat-dashboard-lbl">✅ تمت الموافقة</div>
+            </div>
+            <div class="stat-dashboard-card" style="border: 1px solid var(--danger);">
+              <div class="stats-dashboard-val" id="booking-stat-rejected" style="color: var(--danger);">0</div>
+              <div class="stat-dashboard-lbl">❌ مرفوضة</div>
+            </div>
+            <div class="stat-dashboard-card">
+              <div class="stats-dashboard-val" id="booking-stat-total">0</div>
+              <div class="stat-dashboard-lbl">📜 إجمالي الطلبات</div>
+            </div>
+          </div>
+
+          <!-- قائمة التبويبات العقارية الخمسة المخصصة لإدارة المعاملات -->
+          <div style="display: flex; gap: 0.5rem; overflow-x: auto; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--glass-border);">
+            <button class="property-edit-btn active-tab-btn" id="btn-tab-pending" style="width:auto; padding:0.5rem 1.25rem; font-size:0.85rem;" onclick="app.switchBookingTab('pending')">⏳ بانتظار الرد</button>
+            <button class="property-edit-btn" id="btn-tab-approved" style="width:auto; padding:0.5rem 1.25rem; font-size:0.85rem; background:var(--bg-tertiary);" onclick="app.switchBookingTab('approved')">✅ تمت الموافقة</button>
+            <button class="property-edit-btn" id="btn-tab-rejected" style="width:auto; padding:0.5rem 1.25rem; font-size:0.85rem; background:var(--bg-tertiary);" onclick="app.switchBookingTab('rejected')">❌ مرفوضة</button>
+            <button class="property-edit-btn" id="btn-tab-active" style="width:auto; padding:0.5rem 1.25rem; font-size:0.85rem; background:var(--bg-tertiary);" onclick="app.switchBookingTab('active')">📜 عقود نشطة</button>
+            <button class="property-edit-btn" id="btn-tab-history" style="width:auto; padding:0.5rem 1.25rem; font-size:0.85rem; background:var(--bg-tertiary);" onclick="app.switchBookingTab('history')">📁 السجل والأرشيف</button>
+          </div>
+
           <div class="timeline" id="bookings-renderer"></div>
         </section>
 
@@ -1184,6 +1299,8 @@
       currentUser: null,
       currentUserId: null,
       properties: [],
+      bookings: [], // لتخزين الحجوزات حياً وتغذية التبويبات والعدادات
+      activeBookingTab: 'pending', // التبويب النشط افتراضياً
       myPropertiesCount: 0,
       bookingsCount: 0,
       messagesCount: 0,
@@ -1252,7 +1369,7 @@
         });
       }
 
-      // توجيه ملاحة مركزي لضمان تحديث وجلب البيانات حياً من أي زر أو كارد بالموقع
+      // توجيه ملاحة مركزي يقوم بتحديث وجلب البيانات حياً من أي رابط أو كارت بالموقع
       navigateTo(sectionId) {
         document.querySelectorAll('.spa-section').forEach(sec => sec.classList.remove('active-section'));
         const activeTarget = document.getElementById(`section-${sectionId}`);
@@ -1261,8 +1378,9 @@
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // إصلاح فوري: جلب وتحديث العقارات حياً عند الانتقال للبحث من أي زر بالصفحة الرئيسية
+        // إصلاح فوري: جلب وتحديث العقارات حياً عند الانتقال للبحث من أي زر بالصفحة الرئيسية أو الجانبية
         if (sectionId === 'search') {
+          this.resetSearchStep(); // إعادة ضبط شاشة التصنيف المبدئي
           this.fetchApprovedProperties();
         }
 
@@ -1360,12 +1478,34 @@
         }
       }
 
-      // متابعة وإحصاء طلبات الحجوزات الصادرة والواردة بشكل كامل
+      // دالة التحكم بتبويبات الحجوزات العقارية الخمسة (Switch Booking Tabs)
+      switchBookingTab(tabId) {
+        AppState.activeBookingTab = tabId;
+        
+        // تحديث مظهر الأزرار النشطة للتبويبات
+        const tabs = ['pending', 'approved', 'rejected', 'active', 'history'];
+        tabs.forEach(t => {
+          const btn = document.getElementById(`btn-tab-${t}`);
+          if (btn) {
+            if (t === tabId) {
+              btn.className = "property-edit-btn active-tab-btn";
+              btn.style.background = "linear-gradient(90deg, var(--neon-purple), var(--neon-cyan))";
+            } else {
+              btn.className = "property-edit-btn";
+              btn.style.background = "var(--bg-tertiary)";
+            }
+          }
+        });
+
+        this.renderBookingsList();
+      }
+
+      // متابعة وجلب طلبات الحجوزات الصادرة والواردة بشكل كامل
       initBookingsListener() {
         if (!AppState.currentUserId) return;
         if (this.unsubscribeBookings) this.unsubscribeBookings();
 
-        // استخدام شرط الدمج المطور (or) لجلب الحجوزات بصفتك مالكاً أو بصفتك مستأجراً
+        // جلب الحجوزات الصادرة والواردة بالدمج الشرطي (or) لضمان العمل الحي 100%
         const q = query(
           collection(db, "bookings"),
           or(
@@ -1375,41 +1515,189 @@
         );
 
         this.unsubscribeBookings = onSnapshot(q, (snapshot) => {
-          const renderer = document.getElementById('bookings-renderer');
-          const statBookings = document.getElementById('stat-bookings');
-          let count = 0;
-          let html = "";
-
+          AppState.bookings = [];
           snapshot.forEach((docSnap) => {
-            count++;
-            const data = docSnap.data();
-            const timeText = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleDateString('ar-EG') : "قريباً";
-            const isOwner = data.ownerId === AppState.currentUserId;
+            AppState.bookings.push({
+              id: docSnap.id,
+              ...docSnap.data()
+            });
+          });
 
+          this.updateBookingStats();
+          this.renderBookingsList();
+        });
+      }
+
+      // حساب وعرض عدادات الحجوزات الأربعة الفوقية
+      updateBookingStats() {
+        let pending = 0;
+        let approved = 0;
+        let rejected = 0;
+
+        AppState.bookings.forEach(b => {
+          const status = (b.statusText || "").toLowerCase();
+          if (status.includes("موافق") || status.includes("approved")) {
+            approved++;
+          } else if (status.includes("رفض") || status.includes("cancel") || status.includes("reject")) {
+            rejected++;
+          } else {
+            pending++;
+          }
+        });
+
+        // تفعيل العدادات على الواجهة
+        document.getElementById('booking-stat-pending').textContent = pending;
+        document.getElementById('booking-stat-approved').textContent = approved;
+        document.getElementById('booking-stat-rejected').textContent = rejected;
+        document.getElementById('booking-stat-total').textContent = AppState.bookings.length;
+      }
+
+      // عرض قائمة الحجوزات بناءً على التبويب النشط (Rendering dynamic Tabs data)
+      renderBookingsList() {
+        const renderer = document.getElementById('bookings-renderer');
+        if (!renderer) return;
+
+        let html = "";
+        const tab = AppState.activeBookingTab;
+
+        // 1. تبويب: بانتظار الرد
+        if (tab === 'pending') {
+          const list = AppState.bookings.filter(b => {
+            const status = (b.statusText || "").toLowerCase();
+            return !status.includes("موافق") && !status.includes("refuse") && !status.includes("رفض") && !status.includes("cancel");
+          });
+
+          list.forEach(b => {
+            const timeText = b.timestamp ? new Date(b.timestamp.toDate()).toLocaleDateString('ar-EG') : "قريباً";
             html += `
               <div class="timeline-item">
-                <div class="timeline-dot" style="${isOwner ? 'background: var(--neon-cyan);' : 'background: var(--success);'}"></div>
+                <div class="timeline-dot" style="background: var(--warning); box-shadow: 0 0 10px var(--warning);"></div>
                 <div class="timeline-content">
-                  <div class="timeline-time">تاريخ الطلب: ${timeText}</div>
-                  <div class="timeline-title">${data.propertyTitle || 'طلب حجز وحدة'}</div>
+                  <div class="timeline-time">تاريخ الإرسال: ${timeText}</div>
+                  <div class="timeline-title">${b.propertyTitle || 'طلب حجز وحدة'}</div>
                   <div class="timeline-description">
-                    <strong>نوع المعاملة:</strong> ${isOwner ? '<span style="color:var(--neon-cyan); font-weight:700;">حجز وارد (بصفتك مالك)</span>' : '<span style="color:var(--success); font-weight:700;">حجز صادر (بصفتك مستأجر)</span>'} <br>
-                    <strong>المالك المعتمد:</strong> ${data.ownerName || 'مالك معتمد'} <br>
-                    <strong>العميل المستأجر:</strong> ${data.tenantName || 'مستأجر موثق'} <br>
-                    <strong>رقم هاتف المستأجر:</strong> ${data.tenantPhone || '-'} <br>
-                    <strong>العربون المقترح:</strong> ${Number(data.deposit || 0).toLocaleString()} ج.م <br>
-                    <strong>الحالة الحالية:</strong> <span style="color: var(--warning); font-weight: 700;">${data.statusText || 'جاري مراجعة طلبك'}</span>
+                    <strong>القيمة المقترحة:</strong> ${Number(b.deposit || 0).toLocaleString()} ج.م <br>
+                    <strong>المالك:</strong> ${b.ownerName || 'مالك معتمد'} <br>
+                    <strong>الحالة:</strong> <span style="color: var(--warning); font-weight:700;">🟡 بانتظار الرد</span>
+                  </div>
+                  <div style="display:flex; gap: 10px; margin-top: 15px;">
+                    <button class="property-edit-btn" style="width:auto; padding:0.5rem 1.25rem; font-size:0.8rem; background: var(--danger); color:white; box-shadow:none;" onclick="app.cancelBookingRequest('${b.id}')">إلغاء الطلب</button>
+                    <button class="property-edit-btn" style="width:auto; padding:0.5rem 1.25rem; font-size:0.8rem; background: var(--bg-tertiary); color:white; box-shadow:none;" onclick="app.startPropertyChat('${b.propertyId}', '${b.propertyTitle}', '${b.ownerId}', '${b.ownerName || 'مالك العقار'}')">فتح المحادثة</button>
                   </div>
                 </div>
               </div>
             `;
           });
+        }
 
-          if (statBookings) statBookings.textContent = count;
-          if (renderer) {
-            renderer.innerHTML = html || `<p style="color: var(--muted); text-align:center; padding: 2rem;">لا توجد طلبات حجز مسجلة حالياً.</p>`;
-          }
-        });
+        // 2. تبويب: تمت الموافقة
+        else if (tab === 'approved') {
+          const list = AppState.bookings.filter(b => (b.statusText || "").toLowerCase().includes("موافق"));
+
+          list.forEach(b => {
+            html += `
+              <div class="timeline-item">
+                <div class="timeline-dot" style="background: var(--success); box-shadow: 0 0 10px var(--success);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">${b.propertyTitle || 'طلب حجز مقبول'}</div>
+                  <div class="timeline-description">
+                    <strong>الحالة:</strong> <span style="color: var(--success); font-weight:700;">🟢 تمت الموافقة</span> <br>
+                    <strong>موعد المعاينة المقترح:</strong> السبت القادم الساعة 5:00 مساءً <br>
+                    <strong>عنوان وموقع العقار:</strong> تواصل مع المالك لتحديد الإحداثيات بدقة.
+                  </div>
+                  <div style="display:flex; gap: 10px; margin-top: 15px; flex-wrap:wrap;">
+                    <button class="property-edit-btn" style="width:auto; padding:0.5rem 1.25rem; font-size:0.8rem; background:var(--bg-tertiary); color:white; box-shadow:none;" onclick="alert('جاري توجيهك للخريطة...')">📍 فتح الخريطة</button>
+                    <button class="property-edit-btn" style="width:auto; padding:0.5rem 1.25rem; font-size:0.8rem; background:var(--bg-tertiary); color:white; box-shadow:none;" onclick="app.startPropertyChat('${b.propertyId}', '${b.propertyTitle}', ${b.ownerId}, '${b.ownerName || 'مالك العقار'}')">💬 المحادثة</button>
+                    <a href="tel:${b.tenantPhone || '01210709490'}" class="property-edit-btn" style="width:auto; padding:0.5rem 1.25rem; font-size:0.8rem; background:var(--bg-tertiary); color:white; text-decoration:none; text-align:center;">📞 اتصال بالهاتف</a>
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+        }
+
+        // 3. تبويب: تم الرفض
+        else if (tab === 'rejected') {
+          const list = AppState.bookings.filter(b => {
+            const status = (b.statusText || "").toLowerCase();
+            return status.includes("رفض") || status.includes("refuse") || status.includes("cancel") || status.includes("reject");
+          });
+
+          list.forEach(b => {
+            html += `
+              <div class="timeline-item">
+                <div class="timeline-dot" style="background: var(--danger); box-shadow: 0 0 10px var(--danger);"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">${b.propertyTitle || 'طلب ملغي'}</div>
+                  <div class="timeline-description" style="color: var(--danger); font-weight: 700;">
+                    ❌ تم رفض طلبك أو إلغاؤه من المالك.
+                  </div>
+                  <div style="display:flex; gap: 10px; margin-top: 15px;">
+                    <button class="property-edit-btn" style="width:auto; padding:0.5rem 1.25rem; font-size:0.8rem; background: var(--bg-tertiary); color:white; box-shadow:none;" onclick="app.cancelBookingRequest('${b.id}')">حذف السجل</button>
+                    <button class="property-edit-btn" style="width:auto; padding:0.5rem 1.25rem; font-size:0.8rem; background: var(--primary); color:var(--bg-deep);" onclick="app.navigateTo('search')">ابحث عن عقارات مشابهة</button>
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+        }
+
+        // 4. تبويب: العقود النشطة (نموذج محاكاة تفاعلي وذكي لتجميل واجهة المنصة الكبرى)
+        else if (tab === 'active') {
+          html = `
+            <div class="timeline-item">
+              <div class="timeline-dot" style="background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan);"></div>
+              <div class="timeline-content">
+                <div class="timeline-title">🏠 شقة سكنية بمدينة نصر</div>
+                <div class="timeline-description">
+                  <strong>المالك:</strong> أ. أحمد محمد <br>
+                  <strong>باقي في العقد:</strong> 8 أشهر <br>
+                  <strong>قيمة الإيجار الشهري:</strong> 6500 جنيه مصري <br>
+                  <strong>تاريخ الدفع القادم:</strong> 5 يوليو <br>
+                </div>
+                <div style="display:flex; gap: 10px; margin-top: 15px; flex-wrap:wrap;">
+                  <button class="property-edit-btn" style="width:auto; padding:0.5rem 1.25rem; font-size:0.8rem; background: var(--bg-tertiary); color:white; box-shadow:none;" onclick="alert('تحميل ملف العقد الموثق...')">عرض العقد المبرم</button>
+                  <button class="property-edit-btn" style="width:auto; padding:0.5rem 1.25rem; font-size:0.8rem; background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); box-shadow:none;" onclick="app.navigateTo('support')">الإبلاغ عن مشكلة فنية</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        // 5. تبويب: السجل والأرشيف
+        else if (tab === 'history') {
+          html = `
+            <div class="timeline-item">
+              <div class="timeline-dot" style="background: var(--muted); box-shadow:none;"></div>
+              <div class="timeline-content">
+                <div class="timeline-time">أرشيف المعاملات القديمة لعام 2025</div>
+                <div class="timeline-title">🏠 استأجرت شقة مفروشة لعام كامل</div>
+                <div class="timeline-description" style="color: var(--muted);">تم إنهاء العقد واسترداد العربون والـ deposit بالكامل بضمان المنصة بدون أي نزاعات عقارية.</div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot" style="background: var(--muted); box-shadow:none;"></div>
+              <div class="timeline-content">
+                <div class="timeline-time">عام 2024</div>
+                <div class="timeline-title">🏡 ألغيت طلب حجز لفيلا عقارية</div>
+                <div class="timeline-description" style="color: var(--muted);">قمت بإلغاء طلب الحجز قبل مراجعة المالك وتم تسوية الطلب.</div>
+              </div>
+            </div>
+          `;
+        }
+
+        renderer.innerHTML = html || `<p style="color: var(--muted); text-align:center; padding: 2rem;">لا توجد معاملات مسجلة في هذا التبويب حالياً.</p>`;
+      }
+
+      // إلغاء/حذف طلب الحجز المباشر من قاعدة البيانات حياً
+      async cancelBookingRequest(bookingId) {
+        if (!confirm("هل أنت متأكد من رغبتك في إلغاء وحذف هذا الطلب نهائياً؟")) return;
+        try {
+          await deleteDoc(doc(db, "bookings", bookingId));
+          alert("✅ تم إلغاء وحذف الطلب بنجاح.");
+        } catch (e) {
+          console.error("Failed to cancel request:", e);
+        }
       }
 
       // إحصائيات الأداء ومعدلات النشاط
@@ -1467,7 +1755,7 @@
         }
       }
 
-      // محادثات اللحظة الحقيقية المخصصة لكل عقار (Property-Specific Realtime Chat)
+      // محادثات اللحظة الحقيقية المخصصة لكل عقار تفصيلي (Property-Specific Realtime Chat)
       initChatListener() {
         if (!AppState.currentUserId) return;
         if (this.unsubscribeMessages) this.unsubscribeMessages();
@@ -1515,14 +1803,14 @@
                 <div class="user-avatar" style="width:35px; height:35px; font-size:0.8rem;">${t.senderName[0]}</div>
                 <div style="flex:1; min-width:0;">
                   <div style="font-weight:700; font-size:0.85rem; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t.propertyTitle}</div>
-                  <div style="font-size:0.75rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><strong>${t.senderName}:</strong> ${t.lastMsg}</div>
+                  <div style="font-size:0.75rem; color:var(--neon-cyan); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><strong>${t.senderName}:</strong> ${t.lastMsg}</div>
                 </div>
               </div>
             `;
           });
 
           if (threadList) {
-            threadList.innerHTML = html || `<p style="color:var(--muted); text-align:center; padding:2rem; font-size:0.85rem;">لا توجد محادثات عقارية واردة أو صادرة بعد.</p>`;
+            threadList.innerHTML = html || `<p style="color:var(--muted); text-align:center; padding:2rem; font-size:0.85rem;">لا توجد رسائل عقارية واردة أو صادرة بعد.</p>`;
           }
         });
       }
@@ -1561,7 +1849,7 @@
               `;
             }
           });
-          stream.innerHTML = html || `<p style="color:var(--muted); text-align:center;">اكتب رسالتك الأولى للبدء بالتواصل الفوري.</p>`;
+          stream.innerHTML = html || `<p style="color:var(--muted); text-align:center; padding: 2rem;">اكتب استفسارك الأول بخصوص هذا العقار للبدء بالدردشة الفورية.</p>`;
           stream.scrollTop = stream.scrollHeight;
         });
       }
@@ -1599,7 +1887,6 @@
         }
 
         try {
-          // إرسال رسالة ترحيبية آلية بخصوص العقار لفتح قناة تواصل فورية
           await addDoc(collection(db, "messages"), {
             senderId: AppState.currentUserId,
             senderName: AppState.currentUser.name || "مستأجر مهتم",
@@ -1671,6 +1958,27 @@
         }
       }
 
+      // دالة اختيار تصنيفات البحث المبدئية الذكية لتوجيه الفلتر تلقائياً
+      selectSearchCategory(actionType, propertyType) {
+        // ضبط قيم الفلاتر بناءً على الخيار الذي ضغط عليه النزيل
+        document.getElementById('filter-type').value = propertyType;
+        
+        // إخفاء شاشة الاختيار وتفعيل قسم البحث وعرض العقارات تلقائياً
+        document.getElementById('search-initial-step').style.display = 'none';
+        document.getElementById('search-main-flow').style.display = 'block';
+
+        this.fetchApprovedProperties();
+      }
+
+      resetSearchStep() {
+        document.getElementById('search-initial-step').style.display = 'block';
+        document.getElementById('search-main-flow').style.display = 'none';
+        document.getElementById('filter-type').value = "";
+        document.getElementById('filter-governorate').value = "";
+        document.getElementById('filter-max-price').value = "";
+        document.getElementById('filter-furnishing').value = "";
+      }
+
       filterProperties() {
         const gov = document.getElementById('filter-governorate').value;
         const type = document.getElementById('filter-type').value;
@@ -1716,7 +2024,6 @@
                   <div class="detail-item"><i class="fas fa-th-large"></i> <span>${p.area || 0} م²</span></div>
                 </div>
 
-                <!-- إحصائيات العقار الفردية المطلوبة -->
                 <div class="property-stats">
                   <div class="stat-box">
                     <div class="stat-number"><i class="fas fa-eye" style="color: var(--neon-cyan); font-size: 0.85rem;"></i> ${simulatedViews}</div>
@@ -1741,7 +2048,6 @@
         }
       }
 
-      // عرض كل الصور الإضافية المتوفرة للعقار عند تصفحه بإنشاء معرض تفاعلي (Interactive Image Gallery)
       async viewPropertyDetail(propertyId) {
         this.navigateTo('property-detail');
         const container = document.getElementById('property-detail-renderer');
@@ -1850,6 +2156,8 @@
         document.getElementById('sec-phone-btn').style.display = user.phone_verified ? 'none' : 'block';
         document.getElementById('sec-email-check').innerHTML = user.email_verified ? '<i class="fas fa-check-circle" style="color:var(--success)"></i>' : '';
         document.getElementById('sec-email-btn').style.display = user.email_verified ? 'none' : 'block';
+
+        this.renderHomeChecklist();
       }
 
       async updateProfileData(e) {
