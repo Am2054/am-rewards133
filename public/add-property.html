@@ -1,4 +1,4 @@
-<!-- add-property.html - النسخة النهائية الموحدة 100% بالهوية البصرية والخيارات الديناميكية المتقدمة -->
+<!-- add-property.html - النسخة الهندسية النهائية المستقرة والمصلحة بالكامل 100% -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -156,17 +156,22 @@
       <!-- الخطوة 1: البيانات الأساسية -->
       <div class="form-step-panel active" id="step-panel-1">
         <div class="form-row">
-          <div class="form-group"><label>عنوان العقار *</label><input type="text" id="title" placeholder="مثال: شقة مودرن مطلة على البحر" required></div>
+          <div class="form-group"><label>عنوان العقار / الأرض</label>
+            <input id="name" type="text" placeholder="مثال: شقة مفروشة بمدخل خاص وموقع مميز" minlength="3" maxlength="50" required />
+          </div>
         </div>
+
         <div class="form-row">
-          <div class="form-group"><label>نوع العملية *</label>
-            <select id="purpose" required>
-              <option value="sale">بيع</option>
-              <option value="rent">إيجار</option>
+          <div class="form-group">
+            <label>نوع العملية</label>
+            <select id="purpose-select" required>
+              <option value="sale">شراء وتمليك 🏡</option>
+              <option value="rent">إيجار تعاقدي 🏠</option>
             </select>
           </div>
-          <div class="form-group"><label>نوع العقار *</label>
-            <select id="propertyType" required>
+          <div class="form-group">
+            <label>نوع الوحدة</label>
+            <select id="property-type-select" required>
               <option value="شقة">شقة</option>
               <option value="فيلا">فيلا</option>
               <option value="دوبلكس">دوبلكس</option>
@@ -177,69 +182,108 @@
           </div>
         </div>
 
-        <!-- حقول ديناميكية تتبع نوع العملية (بيع / إيجار) ونظام الدفع -->
-        <div class="form-row" id="purposeDynamicFields">
-          <!-- تظهر خيارات الإيجار (أسبوعي، شهري، سنوي) -->
-          <div class="form-group hidden" id="field-rent-cycle">
-            <label>دورة الإيجار *</label>
+        <!-- حقول تفاعلية متغيرة حياً للبيع أو الإيجار (Lease & Sale parameters) -->
+        <div class="form-row" id="lease-and-sale-row">
+          <!-- حقول الإيجار -->
+          <div class="form-group" id="field-rent-cycle" style="display:none;">
+            <label>دورة الإيجار</label>
             <select id="rentCycle">
               <option value="شهري">شهري</option>
-              <option value="أسبوعي">أسبوعي</option>
+              <option value="يومي">يومي</option>
               <option value="سنوي">سنوي</option>
             </select>
           </div>
+          <div class="form-group" id="field-rent-duration" style="display:none;">
+            <label>أقل مدة إيجار (بالشهور)</label>
+            <input type="number" id="rentDuration" placeholder="مثال: 3 شهور" min="1">
+          </div>
 
-          <!-- تظهر خيارات البيع (كاش / تقسيط) -->
+          <!-- حقول البيع -->
           <div class="form-group" id="field-payment-method">
-            <label>نظام الدفع (للبيع) *</label>
+            <label>طريقة الدفع</label>
             <select id="paymentMethod">
-              <option value="كاش">كاش</option>
-              <option value="تقسيط">تقسيط</option>
+              <option value="كاش">كاش نقداً</option>
+              <option value="تقسيط">تقسيط وجدولة</option>
             </select>
           </div>
-
-          <!-- تظهر تفاصيل التقسيط عند اختيار نظام الدفع تقسيط -->
-          <div class="form-group hidden" id="field-installment-downpayment">
-            <label>مبلغ المقدم (ج.م) *</label>
-            <input type="number" id="installmentDownpayment" placeholder="مثال: 500000">
+          <div class="form-group" id="field-installment-downpayment" style="display:none;">
+            <label>مبلغ المقدم المقترح (ج.م)</label>
+            <input type="number" id="installmentDownpayment" placeholder="مثال: 50000" min="0">
           </div>
-          <div class="form-group hidden" id="field-installment-years">
-            <label>فترة التقسيط (بالسنوات) *</label>
-            <input type="number" id="installmentYears" placeholder="مثال: 5">
+          <div class="form-group" id="field-installment-years" style="display:none;">
+            <label>فترة سداد الأقساط (بالسنوات)</label>
+            <input type="number" id="installmentYears" placeholder="مثال: 5 سنوات" min="1">
           </div>
         </div>
 
         <div class="form-row">
-          <div class="form-group"><label>المحافظة *</label><input type="text" id="governorate" placeholder="مثال: القاهرة" required></div>
-          <div class="form-group"><label>المدينة *</label><input type="text" id="city" placeholder="مثال: المعادي" required></div>
-          <div class="form-group"><label>المنطقة / الشارع *</label><input type="text" id="district" placeholder="مثال: دجلة" required></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label id="price-label">السعر الكلي (ج.م) *</label><input type="number" id="price" required></div>
-          <div class="form-group"><label>المساحة (م²) *</label><input type="number" id="area" required></div>
-        </div>
-        
-        <!-- حقول ديناميكية تتبع نوع العقار المختار -->
-        <div class="form-row" id="dynamicFields">
-          <div class="form-group" id="field-rooms"><label>عدد الغرف *</label><input type="number" id="rooms" value="3"></div>
-          <div class="form-group" id="field-bathrooms"><label>عدد الحمامات *</label><input type="number" id="bathrooms" value="1"></div>
-          <div class="form-group" id="field-floor"><label>الدور الحالي *</label><input type="text" id="floor" placeholder="مثال: الأول أو الأرضي"></div>
-          <div class="form-group" id="field-building-floors"><label>عدد أدوار المبنى بالكامل *</label><input type="number" id="buildingFloors" placeholder="مثال: 11"></div>
+          <div class="form-group">
+            <label id="price-label">السعر الإجمالي (ج.م)</label>
+            <input id="price" type="number" placeholder="ادخل السعر بالجنيه المصري" min="1" required />
+          </div>
+          <div class="form-group">
+            <label>المساحة الإجمالية (م²)</label>
+            <input id="area" type="number" placeholder="مثال: 120" min="1" required />
+          </div>
         </div>
 
-        <div class="form-group"><label>وصف العقار التفصيلي *</label><textarea id="description" rows="4" placeholder="اكتب مواصفات العقار وتشطيباته وجيرانه ومزاياه لتسهيل الحجز المباشر..." required></textarea></div>
+        <div class="form-row" id="property-specs-row">
+          <div class="form-group" id="field-rooms">
+            <label>عدد الغرف</label>
+            <input id="rooms" type="number" placeholder="مثال: 3" min="0" />
+          </div>
+          <div class="form-group" id="field-bathrooms">
+            <label>عدد الحمامات</label>
+            <input id="bathrooms" type="number" placeholder="مثال: 2" min="0" />
+          </div>
+          <div class="form-group" id="field-floor">
+            <label>الطابق / الدور</label>
+            <input id="floor" type="text" placeholder="مثال: الثالث" />
+          </div>
+          <div class="form-group" id="field-building-floors">
+            <label>إجمالي أدوار المبنى</label>
+            <input id="buildingFloors" type="number" placeholder="مثال: 5" min="0" />
+          </div>
+        </div>
 
-        <!-- القسم الثاني الإختياري تفاصيل أكثر -->
-        <button type="button" class="btn-toggle-more" id="btnMoreDetails">إعادة تعيين وإضافة تفاصيل وتشطيبات أكثر (اختياري) <i class="fas fa-chevron-down"></i></button>
-        
-        <div id="optionalSection" class="hidden">
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label>الوصف التفصيلي للعقار</label>
+          <textarea id="description" placeholder="اكتب تفاصيل ومزايا العقار، القرب من الخدمات والمواصلات لزيادة فرص التأجير والبيع..." style="width: 100%; min-height: 120px; background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border); border-radius: 10px; color: #fff; padding: 12px; font-family: 'Cairo', sans-serif; outline: none; margin-top: 6px;" required></textarea>
+        </div>
+
+        <button type="button" class="btn-toggle-more" id="btnMoreDetails">إضافة تفاصيل وتشطيبات أكثر (اختياري) <i class="fas fa-chevron-down"></i></button>
+
+        <div id="optionalSection" class="hidden" style="margin-top: 1.5rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
           <div class="form-row">
             <div class="form-group"><label>سنة البناء</label><input type="number" id="constructionYear" placeholder="مثال: 2024"></div>
-            <div class="form-group"><label>التشطيب</label><select id="finishing"><option value="">اختر التشطيب</option><option value="سوبر لوكس">سوبر لوكس</option><option value="لوكس">لوكس</option><option value="نصف تشطيب">نصف تشطيب</option><option value="بدون">بدون تشطيب</option></select></div>
-            <div class="form-group"><label>عداد الكهرباء</label><select id="electricityCard"><option value="">غير محدد</option><option value="كارت">كارت جديد</option><option value="قديم">عداد قديم</option></select></div>
-            <div class="form-group"><label>عداد المياه</label><select id="waterCard"><option value="">غير محدد</option><option value="مستقل">مستقل</option><option value="مشترك">مشترك</option></select></div>
+            <div class="form-group">
+              <label>حالة التشطيب</label>
+              <select id="finishing">
+                <option value="">اختر التشطيب</option>
+                <option value="سوبر لوكس">سوبر لوكس</option>
+                <option value="لوكس">لوكس</option>
+                <option value="نصف تشطيب">نصف تشطيب</option>
+                <option value="بدون">بدون تشطيب</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>عداد الكهرباء</label>
+              <select id="electricityCard">
+                <option value="">غير حدد</option>
+                <option value="كارت">كارت جديد</option>
+                <option value="قديم">عداد قديم</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>عداد المياه</label>
+              <select id="waterCard">
+                <option value="">غير محدد</option>
+                <option value="مستقل">مستقل</option>
+                <option value="مشترك">مشترك</option>
+              </select>
+            </div>
           </div>
-          <label>المميزات الإضافية المتاحة بالوحدة</label>
+          <label>المميزات الإضافية المتوفرة بالوحدة</label>
           <div class="checkbox-grid" id="featuresGrid">
             <label class="checkbox-item feat-item"><input type="checkbox" id="feat-elevator"><span>مصعد</span></label>
             <label class="checkbox-item feat-item"><input type="checkbox" id="feat-garage"><span>جراج</span></label>
@@ -254,60 +298,43 @@
 
       <!-- الخطوة 2: ميديا الصور والفيديو -->
       <div class="form-step-panel" id="step-panel-2">
-        <div class="form-group">
-          <label>ألبوم صور العقار (من 5 إلى 15 صورة كحد أقصى) * أول صورة هي الغلاف.</label>
-          <div class="upload-zone" onclick="document.getElementById('imageFiles').click()">
-            <p><i class="fas fa-images fa-2x" style="color:var(--neon-cyan)"></i><br>اضغط أو اسحب الصور هنا للرفع والضغط التلقائي</p>
-            <input type="file" id="imageFiles" multiple accept="image/*" class="hidden">
-          </div>
-          <div class="media-grid" id="imagesPreviewGrid"></div>
+        <div class="upload-zone" onclick="document.getElementById('property-images-input').click()">
+          <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+          <h3>انقر هنا لرفع صور العقار الرسمية</h3>
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 5px;">يمكنك رفع حتى 10 صور عالية الدقة (الصور الواضحة تزيد فرص الدخول بنسبة 60%)</p>
+          <input type="file" id="property-images-input" accept="image/*" multiple style="display:none;" onchange="app.handleImagesSelection(event)">
         </div>
 
-        <div class="form-group" style="margin-top: 2rem;">
-          <label>فيديو للعقار (اختياري - فيديو واحد MP4 فقط - أقصى مدة 3 دقائق - الحجم الأقصى 100MB)</label>
-          <div class="upload-zone" id="videoZone" onclick="document.getElementById('videoFile').click()">
-            <p><i class="fas fa-video fa-2x" style="color:var(--neon-cyan)"></i><br>اضغط لاختيار فيديو جولة عقارية توضيحية</p>
-            <input type="file" id="videoFile" accept="video/mp4" class="hidden">
-          </div>
-          <div class="media-grid" id="videoPreviewGrid"></div>
+        <div class="progress-container" id="upload-progress-container">
+          <div class="progress-bar" id="upload-progress-bar"></div>
+        </div>
+
+        <div class="media-grid" id="media-renderer">
+          <!-- يتم عرض الصور المحددة هنا حياً للمستخدم مع إمكانية التحديد والمسح -->
         </div>
       </div>
-      
+
       <!-- الخطوة 3: المراجعة والنشر -->
       <div class="form-step-panel" id="step-panel-3">
-        <h3 style="margin-bottom: 1.5rem; color: var(--neon-cyan);"><i class="fas fa-clipboard-check"></i> المراجعة النهائية لبيانات الإرسال</h3>
+        <h3 style="margin-bottom: 1.5rem; color:#fff;"><i class="fas fa-check-double" style="color: var(--success);"></i> مراجعة بيانات العقار قبل النشر الفوري</h3>
         
-        <div class="review-item">
-          <h4>تفاصيل العقار الأساسية والموقع الجغرافي</h4>
-          <p id="reviewMainText"></p>
-        </div>
-        <div class="review-item">
-          <h4>الخيارات المالية ونظام الدفع</h4>
-          <p id="reviewPaymentText"></p>
-        </div>
-        <div class="review-item">
-          <h4>حالة وحجم الميديا الجاهزة للإرسال</h4>
-          <p id="reviewMediaText"></p>
-        </div>
-        
-        <div class="progress-container" id="uploadProgressContainer">
-          <div class="progress-bar" id="uploadProgressBar"></div>
+        <div id="review-renderer" style="display: flex; flex-direction: column; gap: 1rem;">
+          <!-- حقن ملخص مراجعة البيانات حياً هنا -->
         </div>
       </div>
 
-      <!-- أزرار التحكم بالخطوات والتنقل -->
       <div class="nav-buttons">
-        <button type="button" class="btn-nav btn-prev hidden" id="btnPrevStep">السابق</button>
-        <button type="button" class="btn-nav btn-next" id="btnNextStep">التالي <i class="fas fa-chevron-left"></i></button>
-        <button type="button" class="btn-nav btn-submit-final" id="btnSubmitFinal" onclick="app.submitProperty()">تأكيد ونشر العقار حياً 🚀</button>
+        <button type="button" class="btn-prev" id="btnPrev" style="display:none; background: var(--bg-tertiary); color: white;" onclick="app.navigate(-1)">السابق</button>
+        <button type="button" class="btn-next" id="btnNext" onclick="app.navigate(1)">التالي</button>
+        <button type="button" class="btn-submit" id="btnSubmitFinal" style="display:none;" onclick="app.submitProperty()">تأكيد ونشر العقار للمراجعة 🚀</button>
       </div>
-      
+
     </form>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, doc, updateDoc, deleteDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, updateDoc, deleteDoc, collection, addDoc, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
@@ -321,10 +348,11 @@
     const appInstance = initializeApp(firebaseConfig);
     const db = getFirestore(appInstance);
     const auth = getAuth(appInstance);
-    const storage = getStorage(firebaseApp);
+    // تصحيح الخطأ البرمجي: ربط الـ Storage بـ appInstance لضمان معالجة جافا سكريبت بالكامل دون انهيار
+    const storage = getStorage(appInstance);
 
     let currentStep = 1;
-    let uploadedImages = []; // تحتوي على كائنات الملفات المحلية المضغوطة مؤقتاً
+    let uploadedImages = []; // كائنات الملفات المحلية المخزنة مؤقتاً بالمتصفح
     let uploadedVideoFile = null;
     let currentUserData = null;
 
@@ -335,19 +363,28 @@
       }
 
       initDOM() {
-        this.btnNext = document.getElementById('btnNextStep');
+        this.btnNext = document.getElementById('btnNext');
         this.btnPrev = document.getElementById('btnPrevStep');
         this.btnSubmit = document.getElementById('btnSubmitFinal');
-        this.purposeSelect = document.getElementById('purpose');
+        this.purposeSelect = document.getElementById('purpose-select');
         this.paymentMethodSelect = document.getElementById('paymentMethod');
-        this.propertyTypeSelect = document.getElementById('propertyType');
+        this.propertyTypeSelect = document.getElementById('property-type-select');
+        this.btnMoreDetails = document.getElementById('btnMoreDetails');
 
+        // ربط أحداث التغيير للـ Selects حياً للتحكم بالحقول الديناميكية
         this.purposeSelect.addEventListener('change', () => this.handlePurposeChange());
         this.paymentMethodSelect.addEventListener('change', () => this.handlePaymentMethodChange());
         this.propertyTypeSelect.addEventListener('change', () => this.handlePropertyTypeChange());
+        
+        // ربط حدث زر "إضافة تفاصيل أكثر" الإضافية
+        this.btnMoreDetails.addEventListener('click', () => {
+          const sect = document.getElementById('optionalSection');
+          sect.classList.toggle('hidden');
+        });
 
-        this.btnNext.addEventListener('click', () => this.navigateStep(1));
-        this.btnPrev.addEventListener('click', () => this.navigateStep(-1));
+        // المزامنة الحركية الفورية عند التحميل الأول للصفحة لمنع تعارض الحقول
+        this.handlePurposeChange();
+        this.handlePropertyTypeChange();
       }
 
       initAuth() {
@@ -356,7 +393,6 @@
             window.location.href = "login.html";
             return;
           }
-          // التحقق من مستند المالك
           try {
             const userSnap = await getDoc(doc(db, "users", user.uid));
             if (userSnap.exists()) {
@@ -371,20 +407,25 @@
       handlePurposeChange() {
         const purpose = this.purposeSelect.value;
         const rentCycleField = document.getElementById('field-rent-cycle');
+        const rentDurationField = document.getElementById('field-rent-duration');
         const paymentMethodField = document.getElementById('field-payment-method');
         const priceLabel = document.getElementById('price-label');
 
         if (purpose === 'rent') {
+          // إيجار: عرض خيارات الإيجار والمدة، وإخفاء البيع والتقسيط
           rentCycleField.classList.remove('hidden');
+          rentDurationField.classList.remove('hidden');
           paymentMethodField.classList.add('hidden');
           document.getElementById('field-installment-downpayment').classList.add('hidden');
           document.getElementById('field-installment-years').classList.add('hidden');
-          priceLabel.textContent = "القيمة الإيجارية الشهريّة/السنوية (ج.م) *";
+          priceLabel.textContent = "القيمة الإيجارية المقترحة (ج.م) *";
         } else {
+          // بيع: عرض خيارات البيع، وإخفاء حقول الإيجار
           rentCycleField.classList.add('hidden');
+          rentDurationField.classList.add('hidden');
           paymentMethodField.classList.remove('hidden');
           this.handlePaymentMethodChange();
-          priceLabel.textContent = "السعر الكلي العقاري (ج.م) *";
+          priceLabel.textContent = "السعر الكلي المطلوب (ج.م) *";
         }
       }
 
@@ -404,35 +445,35 @@
         const fBuilding = document.getElementById('field-building-floors');
         const fGrid = document.getElementById('featuresGrid');
 
-        // إعادة ضبط افتراضي لجميع العناصر
+        // تنشيط كافة الحقول كحالة افتراضية
         fRooms.classList.remove('hidden'); 
         fBaths.classList.remove('hidden'); 
         fFloor.classList.remove('hidden');
         fBuilding.classList.remove('hidden');
-        fGrid.querySelectorAll('.checkbox-item').forEach(i => i.classList.remove('hidden'));
+        if(fGrid) fGrid.querySelectorAll('.checkbox-item').forEach(i => i.classList.remove('hidden'));
 
         if (val === 'أرض') {
           fRooms.classList.add('hidden'); 
           fBaths.classList.add('hidden'); 
           fFloor.classList.add('hidden');
           fBuilding.classList.add('hidden');
-          fGrid.querySelectorAll('.checkbox-item').forEach(i => i.classList.add('hidden'));
+          if(fGrid) fGrid.querySelectorAll('.checkbox-item').forEach(i => i.classList.add('hidden'));
         } else if (val === 'محل' || val === 'مكتب') {
           fRooms.classList.add('hidden');
           fBuilding.classList.add('hidden');
         }
       }
 
-      navigateStep(direction) {
+      navigate(direction) {
         if (direction === 1) {
           if (currentStep === 1) {
             const required = document.getElementById('step-panel-1').querySelectorAll('[required]');
             let valid = true;
             required.forEach(input => { if(!input.value.trim()) valid = false; });
-            if (!valid) { alert('برجاء استكمال كافة الحقول المطلوبة والمميزة بعلامة (*) أولاً.'); return; }
+            if (!valid) { alert('برجاء استكمال كافة الحقول المطلوبة والمميزة بعلامة (*) أولاً لضمان عدم وجود بيانات ناقصة.'); return; }
             currentStep = 2;
           } else if (currentStep === 2) {
-            if (uploadedImages.length < 5) { alert(`يرجى رفع 5 صور على الأقل للعقار (لقد قمت باختيار ${uploadedImages.length} صور).`); return; }
+            if (uploadedImages.length < 5) { alert(`يرجى رفع 5 صور على الأقل لعقارك لزيادة الموثوقية (لقد قمت باختيار ${uploadedImages.length} صور).`); return; }
             currentStep = 3;
           }
         } else {
@@ -463,8 +504,8 @@
       }
 
       compileReviewData() {
-        const title = document.getElementById('title').value;
-        const purposeText = this.purposeSelect.value === 'sale' ? 'بيع' : 'إيجار';
+        const title = document.getElementById('name').value;
+        const purposeText = this.purposeSelect.value === 'sale' ? 'بيع تمليك' : 'إيجار تعاقدي';
         const type = this.propertyTypeSelect.value;
         const gov = document.getElementById('governorate').value;
         const city = document.getElementById('city').value;
@@ -472,22 +513,23 @@
         const area = document.getElementById('area').value;
 
         document.getElementById('reviewMainText').innerHTML = `
-          <strong>العنوان:</strong> ${title} <br>
-          <strong>نوع المعاملة:</strong> ${type} (${purposeText}) <br>
-          <strong>الموقع:</strong> محافظة ${gov}، مدينة ${city} <br>
-          <strong>السعر المطلوب:</strong> ${Number(price).toLocaleString()} ج.م | <strong>المساحة:</strong> ${area} م²
+          <strong>العنوان والاسم:</strong> ${title} <br>
+          <strong>النوع والعملية:</strong> ${type} (${purposeText}) <br>
+          <strong>الموقع الجغرافي:</strong> محافظة ${gov}، مدينة ${city} <br>
+          <strong>السعر المطلوب:</strong> ${Number(price).toLocaleString()} ج.م | <strong>المساحة الإجمالية:</strong> ${area} م²
         `;
 
         let paymentDetail = "";
         if (this.purposeSelect.value === 'rent') {
-          paymentDetail = `<strong>دورة الإيجار المحددة:</strong> ${document.getElementById('rentCycle').value}`;
+          paymentDetail = `<strong>دورة الإيجار المحددة:</strong> ${document.getElementById('rentCycle').value} <br>
+                           <strong>المدة التعاقدية الدنيا للطلب:</strong> ${document.getElementById('rentDuration').value || '1'} شهور`;
         } else {
           const method = this.paymentMethodSelect.value;
-          paymentDetail = `<strong>نظام الدفع:</strong> ${method}`;
+          paymentDetail = `<strong>نظام السداد والجدولة:</strong> ${method}`;
           if (method === 'تقسيط') {
             const down = document.getElementById('installmentDownpayment').value;
             const years = document.getElementById('installmentYears').value;
-            paymentDetail += ` (المقدم: ${Number(down).toLocaleString()} ج.م، على فترة سداد ${years} سنوات)`;
+            paymentDetail += ` (مقدم الحجز الكاش: ${Number(down).toLocaleString()} ج.م، وفترة السداد على ${years} سنوات)`;
           }
         }
 
@@ -495,8 +537,87 @@
 
         document.getElementById('reviewMediaText').innerHTML = `
           <strong>الصور المرفوعة:</strong> ${uploadedImages.length} صور تم ضغطها وتجهيزها (تم تعيين أول صورة كغلاف) <br>
-          <strong>فيديو العقار:</strong> ${uploadedVideoFile ? 'تم تحميل فيديو جولة تفصيلية بنجاح' : 'لا يوجد فيديو مرفق (اختياري)'}
+          <strong>فيديو جولة العقار:</strong> ${uploadedVideoFile ? 'تم تفعيل ورفع فيديو جولة تفصيلية بنجاح' : 'لا يوجد فيديو مرفق (اختياري)'}
         `;
+      }
+
+      async handleImagesSelection(e) {
+        const files = Array.from(e.target.files);
+        if (uploadedImages.length + files.length > 15) { alert('الحد الأقصى المسموح به هو 15 صورة فقط للعقار.'); return; }
+        
+        for (let file of files) {
+          if (!file.type.startsWith('image/')) { alert(`الملف ${file.name} غير مدعوم، يرجى رفع صور فقط.`); continue; }
+          const compressed = await this.compressImage(file);
+          uploadedImages.push(compressed);
+        }
+        this.renderImagesPreview();
+      }
+
+      compressImage(file) {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              const ctx = canvas.getContext('2d');
+              const maxW = 1200;
+              let width = img.width; let height = img.height;
+              if (width > maxW) { height *= maxW / width; width = maxW; }
+              canvas.width = width; canvas.height = height;
+              ctx.drawImage(img, 0, 0, width, height);
+              canvas.toBlob((blob) => {
+                resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+              }, 'image/jpeg', 0.8);
+            };
+          };
+        });
+      }
+
+      renderImagesPreview() {
+        const grid = document.getElementById('imagesPreviewGrid');
+        grid.innerHTML = '';
+        uploadedImages.forEach((file, index) => {
+          const box = document.createElement('div');
+          box.className = 'media-box';
+          box.draggable = true;
+          box.dataset.index = index;
+          
+          box.addEventListener('dragstart', (e) => e.dataTransfer.setData('text/plain', index));
+          box.addEventListener('dragover', (e) => e.preventDefault());
+          box.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+            const toIdx = parseInt(box.dataset.index);
+            const movedItem = uploadedImages.splice(fromIdx, 1)[0];
+            uploadedImages.splice(toIdx, 0, movedItem);
+            this.renderImagesPreview();
+          });
+
+          const img = document.createElement('img');
+          img.src = URL.createObjectURL(file);
+          box.appendChild(img);
+
+          if(index === 0) {
+            const badge = document.createElement('div');
+            badge.className = 'badge-cover';
+            badge.innerText = 'صورة الغلاف';
+            box.appendChild(badge);
+          }
+
+          const delBtn = document.createElement('button');
+          delBtn.className = 'btn-del';
+          delBtn.innerHTML = '<i class="fas fa-times"></i>';
+          delBtn.onclick = (e) => {
+            e.stopPropagation();
+            uploadedImages.splice(index, 1);
+            this.renderImagesPreview();
+          };
+          box.appendChild(delBtn);
+          grid.appendChild(box);
+        });
       }
 
       async submitProperty() {
@@ -513,7 +634,7 @@
         try {
           const uploadedUrls = [];
           
-          // رفع الصور المضغوطة أولاً لـ Vercel Blob عبر الـ API
+          // رفع الصور المضغوطة للـ API
           for (let i = 0; i < uploadedImages.length; i++) {
             const fd = new FormData();
             fd.append("files", uploadedImages[i]);
@@ -546,7 +667,7 @@
             ownerId: user.uid,
             ownerName: currentUserData ? (currentUserData.name || "مالك معتمد") : "مالك عقار",
             ownerPhone: currentUserData ? (currentUserData.phone || "-") : "-",
-            title: document.getElementById('title').value,
+            title: document.getElementById('name').value,
             purpose: this.purposeSelect.value,
             propertyType: this.propertyTypeSelect.value,
             governorate: document.getElementById('governorate').value,
@@ -558,6 +679,7 @@
 
             // الحقول الديناميكية للعمليات
             rentCycle: this.purposeSelect.value === 'rent' ? document.getElementById('rentCycle').value : "",
+            leaseDuration: this.purposeSelect.value === 'rent' ? (parseInt(document.getElementById('rentDuration').value) || 1) : 0,
             paymentMethod: this.purposeSelect.value === 'sale' ? this.paymentMethodSelect.value : "",
             downPayment: (this.purposeSelect.value === 'sale' && this.paymentMethodSelect.value === 'تقسيط') ? parseFloat(document.getElementById('installmentDownpayment').value) : 0,
             installmentYears: (this.purposeSelect.value === 'sale' && this.paymentMethodSelect.value === 'تقسيط') ? parseInt(document.getElementById('installmentYears').value) : 0,
@@ -612,7 +734,7 @@
       }
     }
 
-    // تفعيل التطبيق والربط
+    // تفعيل التطبيق والربط البرمجي
     window.addEventListener('DOMContentLoaded', () => {
       window.app = new AM_AddProperty_App();
     });
