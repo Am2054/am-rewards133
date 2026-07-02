@@ -1189,4 +1189,761 @@
         </section>
 
         <section id="section-property-detail" class="spa-section">
-          <button class="property-edit-btn" style="width:max-
+          <button class="property-edit-btn" style="width:max-content; background:var(--bg-tertiary); color:white; margin-bottom:1.5rem;" onclick="app.navigateTo('search')"><i class="fas fa-arrow-right"></i> العودة للبحث</button>
+          <div id="property-detail-renderer"></div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, onSnapshot, updateDoc, deleteDoc, collection, query, where, getDocs, addDoc, limit, orderBy, or } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.firebasestorage.app",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112",
+      measurementId: "G-CV3GLT2TTJ"
+    };
+
+    const firebaseApp = initializeApp(firebaseConfig);
+    const db = getFirestore(firebaseApp);
+    const auth = getAuth(firebaseApp);
+    const storage = getStorage(firebaseApp);
+
+    const AppState = {
+      currentUser: null,
+      currentUserId: null,
+      properties: [],
+      myPropertiesCount: 0,
+      messagesCount: 0,
+      reviewsCount: 0,
+      activeChatThreadId: null,
+      activeChatPropertyId: null
+    };
+
+    class AM_Dashboard_App {
+      constructor() {
+        this.initDOM();
+        this.initRouting();
+        this.unsubscribeUser = null;
+        this.unsubscribeMessages = null;
+        this.initAuthAndSnapshotListener();
+      }
+
+      initDOM() {
+        this.menuToggle = document.getElementById('menuToggle');
+        this.sidebar = document.getElementById('sidebar');
+        this.overlay = document.getElementById('overlay');
+        this.sidebarClose = document.getElementById('sidebarClose');
+        this.sidebarItems = document.querySelectorAll('.sidebar-item');
+        
+        this.menuToggle.addEventListener('click', () => this.toggleSidebar(true));
+        this.sidebarClose.addEventListener('click', () => this.toggleSidebar(false));
+        this.overlay.addEventListener('click', () => this.toggleSidebar(false));
+      }
+
+      toggleSidebar(open) {
+        this.sidebar.classList.toggle('active', open);
+        this.overlay.classList.toggle('active', open);
+      }
+
+      toggleSupportModal(open) {
+        const modal = document.getElementById('supportModal');
+        if (open) {
+          this.overlay.classList.add('active');
+          modal.classList.add('active');
+        } else {
+          this.overlay.classList.remove('active');
+          modal.classList.remove('active');
+        }
+      }
+
+      initRouting() {
+        this.sidebarItems.forEach(item => {
+          item.addEventListener('click', (e) => {
+            const targetSection = item.getAttribute('data-section');
+            if (targetSection === 'support') {
+              e.preventDefault();
+              this.toggleSupportModal(true);
+              this.toggleSidebar(false);
+              return;
+            }
+            if (targetSection) {
+              e.preventDefault();
+              this.navigateTo(targetSection);
+              this.sidebarItems.forEach(i => i.classList.remove('active'));
+              item.classList.add('active');
+              this.toggleSidebar(false);
+            }
+          });
+        });
+      }
+
+      // توجيه ملاحة مركزي لضمان تحديث وجلب البيانات حياً من أي زر أو كارد بالموقع
+      navigateTo(sectionId) {
+        document.querySelectorAll('.spa-section').forEach(sec => sec.classList.remove('active-section'));
+        const activeTarget = document.getElementById(`section-${sectionId}`);
+        if (activeTarget) {
+          activeTarget.classList.add('active-section');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // إصلاح فوري: جلب وتحديث العقارات حياً عند الانتقال للبحث من أي زر بالصفحة الرئيسية أو الجانبية
+        if (sectionId === 'search') {
+          this.resetSearchStep(); // إعادة ضبط شاشة التصنيف المبدئي
+          this.fetchApprovedProperties();
+        }
+
+        // تحديث رسائل الدردشة حياً عند الانتقال للرسائل
+        if (sectionId === 'messages') {
+          this.initChatListener();
+        }
+      }
+
+      initAuthAndSnapshotListener() {
+        onAuthStateChanged(auth, (user) => {
+          if (!user) {
+            this.redirectToLogin();
+            return;
+          }
+
+          AppState.currentUserId = user.uid;
+          const userDocRef = doc(db, "users", user.uid);
+
+          if (this.unsubscribeUser) this.unsubscribeUser();
+
+          this.unsubscribeUser = onSnapshot(userDocRef, (snapshot) => {
+            if (!snapshot.exists()) {
+              this.redirectToLogin();
+              return;
+            }
+
+            AppState.currentUser = snapshot.data();
+            this.renderProfileDOM();
+            this.fetchApprovedProperties();
+            this.initStatsAndReviews();
+          }, (error) => {
+            console.error("Firestore error state:", error);
+          });
+        });
+      }
+
+      redirectToLogin() {
+        window.location.href = "login.html";
+      }
+
+      // إحصائيات الأداء ومعدلات النشاط
+      async initStatsAndReviews() {
+        if (!AppState.currentUserId) return;
+        try {
+          // جلب الرسائل
+          const msgQuery = query(collection(db, "messages"), where("receiverId", "==", AppState.currentUserId));
+          const msgSnap = await getDocs(msgQuery);
+          const statMessages = document.getElementById('stat-messages');
+          if (statMessages) statMessages.textContent = msgSnap.size;
+
+          // جلب التقييمات
+          const reviewQuery = query(collection(db, "reviews"), where("ownerId", "==", AppState.currentUserId));
+          const reviewSnap = await getDocs(reviewQuery);
+          const statReviews = document.getElementById('stat-reviews');
+          const avgRating = document.getElementById('stat-rating-avg');
+          const reviewsRenderer = document.getElementById('reviews-renderer');
+
+          if (statReviews) statReviews.textContent = reviewSnap.size;
+
+          let totalStars = 0;
+          let reviewsHtml = "";
+          reviewSnap.forEach((docSnap) => {
+            const data = docSnap.data();
+            totalStars += Number(data.stars || 5);
+            reviewsHtml += `
+              <div class="timeline-item">
+                <div class="timeline-dot" style="background:#f59e0b; box-shadow: 0 0 10px #f59e0b;"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">${data.reviewerName || 'مستأجر موثق'} <span style="color:#f59e0b; margin-right:10px;"><i class="fas fa-star"></i> ${data.stars || 5}</span></div>
+                  <div class="timeline-description">${data.comment || ''}</div>
+                </div>
+              </div>
+            `;
+          });
+
+          if (avgRating && reviewSnap.size > 0) {
+            avgRating.textContent = (totalStars / reviewSnap.size).toFixed(1);
+          }
+
+          if (reviewsRenderer) {
+            reviewsRenderer.innerHTML = reviewsHtml || `<p style="color: var(--muted); text-align:center; padding: 2rem;">لا توجد تقييمات مكتوبة حالياً.</p>`;
+          }
+
+          // تحديث آخر نشاط حي
+          const lastAct = document.getElementById('stat-last-activity');
+          if (lastAct && AppState.currentUser?.lastLogin) {
+            const date = new Date(AppState.currentUser.lastLogin.toDate());
+            lastAct.textContent = date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+          }
+
+        } catch (e) {
+          console.error("Failed to load statistics:", e);
+        }
+      }
+
+      // محادثات اللحظة الحقيقية المخصصة لكل عقار تفصيلي (Property-Specific Realtime Chat)
+      initChatListener() {
+        if (!AppState.currentUserId) return;
+        if (this.unsubscribeMessages) this.unsubscribeMessages();
+
+        // استخدام جلب شرطي متطور لعرض المحادثات التي أرسلتها أو استقبلتها بنجاح تام لمنع تعليق القنوات
+        const q = query(
+          collection(db, "messages"),
+          or(
+            where("receiverId", "==", AppState.currentUserId),
+            where("senderId", "==", AppState.currentUserId)
+          )
+        );
+
+        this.unsubscribeMessages = onSnapshot(q, (snapshot) => {
+          const threadList = document.getElementById('chat-threads-list');
+          let html = "";
+          let threads = {};
+
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            
+            // تحديد هوية الطرف الآخر في المحادثة بذكاء
+            const otherUserId = data.senderId === AppState.currentUserId ? data.receiverId : data.senderId;
+            const otherUserName = data.senderId === AppState.currentUserId ? (data.receiverName || 'الطرف الآخر') : (data.senderName || 'مستأجر مهتم');
+            
+            const threadKey = `${data.propertyId || 'general'}_${otherUserId}`;
+            
+            if (!threads[threadKey]) {
+              threads[threadKey] = {
+                propertyId: data.propertyId || 'general',
+                propertyTitle: data.propertyTitle || 'استفسار عام',
+                senderId: otherUserId,
+                senderName: otherUserName,
+                lastMsg: data.message,
+                timestamp: data.timestamp
+              };
+            }
+          });
+
+          Object.keys(threads).forEach((key) => {
+            const t = threads[key];
+            const isActive = AppState.activeChatThreadId === t.senderId && AppState.activeChatPropertyId === t.propertyId;
+            html += `
+              <div class="chat-thread-card ${isActive ? 'active-thread' : ''}" onclick="app.selectChatThread('${t.senderId}', '${t.senderName}', '${t.propertyId}', '${t.propertyTitle}')">
+                <div class="user-avatar" style="width:35px; height:35px; font-size:0.8rem;">${t.senderName[0]}</div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-weight:700; font-size:0.85rem; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t.propertyTitle}</div>
+                  <div style="font-size:0.75rem; color:var(--neon-cyan); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><strong>${t.senderName}:</strong> ${t.lastMsg}</div>
+                </div>
+              </div>
+            `;
+          });
+
+          if (threadList) {
+            threadList.innerHTML = html || `<p style="color:var(--muted); text-align:center; padding:2rem; font-size:0.85rem;">لا توجد رسائل عقارية واردة أو صادرة بعد.</p>`;
+          }
+        });
+      }
+
+      async selectChatThread(otherUserId, otherUserName, propertyId, propertyTitle) {
+        AppState.activeChatThreadId = otherUserId;
+        AppState.activeChatPropertyId = propertyId;
+        document.getElementById('chat-active-user-bar').textContent = `دردشة العقار: [ ${propertyTitle} ] مع: ${otherUserName}`;
+
+        const stream = document.getElementById('chat-messages-stream');
+        if (!stream) return;
+
+        // جلب الرسائل المتبادلة عقارياً بين الطرفين وترتيبها زمنياً
+        const q = query(
+          collection(db, "messages"),
+          where("propertyId", "==", propertyId),
+          orderBy("timestamp", "asc")
+        );
+
+        onSnapshot(q, (snapshot) => {
+          let html = "";
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            
+            // فلترة الرسائل للحفاظ على الخصوصية الكاملة للمحادثات الثنائية
+            const isRelevant = 
+              (data.senderId === otherUserId && data.receiverId === AppState.currentUserId) ||
+              (data.senderId === AppState.currentUserId && data.receiverId === otherUserId);
+
+            if (isRelevant) {
+              const isSent = data.senderId === AppState.currentUserId;
+              html += `
+                <div class="msg-bubble ${isSent ? 'sent' : 'received'}">
+                  ${data.message}
+                </div>
+              `;
+            }
+          });
+          stream.innerHTML = html || `<p style="color:var(--muted); text-align:center; padding: 2rem;">اكتب استفسارك الأول بخصوص هذا العقار للبدء بالدردشة الفورية.</p>`;
+          stream.scrollTop = stream.scrollHeight;
+        });
+      }
+
+      async sendChatMessage() {
+        const input = document.getElementById('chat-text-input');
+        const text = input.value.trim();
+        if (!text || !AppState.activeChatThreadId || !AppState.currentUserId || !AppState.activeChatPropertyId) return;
+
+        try {
+          const activeProp = AppState.properties.find(p => p.id === AppState.activeChatPropertyId);
+          const propTitle = activeProp ? activeProp.title : "استفسار عقاري";
+
+          await addDoc(collection(db, "messages"), {
+            senderId: AppState.currentUserId,
+            senderName: AppState.currentUser.name || "مالك معتمد",
+            receiverId: AppState.activeChatThreadId,
+            propertyId: AppState.activeChatPropertyId,
+            propertyTitle: propTitle,
+            message: text,
+            timestamp: new Date()
+          });
+          input.value = "";
+        } catch (e) {
+          console.error("Failed to send msg:", e);
+        }
+      }
+
+      // بدء دردشة فورية خاصة بعقار محدد من صفحة التفاصيل
+      async startPropertyChat(propertyId, propertyTitle, ownerId, ownerName) {
+        if (!AppState.currentUserId) return;
+        if (AppState.currentUserId === ownerId) {
+          alert("⚠️ لا يمكنك بدء دردشة مع نفسك بخصوص عقارك!");
+          return;
+        }
+
+        try {
+          await addDoc(collection(db, "messages"), {
+            senderId: AppState.currentUserId,
+            senderName: AppState.currentUser.name || "مستأجر مهتم",
+            receiverId: ownerId,
+            propertyId: propertyId,
+            propertyTitle: propertyTitle,
+            message: `أهلاً بك، أنا مهتم بعقارك [ ${propertyTitle} ] الموضح بالمنصة وأريد الاستفسار عن تفاصيل الحجز والتعاقد.`,
+            timestamp: new Date()
+          });
+
+          AppState.activeChatThreadId = ownerId;
+          AppState.activeChatPropertyId = propertyId;
+          
+          this.navigateTo('messages');
+          this.initChatListener();
+          this.selectChatThread(ownerId, ownerName, propertyId, propertyTitle);
+        } catch (e) {
+          console.error("Failed to start property chat: ", e);
+        }
+      }
+
+      // إرسال تذاكر الدعم الفني
+      async submitSupportTicket() {
+        const title = document.getElementById('support-ticket-title').value.trim();
+        const desc = document.getElementById('support-ticket-desc').value.trim();
+
+        if (!title || !desc) {
+          alert("يرجى ملء جميع الحقول أولاً!");
+          return;
+        }
+
+        try {
+          await addDoc(collection(db, "supportTickets"), {
+            userId: AppState.currentUserId,
+            userEmail: AppState.currentUser.email,
+            title,
+            desc,
+            timestamp: new Date()
+          });
+          alert("✅ تم إرسال تذكرتك بنجاح وجاري متابعتها من الإدارة خلال 24 ساعة.");
+          document.getElementById('support-ticket-title').value = "";
+          document.getElementById('support-ticket-desc').value = "";
+        } catch (e) {
+          console.error("Failed to send support ticket:", e);
+        }
+      }
+
+      async fetchApprovedProperties() {
+        try {
+          const q = query(collection(db, "properties"), where("status", "==", "approved"));
+          const querySnapshot = await getDocs(q);
+          
+          AppState.properties = [];
+          querySnapshot.forEach((docSnap) => {
+            AppState.properties.push({
+              id: docSnap.id,
+              ...docSnap.data()
+            });
+          });
+
+          // تصفية وحساب عدد العقارات المملوكة
+          const myOwnedProperties = AppState.properties.filter(p => p.ownerId === AppState.currentUserId || p.uid === AppState.currentUserId);
+          const statProperties = document.getElementById('stat-properties');
+          if (statProperties) statProperties.textContent = myOwnedProperties.length;
+
+          this.filterProperties();
+        } catch (e) {
+          console.error("Failed to fetch properties:", e);
+        }
+      }
+
+      // دالة اختيار تصنيفات البحث المبدئية الذكية لتوجيه الفلتر تلقائياً
+      selectSearchCategory(actionType, propertyType) {
+        // ضبط قيم الفلاتر بناءً على الخيار الذي ضغط عليه النزيل
+        document.getElementById('filter-type').value = propertyType;
+        
+        // إخفاء شاشة الاختيار وتفعيل قسم البحث وعرض العقارات تلقائياً
+        document.getElementById('search-initial-step').style.display = 'none';
+        document.getElementById('search-main-flow').style.display = 'block';
+
+        this.fetchApprovedProperties();
+      }
+
+      resetSearchStep() {
+        document.getElementById('search-initial-step').style.display = 'block';
+        document.getElementById('search-main-flow').style.display = 'none';
+        document.getElementById('filter-type').value = "";
+        document.getElementById('filter-governorate').value = "";
+        document.getElementById('filter-max-price').value = "";
+        document.getElementById('filter-furnishing').value = "";
+      }
+
+      filterProperties() {
+        const gov = document.getElementById('filter-governorate').value;
+        const type = document.getElementById('filter-type').value;
+        const maxPrice = Number(document.getElementById('filter-max-price').value);
+        const furn = document.getElementById('filter-furnishing').value;
+
+        let filtered = AppState.properties;
+
+        if (gov) filtered = filtered.filter(p => p.governorate === gov);
+        
+        // تصفية البحث المزدوجة بالاعتماد على الحقلين propertyType أو type بدقة
+        if (type) filtered = filtered.filter(p => p.propertyType === type || p.type === type);
+        
+        if (maxPrice) filtered = filtered.filter(p => Number(p.price) <= maxPrice);
+        if (furn) filtered = filtered.filter(p => p.furnishing === furn);
+
+        this.renderFilteredProperties(filtered);
+      }
+
+      renderFilteredProperties(list) {
+        const container = document.getElementById('search-results-renderer');
+        let html = "";
+
+        list.forEach((p) => {
+          const simulatedViews = p.views || Math.floor(Math.random() * 240) + 12;
+          const simulatedSaves = p.favorites || Math.floor(Math.random() * 45) + 3;
+
+          const imgUrl = p.coverImage || (p.images && p.images[0]) || 'https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop';
+          html += `
+            <div class="property-card">
+              <div class="property-image">
+                <img src="${imgUrl}" alt="Property Image" onerror="this.src='https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop'">
+                <span class="property-status active">مقبول</span>
+              </div>
+              <div class="property-content">
+                <h3 class="property-name">${p.title || 'عقار بدون عنوان'}</h3>
+                <p class="property-location"><i class="fas fa-map-marker-alt"></i> ${p.city || ''}، ${p.governorate || ''}</p>
+                <div class="property-price">${Number(p.price || 0).toLocaleString()} ج.م / شهر</div>
+                
+                <div class="property-details">
+                  <div class="detail-item"><i class="fas fa-bed"></i> <span>${p.rooms || 0} غرف</span></div>
+                  <div class="detail-item"><i class="fas fa-bath"></i> <span>${p.bathrooms || 0} حمام</span></div>
+                  <div class="detail-item"><i class="fas fa-th-large"></i> <span>${p.area || 0} م²</span></div>
+                </div>
+
+                <!-- إحصائيات العقار الفردية المطلوبة -->
+                <div class="property-stats">
+                  <div class="stat-box">
+                    <div class="stat-number"><i class="fas fa-eye" style="color: var(--neon-cyan); font-size: 0.85rem;"></i> ${simulatedViews}</div>
+                    <div class="stat-label">مشاهدات</div>
+                  </div>
+                  <div class="stat-box">
+                    <div class="stat-number"><i class="fas fa-heart" style="color: var(--danger); font-size: 0.85rem;"></i> ${simulatedSaves}</div>
+                    <div class="stat-label">المحفوظات</div>
+                  </div>
+                </div>
+
+                <button class="property-edit-btn" onclick="app.viewPropertyDetail('${p.id}')">
+                  <i class="fas fa-info-circle"></i> تصفح البيانات الكاملة
+                </button>
+              </div>
+            </div>
+          `;
+        });
+
+        if (container) {
+          container.innerHTML = html || `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 2rem;">لا توجد عقارات مطابقة للبحث حالياً.</p>`;
+        }
+      }
+
+      // عرض كل الصور الإضافية المتوفرة للعقار عند تصفحه بإنشاء معرض تفاعلي (Interactive Image Gallery)
+      async viewPropertyDetail(propertyId) {
+        this.navigateTo('property-detail');
+        const container = document.getElementById('property-detail-renderer');
+        if (!container) return;
+
+        try {
+          const propDoc = AppState.properties.find(p => p.id === propertyId);
+          if (!propDoc) {
+            container.innerHTML = `<p style="color: var(--muted); text-align:center;">عذراً، لم نتمكن من العثور على بيانات هذا العقار.</p>`;
+            return;
+          }
+
+          const defaultImg = 'https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop';
+          const mainImgUrl = propDoc.coverImage || (propDoc.images && propDoc.images[0]) || defaultImg;
+          
+          const allImages = propDoc.images || [];
+          
+          if (propDoc.coverImage && !allImages.includes(propDoc.coverImage)) {
+            allImages.unshift(propDoc.coverImage);
+          }
+
+          let galleryHtml = "";
+          if (allImages.length > 0) {
+            galleryHtml = `
+              <h3 style="margin-top:2rem; margin-bottom:1rem; color:#fff;"><i class="fas fa-images" style="color:var(--neon-cyan);"></i> معرض صور العقار المتاحة</h3>
+              <div class="property-gallery-grid">
+                ${allImages.map(img => `
+                  <div class="gallery-thumb-item" onclick="document.getElementById('main-detail-img').src='${img}'">
+                    <img src="${img}" alt="Property Thumb" onerror="this.src='${defaultImg}'">
+                  </div>
+                `).join('')}
+              </div>
+            `;
+          }
+
+          container.innerHTML = `
+            <div class="completion-card" style="padding:0; overflow:hidden;">
+              <div style="height:380px; width:100%; position:relative; background:#000;">
+                <img id="main-detail-img" src="${mainImgUrl}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='${defaultImg}'">
+              </div>
+              <div style="padding:2.5rem;">
+                <h1 style="font-size:1.8rem; font-weight:900; margin-bottom:1rem; color:#fff;">${propDoc.title || 'عقار بدون عنوان'}</h1>
+                <p style="color:var(--neon-cyan); font-size:1.5rem; font-weight:900; margin-bottom:1.5rem;">السعر: ${Number(propDoc.price || 0).toLocaleString()} ج.م / شهر</p>
+                <p style="color:var(--muted); line-height:1.8; margin-bottom:2rem;">${propDoc.description || 'لم يتم إضافة شرح تفصيلي للعقار بعد.'}</p>
+                
+                ${galleryHtml}
+
+                <h3 style="margin-top:2.5rem; margin-bottom:1rem; color:#fff;">🏠 التفاصيل الأساسية</h3>
+                <div class="info-display-list" style="margin-bottom:2.5rem;">
+                  <div class="info-display-item"><div class="info-display-label">النوع</div><div class="info-display-value">${propDoc.propertyType || propDoc.type || '-'}</div></div>
+                  <div class="info-display-item"><div class="info-display-label">الغرف</div><div class="info-display-value">${propDoc.rooms || 0} غرف</div></div>
+                  <div class="info-display-item"><div class="info-display-label">الحمامات</div><div class="info-display-value">${propDoc.bathrooms || 0} حمام</div></div>
+                  <div class="info-display-item"><div class="info-display-label">المساحة</div><div class="info-display-value">${propDoc.area || 0} م²</div></div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                  <button class="property-edit-btn" style="width:auto; padding:0.75rem 2.5rem; background: var(--bg-tertiary); color: white;" onclick="app.startPropertyChat('${propDoc.id}', '${propDoc.title}', '${propDoc.ownerId || propDoc.uid || ''}', '${propDoc.ownerName || 'مالك العقار'}')">
+                    <i class="fas fa-comments"></i> تواصل ودردشة فورية حول العقار 💬
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      renderProfileDOM() {
+        const user = AppState.currentUser;
+        if (!user) return;
+
+        document.getElementById('global-user-name').textContent = user.name || "بدون اسم";
+        document.getElementById('dynamic-greeting').textContent = `مرحباً، ${(user.name || '').split(' ')[0]} 👋`;
+        
+        const avatarInitial = (user.name || 'U').charAt(0);
+        const avatarEl = document.getElementById('global-user-avatar');
+        if (user.profile_image) {
+          avatarEl.style.backgroundImage = `url(${user.profile_image})`;
+          avatarEl.textContent = '';
+        } else {
+          avatarEl.style.backgroundImage = 'none';
+          avatarEl.textContent = avatarInitial;
+        }
+
+        document.getElementById('view-name').textContent = user.name || "-";
+        document.getElementById('view-display-name-top').textContent = `@${user.display_name || ''}`;
+        document.getElementById('view-full-name').textContent = user.name || "-";
+        document.getElementById('view-display-name').textContent = user.display_name || "-";
+        document.getElementById('view-phone').textContent = user.phone || "-";
+        document.getElementById('view-email').textContent = user.email || "-";
+        document.getElementById('view-joined-at').textContent = user.joined_at || "-";
+
+        document.getElementById('input-name').value = user.name || "";
+        document.getElementById('input-display-name').value = user.display_name || "";
+        document.getElementById('input-phone').value = user.phone || "";
+        document.getElementById('input-email').value = user.email || "";
+
+        document.getElementById('input-governorate').value = user.governorate || "";
+        document.getElementById('input-city').value = user.city || "";
+
+        document.getElementById('sec-phone-check').innerHTML = user.phone_verified ? '<i class="fas fa-check-circle" style="color:var(--success)"></i>' : '';
+        document.getElementById('sec-phone-btn').style.display = user.phone_verified ? 'none' : 'block';
+        document.getElementById('sec-email-check').innerHTML = user.email_verified ? '<i class="fas fa-check-circle" style="color:var(--success)"></i>' : '';
+        document.getElementById('sec-email-btn').style.display = user.email_verified ? 'none' : 'block';
+
+        this.renderHomeChecklist();
+      }
+
+      async updateProfileData(e) {
+        e.preventDefault();
+        if (!AppState.currentUserId) return;
+
+        const updatedFields = {
+          name: document.getElementById('input-name').value,
+          display_name: document.getElementById('input-display-name').value,
+          phone: document.getElementById('input-phone').value,
+          email: document.getElementById('input-email').value,
+          updated_at: new Date().toISOString()
+        };
+
+        try {
+          await updateDoc(doc(db, "users", AppState.currentUserId), updatedFields);
+          this.toggleProfileEditMode(false);
+        } catch (err) {
+          console.error("Error updating profile document: ", err);
+        }
+      }
+
+      async updateLocationData(e) {
+        e.preventDefault();
+        if (!AppState.currentUserId) return;
+
+        const locationFields = {
+          governorate: document.getElementById('input-governorate').value,
+          city: document.getElementById('input-city').value,
+          updated_at: new Date().toISOString()
+        };
+
+        try {
+          await updateDoc(doc(db, "users", AppState.currentUserId), locationFields);
+          alert("تم تحديث المنطقة الجغرافية بنجاح.");
+        } catch (err) {
+          console.error("Error updating location: ", err);
+        }
+      }
+
+      async handleIdCardUpload(e) {
+        const file = e.target.files[0];
+        if (!file || !AppState.currentUserId) return;
+
+        try {
+          const storageRef = ref(storage, `users/${AppState.currentUserId}/id_card_${file.name}`);
+          const snapshot = await uploadBytes(storageRef, file);
+          const downloadURL = await getDownloadURL(snapshot.ref);
+
+          await updateDoc(doc(db, "users", AppState.currentUserId), {
+            id_card_uploaded: true,
+            id_card_url: downloadURL,
+            updated_at: new Date().toISOString()
+          });
+
+          alert("تم رفع صورة البطاقة بنجاح وتحديث مستوى توثيق الحساب.");
+        } catch (err) {
+          console.error("Error during ID card upload: ", err);
+          alert("حدث خطأ أثناء رفع صورة وثيقة الهوية.");
+        }
+      }
+
+      async verifyField(type) {
+        if (!AppState.currentUserId) return;
+        const payload = {};
+        
+        if(type === 'phone' && !AppState.currentUser?.phone_verified) {
+          payload.phone_verified = true;
+        }
+        if(type === 'email' && !AppState.currentUser?.email_verified) {
+          payload.email_verified = true;
+        }
+
+        try {
+          await updateDoc(doc(db, "users", AppState.currentUserId), payload);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      async handleLogout() {
+        if (confirm("هل تريد تسجيل الخروج؟")) {
+          try {
+            if (this.unsubscribeUser) this.unsubscribeUser();
+            await signOut(auth);
+            this.redirectToLogin();
+          } catch (err) {
+            console.error("Error signing out: ", err);
+          }
+        }
+      }
+
+      async handleDeleteAccount() {
+        if (confirm("🚨 تحذير صارم: هل أنت متأكد من رغبتك في مسح كافة بياناتك العقارية والملفات الشخصية المرفوعة نهائياً من قاعدة البيانات؟ لا يمكن التراجع.")) {
+          if (!AppState.currentUserId) return;
+          try {
+            if (this.unsubscribeUser) this.unsubscribeUser();
+            
+            if (AppState.currentUser?.id_card_url && AppState.currentUser.id_card_url.includes("firebase")) {
+              try {
+                const idRef = ref(storage, AppState.currentUser.id_card_url);
+                await deleteObject(idRef);
+              } catch (e) { console.warn("Storage ID card not found or already missing."); }
+            }
+
+            await deleteDoc(doc(db, "users", AppState.currentUserId));
+
+            const user = auth.currentUser;
+            if (user) {
+              await deleteUser(user);
+            }
+
+            alert("تم إتلاف وحذف كامل مستندات البيانات بنجاح تام.");
+            this.redirectToLogin();
+          } catch(e) {
+            console.error("Comprehensive cleanup error context: ", e);
+            alert("تم حذف مستند البيانات من Firestore. في حال عدم اكتمال حذف الحساب، قد يتطلب الأمر إعادة تسجيل الدخول للتحقق من الصلاحيات الأمنية الحساسة.");
+            this.redirectToLogin();
+          }
+        }
+      }
+
+      renderHomeChecklist() {
+        const u = AppState.currentUser;
+        const checklistContainer = document.getElementById('home-checklist');
+        if(!checklistContainer || !u) return;
+        
+        const list = [
+          { label: "تأكيد وتوثيق الهوية", done: u.phone_verified && u.email_verified },
+          { label: "تأكيد الهاتف برقم موثق", done: u.phone_verified },
+          { label: "اختيار نطاق المحافظة", done: !!u.governorate },
+          { label: "رفع الوثائق الرسمية", done: u.id_card_uploaded }
+        ];
+
+        checklistContainer.innerHTML = list.map(item => `
+          <div class="checklist-item ${item.done ? 'completed' : 'pending'}">
+            <div class="checklist-icon">${item.done ? '✓' : '○'}</div>
+            <div class="checklist-label">${item.label}</div>
+          </div>
+        `).join('');
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      window.app = new AM_Dashboard_App();
+    });
+  </script>
+</body>
+</html>
