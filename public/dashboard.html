@@ -1,4 +1,4 @@
-<!-- dashboard.html - لوحة التحكم العقارية المتقدمة بالأبعاد والتبويبات الفسيحة المحدثة 100% -->
+<!-- dashboard.html - لوحة التحكم العقارية المتقدمة بالأبعاد والتبويبات المحدثة 100% -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -1009,13 +1009,11 @@
             </div>
           </div>
 
-          <!-- قائمة التبويبات العقارية الخمسة المخصصة لإدارة المعاملات -->
+          <!-- قائمة التبويبات العقارية الثلاثة المخصصة لإدارة المعاملات -->
           <div style="display: flex; gap: 0.5rem; overflow-x: auto; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--glass-border);">
             <button class="property-edit-btn active-tab-btn" id="btn-tab-pending" style="width:auto; padding:0.5rem 1.25rem; font-size:0.85rem;" onclick="app.switchBookingTab('pending')">⏳ بانتظار الرد</button>
             <button class="property-edit-btn" id="btn-tab-approved" style="width:auto; padding:0.5rem 1.25rem; font-size:0.85rem; background:var(--bg-tertiary);" onclick="app.switchBookingTab('approved')">✅ تمت الموافقة</button>
             <button class="property-edit-btn" id="btn-tab-rejected" style="width:auto; padding:0.5rem 1.25rem; font-size:0.85rem; background:var(--bg-tertiary);" onclick="app.switchBookingTab('rejected')">❌ مرفوضة</button>
-            <button class="property-edit-btn" id="btn-tab-active" style="width:auto; padding:0.5rem 1.25rem; font-size:0.85rem; background:var(--bg-tertiary);" onclick="app.switchBookingTab('active')">📜 عقود نشطة</button>
-            <button class="property-edit-btn" id="btn-tab-history" style="width:auto; padding:0.5rem 1.25rem; font-size:0.85rem; background:var(--bg-tertiary);" onclick="app.switchBookingTab('history')">📁 السجل والأرشيف</button>
           </div>
 
           <div class="timeline" id="bookings-renderer"></div>
@@ -1369,7 +1367,7 @@
         });
       }
 
-      // توجيه ملاحة مركزي يقوم بتحديث وجلب البيانات حياً من أي رابط أو كارت بالموقع
+      // توجيه ملاحة مركزي يقوم بتحديث وجلب البيانات حياً من أي زر أو كارد بالموقع
       navigateTo(sectionId) {
         document.querySelectorAll('.spa-section').forEach(sec => sec.classList.remove('active-section'));
         const activeTarget = document.getElementById(`section-${sectionId}`);
@@ -1478,12 +1476,12 @@
         }
       }
 
-      // دالة التحكم بتبويبات الحجوزات العقارية الخمسة (Switch Booking Tabs)
+      // دالة التحكم بتبويبات الحجوزات العقارية الثلاثة المتبقية (Switch Booking Tabs)
       switchBookingTab(tabId) {
         AppState.activeBookingTab = tabId;
         
-        // تحديث مظهر الأزرار النشطة للتبويبات
-        const tabs = ['pending', 'approved', 'rejected', 'active', 'history'];
+        // تحديث مظهر الأزرار النشطة للتبويبات الثلاثة فقط
+        const tabs = ['pending', 'approved', 'rejected'];
         tabs.forEach(t => {
           const btn = document.getElementById(`btn-tab-${t}`);
           if (btn) {
@@ -1535,10 +1533,13 @@
         let rejected = 0;
 
         AppState.bookings.forEach(b => {
-          const status = (b.statusText || "").toLowerCase();
-          if (status.includes("موافق") || status.includes("approved")) {
+          const statusStr = ((b.statusText || "") + " " + (b.status || "")).toLowerCase();
+          const isApproved = statusStr.includes("موافق") || statusStr.includes("approved") || statusStr.includes("قبول") || statusStr.includes("accept");
+          const isRejected = statusStr.includes("رفض") || statusStr.includes("cancel") || statusStr.includes("reject") || statusStr.includes("ملغي") || statusStr.includes("ملغى");
+
+          if (isApproved) {
             approved++;
-          } else if (status.includes("رفض") || status.includes("cancel") || status.includes("reject")) {
+          } else if (isRejected) {
             rejected++;
           } else {
             pending++;
@@ -1563,8 +1564,10 @@
         // 1. تبويب: بانتظار الرد
         if (tab === 'pending') {
           const list = AppState.bookings.filter(b => {
-            const status = (b.statusText || "").toLowerCase();
-            return !status.includes("موافق") && !status.includes("refuse") && !status.includes("رفض") && !status.includes("cancel");
+            const statusStr = ((b.statusText || "") + " " + (b.status || "")).toLowerCase();
+            const isApproved = statusStr.includes("موافق") || statusStr.includes("approved") || statusStr.includes("قبول") || statusStr.includes("accept");
+            const isRejected = statusStr.includes("رفض") || statusStr.includes("cancel") || statusStr.includes("reject") || statusStr.includes("ملغي") || statusStr.includes("ملغى");
+            return !isApproved && !isRejected;
           });
 
           list.forEach(b => {
@@ -1592,7 +1595,10 @@
 
         // 2. تبويب: تمت الموافقة
         else if (tab === 'approved') {
-          const list = AppState.bookings.filter(b => (b.statusText || "").toLowerCase().includes("موافق"));
+          const list = AppState.bookings.filter(b => {
+            const statusStr = ((b.statusText || "") + " " + (b.status || "")).toLowerCase();
+            return statusStr.includes("موافق") || statusStr.includes("approved") || statusStr.includes("قبول") || statusStr.includes("accept");
+          });
 
           list.forEach(b => {
             html += `
@@ -1607,7 +1613,7 @@
                   </div>
                   <div style="display:flex; gap: 10px; margin-top: 15px; flex-wrap:wrap;">
                     <button class="property-edit-btn" style="width:auto; padding:0.5rem 1.25rem; font-size:0.8rem; background:var(--bg-tertiary); color:white; box-shadow:none;" onclick="alert('جاري توجيهك للخريطة...')">📍 فتح الخريطة</button>
-                    <button class="property-edit-btn" style="width:auto; padding:0.5rem 1.25rem; font-size:0.8rem; background:var(--bg-tertiary); color:white; box-shadow:none;" onclick="app.startPropertyChat('${b.propertyId}', '${b.propertyTitle}', ${b.ownerId}, '${b.ownerName || 'مالك العقار'}')">💬 المحادثة</button>
+                    <button class="property-edit-btn" style="width:auto; padding:0.5rem 1.25rem; font-size:0.8rem; background:var(--bg-tertiary); color:white; box-shadow:none;" onclick="app.startPropertyChat('${b.propertyId}', '${b.propertyTitle}', '${b.ownerId}', '${b.ownerName || 'مالك العقار'}')">💬 المحادثة</button>
                     <a href="tel:${b.tenantPhone || '01210709490'}" class="property-edit-btn" style="width:auto; padding:0.5rem 1.25rem; font-size:0.8rem; background:var(--bg-tertiary); color:white; text-decoration:none; text-align:center;">📞 اتصال بالهاتف</a>
                   </div>
                 </div>
@@ -1619,8 +1625,8 @@
         // 3. تبويب: تم الرفض
         else if (tab === 'rejected') {
           const list = AppState.bookings.filter(b => {
-            const status = (b.statusText || "").toLowerCase();
-            return status.includes("رفض") || status.includes("refuse") || status.includes("cancel") || status.includes("reject");
+            const statusStr = ((b.statusText || "") + " " + (b.status || "")).toLowerCase();
+            return statusStr.includes("رفض") || statusStr.includes("cancel") || statusStr.includes("reject") || statusStr.includes("ملغي") || statusStr.includes("ملغى");
           });
 
           list.forEach(b => {
@@ -1634,56 +1640,12 @@
                   </div>
                   <div style="display:flex; gap: 10px; margin-top: 15px;">
                     <button class="property-edit-btn" style="width:auto; padding:0.5rem 1.25rem; font-size:0.8rem; background: var(--bg-tertiary); color:white; box-shadow:none;" onclick="app.cancelBookingRequest('${b.id}')">حذف السجل</button>
-                    <button class="property-edit-btn" style="width:auto; padding:0.5rem 1.25rem; font-size:0.8rem; background: var(--primary); color:var(--bg-deep);" onclick="app.navigateTo('search')">ابحث عن عقارات مشابهة</button>
+                    <button class="property-edit-btn" style="width:auto; padding:0.5rem 1.25rem; font-size:0.8rem; background: var(--primary); color:var(--bg-deep);" onclick="app.navigateTo('search')">البحث عن عقارات مشابهة</button>
                   </div>
                 </div>
               </div>
             `;
           });
-        }
-
-        // 4. تبويب: العقود النشطة (نموذج محاكاة تفاعلي وذكي لتجميل واجهة المنصة الكبرى)
-        else if (tab === 'active') {
-          html = `
-            <div class="timeline-item">
-              <div class="timeline-dot" style="background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan);"></div>
-              <div class="timeline-content">
-                <div class="timeline-title">🏠 شقة سكنية بمدينة نصر</div>
-                <div class="timeline-description">
-                  <strong>المالك:</strong> أ. أحمد محمد <br>
-                  <strong>باقي في العقد:</strong> 8 أشهر <br>
-                  <strong>قيمة الإيجار الشهري:</strong> 6500 جنيه مصري <br>
-                  <strong>تاريخ الدفع القادم:</strong> 5 يوليو <br>
-                </div>
-                <div style="display:flex; gap: 10px; margin-top: 15px; flex-wrap:wrap;">
-                  <button class="property-edit-btn" style="width:auto; padding:0.5rem 1.25rem; font-size:0.8rem; background: var(--bg-tertiary); color:white; box-shadow:none;" onclick="alert('تحميل ملف العقد الموثق...')">عرض العقد المبرم</button>
-                  <button class="property-edit-btn" style="width:auto; padding:0.5rem 1.25rem; font-size:0.8rem; background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); box-shadow:none;" onclick="app.navigateTo('support')">الإبلاغ عن مشكلة فنية</button>
-                </div>
-              </div>
-            </div>
-          `;
-        }
-
-        // 5. تبويب: السجل والأرشيف
-        else if (tab === 'history') {
-          html = `
-            <div class="timeline-item">
-              <div class="timeline-dot" style="background: var(--muted); box-shadow:none;"></div>
-              <div class="timeline-content">
-                <div class="timeline-time">أرشيف المعاملات القديمة لعام 2025</div>
-                <div class="timeline-title">🏠 استأجرت شقة مفروشة لعام كامل</div>
-                <div class="timeline-description" style="color: var(--muted);">تم إنهاء العقد واسترداد العربون والـ deposit بالكامل بضمان المنصة بدون أي نزاعات عقارية.</div>
-              </div>
-            </div>
-            <div class="timeline-item">
-              <div class="timeline-dot" style="background: var(--muted); box-shadow:none;"></div>
-              <div class="timeline-content">
-                <div class="timeline-time">عام 2024</div>
-                <div class="timeline-title">🏡 ألغيت طلب حجز لفيلا عقارية</div>
-                <div class="timeline-description" style="color: var(--muted);">قمت بإلغاء طلب الحجز قبل مراجعة المالك وتم تسوية الطلب.</div>
-              </div>
-            </div>
-          `;
         }
 
         renderer.innerHTML = html || `<p style="color: var(--muted); text-align:center; padding: 2rem;">لا توجد معاملات مسجلة في هذا التبويب حالياً.</p>`;
@@ -2024,6 +1986,7 @@
                   <div class="detail-item"><i class="fas fa-th-large"></i> <span>${p.area || 0} م²</span></div>
                 </div>
 
+                <!-- إحصائيات العقار الفردية المطلوبة -->
                 <div class="property-stats">
                   <div class="stat-box">
                     <div class="stat-number"><i class="fas fa-eye" style="color: var(--neon-cyan); font-size: 0.85rem;"></i> ${simulatedViews}</div>
@@ -2048,6 +2011,7 @@
         }
       }
 
+      // عرض كل الصور الإضافية المتوفرة للعقار عند تصفحه بإنشاء معرض تفاعلي (Interactive Image Gallery)
       async viewPropertyDetail(propertyId) {
         this.navigateTo('property-detail');
         const container = document.getElementById('property-detail-renderer');
@@ -2119,6 +2083,48 @@
         }
       }
 
+      // إرسال طلب حجز تعاقدي آمن
+      async initiateBooking(propId, propTitle, ownerId) {
+        if (!AppState.currentUserId) return;
+        if (AppState.currentUserId === ownerId) {
+          alert("⚠️ لا يمكنك حجز عقارك الشخصي!");
+          return;
+        }
+
+        const deposit = prompt("يرجى تحديد مبلغ العربون المقترح بالجنيه المصري (مثال: 1000):", "1000");
+        if (deposit === null || isNaN(deposit)) {
+          alert("طلب الحجز ملغي.");
+          return;
+        }
+
+        try {
+          await addDoc(collection(db, "bookings"), {
+            propertyId: propId,
+            propertyTitle: propTitle,
+            ownerId: ownerId,
+            tenantId: AppState.currentUserId,
+            tenantName: AppState.currentUser.name || "مستأجر معتمد",
+            tenantPhone: AppState.currentUser.phone || "-",
+            deposit: Number(deposit),
+            statusText: "جاري مراجعة طلبك من قبل المالك",
+            timestamp: new Date()
+          });
+
+          await addDoc(collection(db, "notifications"), {
+            userId: ownerId,
+            title: "📬 طلب حجز جديد!",
+            message: `تلقيت طلب حجز جديد لعقارك [ ${propTitle} ] بقيمة عربون مقترح ${deposit} ج.م.`,
+            read: false,
+            timestamp: new Date()
+          });
+
+          alert("✅ تم إرسال طلب الحجز بنجاح وإشعار المالك فورياً.");
+          this.navigateTo('bookings');
+        } catch (e) {
+          console.error("Booking error:", e);
+        }
+      }
+
       renderProfileDOM() {
         const user = AppState.currentUser;
         if (!user) return;
@@ -2156,8 +2162,6 @@
         document.getElementById('sec-phone-btn').style.display = user.phone_verified ? 'none' : 'block';
         document.getElementById('sec-email-check').innerHTML = user.email_verified ? '<i class="fas fa-check-circle" style="color:var(--success)"></i>' : '';
         document.getElementById('sec-email-btn').style.display = user.email_verified ? 'none' : 'block';
-
-        this.renderHomeChecklist();
       }
 
       async updateProfileData(e) {
@@ -2306,4 +2310,4 @@
     });
   </script>
 </body>
-</html>
+</html> 
