@@ -239,7 +239,7 @@
 
     .quick-actions {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 1.5rem;
       margin-bottom: 2.5rem;
     }
@@ -694,6 +694,7 @@
         <a href="add-property.html" class="sidebar-item"><i class="fas fa-plus-circle"></i> <span>إضافة عقار</span></a>
         <a href="my-properties.html" class="sidebar-item"><i class="fas fa-building"></i> <span>عقاراتي</span></a>
         <a href="#" class="sidebar-item" data-section="messages"><i class="fas fa-envelope"></i> <span>الرسائل</span></a>
+        <a href="#" class="sidebar-item" data-section="messages"><i class="fas fa-users"></i> <span>الغرف والمحادثات العامة</span></a>
         <a href="profile.html" class="sidebar-item"><i class="fas fa-user-circle"></i> <span>الملف الشخصي</span></a>
         <a href="#" class="sidebar-item" data-section="support"><i class="fas fa-headset"></i> <span>الدعم الفني</span></a>
         <div class="sidebar-divider"></div>
@@ -735,6 +736,7 @@
           <div class="quick-actions">
             <div class="action-card" onclick="window.location.href='add-property.html'"><div class="action-icon">➕</div><h3 class="action-title">أضف عقارك</h3><p class="action-description">قم بإدراج وحدة جديدة</p></div>
             <div class="action-card" onclick="app.showMainSearchDirect()"><div class="action-icon">🔍</div><h3 class="action-title">ابحث عن شقة</h3><p class="action-description">تصفح الخيارات المتاحة</p></div>
+            <div class="action-card" onclick="app.navigateTo('messages')"><div class="action-icon">💬</div><h3 class="action-title">الغرف والمحادثات</h3><p class="action-description">المحادثات العامة والخاصة</p></div>
             <div class="action-card" onclick="window.location.href='profile.html'"><div class="action-icon">👤</div><h3 class="action-title">حسابي التوثيقي</h3><p class="action-description">إدارة بيانات التوثيق والأمان</p></div>
           </div>
 
@@ -911,8 +913,16 @@
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        // تحديث حالة القائمة الجانبية لتتناسب مع التبويب النشط فعلياً
+        this.sidebarItems.forEach(i => {
+          if(i.getAttribute('data-section') === sectionId) {
+            i.classList.add('active');
+          } else {
+            i.classList.remove('active');
+          }
+        });
+
         if (sectionId === 'search') {
-          this.resetSearchStep();
           this.fetchApprovedProperties();
         }
 
@@ -1142,9 +1152,9 @@
       }
 
       showMainSearchDirect() {
+        this.navigateTo('search'); // نقل المستخدم إلى تبويب البحث وتفعيل ستايل التبويب النشط
         document.getElementById('search-initial-step').style.display = 'none';
         document.getElementById('search-main-flow').style.display = 'block';
-        this.fetchApprovedProperties();
       }
 
       resetSearchStep() {
