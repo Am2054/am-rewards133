@@ -43,7 +43,6 @@
       opacity: 0.15; pointer-events: none;
     }
 
-    /* ✅ الـ Navbar المحسّنة */
     .navbar {
       background: rgba(2, 6, 23, 0.95);
       border-bottom: 1px solid var(--border);
@@ -122,7 +121,6 @@
       box-shadow: 0 0 20px rgba(255, 0, 85, 0.3);
     }
 
-    /* ✅ المحتوى الرئيسي */
     .dashboard-content {
       max-width: 1400px;
       margin: 0 auto;
@@ -146,7 +144,6 @@
       font-size: 0.95rem;
     }
 
-    /* ✅ الإحصائيات العقارية */
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -208,7 +205,6 @@
       opacity: 0.8;
     }
 
-    /* ✅ الأقسام */
     .admin-section {
       margin-bottom: 50px;
     }
@@ -232,7 +228,6 @@
       background: linear-gradient(90deg, var(--border), transparent);
     }
 
-    /* ✅ شبكة الإجراءات */
     .action-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -304,7 +299,6 @@
       display: none !important;
     }
 
-    /* ✅ Auth Overlay */
     #auth-overlay {
       position: fixed;
       inset: 0;
@@ -395,25 +389,20 @@
       min-height: 20px;
     }
 
-    /* ✅ Responsive */
     @media (max-width: 768px) {
       .navbar {
         flex-direction: column;
         gap: 15px;
       }
-
       .header-title {
         font-size: 1.5rem;
       }
-
       .stats-grid {
         grid-template-columns: 1fr;
       }
-
       .action-grid {
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       }
-
       .stat-number {
         font-size: 1.5rem;
       }
@@ -422,7 +411,6 @@
 </head>
 <body>
 
-<!-- ✅ Auth Overlay المحسّن -->
 <div id="auth-overlay">
   <div class="auth-card">
     <h2>🔐 تحقق الهوية</h2>
@@ -437,7 +425,6 @@
   </div>
 </div>
 
-<!-- ✅ لوحة التحكم الرئيسية -->
 <div id="main-panel" class="hidden">
   <nav class="navbar">
     <div class="navbar-left">
@@ -468,7 +455,7 @@
       <div class="stat-card">
         <span class="stat-label">🏠 إجمالي العقارات</span>
         <span class="stat-number" id="stat-points">---</span>
-        <span class="stat-subtext" id="stat-egp">الوحدات المسجلة بالمنصة</span>
+        <span class="stat-subtext">الوحدات المسجلة بالمنصة</span>
       </div>
       <div class="stat-card">
         <span class="stat-label">⏳ العقارات قيد الانتظار</span>
@@ -576,9 +563,12 @@
     });
   }
 
+  // ✅ 4) تعديل استدعاء الجلسة لإرفاق الكوكيز تلقائياً عبر الخادم
   async function verifyServerSession() {
     try {
-      const res = await fetch("/api/admin-auth");
+      const res = await fetch("/api/admin-auth", {
+        credentials: "include"
+      });
       const data = await res.json();
       isSessionValid = (res.ok && data.valid === true);
       return isSessionValid;
@@ -588,19 +578,15 @@
     }
   }
 
-  // ✅ تم التعديل بدمج منطق توثيق التوكن (IdToken) وإسناد البيانات حياً بدقة
+  // ✅ 3) تعديل دالة الإحصائيات لحذف التوكن اليدوي والاعتماد على الكوكيز التلقائية
   async function loadAdminStats() {
     if (!isSessionValid) return;
     try {
       const user = auth.currentUser;
       if (!user) return;
 
-      const token = await user.getIdToken();
-
       const res = await fetch("/api/admin-stats", {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        credentials: "include"
       });
 
       if (!res.ok) throw new Error("Unauthorized");
@@ -624,6 +610,7 @@
     }
   }
 
+  // ✅ 5) تعديل زر تفويض الدخول لإرسال البيانات بالتوثيق المطلوب والملفات المؤقتة
   document.getElementById('unlock-btn').onclick = async () => {
     const emailInput = document.getElementById('email').value.trim();
     const passInput = document.getElementById('pass').value.trim();
@@ -641,7 +628,10 @@
     try {
       const res = await fetch("/api/admin-auth", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
           action: "login",
           email: emailInput,
@@ -700,6 +690,7 @@
         clearInterval(refreshInterval);
         await fetch("/api/admin-auth", {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "logout" })
         });
