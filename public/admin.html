@@ -588,11 +588,23 @@
     }
   }
 
+  // ✅ تم التعديل بدمج منطق توثيق التوكن (IdToken) وإسناد البيانات حياً بدقة
   async function loadAdminStats() {
     if (!isSessionValid) return;
     try {
-      const res = await fetch("/api/admin-stats");
-      if (!res.ok) throw new Error("API Unauthorized");
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const token = await user.getIdToken();
+
+      const res = await fetch("/api/admin-stats", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!res.ok) throw new Error("Unauthorized");
+
       const data = await res.json();
 
       document.getElementById('stat-users').textContent = data.totalUsers.toLocaleString();
