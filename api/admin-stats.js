@@ -1,6 +1,9 @@
+// /api/admin-stats.js - إحصائيات لوحة تحكم الإدارة العقارية حياً (نسخة مصلحة ومقاومة للأخطاء)
 import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import jwt from "jsonwebtoken";
+import { parse } from "cookie";
 
 if (!getApps().length) {
   initializeApp({
@@ -9,54 +12,44 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
-const adminAuth = getAuth();
+const auth = getAuth();
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+
+// ✅ التحقق من الجلسة الأمنية للأدمن
+function verifyAdminSession(req) {
+  try {
+    const cookies = parse(req.headers.cookie || "");
+    const token = cookies.adminToken;
+
+    if (!token) return false;
+
+    jwt.verify(token, JWT_SECRET);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "GET") return res.status(405).json({ error: "Method Not Allowed" });
 
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method Not Allowed" });
+  // ✅ التحقق من الجلسة
+  if (!verifyAdminSession(req)) {
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   try {
+    // 1. حساب إجمالي عدد المستخدمين
+    const usersSnap = await db.collection("users").get();
+    const totalUsers = usersSnap.size;
 
-    // ==========================
-    // التحقق من Firebase ID Token
-    // ==========================
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader?.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "Missing Token" });
-    }
-
-    const idToken = authHeader.split("Bearer ")[1];
-
-    const decoded = await adminAuth.verifyIdToken(idToken);
-
-    // اسمح فقط للأدمن
-    if (decoded.email !== process.env.ADMIN_EMAIL) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
-
-    // ==========================
-    // Users
-    // ==========================
-
-    const usersCountSnap = await db.collection("users").count().get();
-    const totalUsers = usersCountSnap.data().count;
-
-    // ==========================
-    // Properties
-    // ==========================
-
+    // 2. حساب إحصائيات العقارات الكلية وحالاتها حياً
     const propertiesSnap = await db.collection("properties").get();
-
     const totalProperties = propertiesSnap.size;
 
     let pendingProperties = 0;
@@ -65,65 +58,43 @@ export default async function handler(req, res) {
 
     propertiesSnap.forEach(doc => {
       const data = doc.data();
-
-      switch (data.status) {
-        case "pending":
-          pendingProperties++;
-          break;
-
-        case "approved":
-          approvedProperties++;
-          break;
-
-        case "rejected":
-          rejectedProperties++;
-          break;
-      }
+      if (data.status === "pending") pendingProperties++;
+      else if (data.status === "approved") approvedProperties++;
+      else if (data.status === "rejected") rejectedProperties++;
     });
 
-    // ==========================
-    // Active Rooms
-    // ==========================
-
+    // 3. حساب غرف التفاوض النشطة (المحادثات الفريدة بين الملاك والمستأجرين)
     const messagesSnap = await db.collection("messages").get();
-
-    const rooms = new Set();
-
+    const uniqueRooms = new Set();
     messagesSnap.forEach(doc => {
-      const d = doc.data();
-
-      if (d.propertyId && d.senderId) {
-        rooms.add(`${d.propertyId}_${d.senderId}`);
+      const data = doc.data();
+      if (data.propertyId && data.senderId) {
+        uniqueRooms.add(`${data.propertyId}_${data.senderId}`);
       }
     });
+    const activeRooms = uniqueRooms.size;
 
-    const activeRooms = rooms.size;
-
-    // ==========================
-    // Deals
-    // ==========================
-
-    const completedDealsSnap = await db.collection("bookings")
+    // 4. حساب الصفقات المكتملة الإجمالية (الحجوزات المقبولة)
+    const bookingsSnap = await db.collection("bookings")
       .where("status", "==", "approved")
-      .count()
       .get();
+    const completedDeals = bookingsSnap.size;
 
-    const completedDeals = completedDealsSnap.data().count;
-
-    // ==========================
-    // Today's Deals
-    // ==========================
-
+    // 5. حساب صفقات اليوم المكتملة بدون تطلب كشاف مركب (Composite Index)
     const today = new Date();
-
     today.setUTCHours(0, 0, 0, 0);
 
-    const todaySnap = await db.collection("bookings")
-      .where("status", "==", "approved")
-      .where("timestamp", ">=", Timestamp.fromDate(today))
+    // تصفية حية وآمنة عبر جلب حجوزات اليوم أولاً ثم فرز المقبول منها برمجياً
+    const todayBookingsSnap = await db.collection("bookings")
+      .where("timestamp", ">=", today)
       .get();
-
-    const todayDeals = todaySnap.size;
+    
+    let todayDeals = 0;
+    todayBookingsSnap.forEach(doc => {
+      if (doc.data().status === "approved") {
+        todayDeals++;
+      }
+    });
 
     return res.status(200).json({
       totalUsers,
@@ -137,13 +108,8 @@ export default async function handler(req, res) {
       timestamp: new Date().toISOString()
     });
 
-  } catch (err) {
-
-    console.error(err);
-
-    return res.status(401).json({
-      error: "Unauthorized"
-    });
-
+  } catch (error) {
+    console.error("Error fetching admin stats:", error);
+    return res.status(500).json({ error: "Failed to fetch stats" });
   }
 }
