@@ -1,0 +1,567 @@
+<!-- profile.html - إدارة الملف الشخصي والتوثيق والنشاط العقاري حياً -->
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AM. Profile - إدارة الحساب والتوثيق</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --neon-cyan: #00f2ff; 
+      --neon-purple: #7000ff; 
+      --bg-deep: #020617;
+      --glass-bg: rgba(15, 23, 42, 0.75); 
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --text-main: #f1f5f9; 
+      --muted: #94a3b8;
+      --success: #22c55e; 
+      --danger: #f87171; 
+      --warning: #f59e0b;
+      --radius: 20px;
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Cairo', sans-serif;
+      background-color: var(--bg-deep);
+      color: var(--text-main);
+      overflow-x: hidden;
+      min-height: 100vh;
+      background-image: 
+        radial-gradient(circle at 0% 0%, rgba(112, 0, 255, 0.15) 0%, transparent 35%),
+        radial-gradient(circle at 100% 100%, rgba(0, 242, 255, 0.15) 0%, transparent 35%);
+    }
+
+    body::after {
+      content: ""; position: fixed; inset: 0; z-index: -1;
+      background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
+      opacity: 0.15; pointer-events: none;
+    }
+
+    .app-container { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+
+    /* ============================================
+       SIDEBAR STYLE
+       ============================================ */
+    .sidebar {
+      background: rgba(15, 23, 42, 0.85);
+      border-left: 1px solid var(--glass-border);
+      display: flex;
+      flex-direction: column;
+      padding: 2rem 1.25rem;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+    }
+
+    .sidebar-title { font-size: 2rem; font-weight: 900; text-align: center; margin-bottom: 2.5rem; text-shadow: 0 0 15px rgba(0, 242, 255, 0.35); color: #fff; }
+    .sidebar-menu { display: flex; flex-direction: column; gap: 0.4rem; flex: 1; }
+    .sidebar-item { display: flex; align-items: center; gap: 1rem; padding: 0.9rem 1.25rem; color: var(--muted); text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 0.95rem; }
+    .sidebar-item i { font-size: 1.2rem; width: 24px; text-align: center; }
+    .sidebar-item:hover, .sidebar-item.active { color: var(--neon-cyan); background: rgba(0, 242, 255, 0.08); text-shadow: 0 0 10px rgba(0, 242, 255, 0.3); }
+    .sidebar-divider { height: 1px; background: var(--glass-border); margin: 1.5rem 0; }
+    .sidebar-logout:hover { color: var(--danger); background: rgba(248, 113, 113, 0.08); }
+
+    .main { padding: 2.5rem; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--glass-border); }
+
+    .user-profile-widget { display: flex; align-items: center; gap: 1rem; }
+    .user-avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--neon-purple), var(--neon-cyan));
+      color: #fff; display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 1.15rem; box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
+      background-size: cover; background-position: center; border: 2px solid var(--glass-border);
+    }
+    .user-name { font-weight: 900; font-size: 0.95rem; color: #fff; }
+    .user-role { font-size: 0.75rem; color: var(--muted); font-weight: 600; }
+
+    .section-title { font-size: 1.6rem; font-weight: 900; margin-bottom: 1.75rem; display: flex; align-items: center; gap: 0.75rem; color: #fff; }
+    .section-title i { color: var(--neon-cyan); }
+
+    /* ============================================
+       PROFILE SPECIFIC GRID LAYOUT
+       ============================================ */
+    .completion-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 2rem; margin-bottom: 2rem; position: relative; }
+    .completion-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan)); border-radius: var(--radius) var(--radius) 0 0; }
+    
+    .profile-grid-layout { display: grid; grid-template-columns: 2fr 1.1fr; gap: 2rem; }
+    .profile-card-header { display: flex; align-items: center; gap: 1.5rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 1.5rem; margin-bottom: 1.5rem; }
+    
+    .info-display-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; }
+    .info-display-item { background: rgba(0,0,0,0.25); padding: 1.1rem; border-radius: 12px; border: 1px solid var(--glass-border); }
+    .info-display-label { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.35rem; font-weight: 700; }
+    .info-display-value { font-weight: 700; font-size: 0.95rem; color: #fff; }
+    
+    .badge-status-container { display: flex; flex-direction: column; gap: 1rem; }
+    .verification-badge-item { display: flex; align-items: center; justify-content: space-between; padding: 1rem; border-radius: 12px; font-size: 0.9rem; font-weight: 700; }
+    .verification-badge-item.verified { background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); color: var(--success); }
+    .verification-badge-item.unverified { background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); color: var(--warning); }
+    
+    .security-action-row { display: flex; align-items: center; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid var(--glass-border); }
+    .security-action-row:last-child { border-bottom: none; }
+    
+    .stats-dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; }
+    .stat-dashboard-card { background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border); padding: 1.25rem 1rem; border-radius: 12px; text-align: center; }
+    .stats-dashboard-val { font-size: 1.85rem; font-weight: 900; color: var(--neon-cyan); margin-bottom: 0.25rem; }
+    .stat-dashboard-lbl { font-size: 0.8rem; color: var(--muted); font-weight: 700; }
+
+    .property-edit-btn {
+      width: 100%; background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan)); color: #fff;
+      border: none; padding: 0.8rem; border-radius: 10px; font-weight: 900; cursor: pointer;
+      font-family: 'Cairo', sans-serif; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(112, 0, 255, 0.25);
+    }
+    .property-edit-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(112, 0, 255, 0.4); }
+
+    .clean-upload-btn { background: transparent; border: 1px dashed var(--neon-cyan); color: var(--neon-cyan); padding: 0.65rem 1.25rem; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; }
+    .clean-upload-btn:hover { background: rgba(0, 242, 255, 0.08); border-style: solid; }
+
+    .form-group-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem; }
+    .form-group-row input { width: 100%; background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border); color: #fff; padding: 12px 16px; border-radius: 10px; font-family: 'Cairo', sans-serif; font-weight: 600; outline: none; margin-top: 6px; }
+    .form-group-row input:focus { border-color: var(--neon-cyan); box-shadow: 0 0 12px rgba(0, 242, 255, 0.15); }
+
+    .timeline { position: relative; padding: 1rem 0; }
+    .timeline::before { content: ''; position: absolute; right: 16px; top: 0; bottom: 0; width: 2px; background: var(--glass-border); }
+    .timeline-item { position: relative; margin-bottom: 2rem; padding-right: 45px; }
+    .timeline-dot { position: absolute; right: 10px; top: 5px; width: 14px; height: 14px; border-radius: 50%; background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); }
+    .timeline-content { background: var(--glass-bg); border: 1px solid var(--glass-border); padding: 1.5rem; border-radius: 12px; }
+    .timeline-title { font-weight: 900; font-size: 1.05rem; margin-bottom: 0.4rem; color: #fff; }
+    .timeline-description { font-size: 0.85rem; color: var(--muted); font-weight: 600; line-height: 1.6; }
+
+    @media (max-width: 1024px) {
+      .app-container { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .profile-grid-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <aside class="sidebar">
+      <div class="sidebar-title">AM<span style="color:var(--neon-cyan)">.</span></div>
+      <nav class="sidebar-menu">
+        <a href="dashboard.html" class="sidebar-item"><i class="fas fa-home"></i> <span>الرئيسية</span></a>
+        <a href="dashboard.html" class="sidebar-item"><i class="fas fa-search"></i> <span>البحث العقاري المتقدم</span></a>
+        <a href="add-property.html" class="sidebar-item"><i class="fas fa-plus-circle"></i> <span>إضافة عقار</span></a>
+        <a href="my-properties.html" class="sidebar-item"><i class="fas fa-building"></i> <span>عقاراتي</span></a>
+        <a href="dashboard.html" class="sidebar-item"><i class="fas fa-envelope"></i> <span>الرسائل</span></a>
+        <a href="#" class="sidebar-item active"><i class="fas fa-user-circle"></i> <span>الملف الشخصي</span></a>
+        <div class="sidebar-divider"></div>
+        <a href="#" class="sidebar-item sidebar-logout" onclick="app.handleLogout()"><i class="fas fa-sign-out-alt"></i> <span>تسجيل الخروج</span></a>
+      </nav>
+    </aside>
+
+    <div style="display: flex; flex-direction: column; min-width: 0;">
+      
+      <header class="main" style="padding-bottom: 0;">
+        <div class="top-bar">
+          <div class="user-profile-widget">
+            <div class="user-avatar" id="global-user-avatar">..</div>
+            <div class="user-info">
+              <span class="user-name" id="global-user-name">جاري التحميل...</span>
+              <span class="user-role">مالك ومستأجر</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="main" style="padding-top: 0;">
+        
+        <h2 class="section-title"><i class="fas fa-user-circle"></i> إدارة بيانات وعناصر الملف الشخصي</h2>
+        
+        <div class="profile-grid-layout">
+          
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <div class="completion-card" id="profile-view-mode">
+              <div class="profile-card-header">
+                <div>
+                  <h2 id="view-name" style="font-size: 1.4rem; font-weight: 700;">جاري التحميل...</h2>
+                  <p id="view-display-name-top" style="color: var(--muted); font-size: 0.9rem;">@...</p>
+                </div>
+              </div>
+              
+              <div class="info-display-list">
+                <div class="info-display-item">
+                  <div class="info-display-label">الاسم الكامل</div>
+                  <div class="info-display-value" id="view-full-name">-</div>
+                </div>
+                <div class="info-display-item">
+                  <div class="info-display-label">الاسم المعروض</div>
+                  <div class="info-display-value" id="view-display-name">-</div>
+                </div>
+                <div class="info-display-item">
+                  <div class="info-display-label">رقم الهاتف</div>
+                  <div class="info-display-value" id="view-phone">-</div>
+                </div>
+                <div class="info-display-item">
+                  <div class="info-display-label">البريد الإلكتروني</div>
+                  <div class="info-display-value" id="view-email">-</div>
+                </div>
+                <div class="info-display-item" style="grid-column: span 2;">
+                  <div class="info-display-label">تاريخ الانضمام</div>
+                  <div class="info-display-value" id="view-joined-at">-</div>
+                </div>
+              </div>
+              
+              <button class="property-edit-btn" style="margin-top: 1.5rem; width: max-content; padding: 0.75rem 2rem;" onclick="app.toggleProfileEditMode(true)">
+                <i class="fas fa-edit"></i> تعديل البيانات الشخصية
+              </button>
+            </div>
+
+            <div class="completion-card" id="profile-edit-mode" style="display: none;">
+              <h3 style="margin-bottom: 1.5rem;"><i class="fas fa-user-edit" style="color: var(--neon-cyan);"></i> تعديل البيانات الشخصية</h3>
+              <form id="firebase-profile-form" onsubmit="app.updateProfileData(event)">
+                <div class="form-group-row">
+                  <div>
+                    <label style="font-size: 0.85rem; color: var(--muted);">الاسم الكامل</label>
+                    <input type="text" id="input-name" required>
+                  </div>
+                  <div>
+                    <label style="font-size: 0.85rem; color: var(--muted);">الاسم المعروض</label>
+                    <input type="text" id="input-display-name" required>
+                  </div>
+                </div>
+                <div class="form-group-row">
+                  <div>
+                    <label style="font-size: 0.85rem; color: var(--muted);">رقم الهاتف</label>
+                    <input type="text" id="input-phone" required>
+                  </div>
+                  <div>
+                    <label style="font-size: 0.85rem; color: var(--muted);">البريد الإلكتروني</label>
+                    <input type="email" id="input-email" required>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                  <button type="submit" class="property-edit-btn" style="width: max-content; padding: 0.75rem 2rem;">حفظ التغييرات</button>
+                  <button type="button" class="property-edit-btn" style="width: max-content; padding: 0.75rem 2rem; background: rgba(255,255,255,0.05); color: white;" onclick="app.toggleProfileEditMode(false)">إلغاء</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="completion-card">
+              <h3 style="margin-bottom: 1.25rem;"><i class="fas fa-map-marker-alt" style="color: var(--neon-cyan);"></i> الموقع والمنطقة الجغرافية</h3>
+              <form onsubmit="app.updateLocationData(event)">
+                <div class="form-group-row">
+                  <div>
+                    <label style="font-size: 0.85rem; color: var(--muted);">المحافظة</label>
+                    <input type="text" id="input-governorate" placeholder="مثال: القاهرة" required>
+                  </div>
+                  <div>
+                    <label style="font-size: 0.85rem; color: var(--muted);">المدينة / المنطقة</label>
+                    <input type="text" id="input-city" placeholder="مثال: المعادي" required>
+                  </div>
+                </div>
+                <button type="submit" class="property-edit-btn" style="width: max-content; padding: 0.65rem 1.5rem;">تحديث الموقع</button>
+              </form>
+            </div>
+
+            <div class="completion-card">
+              <h3 style="margin-bottom: 1.25rem;"><i class="fas fa-id-card" style="color: var(--neon-cyan);"></i> وثيقة تحقيق الشخصية الرسمية (اختياري)</h3>
+              <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <p style="font-size: 0.85rem; color: var(--muted);">يمكنك رفع صورة واضحة لبطاقة الرقم القومي لزيادة مستوى موثوقية حسابك داخل المنصة.</p>
+                <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 10px; border: 1px solid var(--glass-border);">
+                  <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <i class="fas fa-cloud-upload-alt" style="font-size: 1.5rem; color: var(--neon-cyan);"></i>
+                    <div>
+                      <div style="font-size: 0.9rem; font-weight: 600;">صورة البطاقة الشخصية</div>
+                      <div style="font-size: 0.75rem; color: var(--muted);" id="id-card-status-text">لم يتم رفع أي ملف</div>
+                    </div>
+                  </div>
+                  <label class="clean-upload-btn" for="id-card-image-input">
+                    <i class="fas fa-file-upload"></i> اختر ملف الصورة
+                  </label>
+                  <input type="file" id="id-card-image-input" accept="image/*" style="display:none;" onchange="app.handleIdCardUpload(event)">
+                </div>
+              </div>
+            </div>
+
+            <div class="completion-card">
+              <h3 style="margin-bottom: 1.25rem;"><i class="fas fa-shield-alt" style="color: var(--neon-cyan);"></i> إعدادات الأمان والتحقق</h3>
+              <div class="security-action-row">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600;">توثيق رقم الهاتف <span id="sec-phone-check"></span></div>
+                  <div style="font-size: 0.8rem; color: var(--muted);">ربط وتأكيد حسابك عبر الهاتف الموثق</div>
+                </div>
+                <button class="property-edit-btn" id="sec-phone-btn" style="width: auto; padding: 0.5rem 1.25rem;" onclick="app.verifyField('phone')">توثيق الهاتف</button>
+              </div>
+              <div class="security-action-row">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600;">توثيق البريد الإلكتروني <span id="sec-email-check"></span></div>
+                  <div style="font-size: 0.8rem; color: var(--muted);">إرسال رابط تأكيد وتفعيل البريد</div>
+                </div>
+                <button class="property-edit-btn" id="sec-email-btn" style="width: auto; padding: 0.5rem 1.25rem;" onclick="app.verifyField('email')">توثيق البريد</button>
+              </div>
+            </div>
+
+            <div class="completion-card">
+              <h2 class="section-title" style="margin-bottom: 1rem;"><i class="fas fa-star"></i> تقييمات النزلاء وآراء العملاء</h2>
+              <div id="reviews-renderer" class="timeline"></div>
+            </div>
+
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <div class="completion-card">
+              <h3 style="margin-bottom: 1.25rem;"><i class="fas fa-user-check" style="color: var(--neon-cyan);"></i> حالة التوثيق المعتمدة</h3>
+              <div class="badge-status-container">
+                <div class="verification-badge-item" id="badge-phone"><span>الهاتف المحمول</span> <span class="status-lbl"></span></div>
+                <div class="verification-badge-item" id="badge-email"><span>البريد الإلكتروني</span> <span class="status-lbl"></span></div>
+                <div class="verification-badge-item" id="badge-id-card"><span>البطاقة الشخصية</span> <span class="status-lbl"></span></div>
+              </div>
+            </div>
+
+            <div class="completion-card">
+              <h3 style="margin-bottom: 1.25rem;"><i class="fas fa-chart-pie" style="color: var(--neon-cyan);"></i> إحصائيات الأداء ومعدلات النشاط</h3>
+              <div class="stats-dashboard-grid">
+                <div class="stat-dashboard-card"><div class="stats-dashboard-val" id="stat-properties">0</div><div class="stat-dashboard-lbl">عدد العقارات</div></div>
+                <div class="stat-dashboard-card"><div class="stats-dashboard-val" id="stat-messages" style="color: var(--neon-cyan);">0</div><div class="stat-dashboard-lbl">رسائل ومحادثات</div></div>
+                <div class="stat-dashboard-card"><div class="stats-dashboard-val" id="stat-reviews" style="color: var(--neon-cyan);">0</div><div class="stat-dashboard-lbl">إجمالي التقييمات</div></div>
+                <div class="stat-dashboard-card"><div class="stats-dashboard-val" id="stat-response-rate" style="color: var(--success);">95%</div><div class="stat-dashboard-lbl">معدل الرد</div></div>
+                <div class="stat-dashboard-card" style="grid-column: span 2;"><div class="stats-dashboard-val" id="stat-last-activity" style="font-size: 0.95rem; line-height: 1.8; color: var(--neon-cyan);">الآن</div><div class="stat-dashboard-lbl">آخر نشاط</div></div>
+                <div class="stat-dashboard-card" style="grid-column: span 2; display: flex; justify-content: space-around; align-items: center; padding: 1.25rem 0.5rem;">
+                  <div>
+                    <div class="stats-dashboard-val" id="stat-rating-avg" style="color: #f59e0b;">5.0</div>
+                    <div class="stat-dashboard-lbl">تقييم المالك</div>
+                  </div>
+                  <div style="color: #f59e0b; font-size: 1.3rem;"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="completion-card" style="border: 1px solid rgba(239, 68, 68, 0.2);">
+              <h3 style="margin-bottom: 1.25rem; color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> خيارات الحساب الحساسة</h3>
+              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <button class="property-edit-btn" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger);" onclick="app.handleLogout()"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</button>
+                <button class="property-edit-btn" style="background: var(--danger); color: white;" onclick="app.handleDeleteAccount()"><i class="fas fa-trash-alt"></i> حذف الحساب نهائياً</button>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, onSnapshot, updateDoc, deleteDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
+      projectId: "am--rewards",
+      storageBucket: "am--rewards.firebasestorage.app",
+      messagingSenderId: "744783579735",
+      appId: "1:744783579735:web:45e00de9998893bbc9b112",
+      measurementId: "G-CV3GLT2TTJ"
+    };
+
+    const firebaseApp = initializeApp(firebaseConfig);
+    const db = getFirestore(firebaseApp);
+    const auth = getAuth(firebaseApp);
+    const storage = getStorage(firebaseApp);
+
+    const AppState = { currentUser: null, currentUserId: null };
+
+    class AM_Profile_App {
+      constructor() {
+        this.unsubscribeUser = null;
+        this.initAuthAndSnapshotListener();
+      }
+
+      initAuthAndSnapshotListener() {
+        onAuthStateChanged(auth, (user) => {
+          if (!user) { this.redirectToLogin(); return; }
+          AppState.currentUserId = user.uid;
+          
+          if (this.unsubscribeUser) this.unsubscribeUser();
+
+          this.unsubscribeUser = onSnapshot(doc(db, "users", user.uid), (snapshot) => {
+            if (!snapshot.exists()) { this.redirectToLogin(); return; }
+            AppState.currentUser = snapshot.data();
+            this.renderProfileDOM();
+            this.initStatsAndReviews();
+          });
+        });
+      }
+
+      redirectToLogin() { window.location.href = "login.html"; }
+
+      toggleProfileEditMode(edit) {
+        document.getElementById('profile-view-mode').style.display = edit ? 'none' : 'block';
+        document.getElementById('profile-edit-mode').style.display = edit ? 'block' : 'none';
+      }
+
+      renderProfileDOM() {
+        const user = AppState.currentUser;
+        if (!user) return;
+
+        document.getElementById('global-user-name').textContent = user.name || "بدون اسم";
+        const avatarEl = document.getElementById('global-user-avatar');
+        if (user.profile_image) {
+          avatarEl.style.backgroundImage = `url(${user.profile_image})`; avatarEl.textContent = '';
+        } else {
+          avatarEl.style.backgroundImage = 'none'; avatarEl.textContent = (user.name || 'U').charAt(0);
+        }
+
+        document.getElementById('view-name').textContent = user.name || "-";
+        document.getElementById('view-display-name-top').textContent = `@${user.display_name || ''}`;
+        document.getElementById('view-full-name').textContent = user.name || "-";
+        document.getElementById('view-display-name').textContent = user.display_name || "-";
+        document.getElementById('view-phone').textContent = user.phone || "-";
+        document.getElementById('view-email').textContent = user.email || "-";
+        document.getElementById('view-joined-at').textContent = user.joined_at || "-";
+
+        document.getElementById('input-name').value = user.name || "";
+        document.getElementById('input-display-name').value = user.display_name || "";
+        document.getElementById('input-phone').value = user.phone || "";
+        document.getElementById('input-email').value = user.email || "";
+        document.getElementById('input-governorate').value = user.governorate || "";
+        document.getElementById('input-city').value = user.city || "";
+
+        document.getElementById('sec-phone-check').innerHTML = user.phone_verified ? '<i class="fas fa-check-circle" style="color:var(--success)"></i>' : '';
+        document.getElementById('sec-phone-btn').style.display = user.phone_verified ? 'none' : 'block';
+        document.getElementById('sec-email-check').innerHTML = user.email_verified ? '<i class="fas fa-check-circle" style="color:var(--success)"></i>' : '';
+        document.getElementById('sec-email-btn').style.display = user.email_verified ? 'none' : 'block';
+
+        this.updateBadgeStyle('badge-phone', user.phone_verified, "موثق", "غير موثق");
+        this.updateBadgeStyle('badge-email', user.email_verified, "موثق", "غير موثق");
+        this.updateBadgeStyle('badge-id-card', user.id_card_uploaded, "مرفوعة", "لم ترفع");
+        if(user.id_card_uploaded) {
+          document.getElementById('id-card-status-text').textContent = "تم رفع وثيقة الهوية الرسمية بنجاح";
+        }
+      }
+
+      updateBadgeStyle(id, condition, textTrue, textFalse) {
+        const el = document.getElementById(id);
+        if(!el) return;
+        el.className = `verification-badge-item ${condition ? 'verified' : 'unverified'}`;
+        el.querySelector('.status-lbl').textContent = condition ? textTrue : textFalse;
+      }
+
+      async updateProfileData(e) {
+        e.preventDefault();
+        try {
+          await updateDoc(doc(db, "users", AppState.currentUserId), {
+            name: document.getElementById('input-name').value,
+            display_name: document.getElementById('input-display-name').value,
+            phone: document.getElementById('input-phone').value,
+            email: document.getElementById('input-email').value,
+            updated_at: new Date().toISOString()
+          });
+          this.toggleProfileEditMode(false);
+        } catch (err) { console.error(err); }
+      }
+
+      async updateLocationData(e) {
+        e.preventDefault();
+        try {
+          await updateDoc(doc(db, "users", AppState.currentUserId), {
+            governorate: document.getElementById('input-governorate').value,
+            city: document.getElementById('input-city').value,
+            updated_at: new Date().toISOString()
+          });
+          alert("تم تحديث المنطقة الجغرافية بنجاح.");
+        } catch (err) { console.error(err); }
+      }
+
+      async handleIdCardUpload(e) {
+        const file = e.target.files[0];
+        if (!file || !AppState.currentUserId) return;
+        try {
+          const storageRef = ref(storage, `users/${AppState.currentUserId}/id_card_${file.name}`);
+          const snapshot = await uploadBytes(storageRef, file);
+          const downloadURL = await getDownloadURL(snapshot.ref);
+
+          await updateDoc(doc(db, "users", AppState.currentUserId), {
+            id_card_uploaded: true,
+            id_card_url: downloadURL,
+            updated_at: new Date().toISOString()
+          });
+          alert("تم رفع صورة البطاقة بنجاح.");
+        } catch (err) { console.error(err); }
+      }
+
+      async verifyField(type) {
+        const payload = {};
+        if(type === 'phone') payload.phone_verified = true;
+        if(type === 'email') payload.email_verified = true;
+        try { await updateDoc(doc(db, "users", AppState.currentUserId), payload); } catch (err) { console.error(err); }
+      }
+
+      async initStatsAndReviews() {
+        if (!AppState.currentUserId) return;
+        try {
+          const propSnap = await getDocs(query(collection(db, "properties"), where("ownerId", "==", AppState.currentUserId)));
+          document.getElementById('stat-properties').textContent = propSnap.size;
+
+          const msgSnap = await getDocs(query(collection(db, "messages"), where("receiverId", "==", AppState.currentUserId)));
+          document.getElementById('stat-messages').textContent = msgSnap.size;
+
+          const reviewSnap = await getDocs(query(collection(db, "reviews"), where("ownerId", "==", AppState.currentUserId)));
+          document.getElementById('stat-reviews').textContent = reviewSnap.size;
+
+          let totalStars = 0, reviewsHtml = "";
+          reviewSnap.forEach((docSnap) => {
+            const data = docSnap.data(); totalStars += Number(data.stars || 5);
+            reviewsHtml += `
+              <div class="timeline-item">
+                <div class="timeline-dot" style="background:#f59e0b; box-shadow: 0 0 10px #f59e0b;"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">${data.reviewerName || 'مستأجر موثق'} <span style="color:#f59e0b; margin-right:10px;"><i class="fas fa-star"></i> ${data.stars || 5}</span></div>
+                  <div class="timeline-description">${data.comment || ''}</div>
+                </div>
+              </div>`;
+          });
+
+          if (reviewSnap.size > 0) document.getElementById('stat-rating-avg').textContent = (totalStars / reviewSnap.size).toFixed(1);
+          document.getElementById('reviews-renderer').innerHTML = reviewsHtml || `<p style="color: var(--muted); text-align:center; padding: 2rem;">لا توجد تقييمات حالياً.</p>`;
+
+          if (AppState.currentUser?.lastLogin) {
+            const date = new Date(AppState.currentUser.lastLogin.toDate());
+            document.getElementById('stat-last-activity').textContent = date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+          }
+        } catch (e) { console.error(e); }
+      }
+
+      async handleLogout() {
+        if (confirm("هل تريد تسجيل الخروج؟")) {
+          await signOut(auth); this.redirectToLogin();
+        }
+      }
+
+      async handleDeleteAccount() {
+        if (confirm("🚨 هل أنت متأكد من رغبتك في مسح كافة بياناتك نهائياً؟ لا يمكن التراجع.")) {
+          try {
+            if (AppState.currentUser?.id_card_url) {
+              try { await deleteObject(ref(storage, AppState.currentUser.id_card_url)); } catch (e) {}
+            }
+            await deleteDoc(doc(db, "users", AppState.currentUserId));
+            if (auth.currentUser) await deleteUser(auth.currentUser);
+            this.redirectToLogin();
+          } catch(e) { alert("يتطلب هذا الإجراء إعادة تسجيل دخول حديث لحماية حسابك."); }
+        }
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => { window.app = new AM_Profile_App(); });
+  </script>
+</body>
+</html>
