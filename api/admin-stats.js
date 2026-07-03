@@ -1,4 +1,4 @@
-// /api/admin-stats.js - إحصائيات لوحة تحكم الإدارة العقارية حياً (نسخة مصلحة ومقاومة للأخطاء)
+// /api/admin-stats.js - إحصائيات لوحة تحكم الإدارة العقارية حياً (نسخة الكوكيز الآمنة والتحسين البرمجي)
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
@@ -15,15 +15,15 @@ const db = getFirestore();
 const auth = getAuth();
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
-// ✅ التحقق من الجلسة الأمنية للأدمن
+// ✅ التحقق من الجلسة الأمنية للأدمن عبر الكوكيز المرفقة بالطلب بالخلفية
 function verifyAdminSession(req) {
   try {
     const cookies = parse(req.headers.cookie || "");
     const token = cookies.adminToken;
 
-    if (!token) return false;
+    if (!token) return false;  
 
-    jwt.verify(token, JWT_SECRET);
+    jwt.verify(token, JWT_SECRET);  
     return true;
   } catch {
     return false;
@@ -31,7 +31,9 @@ function verifyAdminSession(req) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // التوثيق الصارم والنطاق الموجه مع تفعيل الكوكيز عبر الـ CORS
+  res.setHeader("Access-Control-Allow-Origin", "https://am-rewards.vercel.app");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -48,64 +50,63 @@ export default async function handler(req, res) {
     const usersSnap = await db.collection("users").get();
     const totalUsers = usersSnap.size;
 
-    // 2. حساب إحصائيات العقارات الكلية وحالاتها حياً
-    const propertiesSnap = await db.collection("properties").get();
-    const totalProperties = propertiesSnap.size;
+    // 2. حساب إحصائيات العقارات الكلية وحالاتها حياً  
+    const propertiesSnap = await db.collection("properties").get();  
+    const totalProperties = propertiesSnap.size;  
 
-    let pendingProperties = 0;
-    let approvedProperties = 0;
-    let rejectedProperties = 0;
+    let pendingProperties = 0;  
+    let approvedProperties = 0;  
+    let rejectedProperties = 0;  
 
-    propertiesSnap.forEach(doc => {
-      const data = doc.data();
-      if (data.status === "pending") pendingProperties++;
-      else if (data.status === "approved") approvedProperties++;
-      else if (data.status === "rejected") rejectedProperties++;
-    });
+    propertiesSnap.forEach(doc => {  
+      const data = doc.data();  
+      if (data.status === "pending") pendingProperties++;  
+      else if (data.status === "approved") approvedProperties++;  
+      else if (data.status === "rejected") rejectedProperties++;  
+    });  
 
-    // 3. حساب غرف التفاوض النشطة (المحادثات الفريدة بين الملاك والمستأجرين)
-    const messagesSnap = await db.collection("messages").get();
-    const uniqueRooms = new Set();
-    messagesSnap.forEach(doc => {
-      const data = doc.data();
-      if (data.propertyId && data.senderId) {
-        uniqueRooms.add(`${data.propertyId}_${data.senderId}`);
-      }
-    });
-    const activeRooms = uniqueRooms.size;
+    // 3. حساب غرف التفاوض النشطة
+    const messagesSnap = await db.collection("messages").get();  
+    const uniqueRooms = new Set();  
+    messagesSnap.forEach(doc => {  
+      const data = doc.data();  
+      if (data.propertyId && data.senderId) {  
+        uniqueRooms.add(`${data.propertyId}_${data.senderId}`);  
+      }  
+    });  
+    const activeRooms = uniqueRooms.size;  
 
-    // 4. حساب الصفقات المكتملة الإجمالية (الحجوزات المقبولة)
-    const bookingsSnap = await db.collection("bookings")
-      .where("status", "==", "approved")
-      .get();
-    const completedDeals = bookingsSnap.size;
+    // 4. حساب الصفقات المكتملة الإجمالية
+    const bookingsSnap = await db.collection("bookings")  
+      .where("status", "==", "approved")  
+      .get();  
+    const completedDeals = bookingsSnap.size;  
 
-    // 5. حساب صفقات اليوم المكتملة بدون تطلب كشاف مركب (Composite Index)
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
+    // 5. حساب صفقات اليوم المكتملة بدون تطلب كشاف مركب
+    const today = new Date();  
+    today.setUTCHours(0, 0, 0, 0);  
 
-    // تصفية حية وآمنة عبر جلب حجوزات اليوم أولاً ثم فرز المقبول منها برمجياً
-    const todayBookingsSnap = await db.collection("bookings")
-      .where("timestamp", ">=", today)
-      .get();
-    
-    let todayDeals = 0;
-    todayBookingsSnap.forEach(doc => {
-      if (doc.data().status === "approved") {
-        todayDeals++;
-      }
-    });
+    const todayBookingsSnap = await db.collection("bookings")  
+      .where("timestamp", ">=", today)  
+      .get();  
+      
+    let todayDeals = 0;  
+    todayBookingsSnap.forEach(doc => {  
+      if (doc.data().status === "approved") {  
+        todayDeals++;  
+      }  
+    });  
 
-    return res.status(200).json({
-      totalUsers,
-      totalProperties,
-      pendingProperties,
-      approvedProperties,
-      rejectedProperties,
-      activeRooms,
-      completedDeals,
-      todayDeals,
-      timestamp: new Date().toISOString()
+    return res.status(200).json({  
+      totalUsers,  
+      totalProperties,  
+      pendingProperties,  
+      approvedProperties,  
+      rejectedProperties,  
+      activeRooms,  
+      completedDeals,  
+      todayDeals,  
+      timestamp: new Date().toISOString()  
     });
 
   } catch (error) {
