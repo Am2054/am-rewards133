@@ -1,6 +1,6 @@
-// /api/admin-stats.js - إحصائيات لوحة تحكم الإدارة العقارية حياً
+// import/admin-stats.js - إحصائيات لوحة تحكم الإدارة العقارية حياً
 import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import jwt from "jsonwebtoken";
 import { parse } from "cookie";
@@ -44,9 +44,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. حساب إجمالي عدد المستخدمين
-    const usersSnap = await db.collection("users").get();
-    const totalUsers = usersSnap.size;
+    // 1. حساب إجمالي عدد المستخدمين (باستخدام count لتحسين الأداء وحماية الكود من الانهيار)
+    const usersCountSnap = await db.collection("users").count().get();
+    const totalUsers = usersCountSnap.data().count;
 
     // 2. حساب إحصائيات العقارات الكلية وحالاتها حياً
     const propertiesSnap = await db.collection("properties").get();
@@ -75,18 +75,20 @@ export default async function handler(req, res) {
     const activeRooms = uniqueRooms.size;
 
     // 4. حساب الصفقات المكتملة الإجمالية (الحجوزات المقبولة)
-    const bookingsSnap = await db.collection("bookings")
+    const bookingsCountSnap = await db.collection("bookings")
       .where("status", "==", "approved")
+      .count()
       .get();
-    const completedDeals = bookingsSnap.size;
+    const completedDeals = bookingsCountSnap.data().count;
 
-    // 5. حساب صفقات اليوم المكتملة
+    // 5. حساب صفقات اليوم المكتملة (تم الإصلاح باستخدام Timestamp.fromDate)
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
+    const firebaseTodayTimestamp = Timestamp.fromDate(today);
 
     const todayBookingsSnap = await db.collection("bookings")
       .where("status", "==", "approved")
-      .where("timestamp", ">=", today)
+      .where("timestamp", ">=", firebaseTodayTimestamp)
       .get();
     const todayDeals = todayBookingsSnap.size;
 
