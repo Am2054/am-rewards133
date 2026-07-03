@@ -1,4 +1,4 @@
-import/admin-stats.js - إحصائيات لوحة تحكم الإدارة العقارية حياً
+// /api/admin-stats.js - إحصائيات لوحة تحكم الإدارة العقارية حياً
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
