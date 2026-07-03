@@ -1,4 +1,4 @@
-<!-- add-property.html - النسخة الهندسية النهائية المستقرة والمدمجة بنسختك الأصلية 100% -->
+<!-- add-property.html - النسخة الهندسية النهائية المستقرة والمدمجة بنسختك الأصلية 100% مع نظام الخرائط الجغرافية -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -9,6 +9,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- مكتبة Leaflet للخرائط التفاعلية -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  
   <style>
     :root {
       --bg-primary: #020617;
@@ -44,7 +48,6 @@
       opacity: 0.15; pointer-events: none;
     }
 
-    /* كارد زجاجي فخم وواسع يطابق الهوية البصرية لبقية الصفحات */
     .container { 
       max-width: 900px; 
       margin: 0 auto; 
@@ -63,7 +66,6 @@
       border-radius: var(--radius) var(--radius) 0 0;
     }
     
-    /* مؤشر الخطوات */
     .steps-indicator { display: flex; justify-content: space-between; margin-bottom: 2.5rem; position: relative; }
     .steps-indicator::before { content: ''; position: absolute; top: 25px; left: 0; right: 0; height: 2px; background: var(--border); z-index: 1; }
     .step-tab { z-index: 2; text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; opacity: 0.4; transition: var(--transition); }
@@ -78,7 +80,7 @@
     .form-step-panel.active { display: block; }
 
     .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
-    .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+    .form-group { display: flex; flex-direction: column; gap: 0.5rem; position: relative; }
     label { font-size: 0.95rem; font-weight: 700; color: var(--text-muted); }
     input[type="text"], input[type="number"], select, textarea {
       width: 100%; padding: 0.85rem 1.25rem; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-family: 'Cairo', sans-serif; font-weight: 600; transition: var(--transition); outline: none;
@@ -89,21 +91,33 @@
     .btn-toggle-more:hover { background: rgba(56,189,248,0.05); }
 
     .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
-    .checkbox-item { display: flex; align-items: center; gap: 0.75rem; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--glass-border); cursor: pointer; }
+    .checkbox-item { display: flex; align-items: center; gap: 0.75rem; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; }
     .checkbox-item input { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
     
     /* ميديا زون */
-    .upload-zone { border: 2px dashed var(--glass-border); border-radius: 12px; padding: 2.5rem 1.5rem; text-align: center; cursor: pointer; background: rgba(0,0,0,0.2); position: relative; margin-bottom: 1.5rem; }
+    .upload-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 2.5rem 1.5rem; text-align: center; cursor: pointer; background: rgba(0,0,0,0.2); position: relative; margin-bottom: 1.5rem; }
     .upload-zone:hover { border-color: var(--primary); }
     .upload-zone p { font-weight: 700; color: var(--text-muted); margin-top: 10px; }
     
     .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
     .media-box { position: relative; width: 100%; height: 120px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); background: #000; cursor: grab; }
     .media-box img, .media-box video { width: 100%; height: 100%; object-fit: cover; }
-    .media-box .badge-cover { position: absolute; bottom: 0; left: 0; right: 0; background: var(--primary); color: var(--bg-deep); text-align: center; font-size: 0.75rem; font-weight: 900; padding: 2px 0; }
+    .media-box .badge-cover { position: absolute; bottom: 0; left: 0; right: 0; background: var(--primary); color: #020617; text-align: center; font-size: 0.75rem; font-weight: 900; padding: 2px 0; }
     .media-box .btn-del { position: absolute; top: 5px; left: 5px; background: var(--danger); border: none; color: white; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; z-index: 10; }
     
-    /* التقدم والتنقل */
+    /* واجهة الخريطة الجغرافية الجديدة */
+    .map-section { background: rgba(0,0,0,0.2); border: 1px dashed var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .map-section-title { font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .map-section-title i { color: var(--primary); }
+    .btn-map-trigger { background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 0.75rem 1.5rem; border-radius: 10px; cursor: pointer; font-weight: 700; font-family: 'Cairo', sans-serif; transition: var(--transition); display: inline-flex; align-items: center; gap: 0.5rem; }
+    .btn-map-trigger:hover { background: var(--primary); color: var(--bg-primary); box-shadow: 0 0 15px rgba(0, 242, 255, 0.3); }
+    .map-wrapper { height: 350px; border-radius: 10px; border: 1px solid var(--border); margin-top: 1rem; position: relative; display: none; overflow: hidden; }
+    #map { width: 100%; height: 100%; background: #0b0f19; }
+    .map-status-badge { display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(16, 185, 129, 0.15); color: var(--success); font-size: 0.85rem; padding: 0.4rem 0.8rem; border-radius: 8px; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.2); margin-top: 0.5rem; }
+    
+    /* ستايل مخصص لتعتيم الخريطة لتناسب ثيم الـ Dashboard */
+    .leaflet-layer, .leaflet-control-zoom-in, .leaflet-control-zoom-out { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
+    
     .progress-container { background: rgba(0,0,0,0.3); border-radius: 8px; height: 12px; overflow: hidden; margin: 1.5rem 0; display: none; border: 1px solid var(--border); }
     .progress-bar { height: 100%; background: linear-gradient(90deg, var(--neon-purple), var(--primary)); width: 0%; transition: width 0.1s ease; }
     
@@ -120,8 +134,7 @@
     .btn-back:hover { color: var(--primary); }
     .hidden { display: none !important; }
     
-    /* مراجعة البيانات */
-    .review-item { background: rgba(0,0,0,0.2); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.25rem; border: 1px solid var(--glass-border); }
+    .review-item { background: rgba(0,0,0,0.2); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.25rem; border: 1px solid var(--border); }
     .review-item h4 { color: var(--primary); margin-bottom: 0.75rem; font-size: 1rem; font-weight: 900; }
     .review-item p { font-size: 0.95rem; line-height: 1.7; font-weight: 600; color: #fff; }
 
@@ -140,7 +153,6 @@
   <div class="container">
     <a href="dashboard.html" class="btn-back"><i class="fas fa-arrow-right"></i> العودة للوحة التحكم</a>
     
-    <!-- مؤشر خطوات التقدم للمستخدم -->
     <div class="steps-indicator">
       <div class="step-tab active" id="tab-1"><div class="step-num">1</div><div class="step-text">البيانات الأساسية</div></div>
       <div class="step-tab" id="tab-2"><div class="step-num">2</div><div class="step-text">الوسائط المرفقة</div></div>
@@ -175,7 +187,6 @@
           </div>
         </div>
 
-        <!-- حقول ديناميكية تتبع نوع العملية (إيجار / بيع) مرتبة لتظهر المدة قبل السعر المطلق -->
         <!-- حقول الإيجار -->
         <div id="rentFields" class="hidden">
           <div class="form-row">
@@ -217,7 +228,6 @@
           <div class="form-group"><label>المساحة الإجمالية (م) *</label><input type="number" id="area" required></div>
         </div>
         
-        <!-- حقول ديناميكية تتبع نوع العقار المختار -->
         <div class="form-row" id="dynamicFields">
           <div class="form-group" id="field-rooms"><label>عدد الغرف *</label><input type="number" id="rooms" value="3"></div>
           <div class="form-group" id="field-bathrooms"><label>عدد الحمامات *</label><input type="number" id="bathrooms" value="1"></div>
@@ -231,9 +241,24 @@
           <div class="form-group"><label>المنطقة / الحي *</label><input type="text" id="district" required placeholder="مثال: الحي الثالث"></div>
         </div>
 
+        <!-- نظام تحديد الموقع الجغرافي الاحترافي والذكي (اختياري) -->
+        <div class="map-section">
+          <div class="map-section-title">
+            <i class="fas fa-map-marked-alt"></i>
+            <span>تحديد موقع العقار على الخريطة (اختياري)</span>
+          </div>
+          <button type="button" class="btn-map-trigger" id="btnToggleMap">
+            <i class="fas fa-map-pin"></i> تحديد الموقع الجغرافي
+          </button>
+          <div id="mapStatus" class="hidden"></div>
+          
+          <div class="map-wrapper" id="mapWrapper">
+            <div id="map"></div>
+          </div>
+        </div>
+
         <div class="form-group"><label>وصف العقار التفصيلي والخدمات المجاورة *</label><textarea id="description" rows="4" placeholder="اكتب مواصفات العقار وتشطيباته وجيرانه ومزاياه لتسهيل الحجز والبيع المباشر..." required></textarea></div>
 
-        <!-- القسم الثاني الإختياري تفاصيل أكثر -->
         <button type="button" class="btn-toggle-more" id="btnMoreDetails">إعادة تعيين وإضافة تفاصيل وتشطيبات أكثر (اختياري) <i class="fas fa-chevron-down"></i></button>
         
         <div id="optionalSection" class="hidden">
@@ -307,6 +332,9 @@
     </form>
   </div>
 
+  <!-- سكربت الخرائط Leaflet.js -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -324,9 +352,14 @@
     const auth = getAuth(app);
 
     let currentStep = 1;
-    let uploadedImages = []; // تحتوي على كائنات الملفات المحلية المخزنة مؤقتاً
+    let uploadedImages = []; 
     let uploadedVideoFile = null;
     let currentUserData = null;
+
+    // متغيرات الخريطة الجغرافية
+    let map = null;
+    let marker = null;
+    let selectedGeoLocation = null; // ستخزن { lat: X, lng: Y } الكود الحقيقي والتقريبي الذكي
 
     // تهيئة واستقبال أحداث وعناصر الصفحة حركياً
     const initPageFlow = () => {
@@ -388,19 +421,97 @@
         paymentMethodSelect.addEventListener('change', handlePaymentMethodChange);
         propertyTypeSelect.addEventListener('change', handlePropertyTypeChange);
 
-        // تفعيل أولي لمزامنة الحقول المتطابقة عند التحميل
         handlePurposeChange();
         handlePaymentMethodChange();
         handlePropertyTypeChange();
 
-        // تفعيل زر التفاصيل الإضافية المفقود
         document.getElementById('btnMoreDetails').addEventListener('click', () => {
             const sect = document.getElementById('optionalSection');
             sect.classList.toggle('hidden');
         });
+
+        // تشغيل وإدارة الخريطة التفاعلية
+        document.getElementById('btnToggleMap').addEventListener('click', initLeafletMap);
     };
 
-    // 1. إدارة التنقل بين الـ 3 خطوات مع التحقق الشامل للفورم والوسائط
+    // نظام إدارة الخرائط التفاعلية (Leaflet.js)
+    const initLeafletMap = () => {
+        const wrapper = document.getElementById('mapWrapper');
+        
+        // إذا كانت الخريطة مفتوحة بالفعل، نقوم بإغلاقها
+        if (wrapper.style.display === 'block') {
+            wrapper.style.display = 'none';
+            return;
+        }
+
+        wrapper.style.display = 'block';
+
+        // الحفاظ على نقطة ارتكاز أولية (مصر كمثال افتراضي: القاهرة)
+        const defaultLat = 30.0444;
+        const defaultLng = 31.2357;
+
+        if (!map) {
+            // إنشاء الخريطة لأول مرة
+            map = L.map('map').setView([defaultLat, defaultLng], 13);
+
+            // جلب طبقات الخريطة المجانية من OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // إنشاء دبوس التثبيت (Pin) ليكون قابلاً للسحب والإفلات برمجياً
+            marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+
+            // دالة تحديث الإحداثيات وحساب النقطة العشوائية للخصوصية
+            const updateCoordinates = (lat, lng) => {
+                // دالة تشويش هندسي ذكي (Fuzzing) لإخفاء النقطة الحقيقية بنسبة بسيطة (حوالي 300 لـ 500 متر) للحفاظ على الخصوصية العامة
+                const randomOffsetLat = (Math.random() - 0.5) * 0.005;
+                const randomOffsetLng = (Math.random() - 0.5) * 0.005;
+
+                selectedGeoLocation = {
+                    realLatitude: lat,
+                    realLongitude: lng,
+                    approxLatitude: lat + randomOffsetLat, // التي ستعرض للعامة
+                    approxLongitude: lng + randomOffsetLng
+                };
+
+                // تحديث واجهة المستخدم بإشعار نجاح فخم
+                const statusBadge = document.getElementById('mapStatus');
+                statusBadge.className = 'map-status-badge';
+                statusBadge.innerHTML = `<i class="fas fa-check-circle"></i> تم التقاط إحداثيات الموقع الجغرافي بنجاح وجاهزة للحفظ الآمن.`;
+            };
+
+            // عند انتهاء سحب الماركر من المستخدم
+            marker.on('dragend', function (e) {
+                const position = marker.getLatLng();
+                updateCoordinates(position.lat, position.lng);
+            });
+
+            // عند الضغط المباشر في أي مكان على سطح الخريطة
+            map.on('click', function (e) {
+                marker.setLatLng(e.latlng);
+                updateCoordinates(e.latlng.lat, e.latlng.lng);
+            });
+
+            // محاولة التقاط موقع المستخدم الحالي عبر المتصفح تلقائياً لتسهيل التجربة (اختياري)
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    const uLat = position.coords.latitude;
+                    const uLng = position.coords.longitude;
+                    map.setView([uLat, uLng], 15);
+                    marker.setLatLng([uLat, uLng]);
+                    updateCoordinates(uLat, uLng);
+                }, () => {
+                    console.log("Geolocation custom note: Permission denied or timeout, fallback to default center.");
+                });
+            }
+        } else {
+            // تحديث حجم وأبعاد الخريطة لمنع مشاكل العرض الرندر عند الفتح والغلق المستمر
+            setTimeout(() => { map.invalidateSize(); }, 200);
+        }
+    };
+
     const updateStepUI = () => {
         document.querySelectorAll('.form-step-panel').forEach(panel => panel.classList.remove('active'));
         document.querySelectorAll('.step-tab').forEach(tab => tab.classList.remove('active'));
@@ -424,7 +535,6 @@
 
     document.getElementById('btnNextStep').addEventListener('click', () => {
         if (currentStep === 1) {
-            // التحقق من صحة الحقول الإلزامية في الخطوة الأولى
             const requiredInputs = document.getElementById('step-panel-1').querySelectorAll('[required]');
             let valid = true;
             requiredInputs.forEach(input => { if(!input.value.trim()) valid = false; });
@@ -441,15 +551,12 @@
         if (currentStep > 1) { currentStep--; updateStepUI(); }
     });
 
-    // 3. نظام الصور المتقدم (معاينة وحذف وضغط والتحقق من الترتيب الافتراضي)
     document.getElementById('imageFiles').addEventListener('change', async (e) => {
         const files = Array.from(e.target.files);
         if (uploadedImages.length + files.length > 15) { alert('الحد الأقصى المسموح به هو 15 صورة فقط للعقار الواحدة.'); return; }
         
         for (let file of files) {
             if (!file.type.startsWith('image/')) { alert(`الملف ${file.name} غير مدعوم، يرجى رفع صور فقط.`); continue; }
-            
-            // محاكاة ضغط الصورة برمجياً عبر الـ Canvas
             const compressed = await compressImage(file);
             uploadedImages.push(compressed);
         }
@@ -523,7 +630,6 @@
         });
     };
 
-    // 4. نظام الفيديو (اختياري، دقيقة واحدة، حجم أقل من 100 ميجا بايت)
     document.getElementById('videoFile').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -534,7 +640,6 @@
         videoEl.preload = 'metadata';
         videoEl.src = URL.createObjectURL(file);
         videoEl.onloadedmetadata = () => {
-            // تعديل وزيادة طول الفيديو المسموح به لأكثر من دقيقة (يصل لـ 3 دقائق) لحماية المالك والنزيل
             if (videoEl.duration > 181) {
                 alert('الحد الأقصى لطول مقطع الفيديو هو 3 دقائق (180 ثانية) لتأجير الشقق والشاليهات.');
                 return;
@@ -566,7 +671,6 @@
         grid.appendChild(box);
     };
 
-    // مراجعة كامل بيانات الإدخال والبيانات العقارية والجغرافية حياً في الخطوة الثالثة
     const compileReviewData = () => {
         const title = document.getElementById('title').value;
         const purposeVal = document.getElementById('purpose').value;
@@ -578,7 +682,6 @@
         const price = document.getElementById('price').value;
         const area = document.getElementById('area').value;
 
-        // تفاصيل الغرف والأدوار
         const rooms = document.getElementById('rooms').value;
         const bathrooms = document.getElementById('bathrooms').value;
         const floor = document.getElementById('floor').value;
@@ -589,10 +692,10 @@
           <strong>العنوان:</strong> ${title} <br>
           <strong>نوع الوحدة والعملية:</strong> ${type} (${purposeText}) <br>
           <strong>الموقع الجغرافي:</strong> محافظة ${gov} ، مدينة ${city} ، منطقة ${district} <br>
+          <strong>الموقع على الخريطة:</strong> ${selectedGeoLocation ? '✅ تم التحديد جغرافياً بدقة' : '❌ لم يتم التحديد (مكتفٍ بالنص)'} <br>
           <strong>المساحة:</strong> ${area} متر مربع | <strong>السعر المطلق:</strong> ${Number(price).toLocaleString()} ج.م <br>
         `;
 
-        // إدراج الحقول الإضافية للمباني السكنية لمنع تداخل الشاشات
         if (type !== 'أرض') {
           specsText += `
             <strong>عدد الغرف:</strong> ${rooms} غرف | <strong>عدد الحمامات:</strong> ${bathrooms} حمام <br>
@@ -621,12 +724,11 @@
         document.getElementById('reviewPaymentText').innerHTML = paymentDetail;
 
         document.getElementById('reviewMediaText').innerHTML = `
-          <strong>ألبوم الصور:</strong> تم ضغط وتجهيز ${uploadedImages.length} صور جاهزة للرفع (الصورة الأولى ستكون الغلاف) <br>
+          <strong>ألبوم الصور:</strong> تم ضغط وتجهيز ${uploadedImages.length} صور جاهزة للرفع <br>
           <strong>فيديو جولة العقار:</strong> ${uploadedVideoFile ? 'تم تفعيل ورفع فيديو جولة تفصيلية بنجاح' : 'لا يوجد فيديو مرفق (اختياري)'}
         `;
     };
 
-    // 5. الإرسال النهائي الشامل عبر API رفع الميديا لـ Vercel Blob ثم الحفظ في Firestore
     document.getElementById('btnSubmitFinal').addEventListener('click', async () => {
         const user = auth.currentUser;
         if(!user) { alert('يجب تسجيل الدخول أولاً لإرسال العقارات.'); return; }
@@ -640,7 +742,6 @@
         progBar.style.width = '10%';
 
         try {
-            // جلب اسم وبيانات المالك الحالية من قاعدة البيانات لحفظها في المستند العقاري
             const userSnap = await getDoc(doc(db, "users", user.uid));
             const ownerName = userSnap.exists() ? (userSnap.data().name || "مستخدم غير مسمى") : "مستخدم عام";
             const ownerPhone = userSnap.exists() ? (userSnap.data().phone || "غير مسجل") : "غير مسجل";
@@ -648,7 +749,6 @@
             progBar.style.width = "20%";
 
             const uploadedImageUrls = [];
-
             for (let i = 0; i < uploadedImages.length; i++) {
                 const fd = new FormData();
                 fd.append("files", uploadedImages[i]);
@@ -659,18 +759,13 @@
                 });
 
                 const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || ("فشل رفع الصورة " + (i + 1)));
-                }
+                if (!response.ok) throw new Error(data.error || ("فشل رفع الصورة " + (i + 1)));
 
                 uploadedImageUrls.push(data.images[0]);
-
                 progBar.style.width = `${20 + ((i + 1) / uploadedImages.length) * 50}%`;
             }
 
             let uploadedVideoUrl = null;
-
             if (uploadedVideoFile) {
                 const fd = new FormData();
                 fd.append("files", uploadedVideoFile);
@@ -681,23 +776,14 @@
                 });
 
                 const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || "فشل رفع الفيديو");
-                }
+                if (!response.ok) throw new Error(data.error || "فشل رفع الفيديو");
 
                 uploadedVideoUrl = data.video;
             }
 
-            const mediaResult = {
-                coverImage: uploadedImageUrls[0],
-                images: uploadedImageUrls,
-                video: uploadedVideoUrl
-            };
-
             progBar.style.width = "80%";
 
-            // بناء كائن العقار بكافة الحقول القديمة والجديدة المطلوبة
+            // بناء كائن العقار بكافة الحقول القديمة والجديدة مع دعم الخرائط
             const propertyPayload = {
                 ownerId: user.uid,
                 ownerName: ownerName,
@@ -712,20 +798,26 @@
                 area: parseFloat(document.getElementById('area').value),
                 description: document.getElementById('description').value,
                 
-                // الحقول الديناميكية للعقار والمبنى
+                // تخزين البيانات الجغرافية بدقة عالية للبحث الخلفي والتقريبي للمستخدمين لحماية الخصوصية
+                hasCoordinates: selectedGeoLocation ? true : false,
+                coordinates: selectedGeoLocation ? {
+                    latitude: selectedGeoLocation.realLatitude,
+                    longitude: selectedGeoLocation.realLongitude,
+                    approxLatitude: selectedGeoLocation.approxLatitude,
+                    approxLongitude: selectedGeoLocation.approxLongitude
+                } : null,
+
                 rooms: parseInt(document.getElementById('rooms').value) || 0,
                 bathrooms: parseInt(document.getElementById('bathrooms').value) || 0,
                 floor: document.getElementById('floor').value || "",
                 buildingFloors: parseInt(document.getElementById('buildingFloors').value) || 0,
 
-                // خيارات الإيجار والبيع والمدة المضافة حياً
                 rentCycle: document.getElementById('purpose').value === 'rent' ? document.getElementById('rentCycle').value : "",
                 leaseDuration: document.getElementById('purpose').value === 'rent' ? document.getElementById('leaseDuration').value : "",
                 paymentMethod: document.getElementById('purpose').value === 'sale' ? document.getElementById('paymentMethod').value : "",
                 downPayment: (document.getElementById('purpose').value === 'sale' && document.getElementById('paymentMethod').value === 'تقسيط') ? parseFloat(document.getElementById('installmentDownpayment').value) : 0,
                 installmentYears: (document.getElementById('purpose').value === 'sale' && document.getElementById('paymentMethod').value === 'تقسيط') ? parseInt(document.getElementById('installmentYears').value) : 0,
 
-                // القسم الاختياري الإضافي
                 constructionYear: parseInt(document.getElementById('constructionYear').value) || 0,
                 finishing: document.getElementById('finishing').value || "",
                 electricityCard: document.getElementById('electricityCard').value || "",
@@ -740,12 +832,10 @@
                     naturalGas: document.getElementById('feat-naturalGas').checked,
                 },
 
-                // حقول الميديا المستلمة من Vercel Blob
-                images: mediaResult.images, // قائمة كاملة بالروابط المعاد ترتيبها
-                coverImage: mediaResult.coverImage, // رابط الصورة الأولى كـ Cover
-                video: mediaResult.video || null, // رابط الفيديو في حال رفعه
+                images: uploadedImageUrls, 
+                coverImage: uploadedImageUrls[0], 
+                video: uploadedVideoUrl || null, 
                 
-                // تتبع وتحديث الحالات الإدارية المطلوبة بالقاعدة
                 status: "pending",
                 rejectReason: "",
                 approvedAt: null,
@@ -756,7 +846,6 @@
                 updatedAt: serverTimestamp()
             };
 
-            // الحفظ النهائي المباشر في Firestore
             await addDoc(collection(db, "properties"), propertyPayload);
             progBar.style.width = '100%';
             
@@ -773,7 +862,6 @@
 
     window.addEventListener('DOMContentLoaded', () => {
         initPageFlow();
-        // جلب واستقبال التحقق المبدئي لبيانات المالك
         onAuthStateChanged(auth, async (user) => {
           if (!user) {
             window.location.href = "login.html";
@@ -781,9 +869,7 @@
           }
           try {
             const userSnap = await getDoc(doc(db, "users", user.uid));
-            if (userSnap.exists()) {
-              currentUserData = userSnap.data();
-            }
+            if (userSnap.exists()) currentUserData = userSnap.data();
           } catch (e) {
             console.warn("User profile retrieval warning:", e);
           }
