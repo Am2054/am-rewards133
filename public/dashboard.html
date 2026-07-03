@@ -1,4 +1,3 @@
-
 <!-- dashboard.html - لوحة التحكم العقارية الذكية المحدثة بالكامل مع دردشة عامة وبحث متقدم -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -702,7 +701,7 @@
 
     .overlay.active { display: block; opacity: 1; }
 
-    /* Modal / Dialog Styles for Support Options */
+    /* Modal / Dialog Styles for Support Options & Search Choices */
     .custom-modal {
       position: fixed;
       top: 50%; left: 50%;
@@ -712,7 +711,7 @@
       border-radius: 20px;
       padding: 2.2rem;
       width: 90%;
-      max-width: 420px;
+      max-width: 440px;
       z-index: 1000;
       display: none;
       opacity: 0;
@@ -796,6 +795,23 @@
     <button class="modal-close-btn" onclick="app.toggleSupportModal(false)">إغلاق النافذة</button>
   </div>
 
+  <!-- Search Option Selection Modal (NEW) -->
+  <div class="custom-modal" id="searchOptionModal">
+    <h3 class="modal-title"><i class="fas fa-search" style="color: var(--neon-cyan);"></i> محرك البحث الذكي</h3>
+    <p style="text-align: center; color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem; font-weight: 600;">اختر نوع المعاملة لتخصيص عملية البحث</p>
+    <div class="modal-options-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+      <button class="modal-opt-btn" onclick="app.selectSearchType('إيجار')" style="flex-direction: column; padding: 1.5rem; text-align: center; gap: 0.75rem; justify-content: center;">
+        <i class="fas fa-key" style="color: var(--neon-cyan); font-size: 2.2rem;"></i>
+        <span>عقارات للإيجار</span>
+      </button>
+      <button class="modal-opt-btn" onclick="app.selectSearchType('بيع')" style="flex-direction: column; padding: 1.5rem; text-align: center; gap: 0.75rem; justify-content: center;">
+        <i class="fas fa-handshake" style="color: var(--neon-purple); font-size: 2.2rem;"></i>
+        <span>عقارات للشراء</span>
+      </button>
+    </div>
+    <button class="modal-close-btn" onclick="app.toggleSearchOptionModal(false)">إلغاء وتراجع</button>
+  </div>
+
   <div class="app-container">
     
     <aside class="sidebar" id="sidebar">
@@ -813,7 +829,7 @@
         <div class="sidebar-divider"></div>
         <a href="#" class="sidebar-item sidebar-logout" onclick="app.handleLogout()"><i class="fas fa-sign-out-alt"></i> <span>تسجيل الخروج</span></a>
       </nav>
-    </aside>
+    </</aside>
 
     <div style="display: flex; flex-direction: column; min-width: 0;">
       
@@ -1058,7 +1074,11 @@
         
         this.menuToggle.addEventListener('click', () => this.toggleSidebar(true));
         this.sidebarClose.addEventListener('click', () => this.toggleSidebar(false));
-        this.overlay.addEventListener('click', () => this.toggleSidebar(false));
+        this.overlay.addEventListener('click', () => {
+          this.toggleSidebar(false);
+          this.toggleSupportModal(false);
+          this.toggleSearchOptionModal(false);
+        });
       }
 
       toggleSidebar(open) {
@@ -1068,6 +1088,17 @@
 
       toggleSupportModal(open) {
         const modal = document.getElementById('supportModal');
+        if (open) {
+          this.overlay.classList.add('active');
+          modal.classList.add('active');
+        } else {
+          this.overlay.classList.remove('active');
+          modal.classList.remove('active');
+        }
+      }
+
+      toggleSearchOptionModal(open) {
+        const modal = document.getElementById('searchOptionModal');
         if (open) {
           this.overlay.classList.add('active');
           modal.classList.add('active');
@@ -1351,7 +1382,23 @@
       }
 
       showMainSearchDirect() {
+        this.toggleSearchOptionModal(true);
+      }
+
+      selectSearchType(actionType) {
+        this.toggleSearchOptionModal(false);
+        
+        // ضبط القيمة في قائمة الفلترة المنسدلة
+        const filterActionEl = document.getElementById('filter-action-type');
+        if (filterActionEl) {
+          filterActionEl.value = actionType;
+        }
+
+        // التوجيه إلى قسم البحث
         this.navigateTo('search');
+
+        // تنفيذ الفلترة الفورية
+        this.filterAndSortProperties();
       }
 
       /* ============================================
