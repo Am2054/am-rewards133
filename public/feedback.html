@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الدعم الفني والابتكار | AM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Tajawal:wght@500;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root { --cyan: #00f2ff; --purple: #7000ff; --dark: #020617; --glass: rgba(15, 23, 42, 0.8); --border: rgba(255, 255, 255, 0.1); }
+        body { font-family: 'Cairo', sans-serif; background: var(--dark); color: #fff; margin: 0; padding: 20px; background-image: radial-gradient(circle at top right, rgba(0, 242, 255, 0.1), transparent 400px); }
+        .container { max-width: 750px; margin: auto; }
+
+        .support-card { background: var(--glass); border: 1px solid var(--border); padding: 30px; border-radius: 25px; backdrop-filter: blur(10px); margin-top: 20px; }
+        h1 { color: var(--cyan); text-align: center; font-weight: 900; margin-top: 0; font-family: 'Tajawal'; }
+        
+        label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--cyan); font-weight: 700; }
+        input, select, textarea { width: 100%; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 12px; color: #fff; font-family: 'Cairo'; outline: none; margin-bottom: 15px; box-sizing: border-box; }
+        input:focus, select:focus, textarea:focus { border-color: var(--cyan); box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
+        
+        .btn-send { width: 100%; padding: 16px; background: linear-gradient(90deg, var(--purple), var(--cyan)); border: none; border-radius: 15px; color: #fff; font-weight: 900; cursor: pointer; font-size: 16px; transition: 0.3s; }
+        .btn-send:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 242, 255, 0.3); }
+        
+        .ticket-item { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 18px; border-radius: 18px; margin-top: 15px; }
+        .status-tag { float: left; font-size: 11px; padding: 4px 10px; border-radius: 20px; font-weight: 900; }
+        
+        .pending { background: #64748b; color: #fff; }
+        .reviewing { background: #f59e0b; color: #000; }
+        .approved { background: #10b981; color: #fff; }
+        .rejected { background: #ef4444; color: #fff; }
+
+        .admin-reply-box { background:rgba(0,242,255,0.05); padding:10px; border-radius:10px; font-size:13px; border-right:2px solid var(--cyan); margin-top:10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="support-card">
+        <h1>📩 مركز الدعم والابتكار</h1>
+        <p style="text-align: center; font-size: 13px; opacity: 0.8; margin-bottom: 25px;">ساعدنا في تطوير الموقع عبر الإبلاغ عن الأعطال أو تقديم اقتراحاتك بوضوح.</p>
+        
+        <form id="supportForm">
+            <label>نوع الرسالة</label>
+            <select id="requestType" required onchange="toggleFields()">
+                <option value="">-- ماذا تريد أن تخبرنا؟ --</option>
+                <option value="عطل في خدمة معينة">⚠️ عطل في خدمة معينة</option>
+                <option value="مشكلة تقنية">⚙️ عطل فني في الموقع</option>
+                <option value="اقتراح تطوير">💡 اقتراح ميزة جديدة</option>
+                <option value="ثغرة أمنية">🛡️ الإبلاغ عن ثغرة أمنية</option>
+            </select>
+
+            <div id="serviceSelectionArea" style="display:none">
+                <label>اختر الخدمة المتأثرة</label>
+                <select id="serviceName">
+                    <option value="غير محدد">-- اختر الخدمة --</option>
+                    <option value="محلل باقة الانترنت المنزلي">🌐 محلل باقة الانترنت المنزلي</option>
+                    <option value="رادار الكهرباء">⚡ رادار الكهرباء</option>
+                    <option value="رادار المياه">💧 رادار المياه</option>
+                    <option value="اكواد الهاتف">📱 اكواد الهاتف</option>
+                    <option value="شات الاشباح">👻 شات الاشباح</option>
+                </select>
+            </div>
+
+            <label>اشرح لنا بالتفصيل</label>
+            <textarea id="message" rows="5" minlength="30" required placeholder="اشرح مشكلتك أو اقتراحك بوضوح (30 حرف على الأقل) لضمان قبول ومراجعة الطلب..."></textarea>
+
+            <button type="submit" class="btn-send" id="submitBtn">إرسال الطلب الآن 🚀</button>
+        </form>
+    </div>
+
+    <div id="myTickets" style="margin-top: 40px;">
+        <h3 style="border-right: 4px solid var(--cyan); padding-right: 15px; font-family: 'Tajawal';">🎫 سجل طلباتك السابقة</h3>
+        <div id="ticketsList"></div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, addDoc, query, where, getDocs, serverTimestamp, orderBy, onSnapshot, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+        authDomain: "am--rewards.firebaseapp.com",
+        projectId: "am--rewards",
+        storageBucket: "am--rewards.appspot.com",
+        messagingSenderId: "744783579735",
+        appId: "1:744783579735:web:45e00de9998893bbc9b112",
+        measurementId: "G-CV3GLT2TTJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let user = null;
+
+    onAuthStateChanged(auth, (u) => {
+        if (u) { user = u; listenToTickets(); }
+        else { window.location.href = "login.html"; }
+    });
+
+    window.toggleFields = () => {
+        const type = document.getElementById('requestType').value;
+        const serviceArea = document.getElementById('serviceSelectionArea');
+        serviceArea.style.display = (type === 'عطل في خدمة معينة') ? 'block' : 'none';
+    };
+
+    function escapeHTML(str) {
+        if(!str) return "";
+        const p = document.createElement('p');
+        p.textContent = str;
+        return p.innerHTML;
+    }
+
+    function listenToTickets() {
+        const q = query(collection(db, "support_tickets"), where("uid", "==", user.uid), orderBy("timestamp", "desc"));
+        onSnapshot(q, (snap) => {
+            const list = document.getElementById('ticketsList');
+            list.innerHTML = snap.empty ? '<p style="text-align:center; opacity:0.5">لا توجد طلبات سابقة</p>' : '';
+            
+            snap.forEach(doc => {
+                const d = doc.data();
+                const ticketDiv = document.createElement('div');
+                ticketDiv.className = 'ticket-item';
+                
+                const statusMap = { 'pending': 'في الانتظار', 'reviewing': 'قيد المراجعة', 'approved': 'تم الحل/القبول', 'rejected': 'مغلق' };
+                const serviceInfo = d.selectedService ? `<br><small style="color:var(--purple)">الخدمة: ${escapeHTML(d.selectedService)}</small>` : '';
+
+                ticketDiv.innerHTML = `
+                    <span class="status-tag ${d.status}">${statusMap[d.status] || d.status}</span>
+                    <strong style="color:var(--cyan)">${escapeHTML(d.type)}</strong>${serviceInfo}
+                    <p style="font-size:14px; margin: 10px 0;">${escapeHTML(d.message)}</p>
+                `;
+
+                if(d.adminReply) {
+                    const replyBox = document.createElement('div');
+                    replyBox.className = 'admin-reply-box';
+                    replyBox.innerHTML = `<b>رد الإدارة:</b> ${escapeHTML(d.adminReply)}`;
+                    ticketDiv.appendChild(replyBox);
+                }
+                list.appendChild(ticketDiv);
+            });
+        }, (error) => {
+            console.error("Snapshot error:", error);
+        });
+    }
+
+    document.getElementById('supportForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        const type = document.getElementById('requestType').value;
+        const msg = document.getElementById('message').value;
+        
+        btn.disabled = true;
+        btn.innerText = "⏳ جاري التحقق من الطلبات...";
+
+        try {
+            const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            const rateQuery = query(
+                collection(db, "support_tickets"), 
+                where("uid", "==", user.uid),
+                where("timestamp", ">=", Timestamp.fromDate(twentyFourHoursAgo)),
+                orderBy("timestamp", "desc")
+            );
+            
+            const rateSnap = await getDocs(rateQuery);
+            
+            if (rateSnap.size >= 3) {
+                Swal.fire("توقف قليلاً!", "لقد وصلت للحد الأقصى (3 طلبات كل 24 ساعة). حاول لاحقاً.", "warning");
+                btn.disabled = false;
+                btn.innerText = "إرسال الطلب الآن 🚀";
+                return;
+            }
+
+            btn.innerText = "🚀 جاري إرسال الطلب...";
+
+            await addDoc(collection(db, "support_tickets"), {
+                uid: user.uid,
+                email: user.email,
+                type: type,
+                selectedService: type === 'عطل في خدمة معينة' ? document.getElementById('serviceName').value : "غير محدد",
+                message: msg,
+                status: "pending",
+                adminReply: "", 
+                timestamp: serverTimestamp()
+            });
+
+            Swal.fire("تم استلام طلبك", "شكراً لمساهمتك! سيتم مراجعة طلبك وإبلاغك بالرد في أقرب وقت.", "success");
+            document.getElementById('supportForm').reset();
+            document.getElementById('serviceSelectionArea').style.display = 'none';
+        } catch (error) { 
+            console.error("Submit Error:", error);
+            Swal.fire("عذراً", "حدث خطأ: " + (error.code || error.message), "error"); 
+        }
+        
+        btn.disabled = false;
+        btn.innerText = "إرسال الطلب الآن 🚀";
+    };
+</script>
+</body>
+</html>
