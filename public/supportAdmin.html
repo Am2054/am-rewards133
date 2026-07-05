@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AM CONTROL | PANEL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --main-bg: #0a0e17;
+            --side-panel: #111827;
+            --accent: #00f2ff;
+            --purple: #7c3aed;
+            --text-main: #f3f4f6;
+            --card-bg: #1f2937;
+            --border: rgba(255,255,255,0.05);
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: var(--main-bg);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-image: radial-gradient(circle at top right, rgba(124, 58, 237, 0.05), transparent);
+        }
+
+        #auth-gate { 
+            position: fixed; inset: 0; background: var(--main-bg); z-index: 9999; 
+            display: flex; align-items: center; justify-content: center; backdrop-filter: blur(15px);
+        }
+        .auth-card { 
+            background: var(--side-panel); padding: 40px; border-radius: 30px; 
+            border: 1px solid var(--purple); text-align: center; width: 320px;
+            box-shadow: 0 0 50px rgba(124, 58, 237, 0.1);
+        }
+
+        .top-nav {
+            background: var(--side-panel);
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 100;
+        }
+
+        .logo-area { display: flex; align-items: center; gap: 10px; }
+        .logo-area h2 { margin: 0; font-size: 18px; font-weight: 900; color: var(--accent); }
+        .admin-badge { background: rgba(0, 242, 255, 0.1); color: var(--accent); padding: 4px 12px; border-radius: 8px; font-size: 10px; border: 1px solid var(--accent); }
+
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px; padding: 20px; max-width: 1200px; margin: 0 auto; width: 100%; box-sizing: border-box;
+        }
+
+        .stat-card {
+            background: var(--card-bg); padding: 20px; border-radius: 20px;
+            display: flex; align-items: center; gap: 15px; border: 1px solid var(--border);
+        }
+
+        .stat-icon { width: 45px; height: 45px; border-radius: 12px; background: rgba(124, 58, 237, 0.1); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .stat-info h4 { margin: 0; font-size: 22px; color: var(--accent); }
+        .stat-info p { margin: 2px 0 0; font-size: 12px; opacity: 0.6; }
+
+        .control-bar {
+            max-width: 1200px; margin: 0 auto; width: 100%; padding: 0 20px 20px;
+            display: flex; gap: 10px; overflow-x: auto; box-sizing: border-box;
+        }
+
+        .filter-btn {
+            background: var(--card-bg); border: 1px solid var(--border); color: white;
+            padding: 12px 25px; border-radius: 15px; cursor: pointer; white-space: nowrap; font-weight: 700; transition: 0.3s;
+        }
+        .filter-btn.active { background: var(--purple); box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4); }
+
+        .main-content {
+            max-width: 1200px; margin: 0 auto; width: 100%; padding: 0 20px 40px;
+            box-sizing: border-box; display: grid; gap: 20px;
+        }
+
+        .ticket-row {
+            background: var(--card-bg); border-radius: 24px; padding: 25px;
+            border: 1px solid var(--border); display: flex; flex-direction: column; gap: 20px;
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (min-width: 768px) {
+            .ticket-row { flex-direction: row; }
+            .ticket-main { flex: 1; }
+            .ticket-side { width: 280px; border-right: 1px solid var(--border); padding-right: 20px; }
+        }
+
+        .ticket-type { font-size: 10px; font-weight: 900; color: var(--purple); text-transform: uppercase; margin-bottom: 8px; display: block; }
+        .ticket-msg { background: rgba(0,0,0,0.3); padding: 18px; border-radius: 15px; font-size: 14px; border-right: 4px solid var(--accent); margin-top: 10px; line-height: 1.8; }
+        
+        .user-info { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .user-avatar { width: 40px; height: 40px; border-radius: 12px; background: var(--purple); display: flex; align-items: center; justify-content: center; font-weight: bold; }
+
+        .form-control { 
+            background: #0f172a; border: 1px solid var(--border); border-radius: 12px; 
+            color: white; padding: 14px; width: 100%; box-sizing: border-box; font-family: 'Cairo'; margin-bottom: 12px;
+        }
+        
+        .btn-action { padding: 14px; border-radius: 12px; border: none; font-weight: 900; cursor: pointer; transition: 0.3s; width: 100%; margin-bottom: 8px; }
+        .btn-approve { background: var(--accent); color: #000; }
+        .btn-reject { background: #ef4444; color: #fff; }
+        .btn-approve:hover { transform: scale(1.02); box-shadow: 0 5px 15px rgba(0, 242, 255, 0.3); }
+
+        #loading { text-align: center; padding: 50px; color: var(--accent); font-weight: bold; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="auth-gate">
+        <div class="auth-card">
+            <h2 style="color:var(--purple); margin-bottom:10px;">بوابة الدعم</h2>
+            <p style="font-size:12px; opacity:0.6; margin-bottom:20px;">أدخل كلمة سر الإدارة للمتابعة</p>
+            <input type="password" id="admin-pass" placeholder="Password" style="text-align:center; margin-bottom:15px; width:100%; padding:12px; border-radius:10px; border:1px solid var(--purple); background:none; color:white;">
+            <button class="btn-action btn-approve" style="background:var(--purple); color:white;" onclick="login()">فتح النظام</button>
+        </div>
+    </div>
+
+    <nav class="top-nav">
+        <div class="logo-area">
+            <h2>AM CONTROL</h2>
+            <span class="admin-badge">SUPPORT HUB</span>
+        </div>
+        <button onclick="fetchTickets()" style="background:none; border:1px solid var(--accent); color:var(--accent); padding:5px 15px; border-radius:8px; cursor:pointer; font-size:12px;">تحديث 🔄</button>
+    </nav>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">📥</div>
+            <div class="stat-info"><h4 id="count-pending">0</h4><p>تذاكر جديدة</p></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-info"><h4 id="count-review">0</h4><p>قيد المراجعة</p></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📁</div>
+            <div class="stat-info"><h4 id="count-archived">0</h4><p>الأرشيف</p></div>
+        </div>
+    </div>
+
+    <div class="control-bar">
+        <button class="filter-btn active" onclick="setFilter('pending', this)">🆕 الوارد</button>
+        <button class="filter-btn" onclick="setFilter('reviewing', this)">⏳ المعالجة</button>
+        <button class="filter-btn" onclick="setFilter('archived', this)">✅ الأرشيف</button>
+    </div>
+
+    <div id="loading" class="hidden">جاري جلب التذاكر من السيرفر...</div>
+    <main class="main-content" id="tickets-grid"></main>
+
+<script>
+    let currentFilter = 'pending';
+    let allTickets = [];
+
+    async function login() {
+        const pass = document.getElementById('admin-pass').value;
+        const res = await fetch('/api/admin_audit_tickets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'admin_login', module: 'tickets', password: pass })
+        });
+        if(res.ok) { 
+            document.getElementById('auth-gate').classList.add('hidden'); 
+            fetchTickets();
+        } else { 
+            Swal.fire("خطأ", "كلمة السر غير صحيحة", "error"); 
+        }
+    }
+
+    async function fetchTickets() {
+        document.getElementById('loading').classList.remove('hidden');
+        try {
+            const res = await fetch('/api/admin_audit_tickets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'get_all_tickets', module: 'tickets' })
+            });
+            const data = await res.json();
+            if(!res.ok) throw new Error(data.error);
+            allTickets = data;
+            updateStats();
+            renderTickets();
+        } catch (e) {
+            console.error(e);
+        } finaly {
+            document.getElementById('loading').classList.add('hidden');
+        }
+    }
+
+    function updateStats() {
+        document.getElementById('count-pending').innerText = allTickets.filter(t => t.status === 'pending').length;
+        document.getElementById('count-review').innerText = allTickets.filter(t => t.status === 'reviewing').length;
+        document.getElementById('count-archived').innerText = allTickets.filter(t => t.status === 'approved' || t.status === 'rejected').length;
+    }
+
+    function setFilter(f, btn) {
+        currentFilter = f;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderTickets();
+    }
+
+    function renderTickets() {
+        const grid = document.getElementById('tickets-grid');
+        grid.innerHTML = "";
+        
+        const filtered = allTickets.filter(t => {
+            if (currentFilter === 'pending') return t.status === 'pending';
+            if (currentFilter === 'reviewing') return t.status === 'reviewing';
+            return t.status === 'approved' || t.status === 'rejected';
+        });
+
+        if(filtered.length === 0) {
+            grid.innerHTML = '<div style="text-align:center; opacity:0.5; padding:50px;">لا توجد تذاكر في هذا القسم</div>';
+            return;
+        }
+
+        filtered.forEach(t => {
+            const date = new Date(t.timestamp).toLocaleString('ar-EG');
+            grid.innerHTML += `
+                <div class="ticket-row">
+                    <div class="ticket-main">
+                        <span class="ticket-type">${t.type || 'طلب عام'}</span>
+                        <div class="user-info">
+                            <div class="user-avatar">${(t.email || 'U')[0].toUpperCase()}</div>
+                            <div>
+                                <div style="font-weight:700; font-size:14px;">${t.email}</div>
+                                <div style="font-size:11px; opacity:0.5;">${date}</div>
+                            </div>
+                        </div>
+                        <div style="font-size:12px; color:var(--accent); font-weight:bold;">الخدمة: ${t.selectedService || 'غير حددة'}</div>
+                        <div class="ticket-msg">${t.message}</div>
+                    </div>
+                    
+                    <div class="ticket-side">
+                        ${(t.status === 'pending' || t.status === 'reviewing') ? `
+                            <p style="font-size:12px; margin-bottom:8px; opacity:0.7;">الإجراء السريع:</p>
+                            <textarea class="form-control" id="reply-${t.id}" placeholder="اكتب الرد للمستخدم..." rows="3"></textarea>
+                            <button class="btn-action btn-approve" onclick="finalize('${t.id}', '${t.uid}', 'approved')">حل / قبول الطلب</button>
+                            <button class="btn-action btn-reject" onclick="finalize('${t.id}', '${t.uid}', 'rejected')">إغلاق ورفض الطلب</button>
+                        ` : `
+                            <div style="background:rgba(255,255,255,0.03); padding:15px; border-radius:15px; border:1px dashed var(--accent);">
+                                <div style="margin-bottom:10px; color:var(--accent); font-weight:900;">✅ تمت المعالجة</div>
+                                <div style="font-size:13px; opacity:0.8;"><b>رد الإدارة:</b> ${t.adminReply || 'بدون رد'}</div>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    async function finalize(tId, uId, status) {
+        const reply = document.getElementById(`reply-${tId}`).value;
+        if(!reply) return Swal.fire("تنبيه", "يجب كتابة رد للمستخدم", "warning");
+
+        Swal.fire({ title: 'جاري الحفظ...', didOpen: () => { Swal.showLoading(); } });
+
+        try {
+            const res = await fetch('/api/admin_audit_tickets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'finalize_ticket', module: 'tickets', tId, uid: uId, status, reply })
+            });
+
+            if(res.ok) {
+                Swal.fire("نجاح", "تمت معالجة التذكرة بنجاح", "success");
+                fetchTickets();
+            } else {
+                throw new Error("Failed to finalize");
+            }
+        } catch (e) {
+            Swal.fire("خطأ", "حدثت مشكلة أثناء الحفظ", "error");
+        }
+    }
+</script>
+</body>
+</html>
