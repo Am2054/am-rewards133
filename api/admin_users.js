@@ -61,34 +61,60 @@ export default async function handler(req, res) {
     // --- [3] موديول إدارة مستخدمي العقارات ---
     if (module === 'users') {
       if (action === 'get_users') {
-        let sortField = sortBy === 'points' ? 'points' : 'lastLogin';
-        let queryRef = db.collection('users').orderBy(sortField, 'desc').limit(10);
 
-        if (searchQuery) {
-          queryRef = db.collection('users')
-            .where('email', '>=', searchQuery.toLowerCase())
-            .where('email', '<=', searchQuery.toLowerCase() + '\uf8ff')
-            .limit(10);
-        } else if (lastId) {
-          const lastSnapshot = await db.collection('users').doc(lastId).get();
-          if (lastSnapshot.exists) queryRef = queryRef.startAfter(lastSnapshot);
-        }
+  let sortField = "lastLogin"; // اسم الحقل عندك
 
-        const snap = await queryRef.get();
-        const users = snap.docs.map(d => {
-          const uData = d.data();
-          return {
-            id: d.id,
-            ...uData,
-            // معالجة مرنة لدعم كلا الحالتين
-            status: uData.isBanned ? 'banned' : 'active',
-            lastLoginText: uData.lastLoginDate?.toDate?.().toLocaleString('ar-EG') || 'غير متاح'
-          };
-        });
+  let queryRef = db.collection("users")
+    .orderBy(sortField, "desc")
+    .limit(10);
 
-        const countSnap = await db.collection('users').count().get();
-        return res.status(200).json({ users, total: countSnap.data().count });
-      }
+  // البحث
+  if (searchQuery) {
+    queryRef = db.collection("users")
+      .where("email", ">=", searchQuery.toLowerCase())
+      .where("email", "<=", searchQuery.toLowerCase() + "\uf8ff")
+      .limit(10);
+  }
+
+  // الصفحات
+  else if (lastId) {
+    const lastSnapshot = await db.collection("users").doc(lastId).get();
+
+    if (lastSnapshot.exists) {
+      queryRef = queryRef.startAfter(lastSnapshot);
+    }
+  }
+
+  const snap = await queryRef.get();
+
+  console.log("Users Found:", snap.size);
+
+  snap.forEach(doc => {
+    console.log(doc.id, doc.data());
+  });
+
+  const users = snap.docs.map(doc => {
+    const uData = doc.data();
+
+    return {
+      id: doc.id,
+      ...uData,
+
+      status: uData.isBanned ? "banned" : "active",
+
+      lastLoginText: uData.lastLogin
+        ? uData.lastLogin.toDate().toLocaleString("ar-EG")
+        : "غير متاح"
+    };
+  });
+
+  const countSnap = await db.collection("users").count().get();
+
+  return res.status(200).json({
+    users,
+    total: countSnap.data().count
+  });
+             }
 
       // تعديل رصيد محفظة أو نقاط العضو
       if (action === 'edit_points') {
