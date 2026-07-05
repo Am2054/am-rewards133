@@ -16,7 +16,7 @@ const db = getFirestore();
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-  const { action, module, password, query, uid, amount, status, tId, reply, pts } = req.body;
+  const { action, module, password, query, uid, status, tId, reply } = req.body;
 
   // --- [1] نظام تسجيل الدخول المنفصل ---
   if (action === 'admin_login') {
@@ -39,11 +39,10 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  // التحقق من الكوكيز
   const cookies = parse(req.headers.cookie || "");
 
   try {
-    // --- [2] موديول المراجعة (Audit Module) ---
+    // --- [2] موديول المراجعة العام (Audit Module) ---
     if (module === 'audit') {
       if (!cookies.auditToken) return res.status(401).json({ error: "No Audit Token" });
       jwt.verify(cookies.auditToken, process.env.JWT_SECRET);
@@ -58,40 +57,19 @@ export default async function handler(req, res) {
         const targetUid = userDoc.id;
         const userData = userDoc.data();
 
-        const [withdrawals, tasks, referrals, devices, tickets] = await Promise.all([
-          db.collection("withdrawals").where("userId", "==", targetUid).get(),
-          db.collection("tasksCompleted").where("userId", "==", targetUid).get(),
-          db.collection("users").where("referredBy", "==", targetUid).get(),
+        const [devices, tickets] = await Promise.all([
           db.collection("userDevices").where("uid", "==", targetUid).limit(1).get(),
           db.collection("support_tickets").where("uid", "==", targetUid).get()
         ]);
 
-        const tasksAnalysis = {};
-        tasks.forEach(doc => {
-          const d = doc.data();
-          const type = d.taskType || "other";
-          if (!tasksAnalysis[type]) tasksAnalysis[type] = { count: 0, points: 0, details: [] };
-          tasksAnalysis[type].count++;
-          tasksAnalysis[type].points += (Number(d.pointsEarned) || 0);
-          tasksAnalysis[type].details.push({ ...d, id: doc.id, date: d.date?.toDate() || null });
-        });
-
         return res.status(200).json({
           profile: { uid: targetUid, ...userData, deviceId: devices.docs[0]?.data()?.deviceId || "غير مسجل", lastLogin: userData.lastLogin?.toDate() || null },
-          tasksGrouped: tasksAnalysis,
-          withdrawals: withdrawals.docs.map(d => ({ ...d.data(), id: d.id, timestamp: d.date?.toDate() || null })),
-          tickets: tickets.docs.map(d => ({ ...d.data(), id: d.id, timestamp: d.timestamp?.toDate() || null })),
-          referralsCount: referrals.size
+          tickets: tickets.docs.map(d => ({ ...d.data(), id: d.id, timestamp: d.timestamp?.toDate() || null }))
         });
-      }
-
-      if (action === 'updatePoints') {
-        await db.collection("users").doc(uid).update({ points: Number(amount) });
-        return res.status(200).json({ success: true });
       }
     }
 
-    // --- [3] موديول التذاكر (Tickets Module) ---
+    // --- [3] موديول التذاكر النقي (Tickets Module) ---
     if (module === 'tickets') {
       if (!cookies.ticketToken) return res.status(401).json({ error: "No Ticket Token" });
       jwt.verify(cookies.ticketToken, process.env.JWT_SECRET);
@@ -106,16 +84,9 @@ export default async function handler(req, res) {
         await ticketRef.update({ 
           status, 
           adminReply: reply, 
-          rewardPoints: Number(pts), 
           handledAt: FieldValue.serverTimestamp() 
         });
-
-        if (status === 'approved' && Number(pts) > 0) {
-          await db.collection("users").doc(uid).update({ points: FieldValue.increment(Number(pts)) });
-          await db.collection("points_transactions").add({ 
-            uid, amount: Number(pts), type: "reward", timestamp: FieldValue.serverTimestamp() 
-          });
-        }
+        
         return res.status(200).json({ success: true });
       }
     }
