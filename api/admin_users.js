@@ -70,7 +70,7 @@ export default async function handler(req, res) {
             .where('email', '<=', searchQuery.toLowerCase() + '\uf8ff')
             .limit(10);
         } else if (lastId) {
-          const lastSnapshot = await db.collection('users').doc(lastId).get();
+          const lastSnapshot = await db.collection('users').doc(uid).get();
           if (lastSnapshot.exists) queryRef = queryRef.startAfter(lastSnapshot);
         }
 
