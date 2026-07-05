@@ -61,7 +61,7 @@ export default async function handler(req, res) {
     // --- [3] موديول إدارة مستخدمي العقارات ---
     if (module === 'users') {
       if (action === 'get_users') {
-        let sortField = sortBy === 'points' ? 'points' : 'lastLoginDate';
+        let sortField = sortBy === 'points' ? 'points' : 'lastLogin';
         let queryRef = db.collection('users').orderBy(sortField, 'desc').limit(10);
 
         if (searchQuery) {
