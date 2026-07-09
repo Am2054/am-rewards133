@@ -1274,12 +1274,9 @@
       }
 
       async startPropertyChat(propertyId, propertyTitle, ownerId, ownerName) {
-        // يُفضل استخدام زر تواصل مع المالك الجديد، مع الحفاظ على دمج المنطق الأصلي في حال استدعائه كبديل
         if (!AppState.currentUserId) return;
         if (window.productionChat) {
-          const propDoc = AppState.properties.find(p => p.id === propertyId);
-          const propImg = propDoc ? (propDoc.coverImage || (propDoc.images && propDoc.images[0]) || '') : '';
-          productionChat.startOrOpenChat(propertyId, propertyTitle, propImg, ownerId, AppState.currentUserId);
+          productionChat.startOrOpenChat(propertyId);
         }
       }
 
@@ -1515,13 +1512,7 @@
                     <i class="fas fa-comments"></i> تواصل ودردشة فورية حول العقار 💬
                   </button>
                   <button class="property-edit-btn" style="width:auto; padding:0.75rem 2.5rem; background: linear-gradient(90deg, #10b981, var(--neon-cyan));" 
-                          onclick="productionChat.startOrOpenChat(
-                            '${propDoc.id}', 
-                            '${(propDoc.title || 'عقار').replace(/'/g, "\\'")}', 
-                            '${propDoc.coverImage || (propDoc.images && propDoc.images[0]) || ''}', 
-                            '${propDoc.ownerId || propDoc.uid || ''}', 
-                            AppState.currentUserId
-                          )">
+                          onclick="productionChat.startOrOpenChat('${propDoc.id}')">
                     💬 تواصل مع المالك
                   </button>
                 </div>
@@ -1686,16 +1677,32 @@
         });
       }
 
-      async startOrOpenChat(propertyId, propertyTitle, propertyImage, ownerId, buyerId) {
-        if (!buyerId || !ownerId || !propertyId) {
-          alert("⚠️ لا يمكن بدء المحادثة لعدم اكتمال بيانات أطراف العملية.");
+      async startOrOpenChat(propertyId) {
+        const buyerId = AppState.currentUserId;
+        if (!buyerId) {
+          alert("⚠️ يرجى تسجيل الدخول أولاً لتتمكن من مراسلة المالك.");
+          return;
+        }
+
+        const propDoc = AppState.properties.find(p => p.id === propertyId);
+        if (!propDoc) {
+          alert("⚠️ تعذر العثور على بيانات هذا العقار.");
+          return;
+        }
+
+        const ownerId = propDoc.ownerId || propDoc.uid || '';
+        if (!ownerId) {
+          alert("⚠️ تعذر الحصول على بيانات مالك هذا العقار.");
           return;
         }
 
         if (buyerId === ownerId) {
-          alert("⚠️ لا يمكن بدء محادثة مع نفسك.");
+          alert("⚠️ لا يمكن بدء محادثة مع نفسك بخصوص عقارك!");
           return;
         }
+
+        const propertyTitle = propDoc.title || 'عقار';
+        const propertyImage = propDoc.coverImage || (propDoc.images && propDoc.images[0]) || 'https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop';
 
         const roomId = `room_${buyerId}_${ownerId}_${propertyId}`;
         const roomRef = ref(rtdb, `chatRooms/${roomId}`);
@@ -1707,7 +1714,7 @@
               roomId: roomId,
               propertyId: propertyId,
               propertyTitle: propertyTitle,
-              propertyImage: propertyImage || 'https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop',
+              propertyImage: propertyImage,
               ownerId: ownerId,
               buyerId: buyerId,
               participants: {
@@ -1725,7 +1732,7 @@
           this.activeRoomId = roomId;
           app.navigateTo('messages');
           this.renderWhatsAppStyleThreads(buyerId);
-          this.openRoom(roomId, buyerId, ownerId === buyerId ? buyerId : ownerId);
+          this.openRoom(roomId, buyerId, ownerId);
         } catch (err) {
           console.error("Error creating chat room: ", err);
         }
