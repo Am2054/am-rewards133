@@ -571,7 +571,7 @@
       }
 
       initAuth() {
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
           if (!user) {
             window.location.href = "login.html";
             return;
@@ -579,11 +579,70 @@
 
           ChatState.currentUserId = user.uid;
           
-          // تشغيل نظام التواجد فوراً
+          // 1. تفعيل نظام تتبع الحضور
           this.initPresence(user.uid);
           
-          // تحميل القائمة الجانبية للمحادثات
+          // 2. تحميل القائمة الجانبية للمحادثات
           this.loadThreads(user.uid);
+
+          // 3. التقاط المعاملات الممررة من لوحة التحكم (Dashboard) تلقائياً لمعالجتها فورياً
+          const urlParams = new URLSearchParams(window.location.search);
+          const paramPropertyId = urlParams.get('propertyId');
+          const paramOwnerId = urlParams.get('ownerId');
+
+          if (paramPropertyId && paramOwnerId) {
+            const currentUserId = user.uid;
+            const roomId = `room_${currentUserId}_${paramOwnerId}_${paramPropertyId}`;
+            const roomRef = ref(rtdb, `chatRooms/${roomId}`);
+
+            try {
+              const roomSnap = await get(roomRef);
+              
+              if (!roomSnap.exists()) {
+                // جلب بيانات العقار من Firestore لإنشاء الغرفة بالبيانات الحقيقية والمحدثة
+                const docRef = doc(db, "properties", paramPropertyId);
+                const docSnap = await getDoc(docRef);
+                
+                let propertyTitle = "عقار معتمد";
+                let propertyImage = "https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop";
+
+                if (docSnap.exists()) {
+                  const prop = docSnap.data();
+                  propertyTitle = prop.title || propertyTitle;
+                  propertyImage = prop.coverImage || (prop.images && prop.images[0]) || propertyImage;
+                }
+
+                const currentTimestamp = Date.now();
+                const newRoomData = {
+                  roomId: roomId,
+                  propertyId: paramPropertyId,
+                  propertyTitle: propertyTitle,
+                  propertyImage: propertyImage,
+                  ownerId: paramOwnerId,
+                  buyerId: currentUserId,
+                  participants: {
+                    [paramOwnerId]: true,
+                    [currentUserId]: true
+                  },
+                  lastMessage: "تم بدء المحادثة",
+                  lastMessageTime: currentTimestamp,
+                  createdAt: currentTimestamp,
+                  propertyStatus: "available"
+                };
+
+                await set(roomRef, newRoomData);
+              }
+
+              // تنظيف الرابط بعد نجاح قراءة البيانات لمنع تكرار الإدخال عند تحديث الصفحة يدوياً
+              window.history.replaceState({}, document.title, window.location.pathname);
+
+              // الانتقال التفاعلي وتفعيل الغرفة المستهدفة تلقائياً
+              document.getElementById('app-layout-wrapper').classList.add('show-active-chat');
+              this.openChat(roomId, currentUserId, paramOwnerId);
+            } catch (err) {
+              console.error("Error auto-initializing chat from parameters:", err);
+            }
+          }
         });
       }
 
@@ -759,7 +818,7 @@
           let isDeleted = room.propertyStatus !== 'available';
 
           try {
-            // محاولة التحقق الإضافي من الخادم (Firestore) إن توفر
+            // التحقق الإضافي من الخادم (Firestore)
             const docRef = doc(db, "properties", room.propertyId);
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
@@ -984,7 +1043,7 @@
       }
     }
 
-    // تشغيل التطبيق المستقل
+    // تشغيل التطبيق المستقل بنجاح
     window.chatApp = new StandaloneChatApp();
   </script>
 </body>
