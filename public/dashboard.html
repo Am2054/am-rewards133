@@ -164,7 +164,7 @@
 
     .top-bar {
       display: flex;
-      justify-content: space-between;
+      justify-between: space-between;
       align-items: center;
       margin-bottom: 2.5rem;
       padding-bottom: 1.25rem;
@@ -337,7 +337,7 @@
 
     .completion-header {
       display: flex;
-      justify-between: space-between;
+      justify-content: space-between;
       align-items: center;
       margin-bottom: 1.5rem;
     }
@@ -516,11 +516,9 @@
         display:grid;
         grid-template-columns:260px 1fr 170px;
         align-items:center;
-
         background:var(--glass-bg);
         border:1px solid var(--glass-border);
         border-radius:18px;
-
         overflow:hidden;
         transition:.3s;
     }
@@ -584,9 +582,7 @@
         display:flex;
         align-items:center;
         gap:6px;
-
         padding:8px 12px;
-
         background:rgba(255,255,255,.05);
         border-radius:10px;
     }
@@ -606,17 +602,12 @@
     .property-edit-btn{
         width:150px;
         height:48px;
-
         border:none;
         border-radius:12px;
-
         background:linear-gradient(90deg,var(--neon-purple),var(--neon-cyan));
-
         color:white;
         font-weight:900;
-
         cursor:pointer;
-
         transition:.3s;
     }
 
@@ -628,11 +619,8 @@
         position:absolute;
         top:15px;
         right:15px;
-
         padding:6px 14px;
-
         border-radius:25px;
-
         font-size:13px;
         font-weight:bold;
     }
@@ -653,39 +641,13 @@
         position:absolute;
         top:15px;
         left:15px;
-
         width:40px;
         height:40px;
-
         border-radius:50%;
         border:none;
-
         background:rgba(0,0,0,.5);
-
         color:white;
-
         cursor:pointer;
-    }
-
-    @media(max-width:992px){
-
-    .property-card{
-        grid-template-columns:1fr;
-    }
-
-    .property-image-wrapper{
-        height:230px;
-    }
-
-    .property-card-actions{
-        padding-top:0;
-        padding-bottom:20px;
-    }
-
-    .property-edit-btn{
-        width:100%;
-    }
-
     }
 
     /* ============================================
@@ -708,6 +670,7 @@
       gap: 0.85rem;
       cursor: pointer;
       border-bottom: 1px solid var(--glass-border);
+      position: relative;
     }
 
     .chat-thread-card:hover, .chat-thread-card.active-thread { background: rgba(0, 242, 255, 0.08); }
@@ -718,6 +681,20 @@
     .msg-bubble { max-width: 70%; padding: 0.9rem 1.4rem; border-radius: 14px; font-size: 0.95rem; line-height: 1.6; font-weight: 600; }
     .msg-bubble.sent { background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan)); color: #fff; align-self: flex-start; border-top-right-radius: 2px; }
     .msg-bubble.received { background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); align-self: flex-end; border-top-left-radius: 2px; }
+    .msg-bubble.system { background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.2); color: #fde047; max-width: 90%; align-self: center; text-align: center; border-radius: 12px; font-size: 0.85rem; }
+
+    .chat-unread-badge {
+      background: var(--danger);
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 900;
+      padding: 2px 8px;
+      border-radius: 20px;
+      position: absolute;
+      left: 1.25rem;
+      top: 50%;
+      transform: translateY(-50%);
+    }
     
     .chat-input-action-bar { padding: 1.25rem; background: rgba(15, 23, 42, 0.85); border-top: 1px solid var(--glass-border); display: flex; align-items: center; gap: 1rem; }
     .chat-input-action-bar input {
@@ -833,6 +810,10 @@
       .menu-toggle { display: block; }
       .chat-main-wrapper { grid-template-columns: 1fr; }
       .search-mode-container { grid-template-columns: 1fr; }
+      .property-card{ grid-template-columns:1fr; }
+      .property-image-wrapper{ height:230px; }
+      .property-card-actions{ padding-top:0; padding-bottom:20px; }
+      .property-edit-btn{ width:100%; }
     }
   </style>
 </head>
@@ -1079,8 +1060,10 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, doc, onSnapshot, updateDoc, collection, query, where, getDocs, addDoc, orderBy, or } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, onSnapshot, collection, query, where, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    // استيراد أدوات وقاعدة بيانات Realtime Database المخصصة للشات الفوري
+    import { getDatabase, ref, get, set, push, child, update, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -1095,14 +1078,15 @@
 
     const firebaseApp = initializeApp(firebaseConfig);
     const db = getFirestore(firebaseApp);
+    const rtdb = getDatabase(firebaseApp);
     const auth = getAuth(firebaseApp);
 
     const AppState = {
       currentUser: null,
       currentUserId: null,
       properties: [],
-      activeChatThreadId: null,
-      activeChatPropertyId: null
+      activeChatId: null,
+      activeChatReceiverId: null
     };
 
     class AM_Dashboard_App {
@@ -1110,7 +1094,8 @@
         this.initDOM();
         this.initRouting();
         this.unsubscribeUser = null;
-        this.unsubscribeMessages = null;
+        this.unsubscribeChatsList = null;
+        this.unsubscribeMessagesStream = null;
         this.initAuthAndSnapshotListener();
       }
 
@@ -1193,7 +1178,7 @@
         }
 
         if (sectionId === 'messages') {
-          this.initChatListener();
+          this.initChatsListListener();
         }
       }
 
@@ -1239,7 +1224,7 @@
             this.renderProfileDOM();
             this.fetchApprovedProperties();
           }, (error) => {
-            console.error("Firestore error state:", error);
+            console.error("Firestore user sync state error:", error);
           });
         });
       }
@@ -1248,151 +1233,223 @@
         window.location.href = "login.html";
       }
 
-      initChatListener() {
+      /* ==========================================================
+         نظام المحادثات الاحترافي عبر Realtime Database (Production Ready)
+         ========================================================== */
+      
+      /**
+       * دالة الضغط على "تواصل مع المالك" - إنشاء غرفة فريدة حتمية مدمجة أو فتحها فوراً
+       */
+      async startPropertyChat(propertyId, propertyTitle, ownerId, ownerName) {
         if (!AppState.currentUserId) return;
-        if (this.unsubscribeMessages) this.unsubscribeMessages();
+        
+        if (AppState.currentUserId === ownerId) {
+          alert("⚠️ لا يمكنك بدء محادثة شات مع نفسك بخصوص عقارك الخاص!");
+          return;
+        }
 
-        const q = query(
-          collection(db, "messages"),
-          or(
-            where("receiverId", "==", AppState.currentUserId),
-            where("senderId", "==", AppState.currentUserId)
-          )
-        );
+        // توليد الـ ID الحتمي لضمان غرفة وحيدة مخصصة للعقار بين المشتري والمالك
+        const chatId = `${propertyId}_${AppState.currentUserId}_${ownerId}`;
+        const chatRef = ref(rtdb, `chats/${chatId}`);
 
-        this.unsubscribeMessages = onSnapshot(q, (snapshot) => {
-          const threadList = document.getElementById('chat-threads-list');
+        try {
+          const snapshot = await get(chatRef);
+
+          if (!snapshot.exists()) {
+            // الغرفة غير موجودة مسبقاً، ننشئها مع أول رسالة تلقائية من النظام
+            const systemMessageText = `🏠 بدأت هذه المحادثة بخصوص العقار: [ ${propertyTitle} ]\n\nيرجى الالتزام بقواعد المنصة وعدم مشاركة أي بيانات أو تحويل أي مبالغ خارج النظام لضمان حقوقك وسرية الحجز.`;
+            const msgKey = push(child(ref(rtdb), `messages/${chatId}`)).key;
+
+            const chatMeta = {
+              propertyId: propertyId,
+              ownerId: ownerId,
+              buyerId: AppState.currentUserId,
+              participants: {
+                [ownerId]: true,
+                [AppState.currentUserId]: true
+              },
+              propertyTitle: propertyTitle,
+              propertyImage: "https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop",
+              propertyPrice: 0,
+              propertyStatus: "available",
+              lastMessage: systemMessageText,
+              lastMessageTime: serverTimestamp(),
+              lastSender: "system",
+              createdAt: serverTimestamp(),
+              unread: {
+                [ownerId]: 1, // المالك لديه رسالة ترحيبية غير مقروءة من النظام
+                [AppState.currentUserId]: 0
+              }
+            };
+
+            // 1. كتابة الـ Meta للغرفة العقارية
+            await set(chatRef, chatMeta);
+
+            // 2. إرسال الرسالة التلقائية في الـ Sub-node الخاص بالرسائل
+            await set(ref(rtdb, `messages/${chatId}/${msgKey}`), {
+              senderId: "system",
+              receiverId: ownerId,
+              type: "text",
+              message: systemMessageText,
+              image: "",
+              createdAt: serverTimestamp(),
+              status: "sent"
+            });
+          }
+
+          // الانتقال لصفحة المحادثات فورياً وفتح الغرفة المستهدفة وتصفير العداد للمستخدم الحالي
+          this.navigateTo('messages');
+          this.selectChatThread(chatId, ownerId, propertyTitle, ownerName);
+
+        } catch (e) {
+          console.error("Failed to execute createOrOpenChat engine: ", e);
+        }
+      }
+
+      /**
+       * الاستماع الفوري اللحظي لجميع المحادثات التي يشارك فيها المستخدم وترتيبها تنازلياً
+       */
+      initChatsListListener() {
+        if (!AppState.currentUserId) return;
+        if (this.unsubscribeChatsList) this.unsubscribeChatsList();
+
+        const chatsRef = ref(rtdb, "chats");
+
+        this.unsubscribeChatsList = onValue(chatsRef, (snapshot) => {
+          const threadListContainer = document.getElementById('chat-threads-list');
           let html = "";
-          let threads = {};
+          let rawThreads = [];
 
-          snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            const otherUserId = data.senderId === AppState.currentUserId ? data.receiverId : data.senderId;
-            const otherUserName = data.senderId === AppState.currentUserId ? (data.receiverName || 'الطرف الآخر') : (data.senderName || 'مستأجر مهتم');
-            
-            const threadKey = `${data.propertyId || 'general'}_${otherUserId}`;
-            
-            if (!threads[threadKey]) {
-              threads[threadKey] = {
-                propertyId: data.propertyId || 'general',
-                propertyTitle: data.propertyTitle || 'استفسار عام',
-                senderId: otherUserId,
-                senderName: otherUserName,
-                lastMsg: data.message,
-                timestamp: data.timestamp
-              };
+          snapshot.forEach((childSnap) => {
+            const data = childSnap.val();
+            // تصفية المحادثات التي ينتمي إليها المستخدم الحالي فقط
+            if (data.participants && data.participants[AppState.currentUserId] === true) {
+              rawThreads.push({
+                id: childSnap.key,
+                ...data
+              });
             }
           });
 
-          Object.keys(threads).forEach((key) => {
-            const t = threads[key];
-            const isActive = AppState.activeChatThreadId === t.senderId && AppState.activeChatPropertyId === t.propertyId;
+          // ترتيب المحادثات من الأحدث للأقدم تنازلياً حسب توقيت الرسالة الأخيرة
+          rawThreads.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0));
+
+          rawThreads.forEach((t) => {
+            const otherUserId = t.senderId === AppState.currentUserId ? t.receiverId : (t.buyerId === AppState.currentUserId ? t.ownerId : t.buyerId);
+            const otherUserName = t.buyerId === AppState.currentUserId ? "مالك العقار" : "مستأجر مهتم";
+            
+            const unreadCount = (t.unread && t.unread[AppState.currentUserId]) || 0;
+            const unreadBadgeHtml = unreadCount > 0 ? `<span class="chat-unread-badge">${unreadCount}</span>` : '';
+            const isActive = AppState.activeChatId === t.id;
+
             html += `
-              <div class="chat-thread-card ${isActive ? 'active-thread' : ''}" onclick="app.selectChatThread('${t.senderId}', '${t.senderName}', '${t.propertyId}', '${t.propertyTitle}')">
-                <div class="user-avatar" style="width:35px; height:35px; font-size:0.8rem;">${t.senderName[0]}</div>
-                <div style="flex:1; min-width:0;">
+              <div class="chat-thread-card ${isActive ? 'active-thread' : ''}" onclick="app.selectChatThread('${t.id}', '${otherUserId}', '${t.propertyTitle}', '${otherUserName}')">
+                <div class="user-avatar" style="width:35px; height:35px; font-size:0.8rem;">🏠</div>
+                <div style="flex:1; min-width:0; padding-left: 20px;">
                   <div style="font-weight:700; font-size:0.85rem; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t.propertyTitle}</div>
-                  <div style="font-size:0.75rem; color:var(--neon-cyan); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><strong>${t.senderName}:</strong> ${t.lastMsg}</div>
+                  <div style="font-size:0.75rem; color:var(--neon-cyan); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t.lastMessage}</div>
                 </div>
+                ${unreadBadgeHtml}
               </div>
             `;
           });
 
-          if (threadList) {
-            threadList.innerHTML = html || `<p style="color:var(--muted); text-align:center; padding:2rem; font-size:0.85rem;">لا توجد رسائل عقارية واردة أو صادرة بعد.</p>`;
+          if (threadListContainer) {
+            threadListContainer.innerHTML = html || `<p style="color:var(--muted); text-align:center; padding:2rem; font-size:0.85rem;">لا توجد رسائل عقارية واردة أو صادرة بعد.</p>`;
           }
         });
       }
 
-      async selectChatThread(otherUserId, otherUserName, propertyId, propertyTitle) {
-        AppState.activeChatThreadId = otherUserId;
-        AppState.activeChatPropertyId = propertyId;
-        document.getElementById('chat-active-user-bar').textContent = `دردشة العقار: [ ${propertyTitle} ] مع: ${otherUserName}`;
+      /**
+       * اختيار محادثة عقارية محددة، تصفير عدادها، والاستماع لتدفق رسائلها
+       */
+      async selectChatThread(chatId, otherUserId, propertyTitle, otherUserName) {
+        AppState.activeChatId = chatId;
+        AppState.activeChatReceiverId = otherUserId;
+        
+        document.getElementById('chat-active-user-bar').textContent = `دردشة العقار: [ ${propertyTitle} ]`;
 
-        const stream = document.getElementById('chat-messages-stream');
-        if (!stream) return;
+        // 1. تصفير عداد الرسائل غير المقروءة للمستخدم الحالي فوراً في الـ RTDB
+        try {
+          await set(ref(rtdb, `chats/${chatId}/unread/${AppState.currentUserId}`), 0);
+        } catch (err) {
+          console.error("Failed to reset unread badge counter:", err);
+        }
 
-        const q = query(
-          collection(db, "messages"),
-          where("propertyId", "==", propertyId),
-          orderBy("timestamp", "asc")
-        );
+        // 2. الاستماع اللحظي للرسائل داخل الـ Sub-node التصاعدي
+        const messagesStreamContainer = document.getElementById('chat-messages-stream');
+        if (!messagesStreamContainer) return;
 
-        onSnapshot(q, (snapshot) => {
+        if (this.unsubscribeMessagesStream) this.unsubscribeMessagesStream();
+
+        const messagesRef = ref(rtdb, `messages/${chatId}`);
+        this.unsubscribeMessagesStream = onValue(messagesRef, (snapshot) => {
           let html = "";
-          snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            const isRelevant = 
-              (data.senderId === otherUserId && data.receiverId === AppState.currentUserId) ||
-              (data.senderId === AppState.currentUserId && data.receiverId === otherUserId);
-
-            if (isRelevant) {
-              const isSent = data.senderId === AppState.currentUserId;
+          snapshot.forEach((childSnap) => {
+            const data = childSnap.val();
+            if (data.senderId === "system") {
+              html += `<div class="msg-bubble system">${data.message}</div>`;
+            } else {
+              const isSentByMe = data.senderId === AppState.currentUserId;
               html += `
-                <div class="msg-bubble ${isSent ? 'sent' : 'received'}">
+                <div class="msg-bubble ${isSentByMe ? 'sent' : 'received'}">
                   ${data.message}
                 </div>
               `;
             }
           });
-          stream.innerHTML = html || `<p style="color:var(--muted); text-align:center; padding: 2rem;">اكتب استفسارك الأول بخصوص هذا العقار للبدء بالدردشة الفورية.</p>`;
-          stream.scrollTop = stream.scrollHeight;
+          
+          messagesStreamContainer.innerHTML = html || `<p style="color:var(--muted); text-align:center; padding: 2rem;">اكتب استفسارك الأول بخصوص هذا العقار للبدء بالدردشة الفورية.</p>`;
+          messagesStreamContainer.scrollTop = messagesStreamContainer.scrollHeight;
         });
       }
 
+      /**
+       * إرسال رسالة نصية وتحديث الـ Meta والعدادات الذرية للطرف الآخر بضربة واحدة Multi-Path Update
+       */
       async sendChatMessage() {
         const input = document.getElementById('chat-text-input');
         const text = input.value.trim();
-        if (!text || !AppState.activeChatThreadId || !AppState.currentUserId || !AppState.activeChatPropertyId) return;
+        if (!text || !AppState.activeChatId || !AppState.currentUserId || !AppState.activeChatReceiverId) return;
+
+        const chatId = AppState.activeChatId;
+        const receiverId = AppState.activeChatReceiverId;
 
         try {
-          const activeProp = AppState.properties.find(p => p.id === AppState.activeChatPropertyId);
-          const propTitle = activeProp ? activeProp.title : "استفسار عقاري";
+          // جلب القيمة الحالية لعداد unread الخاص بالمستلم لزيادته بشكل آمن
+          const receiverUnreadSnap = await get(ref(rtdb, `chats/${chatId}/unread/${receiverId}`));
+          const nextUnreadCount = (receiverUnreadSnap.val() || 0) + 1;
 
-          await addDoc(collection(db, "messages"), {
+          const newMsgKey = push(child(ref(rtdb), `messages/${chatId}`)).key;
+
+          const msgPayload = {
             senderId: AppState.currentUserId,
-            senderName: AppState.currentUser.name || "مالك معتمد",
-            receiverId: AppState.activeChatThreadId,
-            propertyId: AppState.activeChatPropertyId,
-            propertyTitle: propTitle,
+            receiverId: receiverId,
+            type: "text",
             message: text,
-            timestamp: new Date()
-          });
+            image: "",
+            createdAt: serverTimestamp(),
+            status: "sent"
+          };
+
+          // إعداد التحديثات المتقاطعة (Multi-Path Updates) لضمان الأمان والسرعة والذرية للـ Production النشط
+          const updates = {};
+          updates[`messages/${chatId}/${newMsgKey}`] = msgPayload;
+          updates[`chats/${chatId}/lastMessage`] = text;
+          updates[`chats/${chatId}/lastMessageTime`] = serverTimestamp();
+          updates[`chats/${chatId}/lastSender`] = AppState.currentUserId;
+          updates[`chats/${chatId}/unread/${receiverId}`] = nextUnreadCount;
+
+          await update(ref(rtdb), updates);
           input.value = "";
         } catch (e) {
-          console.error("Failed to send msg:", e);
+          console.error("Failed to dispatch real-time message via production engine:", e);
         }
       }
 
-      async startPropertyChat(propertyId, propertyTitle, ownerId, ownerName) {
-        if (!AppState.currentUserId) return;
-        if (AppState.currentUserId === ownerId) {
-          alert("⚠️ لا يمكنك بدء دردشة مع نفسك بخصوص عقارك!");
-          return;
-        }
-
-        try {
-          await addDoc(collection(db, "messages"), {
-            senderId: AppState.currentUserId,
-            senderName: AppState.currentUser.name || "مستأجر مهتم",
-            receiverId: ownerId,
-            propertyId: propertyId,
-            propertyTitle: propertyTitle,
-            message: `أهلاً بك، أنا مهتم بعقارك [ ${propertyTitle} ] الموضح بالمنصة وأريد الاستفسار عن تفاصيل الحجز والتعاقد.`,
-            timestamp: new Date()
-          });
-
-          AppState.activeChatThreadId = ownerId;
-          AppState.activeChatPropertyId = propertyId;
-          
-          this.navigateTo('messages');
-          this.initChatListener();
-          this.selectChatThread(ownerId, ownerName, propertyId, propertyTitle);
-        } catch (e) {
-          console.error("Failed to start property chat: ", e);
-        }
-      }
-
+      /* ==========================================================
+         باقي محركات النظام لوحة التحكم (الدعم الفني، الفلترة المتقدمة، العرض)
+         ========================================================== */
       async submitSupportTicket() {
         const title = document.getElementById('support-ticket-title').value.trim();
         const desc = document.getElementById('support-ticket-desc').value.trim();
@@ -1437,13 +1494,6 @@
         }
       }
 
-      showMainSearchDirect() {
-        this.navigateTo('search');
-      }
-
-      /* ============================================
-         HIGH-PERFORMANCE FACETED LIVE FILTER & SORT ENGINE
-         ============================================ */
       filterAndSortProperties() {
         const keyword = document.getElementById('search-keyword').value.toLowerCase().trim();
         const gov = document.getElementById('filter-governorate').value;
@@ -1473,7 +1523,6 @@
           if (city && !(p.city || "").toLowerCase().includes(city)) return false;
           if (district && !(p.district || p.area_name || "").toLowerCase().includes(district)) return false;
           if (type && (p.propertyType !== type && p.type !== type)) return false;
-          
           if (actionType && p.actionType !== actionType) return false;
 
           const price = Number(p.price || 0);
@@ -1502,26 +1551,21 @@
         } else if (sortBy === "price-desc") {
           filtered.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
         } else if (sortBy === "area-desc") {
-          filtered.sort((a, b) => leaguesSort(b.area) - leaguesSort(a.area));
+          filtered.sort((a, b) => Number(b.area || 0) - Number(a.area || 0));
         } else if (sortBy === "area-asc") {
-          filtered.sort((a, b) => leaguesSort(a.area) - leaguesSort(b.area));
+          filtered.sort((a, b) => Number(a.area || 0) - Number(b.area || 0));
         }
-
-        function leaguesSort(val) { return Number(val || 0); }
 
         document.getElementById('results-count-badge').textContent = `وجدنا ${filtered.length} وحدة سكنية مطابقة لبحثك`;
         this.renderHorizontalProperties(filtered);
       }
 
-      /* ============================================
-         HORIZONTAL REAL ESTATE CARD RENDERER
-      ============================================ */
       renderHorizontalProperties(list) {
         const container = document.getElementById("search-results-renderer");
         if (!container) return;
 
         if (list.length === 0) {
-          container.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--muted); padding: 3rem; font-weight:700;">لا توجد أي نتائج مطابقة لبحثك، جرب تغيير إعدادات الفلترة.</p>`;
+          container.innerHTML = `<p style="text-align: center; color: var(--muted); padding: 3rem; font-weight:700;">لا توجد أي نتائج مطابقة لبحثك، جرب تغيير إعدادات الفلترة.</p>`;
           return;
         }
 
