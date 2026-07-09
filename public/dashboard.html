@@ -1503,7 +1503,7 @@
                 </div>
 
                 <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                  <!-- تم دمج وتوحيد الزر الجديد ليعمل بالتناسق والمسار المباشر مع تطبيقك كليا -->
+                  <!-- توجيه الزر مباشرة لكود التطبيق الأساسي AM_Dashboard_App لعدم حدوث أي مشاكل مرجعية -->
                   <button class="property-edit-btn" style="width:auto; padding:0.75rem 2.5rem; background: linear-gradient(90deg, #10b981, var(--neon-cyan));" 
                           onclick="app.startOrOpenChat('${propDoc.id}')">
                     💬 تواصل مع المالك
@@ -1546,8 +1546,10 @@
           } catch (err) {
             console.error("Error signing out: ", err);
           }
-      
-   renderHomeChecklist() {
+        }
+      }
+
+      renderHomeChecklist() {
         const u = AppState.currentUser;
         const checklistContainer = document.getElementById('home-checklist');
         if(!checklistContainer || !u) return;
@@ -1568,7 +1570,7 @@
       }
 
       /* =========================================================================
-         محرك المحادثات العائمة الفورية المطور (Firebase Realtime Database)
+         محرك المحادثات اللحظي المتكامل (Firebase Realtime Database)
          ========================================================================= */
       initPresenceSystem(userId) {
         if (!userId) return;
@@ -1593,11 +1595,11 @@
       }
 
       async startOrOpenChat(propertyId) {
-        // فحص تتبعي في سياق تشخيص مشكلة الهوية (Console Logs Diagnostic Checks)
-        console.log("Diagnostic Check - Current AppState.currentUserId:", AppState.currentUserId);
-        console.log("Diagnostic Check - Current auth.currentUser UID:", auth.currentUser ? auth.currentUser.uid : "No auth instance user yet");
+        // فحص تشخيصي برمجياً لمعرفة مكمن الخطأ في الـ Scope
+        console.log("Diagnostic Log - AppState.currentUserId:", AppState.currentUserId);
+        console.log("Diagnostic Log - firebase.auth.currentUser:", auth.currentUser ? auth.currentUser.uid : null);
 
-        // صمام الأمان لمعرّف المشتري (Failsafe)
+        // صمام الأمان والمسار الاحتياطي لمعرف المشتري لتجنب أي مشاكل تقييم
         const buyerId = AppState.currentUserId || (auth.currentUser ? auth.currentUser.uid : null);
         if (!buyerId) {
           alert("⚠️ يرجى تسجيل الدخول أولاً لتتمكن من مراسلة المالك.");
@@ -1651,21 +1653,23 @@
             await set(roomRef, newRoomData);
           }
 
-          // فتح المحادثة الفورية العائمة المدمجة في الصفحة مباشرة
+          // تشغيل نافذة المحادثة اللحظية العائمة
           this.openRTDBChatWindow(roomId, propDoc, buyerId, ownerId);
-       } catch (err) {
-    console.error(err);
+        } catch (err) {
+          console.error(err);
 
-    alert(
-        "Error Code: " + err.code +
-        "\n\nMessage: " + err.message
-    );
-    }
+          // إظهار كود الخطأ البرمجي ورسالته بدقة شديدة لتحديد سبب الفشل أثناء استدعاء الـ SDK
+          alert(
+              "Error Code: " + err.code +
+              "\n\nMessage: " + err.message
+          );
+        }
+      }
 
       openRTDBChatWindow(roomId, propertyDoc, currentUserId, targetUserId) {
         this.activeChatPropertyId = propertyDoc.id;
 
-        // إغلاق الواجهة الفورية النشطة حالياً لمنع التسريب وتكرار المستمعين
+        // إغلاق أي نافذة عائمة نشطة مسبقاً لمنع حدوث تسريب في الذاكرة
         const existingWindow = document.getElementById('rtdb-chat-widget');
         if (existingWindow) {
           existingWindow.remove();
@@ -1675,10 +1679,10 @@
           off(this.activeRTDBListener);
         }
 
-        // تصفير عداد الرسائل غير المقروءة للطرف الحالي في الغرفة
+        // تصفير عداد الرسائل غير المقروءة فوراً عند الفتح
         set(ref(rtdb, `unreadCounts/${roomId}/${currentUserId}`), 0);
 
-        // بناء عنصر الدردشة العائم (Floating Glass Chat Widget)
+        // بناء عنصر الواجهة العائمة
         const chatWidget = document.createElement('div');
         chatWidget.id = 'rtdb-chat-widget';
         chatWidget.style.cssText = `
@@ -1701,7 +1705,7 @@
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         `;
 
-        // الحفاظ على التوافقية الكاملة للجوال
+        // تحسين عرض واجهة الدردشة بشكل فائق الاستجابة على الجوال والأجهزة الذكية
         const mediaQuery = window.matchMedia('(max-width: 480px)');
         const handleMobileLayout = (e) => {
           if (e.matches) {
@@ -1735,7 +1739,7 @@
             </div>
           </div>
           <div id="rtdb-messages-stream" style="flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; background: rgba(2, 6, 23, 0.45); direction: rtl;">
-            <!-- البث المباشر والرسائل -->
+            <!-- البث اللحظي للرسائل -->
           </div>
           <div style="padding: 12px; background: rgba(15, 23, 42, 0.95); border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; gap: 8px; align-items: center; direction: rtl;">
             <input type="text" id="rtdb-chat-input" placeholder="اكتب رسالتك بخصوص هذا العقار..." style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: #fff; padding: 10px 14px; border-radius: 8px; font-family: 'Cairo', sans-serif; font-size: 0.85rem; outline: none;">
@@ -1757,7 +1761,7 @@
         const chatInput = document.getElementById('rtdb-chat-input');
         const sendBtn = document.getElementById('rtdb-send-btn');
 
-        // بث وتحديث حالة الاتصال اللحظية للطرف الآخر (Online / Last Seen)
+        // تحديث حالة الاتصال للطرف الآخر (Online / Last Seen)
         onValue(ref(rtdb, `status/${targetUserId}`), (statusSnap) => {
           const presIndicator = document.getElementById('target-presence-indicator');
           if (!presIndicator) return;
@@ -1877,7 +1881,7 @@
         const uploaderBtn = document.createElement('button');
         uploaderBtn.id = 'rtdb-image-uploader-btn';
         uploaderBtn.style.cssText = 'background:none; border:none; color:var(--neon-cyan); font-size:1.15rem; cursor:pointer; padding:5px; margin-left:5px; display:flex; align-items:center;';
-        uploaderBtn.innerHTML = `<i class="fas fa-camera"></i>`;
+        uploaderBtn.innerHTML = `<i class="fas fa-camera" style="color:var(--neon-cyan);"></i>`;
 
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
@@ -1901,7 +1905,7 @@
             console.error("Image sending error: ", err);
             alert("⚠️ فشل معالجة ورفع الصورة.");
           } finally {
-            uploaderBtn.innerHTML = `<i class="fas fa-camera"></i>`;
+            uploaderBtn.innerHTML = `<i class="fas fa-camera" style="color:var(--neon-cyan);"></i>`;
           }
         });
 
