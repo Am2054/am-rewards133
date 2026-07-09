@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AM. Dashboard - لوحة التحكم العقارية الذكية</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --neon-cyan: #00e5ff; --neon-purple: #7c3aed;
+      --bg-primary: #0a0e1a; --bg-card: #151b2c; --bg-input: #1a2035;
+      --border-default: rgba(255,255,255,0.06); --border-hover: rgba(0,229,255,0.3);
+      --text-primary: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b;
+      --success: #22c55e; --danger: #ef4444;
+      --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 20px;
+      --shadow-glow: 0 0 20px rgba(0,229,255,0.15);
+      --transition-fast: 0.15s ease; --transition-smooth: 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Cairo',sans-serif;background:var(--bg-primary);color:var(--text-primary);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+    ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:10px}
+    ::-webkit-scrollbar-thumb:hover{background:var(--neon-cyan)}
+
+    .top-nav{position:sticky;top:0;z-index:100;background:rgba(10,14,26,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border-default);padding:0 2rem;height:68px;display:flex;align-items:center;justify-content:space-between;gap:2rem}
+    .nav-brand{font-size:1.65rem;font-weight:900;color:#fff;white-space:nowrap;letter-spacing:-1px}
+    .nav-brand span{color:var(--neon-cyan)}
+    .nav-links{display:flex;align-items:center;gap:0.35rem;overflow-x:auto;scrollbar-width:none}
+    .nav-links::-webkit-scrollbar{display:none}
+    .nav-link{padding:0.5rem 1rem;border-radius:var(--radius-sm);color:var(--text-secondary);font-weight:600;font-size:0.85rem;text-decoration:none;white-space:nowrap;cursor:pointer;transition:var(--transition-fast);display:flex;align-items:center;gap:0.5rem;border:none;background:none;font-family:inherit}
+    .nav-link:hover{color:#fff;background:rgba(255,255,255,0.04)}
+    .nav-link.active{color:var(--neon-cyan);background:rgba(0,229,255,0.08)}
+    .nav-actions{display:flex;align-items:center;gap:1rem}
+    .user-pill{display:flex;align-items:center;gap:0.65rem;padding:0.4rem 0.75rem 0.4rem 0.4rem;border-radius:50px;background:rgba(255,255,255,0.03);border:1px solid var(--border-default);cursor:pointer;transition:var(--transition-fast)}
+    .user-pill:hover{border-color:var(--border-hover)}
+    .user-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--neon-purple),var(--neon-cyan));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.85rem;color:#fff}
+    .user-name-nav{font-weight:700;font-size:0.85rem;color:#fff}
+    .mobile-menu-btn{display:none;background:none;border:none;color:#fff;font-size:1.4rem;cursor:pointer}
+
+    .main-content{max-width:1320px;margin:0 auto;padding:1.75rem 2rem 3rem}
+
+    .spa-section{display:none;animation:fadeSlideIn 0.35s cubic-bezier(0.16,1,0.3,1)}
+    .spa-section.active-section{display:block}
+    @keyframes fadeSlideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+    .greeting{margin-bottom:2rem}.greeting h1{font-size:1.8rem;font-weight:900;color:#fff}.greeting p{color:var(--text-secondary);font-weight:600;margin-top:0.25rem}
+    .promo-banner{background:linear-gradient(135deg,rgba(0,229,255,0.08),rgba(124,58,237,0.08));border:1px solid rgba(0,229,255,0.2);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;margin-bottom:1.75rem;display:flex;align-items:center;gap:1rem}
+    .promo-banner i{font-size:1.75rem;color:var(--neon-cyan)}.promo-banner h3{color:var(--neon-cyan);font-weight:900;font-size:1rem}.promo-banner p{color:var(--text-primary);font-weight:600;font-size:0.88rem}
+    .quick-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:2rem}
+    .action-card{background:var(--bg-card);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:1.4rem;cursor:pointer;transition:var(--transition-smooth);text-align:center}
+    .action-card:hover{transform:translateY(-4px);border-color:var(--border-hover);box-shadow:var(--shadow-glow)}
+    .action-card .icon{font-size:2rem;margin-bottom:0.6rem}.action-card h4{font-size:1rem;font-weight:800;color:#fff;margin-bottom:0.2rem}.action-card span{font-size:0.78rem;color:var(--text-muted);font-weight:600}
+    .verification-card{background:var(--bg-card);border:1px solid var(--border-default);border-radius:var(--radius-xl);padding:1.5rem 1.75rem}
+    .verification-card h3{font-size:1.15rem;font-weight:900;color:#fff;margin-bottom:1rem}
+    .checklist{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0.75rem}
+    .check-item{display:flex;align-items:center;gap:0.6rem;padding:0.7rem 1rem;background:rgba(255,255,255,0.02);border-radius:var(--radius-sm);border:1px solid var(--border-default);font-size:0.85rem;font-weight:600}
+    .check-item.done{color:var(--success)}.check-item.done i{color:var(--success)}.check-item.pending{color:var(--text-secondary)}.check-item.pending i{color:var(--text-muted)}
+
+    .search-header{margin-bottom:1.75rem}.search-header h2{font-size:1.3rem;font-weight:900;color:#fff;display:flex;align-items:center;gap:0.5rem}.search-header h2 i{color:var(--neon-cyan)}
+    .search-bar-large{width:100%;position:relative;margin-bottom:1rem}
+    .search-bar-large i{position:absolute;top:50%;right:1rem;transform:translateY(-50%);color:var(--text-muted);font-size:1rem}
+    .search-bar-large input{width:100%;padding:0.85rem 2.75rem 0.85rem 1rem;background:var(--bg-input);border:1px solid var(--border-default);border-radius:var(--radius-md);color:#fff;font-family:'Cairo',sans-serif;font-weight:600;font-size:0.9rem;outline:none;transition:var(--transition-fast)}
+    .search-bar-large input:focus{border-color:var(--neon-cyan);box-shadow:0 0 0 3px rgba(0,229,255,0.1)}
+    .search-bar-large input::placeholder{color:var(--text-muted)}
+    .filters-row{display:grid;grid-template-columns:repeat(5,1fr) auto;gap:0.65rem;align-items:end}
+    .filter-group{display:flex;flex-direction:column;gap:0.3rem}
+    .filter-group label{font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px}
+    .filter-group select,.filter-group input{width:100%;padding:0.6rem 0.75rem;background:var(--bg-input);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:#fff;font-family:'Cairo',sans-serif;font-weight:600;font-size:0.82rem;outline:none;transition:var(--transition-fast);appearance:none;-webkit-appearance:none;cursor:pointer}
+    .filter-group select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:left 0.6rem center;padding-left:1.75rem}
+    .filter-group select:focus,.filter-group input:focus{border-color:var(--neon-cyan);box-shadow:0 0 0 2px rgba(0,229,255,0.08)}
+    .advanced-toggle{display:flex;align-items:center;gap:0.4rem;padding:0.6rem 1rem;background:transparent;border:1px dashed var(--border-default);border-radius:var(--radius-sm);color:var(--text-muted);cursor:pointer;font-family:'Cairo',sans-serif;font-weight:700;font-size:0.8rem;white-space:nowrap;transition:var(--transition-fast);height:fit-content;margin-top:auto}
+    .advanced-toggle:hover,.advanced-toggle.active{color:var(--neon-cyan);border-color:var(--neon-cyan);background:rgba(0,229,255,0.03)}
+    .advanced-filters{display:none;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:0.65rem;padding-top:1rem;margin-top:0.5rem;border-top:1px dashed var(--border-default)}
+    .advanced-filters.show{display:grid}
+    .results-meta{display:flex;justify-content:space-between;align-items:center;margin:1.5rem 0 1rem;flex-wrap:wrap;gap:0.75rem}
+    .results-count{font-weight:700;font-size:0.88rem;color:var(--text-secondary)}.results-count strong{color:var(--neon-cyan)}
+    .sort-select{padding:0.45rem 2rem 0.45rem 0.75rem;background:var(--bg-input);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-secondary);font-family:'Cairo',sans-serif;font-weight:600;font-size:0.8rem;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:left 0.5rem center}
+
+    .properties-list{display:flex;flex-direction:column;gap:1rem}
+    .property-card-h{display:flex;flex-direction:row;background:var(--bg-card);border:1px solid var(--border-default);border-radius:var(--radius-lg);overflow:hidden;transition:var(--transition-smooth);will-change:transform}
+    .property-card-h:hover{border-color:var(--border-hover);transform:translateY(-2px);box-shadow:var(--shadow-glow)}
+    .property-card-h .card-img{width:240px;min-width:240px;position:relative;overflow:hidden;background:#0f1525}
+    .property-card-h .card-img img{width:100%;height:100%;object-fit:cover;transition:transform 0.4s ease}
+    .property-card-h:hover .card-img img{transform:scale(1.04)}
+    .card-badge{position:absolute;top:0.7rem;right:0.7rem;padding:0.25rem 0.75rem;border-radius:50px;font-size:0.7rem;font-weight:800;letter-spacing:0.5px;backdrop-filter:blur(8px);z-index:2}
+    .card-badge.rent{background:rgba(34,197,94,0.2);color:#86efac;border:1px solid rgba(34,197,94,0.4)}
+    .card-badge.sale{background:rgba(124,58,237,0.25);color:#c4b5fd;border:1px solid rgba(124,58,237,0.4)}
+    .card-fav{position:absolute;top:0.7rem;left:0.7rem;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,0.45);border:1px solid rgba(255,255,255,0.15);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(4px);font-size:0.85rem;transition:var(--transition-fast);z-index:2}
+    .card-fav:hover{color:var(--danger);background:rgba(239,68,68,0.15);border-color:var(--danger)}.card-fav.liked{color:var(--danger)}
+    .property-card-h .card-body{flex:1;padding:1.25rem 1.5rem;display:flex;flex-direction:column;justify-content:space-between;min-width:0}
+    .card-body-top{display:flex;flex-direction:column;gap:0.3rem}
+    .card-price{font-size:1.35rem;font-weight:900;color:var(--neon-cyan);display:flex;align-items:baseline;gap:4px}
+    .card-price .unit{font-size:0.72rem;color:var(--text-muted);font-weight:600}
+    .card-title{font-size:1.05rem;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .card-location{font-size:0.8rem;color:var(--text-secondary);font-weight:600;display:flex;align-items:center;gap:0.35rem}
+    .card-location i{color:var(--danger);font-size:0.7rem}
+    .card-specs{display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap}
+    .spec-tag{display:inline-flex;align-items:center;gap:0.3rem;padding:0.2rem 0.6rem;background:rgba(255,255,255,0.04);border-radius:6px;font-size:0.78rem;font-weight:700;color:var(--text-primary)}
+    .spec-tag i{color:var(--neon-cyan);font-size:0.7rem}
+    .card-body-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:0.5rem}
+    .card-date{font-size:0.72rem;color:var(--text-muted);font-weight:600}
+    .btn-details{padding:0.5rem 1.5rem;border-radius:8px;background:linear-gradient(135deg,var(--neon-purple),var(--neon-cyan));border:none;color:#fff;font-family:'Cairo',sans-serif;font-weight:700;font-size:0.8rem;cursor:pointer;transition:var(--transition-smooth);white-space:nowrap}
+    .btn-details:hover{box-shadow:0 0 18px rgba(0,229,255,0.35);transform:translateY(-1px)}
+
+    .pagination{display:flex;justify-content:center;align-items:center;gap:0.5rem;margin-top:2rem}
+    .page-btn{width:38px;height:38px;border-radius:var(--radius-sm);background:var(--bg-card);border:1px solid var(--border-default);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:'Cairo',sans-serif;font-weight:700;font-size:0.85rem;transition:var(--transition-fast)}
+    .page-btn:hover{border-color:var(--border-hover);color:#fff}
+    .page-btn.active{background:var(--neon-cyan);color:#000;border-color:var(--neon-cyan);font-weight:800}
+    .page-btn.nav{font-size:0.75rem}
+
+    .chat-wrapper{display:grid;grid-template-columns:300px 1fr;height:580px;border:1px solid var(--border-default);border-radius:var(--radius-xl);overflow:hidden;background:var(--bg-card)}
+    .chat-sidebar{border-left:1px solid var(--border-default);overflow-y:auto;background:rgba(0,0,0,0.2)}
+    .chat-thread{padding:1rem 1.1rem;display:flex;align-items:center;gap:0.75rem;cursor:pointer;border-bottom:1px solid var(--border-default);transition:var(--transition-fast)}
+    .chat-thread:hover,.chat-thread.active{background:rgba(0,229,255,0.06)}
+    .chat-thread-avatar{width:40px;height:40px;border-radius:50%;background:var(--bg-input);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.8rem;flex-shrink:0}
+    .chat-thread-info{min-width:0}.chat-thread-name{font-weight:800;font-size:0.85rem;color:#fff}.chat-thread-last{font-size:0.72rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .chat-main{display:flex;flex-direction:column}
+    .chat-main-header{padding:1rem 1.5rem;border-bottom:1px solid var(--border-default);font-weight:800;font-size:0.95rem;color:#fff}
+    .chat-messages{flex:1;padding:1.25rem;overflow-y:auto;display:flex;flex-direction:column;gap:0.85rem}
+    .msg-bubble{max-width:65%;padding:0.65rem 1rem;border-radius:12px;font-size:0.85rem;font-weight:500;line-height:1.55}
+    .msg-bubble.sent{background:linear-gradient(135deg,var(--neon-purple),var(--neon-cyan));color:#fff;align-self:flex-start;border-top-right-radius:2px}
+    .msg-bubble.received{background:rgba(255,255,255,0.04);border:1px solid var(--border-default);color:var(--text-primary);align-self:flex-end;border-top-left-radius:2px}
+    .chat-input-row{display:flex;align-items:center;gap:0.75rem;padding:1rem 1.25rem;border-top:1px solid var(--border-default)}
+    .chat-input-row input{flex:1;padding:0.65rem 1rem;background:var(--bg-input);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:#fff;font-family:'Cairo',sans-serif;font-weight:500;outline:none}
+    .chat-input-row input:focus{border-color:var(--neon-cyan)}
+
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.25s ease}
+    .modal-overlay.active{opacity:1;pointer-events:auto}
+    .modal-dialog{background:var(--bg-primary);border:1px solid var(--border-default);border-radius:var(--radius-xl);padding:2rem;width:90%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+    .modal-dialog h3{font-size:1.2rem;font-weight:900;color:#fff;text-align:center;margin-bottom:1.25rem}
+    .modal-options{display:flex;flex-direction:column;gap:0.85rem}
+    .modal-option{display:flex;align-items:center;gap:0.85rem;width:100%;padding:0.85rem 1rem;background:rgba(255,255,255,0.02);border:1px solid var(--border-default);border-radius:var(--radius-md);color:#fff;font-family:'Cairo',sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;text-decoration:none;transition:var(--transition-fast)}
+    .modal-option:hover{border-color:var(--neon-cyan);background:rgba(0,229,255,0.04)}.modal-option i{font-size:1.2rem}
+    .modal-close{margin-top:1.25rem;width:100%;background:none;border:none;color:var(--text-muted);font-family:'Cairo',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;text-align:center}
+    .modal-close:hover{color:var(--danger)}
+
+    .mobile-drawer{position:fixed;top:0;right:-300px;width:280px;height:100vh;background:var(--bg-primary);border-left:1px solid var(--border-default);z-index:150;padding:1.5rem;display:flex;flex-direction:column;gap:0.5rem;transition:right 0.3s cubic-bezier(0.4,0,0.2,1);overflow-y:auto}
+    .mobile-drawer.open{right:0}.mobile-drawer .nav-link{width:100%;padding:0.75rem 1rem}
+    .drawer-close{align-self:flex-end;background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;margin-bottom:1rem}
+
+    .empty-state{text-align:center;padding:3rem 1rem;color:var(--text-muted)}.empty-state i{font-size:3rem;margin-bottom:1rem;opacity:0.4}.empty-state p{font-weight:700;font-size:0.95rem}
+    .skeleton{background:linear-gradient(90deg,var(--bg-card) 25%,rgba(255,255,255,0.03) 50%,var(--bg-card) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:var(--radius-sm)}
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    .skeleton-card{height:140px;border-radius:var(--radius-lg);margin-bottom:1rem}
+
+    @media(max-width:1024px){.filters-row{grid-template-columns:repeat(3,1fr)}}
+    @media(max-width:768px){
+      .top-nav{padding:0 1rem}.nav-links{display:none}.mobile-menu-btn{display:block}.user-name-nav{display:none}
+      .filters-row{grid-template-columns:repeat(2,1fr)}
+      .property-card-h{flex-direction:column}.property-card-h .card-img{width:100%;min-width:100%;height:180px}
+      .chat-wrapper{grid-template-columns:1fr}.chat-sidebar{display:none}
+      .main-content{padding:1rem}.quick-actions{grid-template-columns:repeat(2,1fr)}
+    }
+    @media(max-width:480px){
+      .filters-row{grid-template-columns:1fr 1fr}
+      .results-meta{flex-direction:column;align-items:flex-start}
+      .card-body-bottom{flex-direction:column;align-items:flex-start;gap:0.5rem}
+    }
+  </style>
+</head>
+<body>
+
+<div class="modal-overlay" id="supportModal">
+  <div class="modal-dialog">
+    <h3><i class="fas fa-headset" style="color:var(--neon-cyan)"></i> خيارات الدعم الفني</h3>
+    <div class="modal-options">
+      <a href="feedback.html" class="modal-option"><i class="fas fa-comments" style="color:var(--neon-cyan)"></i><span>التواصل عبر الموقع</span></a>
+      <a href="https://wa.me/201210709490" target="_blank" class="modal-option"><i class="fab fa-whatsapp" style="color:#25d366"></i><span>التواصل عبر واتساب</span></a>
+    </div>
+    <button class="modal-close" onclick="app.toggleSupportModal(false)">إغلاق النافذة</button>
+  </div>
+</div>
+
+<div class="mobile-drawer" id="mobileDrawer">
+  <button class="drawer-close" onclick="document.getElementById('mobileDrawer').classList.remove('open')"><i class="fas fa-times"></i></button>
+  <button class="nav-link" onclick="app.navigateTo('home');document.getElementById('mobileDrawer').classList.remove('open')"><i class="fas fa-home"></i> الرئيسية</button>
+  <button class="nav-link" onclick="app.navigateTo('search');document.getElementById('mobileDrawer').classList.remove('open')"><i class="fas fa-search"></i> البحث العقاري المتقدم</button>
+  <button class="nav-link" onclick="window.location.href='add-property.html'"><i class="fas fa-plus-circle"></i> إضافة عقار</button>
+  <button class="nav-link" onclick="window.location.href='my-properties.html'"><i class="fas fa-building"></i> عقاراتي</button>
+  <button class="nav-link" onclick="app.navigateTo('messages');document.getElementById('mobileDrawer').classList.remove('open')"><i class="fas fa-users"></i> المحادثات</button>
+  <button class="nav-link" onclick="window.location.href='profile.html'"><i class="fas fa-user-circle"></i> الملف الشخصي</button>
+  <button class="nav-link" onclick="app.navigateTo('support');document.getElementById('mobileDrawer').classList.remove('open')"><i class="fas fa-headset"></i> الدعم الفني</button>
+  <button class="nav-link" onclick="app.handleLogout()" style="color:var(--danger)"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</button>
+</div>
+
+<nav class="top-nav">
+  <div class="nav-brand">AM<span>.</span></div>
+  <div class="nav-links" id="desktopNavLinks">
+    <button class="nav-link active" data-section="home"><i class="fas fa-home"></i> الرئيسية</button>
+    <button class="nav-link" data-section="search"><i class="fas fa-search"></i> البحث العقاري المتقدم</button>
+    <button class="nav-link" onclick="window.location.href='add-property.html'"><i class="fas fa-plus-circle"></i> إضافة عقار</button>
+    <button class="nav-link" onclick="window.location.href='my-properties.html'"><i class="fas fa-building"></i> عقاراتي</button>
+    <button class="nav-link" data-section="messages"><i class="fas fa-users"></i> المحادثات</button>
+    <button class="nav-link" onclick="window.location.href='profile.html'"><i class="fas fa-user-circle"></i> الملف الشخصي</button>
+    <button class="nav-link" data-section="support"><i class="fas fa-headset"></i> الدعم الفني</button>
+  </div>
+  <div class="nav-actions">
+    <button class="mobile-menu-btn" onclick="document.getElementById('mobileDrawer').classList.add('open')"><i class="fas fa-bars"></i></button>
+    <div class="user-pill" onclick="window.location.href='profile.html'">
+      <div class="user-avatar" id="global-user-avatar">..</div>
+      <span class="user-name-nav" id="global-user-name">جاري التحميل...</span>
+    </div>
+  </div>
+</nav>
+
+<div class="main-content">
+
+  <section id="section-home" class="spa-section active-section">
+    <div class="greeting"><h1 id="dynamic-greeting">مرحباً 👋</h1><p>ماذا تريد أن تفعل اليوم؟</p></div>
+    <div class="promo-banner"><i class="fas fa-gift"></i><div><h3>عرض بمناسبة الانطلاق!</h3><p>ابدأ تأجير وحداتك السكنية، واستمتع بـ <strong>أول 6 شهور بدون أي عمولات (0% عمولة)</strong> بضمان المنصة!</p></div></div>
+    <div class="quick-actions">
+      <div class="action-card" onclick="window.location.href='add-property.html'"><div class="icon">➕</div><h4>أضف عقارك</h4><span>قم بإدراج وحدة جديدة</span></div>
+      <div class="action-card" onclick="app.navigateTo('search')"><div class="icon">🔍</div><h4>ابحث عن شقة</h4><span>تصفح الخيارات المتاحة</span></div>
+      <div class="action-card" onclick="app.navigateTo('messages')"><div class="icon">💬</div><h4>المحادثات</h4><span>الغرف العامة والخاصة</span></div>
+      <div class="action-card" onclick="window.location.href='profile.html'"><div class="icon">👤</div><h4>حسابي التوثيقي</h4><span>إدارة بيانات التوثيق والأمان</span></div>
+    </div>
+    <div class="verification-card"><h3>✨ حالة اكتمال حسابك التوثيقي</h3><div class="checklist" id="home-checklist"></div></div>
+  </section>
+
+  <section id="section-search" class="spa-section">
+    <div class="search-header"><h2><i class="fas fa-search"></i> البحث المتقدم عن العقارات</h2></div>
+    <div class="search-bar-large"><i class="fas fa-search"></i><input type="text" id="search-keyword" placeholder="ابحث باسم العقار أو المدينة أو الحي..." autocomplete="off"></div>
+    <div class="filters-row">
+      <div class="filter-group"><label>نوع العملية</label><select id="filter-action-type"><option value="">الكل</option><option value="إيجار">إيجار</option><option value="بيع">بيع</option></select></div>
+      <div class="filter-group"><label>المدينة</label><input type="text" id="filter-city" placeholder="المدينة / المركز"></div>
+      <div class="filter-group"><label>الحي</label><input type="text" id="filter-district" placeholder="الحي / المنطقة"></div>
+      <div class="filter-group"><label>النوع</label><select id="filter-type"><option value="">الكل</option><option value="شقة">شقة</option><option value="فيلا">فيلا</option><option value="دوبلكس">دوبلكس</option><option value="مكتب">مكتب</option><option value="محل">محل</option></select></div>
+      <div class="filter-group"><label>المحافظة</label><select id="filter-governorate"><option value="">الكل</option><option value="القاهرة">القاهرة</option><option value="الجيزة">الجيزة</option><option value="الإسكندرية">الإسكندرية</option></select></div>
+      <button class="advanced-toggle" id="advanced-toggle-btn" onclick="app.toggleAdvancedFilters()"><i class="fas fa-sliders-h"></i> خيارات متقدمة</button>
+    </div>
+    <div class="advanced-filters" id="advanced-filters-panel">
+      <div class="filter-group"><label>السعر من</label><input type="number" id="filter-min-price" placeholder="أدنى سعر"></div>
+      <div class="filter-group"><label>السعر إلى</label><input type="number" id="filter-max-price" placeholder="أقصى سعر"></div>
+      <div class="filter-group"><label>الغرف</label><select id="filter-rooms"><option value="">الكل</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">+4</option></select></div>
+      <div class="filter-group"><label>الحمامات</label><select id="filter-baths"><option value="">الكل</option><option value="1">1</option><option value="2">2</option><option value="3">+3</option></select></div>
+      <div class="filter-group"><label>الفرش</label><select id="filter-furnishing"><option value="">الكل</option><option value="furnished">مفروش</option><option value="unfurnished">غير مفروش</option></select></div>
+      <div class="filter-group"><label>التشطيب</label><select id="filter-finishing"><option value="">الكل</option><option value="سوبر لوكس">سوبر لوكس</option><option value="لوكس">لوكس</option><option value="نصف تشطيب">نصف تشطيب</option></select></div>
+    </div>
+    <div class="results-meta">
+      <div class="results-count" id="results-count-badge">جاري التحميل...</div>
+      <select class="sort-select" id="search-sort-engine"><option value="latest">الأحدث</option><option value="oldest">الأقدم</option><option value="price-asc">السعر: من الأقل للأعلى</option><option value="price-desc">السعر: من الأعلى للأقل</option><option value="area-desc">المساحة: الأكبر أولاً</option><option value="area-asc">المساحة: الأصغر أولاً</option></select>
+    </div>
+    <div class="properties-list" id="search-results-renderer"></div>
+    <div class="pagination" id="search-pagination"></div>
+  </section>
+
+  <section id="section-messages" class="spa-section">
+    <h2 style="font-size:1.3rem;font-weight:900;color:#fff;margin-bottom:1.5rem"><i class="fas fa-envelope" style="color:var(--neon-cyan)"></i> صندوق الرسائل والمحادثات</h2>
+    <div class="chat-wrapper">
+      <div class="chat-sidebar" id="chat-threads-list"></div>
+      <div class="chat-main">
+        <div class="chat-main-header" id="chat-active-user-bar">اختر محادثة للبدء</div>
+        <div class="chat-messages" id="chat-messages-stream"></div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-text-input" placeholder="اكتب رسالتك...">
+          <button class="btn-details" style="width:auto" onclick="app.sendChatMessage()">إرسال</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="section-support" class="spa-section">
+    <h2 style="font-size:1.3rem;font-weight:900;color:#fff;margin-bottom:1.5rem"><i class="fas fa-headset" style="color:var(--neon-cyan)"></i> الدعم الفني والمساعدة</h2>
+    <div class="verification-card">
+      <input type="text" id="support-ticket-title" placeholder="عنوان المشكلة..." style="width:100%;padding:0.75rem;background:var(--bg-input);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:#fff;font-family:'Cairo',sans-serif;font-weight:600;margin-bottom:0.75rem;outline:none">
+      <textarea id="support-ticket-desc" placeholder="شرح تفصيلي للمشكلة..." style="width:100%;min-height:120px;padding:0.75rem;background:var(--bg-input);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:#fff;font-family:'Cairo',sans-serif;font-weight:600;margin-bottom:1rem;outline:none;resize:vertical"></textarea>
+      <button class="btn-details" onclick="app.submitSupportTicket()">إرسال التذكرة الفنية</button>
+    </div>
+  </section>
+
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, doc, onSnapshot, updateDoc, collection, query, where, getDocs, addDoc, orderBy, or } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+    authDomain: "am--rewards.firebaseapp.com",
+    databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
+    projectId: "am--rewards",
+    storageBucket: "am--rewards.firebasestorage.app",
+    messagingSenderId: "744783579735",
+    appId: "1:744783579735:web:45e00de9998893bbc9b112",
+    measurementId: "G-CV3GLT2TTJ"
+  };
+
+  const firebaseApp = initializeApp(firebaseConfig);
+  const db = getFirestore(firebaseApp);
+  const auth = getAuth(firebaseApp);
+
+  /* ============================
+     GLOBAL STATE (performance optimized)
+     ============================ */
+  const state = {
+    currentSection: 'home',
+    currentUser: null,
+    allProperties: [],
+    filteredProperties: [],
+    currentPage: 1,
+    pageSize: 8,
+    chatThreads: [],
+    activeChatThread: null,
+    activeChatMessages: [],
+    userFavorites: new Set(),
+    // Cache DOM refs
+    dom: {}
+  };
+
+  /* ============================
+     DEBOUNCE UTILITY
+     ============================ */
+  function debounce(fn, delay) {
+    let timer;
+    return function(...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+  }
+
+  /* ============================
+     APP CONTROLLER
+     ============================ */
+  const app = {
+    /* ---- NAVIGATION ---- */
+    navigateTo(sectionName) {
+      if (state.currentSection === sectionName) return;
+      state.currentSection = sectionName;
+
+      // Hide all sections
+      document.querySelectorAll('.spa-section').forEach(s => s.classList.remove('active-section'));
+
+      // Show target
+      const target = document.getElementById('section-' + sectionName);
+      if (target) target.classList.add('active-section');
+
+      // Update nav active state
+      document.querySelectorAll('.nav-link[data-section]').forEach(link => {
+        link.classList.toggle('active', link.dataset.section === sectionName);
+      });
+
+      // Section-specific init
+      if (sectionName === 'search') app.loadSearchResults();
+      if (sectionName === 'messages') app.loadChatThreads();
+    },
+
+    /* ---- USER AUTH ---- */
+    initAuth() {
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) { window.location.href = 'login.html'; return; }
+        state.currentUser = user;
+        document.getElementById('global-user-name').textContent = user.displayName || user.email || 'مستخدم';
+        const avatar = document.getElementById('global-user-avatar');
+        avatar.textContent = (user.displayName || user.email || 'U')[0].toUpperCase();
+
+        // Load user profile data
+        try {
+          const userDoc = await getDocs(query(collection(db, 'users'), where('uid', '==', user.uid)));
+          if (!userDoc.empty) {
+            const data = userDoc.docs[0].data();
+            document.getElementById('global-user-name').textContent = data.fullName || data.name || user.displayName || 'مستخدم';
+            if (data.photoURL) avatar.style.backgroundImage = `url(${data.photoURL})`;
+            app.updateChecklist(data);
+          }
+        } catch (e) { console.warn('User profile load:', e); }
+
+        // Set greeting
+        const hour = new Date().getHours();
+        const greeting = hour < 12 ? 'صباح الخير' : hour < 18 ? 'مساء الخير' : 'مساء الخير';
+        document.getElementById('dynamic-greeting').textContent = `${greeting} 👋`;
+
+        // Load properties once
+        app.loadAllProperties();
+      });
+    },
+
+    updateChecklist(userData) {
+      const items = [
+        { key: 'email', label: 'البريد الإلكتروني', done: !!userData.email },
+        { key: 'phone', label: 'رقم الهاتف', done: !!userData.phone },
+        { key: 'idVerified', label: 'توثيق الهوية', done: !!userData.idVerified },
+        { key: 'address', label: 'العنوان', done: !!userData.address }
+      ];
+      const container = document.getElementById('home-checklist');
+      if (!container) return;
+      container.innerHTML = items.map(i =>
+        `<div class="check-item ${i.done ? 'done' : 'pending'}"><i class="fas ${i.done ? 'fa-check-circle' : 'fa-circle'}"></i> ${i.label}</div>`
+      ).join('');
+    },
+
+    /* ---- FIREBASE: LOAD ALL PROPERTIES ONCE ---- */
+    async loadAllProperties() {
+      try {
+        const q = query(collection(db, 'properties'), orderBy('createdAt', 'desc'));
+        const snap = await getDocs(q);
+        state.allProperties = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        state.filteredProperties = [...state.allProperties];
+
+        // If on search section, render
+        if (state.currentSection === 'search') app.renderSearchResults();
+
+        // Bind search input with debounce
+        const kwInput = document.getElementById('search-keyword');
+        if (kwInput && !kwInput._bound) {
+          kwInput._bound = true;
+          kwInput.addEventListener('input', debounce(() => app.filterAndSort(), 250));
+        }
+
+        // Bind filter changes
+        document.querySelectorAll('#section-search select, #section-search input[type="number"], #section-search input[type="text"]').forEach(el => {
+          if (el.id === 'search-keyword') return;
+          if (!el._bound) {
+            el._bound = true;
+            el.addEventListener('change', () => app.filterAndSort());
+            if (el.tagName === 'INPUT' && el.type === 'text') {
+              el.addEventListener('input', debounce(() => app.filterAndSort(), 300));
+            }
+          }
+        });
+      } catch (e) {
+        console.error('Load properties:', e);
+        state.allProperties = [];
+        state.filteredProperties = [];
+      }
+    },
+
+    /* ---- SEARCH LOADING (triggered on section enter) ---- */
+    loadSearchResults() {
+      if (state.allProperties.length === 0) {
+        document.getElementById('search-results-renderer').innerHTML =
+          '<div class="skeleton-card skeleton"></div><div class="skeleton-card skeleton"></div><div class="skeleton-card skeleton"></div>';
+      }
+      app.filterAndSort();
+    },
+
+    /* ---- FILTERING ENGINE ---- */
+    filterAndSort() {
+      const keyword = (document.getElementById('search-keyword')?.value || '').trim().toLowerCase();
+      const actionType = document.getElementById('filter-action-type')?.value || '';
+      const city = (document.getElementById('filter-city')?.value || '').trim().toLowerCase();
+      const district = (document.getElementById('filter-district')?.value || '').trim().toLowerCase();
+      const type = document.getElementById('filter-type')?.value || '';
+      const governorate = document.getElementById('filter-governorate')?.value || '';
+      const minPrice = parseFloat(document.getElementById('filter-min-price')?.value) || 0;
+      const maxPrice = parseFloat(document.getElementById('filter-max-price')?.value) || Infinity;
+      const rooms = document.getElementById('filter-rooms')?.value || '';
+      const baths = document.getElementById('filter-baths')?.value || '';
+      const furnishing = document.getElementById('filter-furnishing')?.value || '';
+      const finishing = document.getElementById('filter-finishing')?.value || '';
+      const sortBy = document.getElementById('search-sort-engine')?.value || 'latest';
+
+      let filtered = state.allProperties.filter(p => {
+        if (keyword) {
+          const haystack = `${p.title || ''} ${p.city || ''} ${p.district || ''} ${p.governorate || ''} ${p.description || ''}`.toLowerCase();
+          if (!haystack.includes(keyword)) return false;
+        }
+        if (actionType && p.actionType !== actionType) return false;
+        if (city && (p.city || '').toLowerCase() !== city) return false;
+        if (district && (p.district || '').toLowerCase() !== district) return false;
+        if (type && p.type !== type) return false;
+        if (governorate && p.governorate !== governorate) return false;
+        const price = parseFloat(p.price) || 0;
+        if (minPrice > 0 && price < minPrice) return false;
+        if (maxPrice < Infinity && price > maxPrice) return false;
+        if (rooms) {
+          const r = parseInt(p.rooms) || 0;
+          if (rooms === '4' && r < 4) return false;
+          if (rooms !== '4' && r !== parseInt(rooms)) return false;
+        }
+        if (baths) {
+          const b = parseInt(p.bathrooms) || 0;
+          if (baths === '3' && b < 3) return false;
+          if (baths !== '3' && b !== parseInt(baths)) return false;
+        }
+        if (furnishing && p.furnishing !== furnishing) return false;
+        if (finishing && p.finishing !== finishing) return false;
+        return true;
+      });
+
+      // Sort
+      switch (sortBy) {
+        case 'oldest':
+          filtered.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+          break;
+        case 'price-asc':
+          filtered.sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
+          break;
+        case 'price-desc':
+          filtered.sort((a, b) => (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0));
+          break;
+        case 'area-desc':
+          filtered.sort((a, b) => (parseFloat(b.area) || 0) - (parseFloat(a.area) || 0));
+          break;
+        case 'area-asc':
+          filtered.sort((a, b) => (parseFloat(a.area) || 0) - (parseFloat(b.area) || 0));
+          break;
+        default: // latest
+          filtered.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      }
+
+      state.filteredProperties = filtered;
+      state.currentPage = 1;
+      app.renderSearchResults();
+    },
+
+    /* ---- RENDER SEARCH RESULTS WITH PAGINATION ---- */
+    renderSearchResults() {
+      const container = document.getElementById('search-results-renderer');
+      const countBadge = document.getElementById('results-count-badge');
+      const pagination = document.getElementById('search-pagination');
+      if (!container) return;
+
+      const total = state.filteredProperties.length;
+      const totalPages = Math.ceil(total / state.pageSize);
+      const start = (state.currentPage - 1) * state.pageSize;
+      const pageItems = state.filteredProperties.slice(start, start + state.pageSize);
+
+      // Count badge
+      if (countBadge) {
+        countBadge.innerHTML = total === 0
+          ? 'لا توجد نتائج'
+          : `تم العثور على <strong>${total}</strong> عقار`;
+      }
+
+      // Render cards
+      if (total === 0) {
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-search"></i><p>لا توجد عقارات تطابق معايير البحث</p></div>';
+      } else {
+        container.innerHTML = pageItems.map(p => app.buildPropertyCard(p)).join('');
+      }
+
+      // Pagination
+      if (pagination) {
+        if (totalPages <= 1) {
+          pagination.innerHTML = '';
+        } else {
+          let html = `<button class="page-btn nav" onclick="app.goToPage(${state.currentPage - 1})" ${state.currentPage === 1 ? 'disabled style="opacity:0.3"' : ''}><i class="fas fa-chevron-right"></i></button>`;
+          for (let i = 1; i <= totalPages; i++) {
+            html += `<button class="page-btn ${i === state.currentPage ? 'active' : ''}" onclick="app.goToPage(${i})">${i}</button>`;
+          }
+          html += `<button class="page-btn nav" onclick="app.goToPage(${state.currentPage + 1})" ${state.currentPage === totalPages ? 'disabled style="opacity:0.3"' : ''}><i class="fas fa-chevron-left"></i></button>`;
+          pagination.innerHTML = html;
+        }
+      }
+    },
+
+    goToPage(page) {
+      const totalPages = Math.ceil(state.filteredProperties.length / state.pageSize);
+      if (page < 1 || page > totalPages) return;
+      state.currentPage = page;
+      app.renderSearchResults();
+      document.getElementById('search-results-renderer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
+
+    /* ---- BUILD HORIZONTAL CARD HTML ---- */
+    buildPropertyCard(p) {
+      const price = parseFloat(p.price || 0).toLocaleString('en-US');
+      const actionType = p.actionType || 'إيجار';
+      const isRent = actionType === 'إيجار';
+      const badgeClass = isRent ? 'rent' : 'sale';
+      const badgeText = isRent ? 'إيجار' : 'للبيع';
+      const priceUnit = isRent ? 'ج.م / شهر' : 'ج.م';
+      const imageUrl = (p.images && p.images.length > 0) ? p.images[0] : 'https://placehold.co/400x300/1a2035/64748b?text=No+Image';
+      const area = p.area ? `${parseFloat(p.area).toLocaleString('en-US')} م²` : '—';
+      const dateStr = p.createdAt?.seconds ? new Date(p.createdAt.seconds * 1000).toLocaleDateString('ar-EG') : '';
+
+      return `
+        <div class="property-card-h" onclick="app.viewPropertyDetail('${p.id}')" style="cursor:pointer">
+          <div class="card-img">
+            <img src="${imageUrl}" alt="${p.title || 'عقار'}" loading="lazy">
+            <span class="card-badge ${badgeClass}">${badgeText}</span>
+            <button class="card-fav" onclick="event.stopPropagation();app.toggleFavorite('${p.id}')" title="حفظ">
+              <i class="fas fa-heart"></i>
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="card-body-top">
+              <div class="card-price">${price} <span class="unit">${priceUnit}</span></div>
+              <div class="card-title">${p.title || 'عقار بدون عنوان'}</div>
+              <div class="card-location"><i class="fas fa-map-marker-alt"></i> ${[p.governorate, p.city, p.district].filter(Boolean).join(' - ') || 'غير محدد'}</div>
+              <div class="card-specs">
+                <span class="spec-tag"><i class="fas fa-bed"></i> ${p.rooms || 0} ${(p.rooms == 1) ? 'غرفة' : 'غرف'}</span>
+                <span class="spec-tag"><i class="fas fa-bath"></i> ${p.bathrooms || 0} ${(p.bathrooms == 1) ? 'حمام' : 'حمام'}</span>
+                <span class="spec-tag"><i class="fas fa-vector-square"></i> ${area}</span>
+              </div>
+            </div>
+            <div class="card-body-bottom">
+              <span class="card-date">${dateStr}</span>
+              <button class="btn-details" onclick="event.stopPropagation();app.viewPropertyDetail('${p.id}')">عرض التفاصيل</button>
+            </div>
+          </div>
+        </div>`;
+    },
+
+    viewPropertyDetail(id) {
+      const p = state.allProperties.find(x => x.id === id);
+      if (!p) return;
+      alert(`تفاصيل العقار: ${p.title}\nالسعر: ${parseFloat(p.price || 0).toLocaleString('en-US')} ج.م`);
+      // In production: navigate to a detail page or open a modal
+    },
+
+    toggleFavorite(id) {
+      if (state.userFavorites.has(id)) {
+        state.userFavorites.delete(id);
+      } else {
+        state.userFavorites.add(id);
+      }
+      // Update UI
+      app.renderSearchResults();
+    },
+
+    /* ---- ADVANCED FILTERS TOGGLE ---- */
+    toggleAdvancedFilters() {
+      const panel = document.getElementById('advanced-filters-panel');
+      const btn = document.getElementById('advanced-toggle-btn');
+      if (!panel || !btn) return;
+      const isOpen = panel.classList.toggle('show');
+      btn.classList.toggle('active', isOpen);
+    },
+
+    /* ---- SUPPORT MODAL ---- */
+    toggleSupportModal(show) {
+      const modal = document.getElementById('supportModal');
+      if (modal) modal.classList.toggle('active', show);
+    },
+
+    /* ---- SUPPORT TICKET ---- */
+    async submitSupportTicket() {
+      const title = document.getElementById('support-ticket-title')?.value.trim();
+      const desc = document.getElementById('support-ticket-desc')?.value.trim();
+      if (!title || !desc) { alert('يرجى ملء جميع الحقول'); return; }
+      try {
+        await addDoc(collection(db, 'supportTickets'), {
+          title, description: desc,
+          userId: state.currentUser?.uid || 'anonymous',
+          userEmail: state.currentUser?.email || '',
+          createdAt: new Date(),
+          status: 'open'
+        });
+        alert('تم إرسال التذكرة بنجاح!');
+        document.getElementById('support-ticket-title').value = '';
+        document.getElementById('support-ticket-desc').value = '';
+      } catch (e) {
+        alert('حدث خطأ: ' + e.message);
+      }
+    },
+
+    /* ---- CHAT SYSTEM ---- */
+    async loadChatThreads() {
+      const container = document.getElementById('chat-threads-list');
+      if (!container) return;
+      try {
+        const q = query(collection(db, 'chatThreads'), where('participants', 'array-contains', state.currentUser?.uid || ''));
+        const snap = await getDocs(q);
+        state.chatThreads = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        container.innerHTML = state.chatThreads.length === 0
+          ? '<div style="padding:2rem;text-align:center;color:var(--text-muted)">لا توجد محادثات</div>'
+          : state.chatThreads.map(t => {
+              const otherParticipant = (t.participantNames || {})[Object.keys(t.participantNames || {}).find(k => k !== state.currentUser?.uid)] || 'محادثة';
+              return `<div class="chat-thread" onclick="app.openChatThread('${t.id}')">
+                <div class="chat-thread-avatar">${otherParticipant[0]}</div>
+                <div class="chat-thread-info"><div class="chat-thread-name">${otherParticipant}</div><div class="chat-thread-last">${t.lastMessage || 'ابدأ المحادثة'}</div></div>
+              </div>`;
+            }).join('');
+      } catch (e) {
+        container.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted)">تعذر تحميل المحادثات</div>';
+      }
+    },
+
+    openChatThread(threadId) {
+      state.activeChatThread = threadId;
+      document.getElementById('chat-active-user-bar').textContent = state.chatThreads.find(t => t.id === threadId)?.participantNames?.[Object.keys(state.chatThreads.find(t => t.id === threadId)?.participantNames || {}).find(k => k !== state.currentUser?.uid)] || 'محادثة';
+      // Subscribe to messages
+      const q = query(collection(db, `chatThreads/${threadId}/messages`), orderBy('createdAt', 'asc'));
+      onSnapshot(q, (snap) => {
+        state.activeChatMessages = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        app.renderChatMessages();
+      });
+      // Mark active thread
+      document.querySelectorAll('.chat-thread').forEach(el => el.classList.remove('active'));
+      event?.target?.closest('.chat-thread')?.classList.add('active');
+    },
+
+    renderChatMessages() {
+      const container = document.getElementById('chat-messages-stream');
+      if (!container) return;
+      container.innerHTML = state.activeChatMessages.map(m =>
+        `<div class="msg-bubble ${m.senderId === state.currentUser?.uid ? 'sent' : 'received'}">${m.text || ''}</div>`
+      ).join('');
+      container.scrollTop = container.scrollHeight;
+    },
+
+    async sendChatMessage() {
+      const input = document.getElementById('chat-text-input');
+      const text = input?.value.trim();
+      if (!text || !state.activeChatThread) return;
+      try {
+        await addDoc(collection(db, `chatThreads/${state.activeChatThread}/messages`), {
+          text, senderId: state.currentUser?.uid,
+          senderName: state.currentUser?.displayName || 'مستخدم',
+          createdAt: new Date()
+        });
+        input.value = '';
+      } catch (e) { alert('خطأ: ' + e.message); }
+    },
+
+    /* ---- LOGOUT ---- */
+    handleLogout() {
+      signOut(auth).then(() => window.location.href = 'login.html').catch(e => alert('خطأ: ' + e.message));
+    }
+  };
+
+  // Expose to global scope for onclick handlers
+  window.app = app;
+
+  // Initialize
+  document.addEventListener('DOMContentLoaded', () => {
+    app.initAuth();
+
+    // Desktop nav link clicks
+    document.querySelectorAll('#desktopNavLinks .nav-link[data-section]').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        app.navigateTo(link.dataset.section);
+      });
+    });
+
+    // Support nav link
+    document.querySelectorAll('.nav-link[data-section="support"]').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        app.toggleSupportModal(true);
+      });
+    });
+  });
+</script>
+
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"3279d41ec7804124a29acc6e692f9a2b","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
