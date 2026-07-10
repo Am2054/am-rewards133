@@ -507,11 +507,23 @@
 
   <div class="overlay" id="overlay"></div>
 
-  <!-- نافذة معاينة الصور العائمة (Lightbox Viewer) -->
-  <div id="image-viewer-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); backdrop-filter:blur(15px); z-index:20000; align-items:center; justify-content:center; flex-direction:column; direction:rtl;">
-    <span id="close-viewer" style="position:absolute; top:20px; right:25px; color:#fff; font-size:2.5rem; cursor:pointer; transition:0.2s;"><i class="fas fa-times"></i></span>
-    <img id="viewer-img" src="" style="max-width:90%; max-height:80%; object-fit:contain; border-radius:10px; box-shadow:0 0 35px rgba(0,242,255,0.3);">
-    <p id="viewer-caption" style="color:#fff; margin-top:15px; font-weight:700; font-size:1rem;"></p>
+  <!-- نافذة معاينة الصور العائمة التفاعلية والمطورة (Interactive Lightbox Viewer) -->
+  <div id="image-viewer-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); backdrop-filter:blur(15px); z-index:20000; align-items:center; justify-content:center; flex-direction:column; direction:rtl; select-none;">
+    <!-- شريط التحكم العلوي -->
+    <div style="position:absolute; top:20px; left:20px; right:20px; display:flex; justify-content:space-between; align-items:center; z-index:20001; direction:rtl;">
+      <div style="display:flex; gap:10px;">
+        <button id="viewer-zoom-in" style="background:rgba(255,255,255,0.08); border:1px solid var(--glass-border); color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:1.1rem; display:flex; align-items:center; justify-content:center; transition:0.2s;"><i class="fas fa-search-plus"></i></button>
+        <button id="viewer-zoom-out" style="background:rgba(255,255,255,0.08); border:1px solid var(--glass-border); color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:1.1rem; display:flex; align-items:center; justify-content:center; transition:0.2s;"><i class="fas fa-search-minus"></i></button>
+        <button id="viewer-reset" style="background:rgba(255,255,255,0.08); border:1px solid var(--glass-border); color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:1.1rem; display:flex; align-items:center; justify-content:center; transition:0.2s;"><i class="fas fa-undo"></i></button>
+      </div>
+      <span id="close-viewer" style="color:#fff; font-size:2rem; cursor:pointer; transition:0.2s; padding:5px;"><i class="fas fa-times"></i></span>
+    </div>
+    
+    <!-- حاوية الصورة التفاعلية الحامية من الـ Web-Drag والمشجعة على السحب واللمس -->
+    <div id="viewer-image-container" style="width:100%; height:80%; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; cursor:grab;">
+      <img id="viewer-img" src="" style="max-width:90%; max-height:100%; object-fit:contain; border-radius:8px; box-shadow:0 0 35px rgba(0,242,255,0.35); transform-origin: center center; transition: transform 0.1s ease-out; user-select:none; -webkit-user-drag:none;" draggable="false">
+    </div>
+    <p id="viewer-caption" style="color:#fff; margin-top:15px; font-weight:700; font-size:1rem; text-shadow:0 2px 10px rgba(0,0,0,0.5); z-index:20001;"></p>
   </div>
 
   <!-- نافذة خيارات الرسالة (تعديل / حذف / رد) -->
@@ -581,11 +593,34 @@
       listeners: {}
     };
 
+    // متغيرات الماوس والإيماءات المتقدمة لإزاحة وتكبير عارض الصور التفاعلي (Lightbox State)
+    let zoomScale = 1;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let translateX = 0;
+    let translateY = 0;
+
+    const viewerImg = document.getElementById('viewer-img');
+    const viewerContainer = document.getElementById('viewer-image-container');
+
+    const updateImageTransform = () => {
+      viewerImg.style.transform = `scale(${zoomScale}) translate(${translateX}px, ${translateY}px)`;
+    };
+
+    const resetViewerState = () => {
+      zoomScale = 1;
+      translateX = 0;
+      translateY = 0;
+      updateImageTransform();
+      if (viewerContainer) viewerContainer.style.cursor = 'grab';
+    };
+
     /**
-     * خدمات ضغط ومعالجة الصور المرفوعة
+     * خدمات ضغط ومعالجة الصور المرفوعة بمواصفات ثنائية فائقة الدقة والسرعة (Dual-Processing Engine)
      */
     const StorageService = {
-      async compressImage(file, maxWidth = 1024, maxHeight = 1024, quality = 0.75) {
+      async compressImage(file, maxWidth, maxHeight, quality) {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.readAsDataURL(file);
@@ -665,11 +700,66 @@
       }
 
       initGlobalEvents() {
-        // إغلاق معاين الصور والخيارات
+        // إغلاق عارض الصور والخيارات
         document.getElementById('close-viewer').addEventListener('click', () => {
           document.getElementById('image-viewer-modal').style.display = 'none';
+          resetViewerState();
         });
         document.getElementById('close-msg-actions').addEventListener('click', () => this.closeMessageActions());
+
+        // تهيئة محركات التفاعل لعارض الصور (Zoom & Drag/Pan Controllers)
+        document.getElementById('viewer-zoom-in').addEventListener('click', () => {
+          zoomScale = Math.min(zoomScale + 0.25, 4); // أقصى حد للتكبير 4 مرات
+          updateImageTransform();
+        });
+
+        document.getElementById('viewer-zoom-out').addEventListener('click', () => {
+          zoomScale = Math.max(zoomScale - 0.25, 0.5); // أدنى حد للتصغير نصف الحجم
+          updateImageTransform();
+        });
+
+        document.getElementById('viewer-reset').addEventListener('click', resetViewerState);
+
+        // تفعيل السحب بالسحب يميناً ويساراً وأعلى وأسفل (Mouse Panning)
+        viewerContainer.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          isDragging = true;
+          viewerContainer.style.cursor = 'grabbing';
+          startX = e.clientX - translateX * zoomScale;
+          startY = e.clientY - translateY * zoomScale;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+          if (!isDragging) return;
+          translateX = (e.clientX - startX) / zoomScale;
+          translateY = (e.clientY - startY) / zoomScale;
+          updateImageTransform();
+        });
+
+        window.addEventListener('mouseup', () => {
+          isDragging = false;
+          viewerContainer.style.cursor = 'grab';
+        });
+
+        // دعم السحب باللمس للأجهزة الذكية (Mobile Touch Pan Gestures)
+        viewerContainer.addEventListener('touchstart', (e) => {
+          if (e.touches.length === 1) {
+            isDragging = true;
+            startX = e.touches[0].clientX - translateX * zoomScale;
+            startY = e.touches[0].clientY - translateY * zoomScale;
+          }
+        });
+
+        viewerContainer.addEventListener('touchmove', (e) => {
+          if (!isDragging || e.touches.length !== 1) return;
+          translateX = (e.touches[0].clientX - startX) / zoomScale;
+          translateY = (e.touches[0].clientY - startY) / zoomScale;
+          updateImageTransform();
+        });
+
+        viewerContainer.addEventListener('touchend', () => {
+          isDragging = false;
+        });
       }
 
       initAuth() {
@@ -1027,10 +1117,14 @@
             }
 
             if (msg.type === 'image') {
+              // توفير التوافقية الذكية لعرض النسخ المصغرة فقط (Lazy Loaded Preview Image)
+              const chatPreviewSrc = msg.preview || msg.image || "https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop";
+              const targetOriginalSrc = msg.original || msg.image || chatPreviewSrc;
+
               bubble.innerHTML = `
                 ${replyQuoteHtml}
                 <div style="position:relative; border-radius:8px; overflow:hidden; margin-bottom:4px;">
-                  <img src="${msg.image}" class="chat-image-previewable" style="max-width:100%; max-height:220px; display:block; object-fit:cover; border-radius:8px;">
+                  <img src="${chatPreviewSrc}" class="chat-image-previewable" style="max-width:100%; max-height:220px; display:block; object-fit:cover; border-radius:8px;" loading="lazy">
                 </div>
                 ${msg.caption ? `<div style="font-size:0.85rem; color:#fff; margin-bottom:4px; font-weight:600;">${msg.caption}</div>` : ''}
                 <div style="display:flex; justify-content:flex-end; align-items:center; font-size:0.65rem; color:var(--muted); gap:4px;">
@@ -1039,10 +1133,12 @@
                 </div>
               `;
               
-              // ربط تفعيل عارض الصور للرسائل الصورية (Image Lightbox Click Event Listener)
+              // الاستدعاء الكسول (Lazy Load) للنسخة الأصلية عالية الدقة فقط عند الضغط لفتح عارض الصور الفخم
               bubble.querySelector('.chat-image-previewable').addEventListener('click', (e) => {
                 e.stopPropagation();
-                document.getElementById('viewer-img').src = msg.image;
+                // مسح حالة التكبير السابقة وتحضير الواجهة لتلقي الصورة الأصلية بالـ CDN الأصلي
+                resetViewerState();
+                viewerImg.src = targetOriginalSrc;
                 document.getElementById('viewer-caption').textContent = msg.caption || '';
                 document.getElementById('image-viewer-modal').style.display = 'flex';
               });
@@ -1111,9 +1207,18 @@
 
           try {
             attachBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
-            const compressed = await StorageService.compressImage(file);
-            const blobUrl = await StorageService.uploadToVercelBlob(compressed);
-            await this.sendMessageImage(roomId, currentUserId, targetUserId, blobUrl, file.name);
+
+            // 1. إنشاء نسخة الـ Preview المصغرة (أقصى عرض 400 بكسل وجودة 65%)
+            const compressedPreview = await StorageService.compressImage(file, 400, 400, 0.65);
+
+            // 2. إنشاء النسخة الأصلية عالية الدقة خفيفة الضغط (أقصى عرض 1920 بكسل وجودة بين 90% و 92%)
+            const compressedOriginal = await StorageService.compressImage(file, 1920, 1920, 0.91);
+
+            // 3. رفع النسختين إلى Vercel Blob Storage وحفظ الرابطين في الكائن
+            const previewUrl = await StorageService.uploadToVercelBlob(compressedPreview);
+            const originalUrl = await StorageService.uploadToVercelBlob(compressedOriginal);
+
+            await this.sendMessageImage(roomId, currentUserId, targetUserId, previewUrl, originalUrl, file.name);
           } catch(err) {
             console.error("Image send error:", err);
             alert("⚠️ فشل رفع وإرسال الصورة.");
@@ -1232,11 +1337,13 @@
             type: 'text',
             text: '🚫 تم حذف هذه الرسالة',
             image: null,
+            preview: null,
+            original: null,
             caption: null,
             isDeleted: true
           });
           
-          if (ChatState.activeRoomData && ChatState.activeRoomData.lastMessage === msg.text) {
+          if (ChatState.activeRoomData && (ChatState.activeRoomData.lastMessage === msg.text || ChatState.activeRoomData.lastMessage === "📷 صورة")) {
             await update(ref(rtdb, `chatRooms/${roomId}`), {
               lastMessage: '🚫 تم حذف هذه الرسالة',
               lastMessageTime: Date.now()
@@ -1310,7 +1417,7 @@
         await set(unreadRef, currentUnread + 1);
       }
 
-      async sendMessageImage(roomId, senderId, receiverId, imageUrl, captionText) {
+      async sendMessageImage(roomId, senderId, receiverId, previewUrl, originalUrl, captionText) {
         const msgRef = push(ref(rtdb, `messages/${roomId}`));
         const timestamp = Date.now();
 
@@ -1318,7 +1425,9 @@
           senderId: senderId,
           receiverId: receiverId,
           type: "image",
-          image: imageUrl,
+          preview: previewUrl,
+          original: originalUrl,
+          image: previewUrl, // الحفاظ على الحقل للتوافقية الشاملة مع بقية أطراف التطبيق
           caption: captionText || "",
           createdAt: timestamp,
           status: "sent"
