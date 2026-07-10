@@ -297,15 +297,13 @@
       margin-top: 4px;
     }
 
-    /* الرد والاقتباس الجمالي */
+    /* الرد والاقتباس الجمالي المتوافق مع مظهر المجموعات الراقية */
     .quoted-msg-box {
-      background: rgba(0, 0, 0, 0.35);
+      background: rgba(0, 0, 0, 0.2);
       border-right: 3px solid var(--neon-cyan);
-      padding: 6px 12px;
+      padding: 8px 12px;
       border-radius: 6px;
       margin-bottom: 8px;
-      font-size: 0.78rem;
-      color: #cbd5e1;
       direction: rtl;
       text-align: right;
     }
@@ -314,6 +312,9 @@
       color: var(--neon-cyan);
       font-size: 0.72rem;
       margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
 
     /* ============================================
@@ -429,6 +430,47 @@
       transition: var(--transition);
     }
     .overlay.active { display: block; opacity: 1; }
+
+    /* خيارات مخصصة للمودال */
+    .custom-modal {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: var(--bg-deep);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 2.2rem;
+      width: 90%;
+      max-width: 420px;
+      z-index: 10000;
+      display: none;
+      opacity: 0;
+      transition: var(--transition);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    }
+    .custom-modal.active {
+      display: block;
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    .modal-title { font-size: 1.4rem; font-weight: 900; margin-bottom: 1rem; text-align: center; color: #fff; }
+    .modal-options-list { display: flex; flex-direction: column; gap: 1.25rem; margin-top: 1.5rem; }
+    .modal-opt-btn {
+      display: flex; align-items: center; gap: 1rem;
+      width: 100%; padding: 1.1rem; background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--glass-border); border-radius: 12px;
+      color: #fff; font-family: 'Cairo', sans-serif;
+      font-weight: 700; cursor: pointer; text-align: right;
+    }
+    .modal-opt-btn:hover { border-color: var(--neon-cyan); background: rgba(0,242,255,0.05); }
+    .modal-opt-btn i { font-size: 1.35rem; }
+    .modal-close-btn {
+      margin-top: 1.75rem; width: 100%; background: transparent;
+      border: none; color: var(--muted); cursor: pointer;
+      font-family: 'Cairo', sans-serif; font-size: 0.95rem; text-align: center;
+      font-weight: 700;
+    }
+    .modal-close-btn:hover { color: var(--danger); }
 
     /* ============================================
        RESPONSIVE MOBILE LOGIC
@@ -996,11 +1038,15 @@
             <!-- بث الرسائل اللحظي -->
           </div>
           
-          <!-- شريط المعاينة والتحضير للتعديل أو الرد المقتبس كالمستند في شات الأشباح -->
-          <div id="replyContainer" class="reply-preview">
-            <span style="position: absolute; left: 15px; top: 8px; color: var(--neon-cyan); cursor: pointer; font-weight: bold;" onclick="chatApp.cancelReply()">✕</span>
-            <div style="color: #ffcccc; font-weight: 900; font-size: 10px; margin-bottom: 5px;" id="replyTargetName"></div>
-            <div id="replyTargetText" style="font-size: 0.85rem; color: var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></div>
+          <!-- شريط المعاينة والتحضير للتعديل أو الرد المقتبس المطور والمحسّن بصرياً مع زر إلغاء مخصص -->
+          <div id="replyContainer" class="reply-preview" style="display:none; background:rgba(30, 41, 59, 0.95); border-top:1px solid var(--glass-border); border-right:4px solid var(--neon-cyan); padding:12px 25px; align-items:center; justify-content:space-between; direction:rtl;">
+            <div style="min-width:0; flex:1; text-align:right;">
+               <div style="color: var(--neon-cyan); font-weight: 900; font-size: 0.75rem; margin-bottom: 4px;" id="replyTargetName"></div>
+               <div id="replyTargetText" style="font-size: 0.85rem; color: var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width: 80%;"></div>
+            </div>
+            <button type="button" style="background:none; border:none; color:var(--danger); cursor:pointer; padding:6px; font-size:1.15rem; display:flex; align-items:center; justify-content:center; transition: 0.2s;" onclick="chatApp.cancelReply()">
+              <i class="fas fa-times-circle"></i>
+            </button>
           </div>
 
           <div class="chat-footer">
@@ -1138,7 +1184,7 @@
 
             const msgTime = new Date(msg.createdAt).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'});
 
-            // فحص وتفسير الرد من النص بطريقة شات الأشباح (إيجاد "رد على @")
+            // فحص وتفسير الرد من النص بطريقة شات الأشباح مع صندوق اقتباس جمالي يحتوي على أيقونة الرد المائلة
             const isReply = msg.text && msg.text.startsWith('رد على @');
             let replyQuoteHtml = '';
             let displayTargetText = msg.text;
@@ -1148,8 +1194,10 @@
               const targetName = parts[0].replace('رد على @', '');
               displayTargetText = parts.slice(1).join(': ');
               replyQuoteHtml = `
-                <div class="quoted-msg-box">
-                  <div class="quoted-sender">رد على @${targetName}</div>
+                <div class="quoted-msg-box" style="background: rgba(0, 0, 0, 0.2); border-right: 3px solid var(--neon-cyan); padding: 8px 12px; border-radius: 6px; margin-bottom: 8px; text-align: right; direction: rtl;">
+                  <div style="font-size: 0.72rem; font-weight: 900; color: var(--neon-cyan); margin-bottom: 2px; display: flex; align-items: center; gap: 5px;">
+                    <i class="fas fa-reply" style="font-size:0.65rem;"></i> رد على @${targetName}
+                  </div>
                 </div>
               `;
             }
@@ -1206,7 +1254,7 @@
                     };
                     document.getElementById('replyTargetName').innerText = `رد على ${targetUserName}`;
                     document.getElementById('replyTargetText').innerText = ChatState.replyingToMsg.text;
-                    document.getElementById('replyContainer').style.display = 'block';
+                    document.getElementById('replyContainer').style.display = 'flex'; // استخدام Flexbox للمحاذاة الرائعة والزر
                 }
             };
 
@@ -1319,7 +1367,7 @@
             // محاكاة شريط المعاينة فوق حقل الإدخال للتعديل
             document.getElementById('replyTargetName').innerText = `تعديل الرسالة`;
             document.getElementById('replyTargetText').innerText = currentText;
-            document.getElementById('replyContainer').style.display = 'block';
+            document.getElementById('replyContainer').style.display = 'flex'; // إظهار شريط المعاينة والتحرير
           };
         } else {
           editBtn.style.display = 'none';
