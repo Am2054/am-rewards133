@@ -271,7 +271,7 @@
     }
 
     .msg-bubble.sent {
-      background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan));
+      background: linear-gradient(135deg, var(--neon-purple), var(--neon-cyan));
       color: #fff;
       align-self: flex-start;
       border-top-right-radius: 2px;
@@ -299,7 +299,7 @@
 
     /* الرد والاقتباس الجمالي */
     .quoted-msg-box {
-      background: rgba(255, 255, 255, 0.06);
+      background: rgba(0, 0, 0, 0.35);
       border-right: 3px solid var(--neon-cyan);
       padding: 6px 12px;
       border-radius: 6px;
@@ -430,47 +430,6 @@
     }
     .overlay.active { display: block; opacity: 1; }
 
-    /* خيارات مخصصة للمودال */
-    .custom-modal {
-      position: fixed;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%) scale(0.9);
-      background: var(--bg-deep);
-      border: 1px solid var(--glass-border);
-      border-radius: 20px;
-      padding: 2.2rem;
-      width: 90%;
-      max-width: 420px;
-      z-index: 10000;
-      display: none;
-      opacity: 0;
-      transition: var(--transition);
-      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-    }
-    .custom-modal.active {
-      display: block;
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-    }
-    .modal-title { font-size: 1.4rem; font-weight: 900; margin-bottom: 1rem; text-align: center; color: #fff; }
-    .modal-options-list { display: flex; flex-direction: column; gap: 1.25rem; margin-top: 1.5rem; }
-    .modal-opt-btn {
-      display: flex; align-items: center; gap: 1rem;
-      width: 100%; padding: 1.1rem; background: rgba(255, 255, 255, 0.02);
-      border: 1px solid var(--glass-border); border-radius: 12px;
-      color: #fff; font-family: 'Cairo', sans-serif;
-      font-weight: 700; cursor: pointer; text-align: right;
-    }
-    .modal-opt-btn:hover { border-color: var(--neon-cyan); background: rgba(0,242,255,0.05); }
-    .modal-opt-btn i { font-size: 1.35rem; }
-    .modal-close-btn {
-      margin-top: 1.75rem; width: 100%; background: transparent;
-      border: none; color: var(--muted); cursor: pointer;
-      font-family: 'Cairo', sans-serif; font-size: 0.95rem; text-align: center;
-      font-weight: 700;
-    }
-    .modal-close-btn:hover { color: var(--danger); }
-
     /* ============================================
        RESPONSIVE MOBILE LOGIC
        ============================================ */
@@ -526,13 +485,13 @@
     <p id="viewer-caption" style="color:#fff; margin-top:15px; font-weight:700; font-size:1rem; text-shadow:0 2px 10px rgba(0,0,0,0.5); z-index:20001;"></p>
   </div>
 
-  <!-- نافذة خيارات الرسالة (تعديل / حذف / رد) -->
-  <div id="message-actions-modal" class="custom-modal" style="display:none; z-index:15000;">
-    <h3 class="modal-title" style="font-size:1.1rem;"><i class="fas fa-comment-dots" style="color:var(--neon-cyan);"></i> خيارات الرسالة</h3>
-    <div class="modal-options-list" id="msg-actions-list">
-       <!-- الخيارات يتم حقنها ديناميكياً -->
+  <!-- نافذة خيارات الرسالة (تعديل / حذف / إلغاء) - متوافقة مع شات الأشباح -->
+  <div id="actionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:15000; align-items:center; justify-content:center;">
+    <div class="modal-content" onclick="event.stopPropagation()" style="background:var(--bg-deep); border:1px solid var(--neon-cyan); padding:20px; border-radius:20px; width:80%; max-width:300px; display:flex; flex-direction:column; gap:8px;">
+        <button class="modal-btn" style="background:var(--neon-cyan); color:#000; font-family:'Cairo'; font-weight:bold; width:100%; padding:12px; border:none; border-radius:10px; cursor:pointer;" id="editBtn">✏️ تعديل الهمسة</button>
+        <button class="modal-btn" style="background:var(--danger); color:#fff; font-family:'Cairo'; font-weight:bold; width:100%; padding:12px; border:none; border-radius:10px; cursor:pointer;" id="deleteBtn">🗑️ حذف الرسالة</button>
+        <button class="modal-btn" style="background:transparent; border:none; color:var(--muted); font-family:'Cairo'; font-weight:bold; width:100%; padding:8px; cursor:pointer;" onclick="document.getElementById('actionModal').style.display='none'">إلغاء</button>
     </div>
-    <button class="modal-close-btn" id="close-msg-actions">إلغاء</button>
   </div>
 
   <div class="app-layout" id="app-layout-wrapper">
@@ -705,7 +664,6 @@
           document.getElementById('image-viewer-modal').style.display = 'none';
           resetViewerState();
         });
-        document.getElementById('close-msg-actions').addEventListener('click', () => this.closeMessageActions());
 
         // تهيئة محركات التفاعل لعارض الصور (Zoom & Drag/Pan Controllers)
         document.getElementById('viewer-zoom-in').addEventListener('click', () => {
@@ -759,6 +717,11 @@
 
         viewerContainer.addEventListener('touchend', () => {
           isDragging = false;
+        });
+
+        // إغلاق المودال عند النقر على الخلفية المعتمة
+        document.getElementById('actionModal').addEventListener('click', () => {
+          document.getElementById('actionModal').style.display = 'none';
         });
       }
 
@@ -950,7 +913,7 @@
        */
       async openChat(roomId, currentUserId, targetUserId) {
         ChatState.activeRoomId = roomId;
-        this.cancelPreview(); // إلغاء أي تعديل أو رد سابق قبل فتح الغرفة الجديدة
+        this.cancelReply(); // إلغاء أي تعديل أو رد سابق قبل فتح الغرفة الجديدة
 
         // تصفير عداد الرسائل غير المقروءة فوراً عند فتح الدردشة
         set(ref(rtdb, `unreadCounts/${roomId}/${currentUserId}`), 0);
@@ -985,22 +948,20 @@
             <!-- بث الرسائل اللحظي -->
           </div>
           
-          <!-- شريط المعاينة والتحضير للتعديل أو الرد المقتبس كالويندوز والويب المطور -->
-          <div id="chat-preview-bar" style="display:none; background:rgba(30, 41, 59, 0.95); border-top:1px solid var(--glass-border); padding:10px 25px; align-items:center; justify-content:space-between; direction:rtl;">
-            <div style="border-right:3px solid var(--neon-cyan); padding-right:10px; min-width:0; text-align:right;">
-               <div id="preview-bar-title" style="font-size:0.75rem; color:var(--neon-cyan); font-weight:900;"></div>
-               <div id="preview-bar-desc" style="font-size:0.8rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></div>
-            </div>
-            <button id="cancel-preview-btn" style="background:none; border:none; color:var(--danger); cursor:pointer; padding:5px; font-size:1rem;"><i class="fas fa-times"></i></button>
+          <!-- شريط المعاينة والتحضير للتعديل أو الرد المقتبس كالمستند في شات الأشباح -->
+          <div id="replyContainer" class="reply-preview">
+            <span style="position: absolute; left: 15px; top: 8px; color: var(--neon-cyan); cursor: pointer; font-weight: bold;" onclick="chatApp.cancelReply()">✕</span>
+            <div style="color: #ffcccc; font-weight: 900; font-size: 10px; margin-bottom: 5px;" id="replyTargetName"></div>
+            <div id="replyTargetText" style="font-size: 0.85rem; color: var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></div>
           </div>
 
           <div class="chat-footer">
             <button class="action-btn" id="attach-image-btn"><i class="fas fa-camera"></i></button>
             <input type="file" id="hidden-file-input" accept="image/*" style="display:none;">
             <div class="chat-input-wrapper">
-              <input type="text" class="chat-text-input" id="message-text-field" placeholder="اكتب رسالتك بخصوص هذا العقار...">
+              <input type="text" class="chat-text-input" id="message-text-field" placeholder="اهمس أو اعترف بـ #...">
             </div>
-            <button class="send-btn" id="send-msg-btn">إرسال</button>
+            <button class="send-btn" id="send-msg-btn">✦</button>
           </div>
         `;
 
@@ -1091,7 +1052,19 @@
             }
 
             const bubble = document.createElement('div');
-            bubble.className = `msg-bubble ${isMe ? 'sent' : 'received'}`;
+            bubble.id = `msg-${msgId}`;
+
+            // التحقق التام والمماثل لشات الأشباح من حذف الرسالة (data.deleted)
+            if (msg.deleted) {
+                bubble.className = `msg msg-deleted msg-bubble ${isMe ? 'sent' : 'received'}`;
+                bubble.style.opacity = '0.65';
+                bubble.style.fontStyle = 'italic';
+                bubble.innerHTML = `<div class="text">🚫 تم حذف الرسالة</div>`;
+                messagesStream.appendChild(bubble);
+                return;
+            }
+
+            bubble.className = `msg msg-bubble ${isMe ? 'sent' : 'received'}`;
             
             let statusTicks = '';
             if (isMe) {
@@ -1106,37 +1079,43 @@
 
             const msgTime = new Date(msg.createdAt).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'});
 
+            // فحص وتفسير الرد من النص بطريقة شات الأشباح (إيجاد "رد على @")
+            const isReply = msg.text && msg.text.startsWith('رد على @');
             let replyQuoteHtml = '';
-            if (msg.replyTo) {
+            let displayTargetText = msg.text;
+
+            if (isReply) {
+              const parts = msg.text.split(': ');
+              const targetName = parts[0].replace('رد على @', '');
+              displayTargetText = parts.slice(1).join(': ');
               replyQuoteHtml = `
                 <div class="quoted-msg-box">
-                  <div class="quoted-sender">${msg.replyTo.senderName}</div>
-                  <div>${msg.replyTo.text}</div>
+                  <div class="quoted-sender">رد على @${targetName}</div>
                 </div>
               `;
             }
 
             if (msg.type === 'image') {
-              // توفير التوافقية الذكية لعرض النسخ المصغرة فقط (Lazy Loaded Preview Image)
               const chatPreviewSrc = msg.preview || msg.image || "https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop";
               const targetOriginalSrc = msg.original || msg.image || chatPreviewSrc;
 
               bubble.innerHTML = `
-                ${replyQuoteHtml}
+                <div class="sender" style="font-size: 10px; font-weight: 900; color: var(--neon-cyan); margin-bottom: 6px; text-align: right;">
+                  <span>${isMe ? 'أنت' : ownerName}</span>
+                </div>
                 <div style="position:relative; border-radius:8px; overflow:hidden; margin-bottom:4px;">
                   <img src="${chatPreviewSrc}" class="chat-image-previewable" style="max-width:100%; max-height:220px; display:block; object-fit:cover; border-radius:8px;" loading="lazy">
                 </div>
-                ${msg.caption ? `<div style="font-size:0.85rem; color:#fff; margin-bottom:4px; font-weight:600;">${msg.caption}</div>` : ''}
-                <div style="display:flex; justify-content:flex-end; align-items:center; font-size:0.65rem; color:var(--muted); gap:4px;">
+                ${msg.caption ? `<div class="text" style="font-size:0.85rem; color:#fff; margin-bottom:4px; font-weight:600;">${msg.caption}</div>` : ''}
+                <div class="msg-meta-row" style="display:flex; justify-content:flex-end; align-items:center; font-size:0.65rem; color:var(--muted); gap:4px; margin-top:4px;">
                   <span>${msgTime}</span>
                   ${statusTicks}
                 </div>
               `;
               
-              // الاستدعاء الكسول (Lazy Load) للنسخة الأصلية عالية الدقة فقط عند الضغط لفتح عارض الصور الفخم
+              // ربط تفعيل عارض الصور للرسائل الصورية (Image Lightbox Click Event Listener)
               bubble.querySelector('.chat-image-previewable').addEventListener('click', (e) => {
                 e.stopPropagation();
-                // مسح حالة التكبير السابقة وتحضير الواجهة لتلقي الصورة الأصلية بالـ CDN الأصلي
                 resetViewerState();
                 viewerImg.src = targetOriginalSrc;
                 document.getElementById('viewer-caption').textContent = msg.caption || '';
@@ -1144,21 +1123,33 @@
               });
             } else {
               bubble.innerHTML = `
+                <div class="sender" style="font-size: 10px; font-weight: 900; color: var(--neon-cyan); margin-bottom: 6px; text-align: right;">
+                  <span>${isMe ? 'أنت' : ownerName}</span>
+                </div>
                 ${replyQuoteHtml}
-                <div>${msg.text}</div>
-                <div style="display:flex; justify-content:flex-end; align-items:center; font-size:0.65rem; color:var(--muted); gap:4px; margin-top:4px;">
+                <div class="text">${displayTargetText}</div>
+                <div class="msg-meta-row" style="display:flex; justify-content:flex-end; align-items:center; font-size:0.65rem; color:var(--muted); gap:4px; margin-top:4px;">
                   <span>${msgTime}</span>
                   ${statusTicks}
                 </div>
               `;
             }
 
-            // ربط الضغط على فقاعة الدردشة لفتح خيارات الرسالة (رد، تعديل، حذف)
-            bubble.addEventListener('click', (e) => {
-              if (e.target.tagName === 'IMG') return; // تجاهل صور المعاينة
-              if (msg.isDeleted) return; // تجاهل الرسائل المحذوفة
-              this.showMessageActions(msgId, msg, isMe, ownerName);
-            });
+            // ربط ضغط الفأرة أو اللمس من كود شات الأشباح
+            bubble.onclick = () => {
+                if (isMe) {
+                    this.showMsgActions(msgId, msg);
+                } else {
+                    ChatState.replyingToMsg = {
+                        id: msgId,
+                        text: msg.type === 'image' ? "📷 صورة" : displayTargetText,
+                        senderName: ownerName
+                    };
+                    document.getElementById('replyTargetName').innerText = `رد على ${ownerName}`;
+                    document.getElementById('replyTargetText').innerText = ChatState.replyingToMsg.text;
+                    document.getElementById('replyContainer').style.display = 'block';
+                }
+            };
 
             messagesStream.appendChild(bubble);
           });
@@ -1175,7 +1166,6 @@
         const sendBtn = document.getElementById('send-msg-btn');
         const attachBtn = document.getElementById('attach-image-btn');
         const fileInput = document.getElementById('hidden-file-input');
-        const cancelPreviewBtn = document.getElementById('cancel-preview-btn');
 
         textInput.addEventListener('input', () => {
           set(ref(rtdb, `typing/${roomId}/${currentUserId}`), true);
@@ -1196,9 +1186,6 @@
 
         sendBtn.addEventListener('click', handleSend);
 
-        // إلغاء الاقتباس والتعديل عند الضغط على زر X
-        cancelPreviewBtn.addEventListener('click', () => this.cancelPreview());
-
         // واجهة اختيار وصور الكاميرا
         attachBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', async (e) => {
@@ -1207,14 +1194,9 @@
 
           try {
             attachBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
-
-            // 1. إنشاء نسخة الـ Preview المصغرة (أقصى عرض 400 بكسل وجودة 65%)
             const compressedPreview = await StorageService.compressImage(file, 400, 400, 0.65);
-
-            // 2. إنشاء النسخة الأصلية عالية الدقة خفيفة الضغط (أقصى عرض 1920 بكسل وجودة بين 90% و 92%)
             const compressedOriginal = await StorageService.compressImage(file, 1920, 1920, 0.91);
 
-            // 3. رفع النسختين إلى Vercel Blob Storage وحفظ الرابطين في الكائن
             const previewUrl = await StorageService.uploadToVercelBlob(compressedPreview);
             const originalUrl = await StorageService.uploadToVercelBlob(compressedOriginal);
 
@@ -1229,129 +1211,69 @@
       }
 
       /**
-       * إظهار قائمة خيارات الرسالة (سياقية)
+       * إظهار قائمة خيارات الرسالة (تعديل / حذف) بطريقة شات الأشباح
        */
-      showMessageActions(msgId, msg, isMe, ownerName) {
-        const modal = document.getElementById('message-actions-modal');
-        const list = document.getElementById('msg-actions-list');
-        const overlay = document.getElementById('overlay');
+      showMsgActions(msgId, msg) {
+        const modal = document.getElementById('actionModal');
+        modal.style.display = 'flex';
         
-        list.innerHTML = '';
-        
-        // الخيار الأول: الرد للجميع
-        const replyBtn = document.createElement('button');
-        replyBtn.className = 'modal-opt-btn';
-        replyBtn.innerHTML = `<i class="fas fa-reply" style="color:var(--neon-cyan);"></i> <span>الرد على هذه الرسالة</span>`;
-        replyBtn.onclick = () => {
-          this.setReplyMode(msgId, msg, isMe ? "أنت" : ownerName);
-          this.closeMessageActions();
-        };
-        list.appendChild(replyBtn);
-
-        // الخيارات الخاصة برسائلي أنا فقط
-        if (isMe) {
-          if (msg.type === 'text') {
-            const editBtn = document.createElement('button');
-            editBtn.className = 'modal-opt-btn';
-            editBtn.innerHTML = `<i class="fas fa-edit" style="color:var(--neon-cyan);"></i> <span>تعديل نص الرسالة</span>`;
-            editBtn.onclick = () => {
-              this.setEditMode(msgId, msg);
-              this.closeMessageActions();
-            };
-            list.appendChild(editBtn);
-          }
-
-          const deleteBtn = document.createElement('button');
-          deleteBtn.className = 'modal-opt-btn';
-          deleteBtn.style.color = 'var(--danger)';
-          deleteBtn.innerHTML = `<i class="fas fa-trash-alt" style="color:var(--danger);"></i> <span>حذف من الجميع 🚫</span>`;
-          deleteBtn.onclick = () => {
-            if (confirm("هل تريد حذف هذه الرسالة من الجميع بالفعل؟")) {
-              this.deleteMessage(msgId, msg);
+        // ربط الضغط على زر الحذف للرسالة
+        document.getElementById('deleteBtn').onclick = async () => {
+          try {
+            const roomId = ChatState.activeRoomId;
+            await update(ref(rtdb, `messages/${roomId}/${msgId}`), {
+              deleted: true,
+              preview: null,
+              original: null
+            });
+            
+            // تحديث الرسالة الأخيرة للغرفة إذا كانت هي المحذوفة
+            if (ChatState.activeRoomData && (ChatState.activeRoomData.lastMessage === msg.text || ChatState.activeRoomData.lastMessage === "📷 صورة" || ChatState.activeRoomData.lastMessage.startsWith('رد على @'))) {
+              await update(ref(rtdb, `chatRooms/${roomId}`), {
+                lastMessage: '🚫 تم حذف الرسالة',
+                lastMessageTime: Date.now()
+              });
             }
-            this.closeMessageActions();
-          };
-          list.appendChild(deleteBtn);
-        }
-
-        overlay.classList.add('active');
-        modal.classList.add('active');
-        modal.style.display = 'block';
-      }
-
-      closeMessageActions() {
-        const modal = document.getElementById('message-actions-modal');
-        const overlay = document.getElementById('overlay');
-        if (modal) {
-          modal.classList.remove('active');
+          } catch (e) {
+            console.error("Error deleting message: ", e);
+          }
           modal.style.display = 'none';
-        }
-        if (overlay) overlay.classList.remove('active');
-      }
-
-      setReplyMode(msgId, msg, senderName) {
-        ChatState.editingMessageId = null;
-        ChatState.replyingToMsg = {
-          id: msgId,
-          text: msg.type === 'image' ? "📷 صورة" : msg.text,
-          senderName: senderName
         };
-        this.updatePreviewBar("الرد على: " + senderName, ChatState.replyingToMsg.text);
-      }
-
-      setEditMode(msgId, msg) {
-        ChatState.replyingToMsg = null;
-        ChatState.editingMessageId = msgId;
-        const textInput = document.getElementById('message-text-field');
-        if (textInput) {
-          textInput.value = msg.text;
-          textInput.focus();
+        
+        // ربط الضغط على زر التعديل للرسالة
+        const editBtn = document.getElementById('editBtn');
+        if (msg.type === 'text') {
+          editBtn.style.display = 'block';
+          editBtn.onclick = () => {
+            let currentText = msg.text;
+            if (msg.text.startsWith('رد على @')) {
+              const parts = msg.text.split(': ');
+              currentText = parts.slice(1).join(': ');
+            }
+            
+            const input = document.getElementById('message-text-field');
+            input.value = currentText;
+            ChatState.editingMessageId = msgId;
+            modal.style.display = 'none';
+            input.focus();
+            
+            // محاكاة شريط المعاينة فوق حقل الإدخال للتعديل
+            document.getElementById('replyTargetName').innerText = `تعديل الرسالة`;
+            document.getElementById('replyTargetText').innerText = currentText;
+            document.getElementById('replyContainer').style.display = 'block';
+          };
+        } else {
+          editBtn.style.display = 'none';
         }
-        this.updatePreviewBar("تعديل الرسالة المحددة", msg.text);
       }
 
-      updatePreviewBar(title, text) {
-        const bar = document.getElementById('chat-preview-bar');
-        const titleNode = document.getElementById('preview-bar-title');
-        const descNode = document.getElementById('preview-bar-desc');
-        if (bar && titleNode && descNode) {
-          titleNode.textContent = title;
-          descNode.textContent = text;
-          bar.style.display = 'flex';
-        }
-      }
-
-      cancelPreview() {
+      cancelReply() {
         ChatState.replyingToMsg = null;
         ChatState.editingMessageId = null;
-        const bar = document.getElementById('chat-preview-bar');
-        if (bar) bar.style.display = 'none';
+        const replyContainer = document.getElementById('replyContainer');
+        if (replyContainer) replyContainer.style.display = 'none';
         const textInput = document.getElementById('message-text-field');
         if (textInput) textInput.value = '';
-      }
-
-      async deleteMessage(msgId, msg) {
-        const roomId = ChatState.activeRoomId;
-        try {
-          await update(ref(rtdb, `messages/${roomId}/${msgId}`), {
-            type: 'text',
-            text: '🚫 تم حذف هذه الرسالة',
-            image: null,
-            preview: null,
-            original: null,
-            caption: null,
-            isDeleted: true
-          });
-          
-          if (ChatState.activeRoomData && (ChatState.activeRoomData.lastMessage === msg.text || ChatState.activeRoomData.lastMessage === "📷 صورة")) {
-            await update(ref(rtdb, `chatRooms/${roomId}`), {
-              lastMessage: '🚫 تم حذف هذه الرسالة',
-              lastMessageTime: Date.now()
-            });
-          }
-        } catch (e) {
-          console.error("Error deleting message:", e);
-        }
       }
 
       async sendMessageText(roomId, senderId, receiverId, text) {
@@ -1361,43 +1283,48 @@
         if (ChatState.editingMessageId) {
           const msgId = ChatState.editingMessageId;
           try {
+            let textToSave = text;
+            const msgRef = ref(rtdb, `messages/${roomId}/${msgId}`);
+            const originalSnap = await get(msgRef);
+            
+            // الحفاظ على بادئة الرد عند تعديل رسالة رد مقتبسة
+            if (originalSnap.exists() && originalSnap.val().text.startsWith('رد على @')) {
+              const originalText = originalSnap.val().text;
+              const prefix = originalText.split(': ')[0];
+              textToSave = `${prefix}: ${text}`;
+            }
+
             await update(ref(rtdb, `messages/${roomId}/${msgId}`), {
-              text: text,
-              lastEdited: Date.now()
+              text: textToSave,
+              edited: true
             });
 
             await update(ref(rtdb, `chatRooms/${roomId}`), {
-              lastMessage: text,
+              lastMessage: textToSave,
               lastMessageTime: Date.now()
             });
           } catch(e) {
             console.error("Error editing message:", e);
           }
-          this.cancelPreview();
+          this.cancelReply();
           return;
         }
 
         const msgRef = push(ref(rtdb, `messages/${roomId}`));
         const timestamp = Date.now();
 
+        // تكوين بادئة الرد كشات الأشباح
+        let textToSend = ChatState.replyingToMsg ? `رد على @${ChatState.replyingToMsg.senderName}: ${text}` : text;
+
         const newMsg = {
           senderId: senderId,
           receiverId: receiverId,
           type: "text",
-          text: text,
+          text: textToSend,
           image: "",
           createdAt: timestamp,
           status: "sent"
         };
-
-        // الرد والاقتباس (Quote Mode)
-        if (ChatState.replyingToMsg) {
-          newMsg.replyTo = {
-            senderName: ChatState.replyingToMsg.senderName,
-            text: ChatState.replyingToMsg.text
-          };
-          this.cancelPreview();
-        }
 
         const targetStatusSnap = await get(ref(rtdb, `status/${receiverId}`));
         if (targetStatusSnap.exists() && targetStatusSnap.val().state === 'online') {
@@ -1407,7 +1334,7 @@
         await set(msgRef, newMsg);
 
         await update(ref(rtdb, `chatRooms/${roomId}`), {
-          lastMessage: text,
+          lastMessage: textToSend,
           lastMessageTime: timestamp
         });
 
@@ -1415,6 +1342,8 @@
         const unreadSnap = await get(unreadRef);
         const currentUnread = unreadSnap.exists() ? unreadSnap.val() : 0;
         await set(unreadRef, currentUnread + 1);
+
+        this.cancelReply();
       }
 
       async sendMessageImage(roomId, senderId, receiverId, previewUrl, originalUrl, captionText) {
@@ -1427,7 +1356,7 @@
           type: "image",
           preview: previewUrl,
           original: originalUrl,
-          image: previewUrl, // الحفاظ على الحقل للتوافقية الشاملة مع بقية أطراف التطبيق
+          image: previewUrl,
           caption: captionText || "",
           createdAt: timestamp,
           status: "sent"
@@ -1439,7 +1368,7 @@
             senderName: ChatState.replyingToMsg.senderName,
             text: ChatState.replyingToMsg.text
           };
-          this.cancelPreview();
+          this.cancelReply();
         }
 
         const targetStatusSnap = await get(ref(rtdb, `status/${receiverId}`));
