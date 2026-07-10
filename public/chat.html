@@ -271,7 +271,7 @@
     }
 
     .msg-bubble.sent {
-      background: linear-gradient(135deg, var(--neon-purple), var(--neon-cyan));
+      background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan));
       color: #fff;
       align-self: flex-start;
       border-top-right-radius: 2px;
@@ -525,6 +525,8 @@
     import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getDatabase, ref, set, get, push, onValue, off, update, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    // استيراد أدوات الإشعارات (FCM Modules Import)
+    import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -533,14 +535,14 @@
       projectId: "am--rewards",
       storageBucket: "am--rewards.firebasestorage.app",
       messagingSenderId: "744783579735",
-      appId: "1:744783579735:web:45e00de9998893bbc9b112",
-      measurementId: "G-CV3GLT2TTJ"
+      appId: "1:744783579735:web:45e00de9998893bbc9b112"
     };
 
     const firebaseApp = initializeApp(firebaseConfig);
     const db = getFirestore(firebaseApp);
     const auth = getAuth(firebaseApp);
     const rtdb = getDatabase(firebaseApp);
+    const messaging = getMessaging(firebaseApp); // تهيئة الـ Messaging
 
     // إدارة ومزامنة الحالات محلياً
     const ChatState = {
@@ -740,7 +742,10 @@
           // 2. تحميل القائمة الجانبية للمحادثات
           this.loadThreads(user.uid);
 
-          // 3. التقاط المعاملات الممررة من لوحة التحكم (Dashboard) تلقائياً لمعالجتها فورياً
+          // 3. طلب صلاحيات وتسجيل الإشعارات اللحظية (FCM Initialization)
+          this.requestNotificationPermission(user.uid);
+
+          // 4. التقاط المعاملات الممررة من لوحة التحكم (Dashboard) تلقائياً لمعالجتها فورياً
           const urlParams = new URLSearchParams(window.location.search);
           const paramPropertyId = urlParams.get('propertyId');
           const paramOwnerId = urlParams.get('ownerId');
@@ -819,6 +824,49 @@
             });
           }
         });
+      }
+
+      /**
+       * طلب صلاحيات الإشعارات وتسجيل الـ Service Worker وحفظ الـ FCM Token بقاعدة البيانات
+       */
+      async requestNotificationPermission(userId) {
+        try {
+          console.log('🔔 Requesting notification permission...');
+          const permission = await Notification.requestPermission();
+          console.log(`📢 Notification permission: ${permission}`);
+          
+          if (permission === 'granted') {
+            if ('serviceWorker' in navigator) {
+              // تسجيل الـ Service Worker الأساسي من الملف المستقل المخصص للأداء السليم
+              navigator.serviceWorker.register('./firebase-messaging-sw.js')
+                .then(registration => {
+                  console.log('✅ Service Worker registered');
+                  return getToken(messaging, { 
+                    vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
+                    serviceWorkerRegistration: registration
+                  });
+                })
+                .then(token => {
+                  console.log('✅ FCM Token obtained successfully');
+                  if (token) {
+                    // حفظ توكن المستخدم في عقدة users_tokens ليتم بث واستدعاء الإشعارات له لحظياً في الخلفية والمقدمة
+                    return set(ref(rtdb, `users_tokens/${userId}`), { 
+                      token: token, 
+                      timestamp: Date.now()
+                    });
+                  }
+                })
+                .catch(err => console.error('❌ FCM setup error:', err));
+            }
+            
+            // مستمع استقبال الرسائل والإشعارات في المقدمة (Foreground Notification Broadcast)
+            onMessage(messaging, (payload) => {
+              console.log('📬 Message received in foreground:', payload);
+            });
+          }
+        } catch (err) { 
+          console.error("❌ FCM Error setup:", err); 
+        }
       }
 
       /**
