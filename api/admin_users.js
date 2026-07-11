@@ -1,702 +1,172 @@
-<!-- admin-users.html - النسخة العقارية المطورة بالأبعاد الفسيحة ونظام النيون الأصلي لـ AM -->
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>إدارة المستخدمين | AM</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+// /api/admin-users.js - موديول إدارة مستخدمي منصة العقارات بالخلفية وحسابات الغرف والعقارات
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getDatabase } from "firebase-admin/database"; // استيراد قاعدة البيانات اللحظية
+import jwt from "jsonwebtoken";
+import { parse, serialize } from "cookie";
 
-    :root {
-      --primary: #00f2ff;
-      --secondary: #7000ff;
-      --bg-dark: #020617;
-      --bg-darker: #050811;
-      --card-bg: rgba(15, 23, 42, 0.75);
-      --border-color: rgba(0, 242, 255, 0.1);
-      --text-primary: #f1f5f9;
-      --text-secondary: #94a3b8;
-      --success: #22c55e;
-      --danger: #ef4444;
-      --radius: 20px;
-      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
+if (!getApps().length) {
+  try {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY.trim());
+    if (serviceAccount.private_key) serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    initializeApp({ 
+      credential: cert(serviceAccount),
+      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com" // ربط الـ RTDB لخدمات حساب غرف المحادثة
+    });
+  } catch (e) { console.error("Firebase Init Error:", e.message); }
+}
 
-    body {
-      font-family: 'Cairo', sans-serif;
-      background: linear-gradient(135deg, var(--bg-darker) 0%, var(--bg-dark) 100%);
-      color: var(--text-primary);
-      min-height: 100vh;
-      background-attachment: fixed;
-    }
+const db = getFirestore();
+const rtdb = getDatabase(); // كائن التحكم بالـ Realtime Database
 
-    body::after {
-      content: ""; position: fixed; inset: 0; z-index: -1;
-      background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
-      opacity: 0.15; pointer-events: none;
-    }
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', 'https://am-rewards.vercel.app');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    /* دروازة التحقق من الهوية للمشرف */
-    #loginBox {
-      position: fixed;
-      inset: 0;
-      background: var(--bg-darker);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10000;
-      opacity: 1;
-      transition: opacity 0.3s ease;
-    }
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-    #loginBox.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
+  const { action, module, password, uid, status, lastId, searchQuery, sortBy } = req.body;
 
-    .auth-box {
-      width: 100%;
-      max-width: 420px;
-      padding: 40px;
-      background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 24px;
-      box-shadow: 0 0 50px rgba(0, 242, 255, 0.15);
-      text-align: center;
-      position: relative;
-      backdrop-filter: blur(20px);
-    }
-
-    .auth-box::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-      background: linear-gradient(90deg, var(--secondary), var(--primary));
-      border-radius: 24px 24px 0 0;
-    }
-
-    .auth-box h2 {
-      font-size: 1.5rem;
-      font-weight: 900;
-      color: #fff;
-      margin-bottom: 25px;
-      text-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
-    }
-
-    .auth-box input {
-      width: 100%;
-      padding: 14px 16px;
-      margin-bottom: 20px;
-      border-radius: 12px;
-      border: 1px solid var(--border-color);
-      background: rgba(0, 0, 0, 0.3);
-      color: var(--text-primary);
-      text-align: center;
-      font-family: inherit;
-      font-size: 1rem;
-      outline: none;
-    }
-
-    .auth-box input:focus {
-      border-color: var(--primary);
-      background: rgba(0, 242, 255, 0.05);
-      box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
-    }
-
-    .btn-primary {
-      width: 100%;
-      padding: 14px;
-      border-radius: 12px;
-      border: none;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: #000;
-      font-weight: 900;
-      cursor: pointer;
-      font-family: inherit;
-      transition: var(--transition);
-    }
-
-    .btn-primary:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 30px rgba(0, 242, 255, 0.3);
-    }
-
-    .btn-primary:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    /* الهيكل الرئيسي للوحة التحكم */
-    .wrap {
-      max-width: 1300px;
-      margin: 0 auto;
-      padding: 30px 20px;
-    }
-
-    /* شريط الأدوات العلوي المطور والمصغر الموفر للمساحة */
-    .compact-action-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      direction: rtl;
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .btn-icon {
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
-      border: 1px solid var(--border-color);
-      background: transparent;
-      color: var(--text-primary);
-      cursor: pointer;
-      font-size: 1.1rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: var(--transition);
-    }
-
-    .btn-icon:hover {
-      border-color: var(--primary);
-      background: rgba(0, 242, 255, 0.1);
-      box-shadow: 0 0 12px rgba(0, 242, 255, 0.2);
-    }
-
-    .btn-logout {
-      border-color: var(--danger) !important;
-      color: var(--danger) !important;
-    }
-
-    .btn-logout:hover {
-      background: rgba(239, 68, 68, 0.15) !important;
-      box-shadow: 0 0 15px rgba(239, 68, 68, 0.25) !important;
-    }
-
-    /* بطاقات المؤشرات الفورية المحسنة والمصغرة */
-    .metrics {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 20px;
-      margin-bottom: 20px;
-    }
-
-    .stat-item {
-      padding: 15px 25px;
-      background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 16px;
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .stat-item::before {
-      content: '';
-      position: absolute;
-      top: 0; bottom: 0; right: 0; width: 3px;
-      background: linear-gradient(180deg, var(--primary), var(--secondary));
-    }
-
-    .stat-item strong {
-      display: block;
-      font-size: 2rem;
-      font-weight: 900;
-      color: #fff;
-    }
-
-    .stat-item span {
-      color: var(--text-secondary);
-      font-size: 0.9rem;
-      font-weight: 700;
-    }
-
-    /* هيكل الجدول الفسيح */
-    .table-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 20px;
-      overflow: hidden;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    }
-
-    .controls {
-      padding: 20px 30px;
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      gap: 15px;
-      flex-wrap: wrap;
-    }
-
-    .controls input {
-      padding: 12px 16px;
-      border-radius: 12px;
-      border: 1px solid var(--border-color);
-      background: rgba(0, 0, 0, 0.25);
-      color: var(--text-primary);
-      font-family: inherit;
-      font-size: 0.95rem;
-      outline: none;
-      flex: 1;
-      min-width: 250px;
-    }
-
-    .controls input:focus {
-      border-color: var(--primary);
-      background: rgba(0, 242, 255, 0.05);
-      box-shadow: 0 0 15px rgba(0, 242, 255, 0.1);
-    }
-
-    .table-scroll {
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    th {
-      padding: 18px 30px;
-      text-align: right;
-      color: var(--primary);
-      font-weight: 700;
-      font-size: 0.85rem;
-      border-bottom: 2px solid var(--border-color);
-      background: rgba(0, 242, 255, 0.03);
-    }
-
-    td {
-      padding: 18px 30px;
-      border-bottom: 1px solid var(--border-color);
-      font-size: 0.95rem;
-    }
-
-    tbody tr:hover {
-      background: rgba(0, 242, 255, 0.04);
-    }
-
-    /* الأفاتار ومعلومات العضو */
-    .avatar {
-      width: 45px;
-      height: 45px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 900;
-      color: #fff;
-      margin-left: 12px;
-    }
-
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 0;
-    }
-
-    .user-detail {
-      font-weight: 700;
-      color: #fff;
-    }
-
-    .user-email {
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-      margin-top: 4px;
-    }
-
-    /* البادجات للحظر والنشاط */
-    .status-badge {
-      display: inline-block;
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 0.75rem;
-      font-weight: 900;
-    }
-
-    .status-active {
-      background: rgba(34, 197, 94, 0.15);
-      color: var(--success);
-      border: 1px solid rgba(34, 197, 94, 0.3);
-    }
-
-    .status-banned {
-      background: rgba(239, 68, 68, 0.15);
-      color: var(--danger);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-    }
-
-    /* أزرار الإجراءات */
-    .action-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      border: 1px solid var(--border-color);
-      background: transparent;
-      color: var(--text-primary);
-      cursor: pointer;
-      font-size: 1rem;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      margin-left: 8px;
-      transition: var(--transition);
-    }
-
-    .action-btn:hover {
-      border-color: var(--primary);
-      background: rgba(0, 242, 255, 0.1);
-      color: var(--primary);
-    }
-
-    .btn-ban:hover {
-      border-color: var(--danger) !important;
-      background: rgba(239, 68, 68, 0.1) !important;
-      color: var(--danger) !important;
-    }
-
-    /* الصفحات والتنقل */
-    .pagination {
-      padding: 20px 30px;
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      border-top: 1px solid var(--border-color);
-    }
-
-    .btn-page {
-      padding: 10px 16px;
-      border-radius: 10px;
-      border: 1px solid var(--border-color);
-      background: transparent;
-      color: var(--text-primary);
-      cursor: pointer;
-      font-weight: 700;
-      transition: var(--transition);
-    }
-
-    .btn-page:hover:not(:disabled) {
-      border-color: var(--primary);
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: #000;
-    }
-
-    .btn-page:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-
-    /* زر العودة للوحة الإدارية المضيء لصفحة admin.html */
-    .back-dashboard-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 18px;
-      background: rgba(15, 23, 42, 0.6);
-      color: var(--text-main);
-      text-decoration: none;
-      border-radius: 12px;
-      font-weight: 700;
-      font-size: 0.9rem;
-      border: 1px solid var(--glass-border);
-      transition: var(--transition);
-    }
-
-    .back-dashboard-btn:hover {
-      border-color: var(--primary);
-      box-shadow: 0 0 15px rgba(0, 242, 255, 0.25);
-      color: var(--primary);
-    }
-
-    /* التنبيهات المنبثقة (Toasts) */
-    .toast {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      padding: 16px 24px;
-      border-radius: 12px;
-      background: var(--card-bg);
-      border-left: 4px solid var(--primary);
-      color: var(--text-primary);
-      font-weight: 700;
-      box-shadow: 0 10px 30px rgba(0, 242, 255, 0.2);
-      z-index: 12000;
-      animation: slideInRight 0.3s ease;
-    }
-
-    @keyframes slideInRight {
-      from { transform: translateX(400px); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-
-    .toast.success { border-left-color: var(--success); }
-    .toast.danger { border-left-color: var(--danger); }
-  </style>
-</head>
-<body>
-
-  <!-- بوابة التحقق من الهوية للمشرف -->
-  <div id="loginBox">
-    <div class="auth-box">
-      <h2>👥 مدير مستخدمي العقارات</h2>
-      <input id="adminPass" type="password" placeholder="أدخل كود الدخول" />
-      <button id="loginBtn" class="btn-primary">دخول النظام</button>
-      <p style="margin-top: 20px; color: var(--text-secondary); font-size: 0.9rem;">
-        يتطلب صلاحيات إدارية عليا للوصول
-      </p>
-    </div>
-  </div>
-
-  <!-- المحتوى الرئيسي للوحة الإدارة -->
-  <div id="main-ui" class="wrap hidden">
+  // --- [1] نظام تسجيل الدخول الموحد لمدير المستخدمين ---
+  if (action === 'admin_login') {
+    let isValid = false;
+    let role = "";
     
-    <!-- شريط الأدوات العلوي المحسّن والمصغر لضمان التنقل السلس والسريع (Compact Action Bar) -->
-    <div class="compact-action-bar">
-      <a href="admin.html" class="back-dashboard-btn">
-        <i class="fas fa-arrow-right"></i> العودة للوحة الإدارة
-      </a>
-      <div class="header-actions">
-        <button id="syncBtn" class="btn-icon" title="تحديث البيانات">🔄</button>
-        <button id="logoutBtn" class="btn-icon btn-logout" title="تسجيل الخروج">🚪</button>
-      </div>
-    </div>
+    if (module === 'users' && password === process.env.ADMIN_PASSWORD1) { 
+      isValid = true; 
+      role = "users_admin"; 
+    }
 
-    <!-- كارت إحصائي علوي مصغر واحد ومدمج للمستخدمين المسجلين (Sleek Compact Metric Card) -->
-    <div class="metrics">
-      <div class="stat-item">
-        <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 700;">👥 إجمالي المستخدمين المسجلين</span>
-        <strong id="metricTotal">0</strong>
-      </div>
-    </div>
+    if (isValid) {
+      const token = jwt.sign({ role, module }, process.env.JWT_SECRET, { expiresIn: '24h' });
+      res.setHeader('Set-Cookie', serialize('adminToken', token, { 
+        path: '/', httpOnly: true, secure: true, sameSite: 'strict', maxAge: 86400 
+      }));
+      return res.status(200).json({ success: true });
+    }
+    return res.status(401).json({ error: "Unauthorized" });
+  }
 
-    <div class="table-card">
-      <div class="controls">
-        <input id="searchInput" type="text" placeholder="ابحث باسم العميل أو البريد الإلكتروني...">
-      </div>
+  // --- [2] التحقق من التوكن للمضي في العمليات ---
+  const cookies = parse(req.headers.cookie || "");
+  const token = cookies.adminToken;
+  if (!token) return res.status(401).json({ error: "No Token" });
 
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>العميل المستخدم</th>
-              <th>رقم الهاتف المعلق</th>
-              <th>عدد العقارات</th>
-              <th>عدد الغرف</th>
-              <th>الحالة</th>
-              <th>آخر نشاط</th>
-              <th>الإجراءات</th>
-            </tr>
-          </thead>
-          <tbody id="usersTbody">
-            <tr>
-              <td colspan="7" style="text-align: center; padding: 40px;">جاري سحب وفهرسة الأعضاء...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      <div class="pagination">
-        <button id="prevBtn" class="btn-page" disabled>← السابق</button>
-        <button id="nextBtn" class="btn-page">التالي →</button>
-      </div>
-    </div>
-  </div>
+    if (decoded.role !== 'users_admin' || decoded.module !== 'users') {
+      return res.status(403).json({ error: "Forbidden" });
+    }
 
-  <script>
-    let lastDocId = null;
-    let pageHistory = []; 
+    // --- [3] موديول إدارة مستخدمي العقارات وشؤون الأعضاء ---
+    if (module === 'users') {
+      if (action === 'get_users') {
+        let queryRef = db.collection("users");
 
-    async function apiRequest(data) {
-      try {
-        const res = await fetch('/api/admin_users', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...data, module: 'users' })
-        });
-        if (res.status === 401) {
-          toggleUI(false);
-          showToast('جلسة غير صالحة أو انتهت', 'danger');
-          return null;
+        if (searchQuery) {
+          queryRef = queryRef
+            .orderBy("email")
+            .where("email", ">=", searchQuery.toLowerCase().trim())
+            .where("email", "<=", searchQuery.toLowerCase().trim() + "\uf8ff");
+        } else {
+          // الفرز وتجنب أخطاء Firestore للأعضاء غير النشطين عبر حقول مضمون وجودها كلياً (Default Failsafe Ordering)
+          let sortField = "email";
+          let sortOrder = "asc";
+
+          if (sortBy === "lastLogin") {
+            sortField = "lastLogin";
+            sortOrder = "desc";
+          } else if (sortBy === "name") {
+            sortField = "name";
+            sortOrder = "asc";
+          }
+
+          queryRef = queryRef.orderBy(sortField, sortOrder);
         }
-        return res.json();
-      } catch (e) {
-        showToast('خطأ في الاتصال بالسيرفر', 'danger');
-        return null;
-      }
-    }
 
-    function showToast(message, type = 'success') {
-      const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      toast.textContent = message;
-      document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 3000);
-    }
-
-    function resetAndLoad() {
-      lastDocId = null;
-      pageHistory = [];
-      document.getElementById('prevBtn').disabled = true;
-      loadData();
-    }
-
-    async function loadData(direction = 'none') {
-      const search = document.getElementById('searchInput').value;
-
-      let targetLastId = null;
-      if (direction === 'next') {
-        targetLastId = lastDocId;
-      } else if (direction === 'prev') {
-        pageHistory.pop(); 
-        targetLastId = pageHistory[pageHistory.length - 1] || null;
-      }
-
-      const res = await apiRequest({
-        action: 'get_users',
-        lastId: targetLastId,
-        searchQuery: search,
-        sortBy: 'email' // تعيين الفرز المباشر بالبريد الإلكتروني افتراضياً لمنع حدوث أي استبعاد بروتوكولي للمستخدمين القدامى
-      });
-
-      if (res && res.users) {
-        renderTable(res.users);
-        
-        // التحقق الآمن من وجود عنصر metricTotal قبل الكتابة لتفادي الأخطاء البرمجية
-        const totalMetricNode = document.getElementById('metricTotal');
-        if (totalMetricNode) {
-          totalMetricNode.textContent = res.total;
-        }
-        
-        if (res.users.length > 0) {
-          lastDocId = res.users[res.users.length - 1].id;
-          
-          if (direction === 'next') {
-            pageHistory.push(targetLastId); 
+        if (lastId && !searchQuery) {
+          const lastSnapshot = await db.collection("users").doc(lastId).get();
+          if (lastSnapshot.exists) {
+            queryRef = queryRef.startAfter(lastSnapshot);
           }
         }
-        
-        document.getElementById('prevBtn').disabled = (pageHistory.length === 0);
-        document.getElementById('nextBtn').disabled = (res.users.length < 10);
+
+        queryRef = queryRef.limit(10);
+
+        const snap = await queryRef.get();
+        console.log("Users Found:", snap.size);
+
+        // جلب غرف التفاوض النشطة كلياً ودفعة واحدة من قاعدة البيانات اللحظية (High-Performance Single Call)
+        const roomsSnap = await rtdb.ref("chatRooms").get();
+        const allRooms = roomsSnap.exists() ? Object.values(roomsSnap.val()) : [];
+
+        // معالجة وحساب بيانات الأعضاء بالتوازي بكفاءة تامة (Promise.all Pipeline)
+        const users = await Promise.all(snap.docs.map(async (doc) => {
+          const uId = doc.id;
+          const uData = doc.data();
+
+          // 1. حساب عدد العقارات الفعلي للمستخدم في Firestore
+          const propertiesCountSnap = await db.collection("properties")
+            .where("ownerId", "==", uId)
+            .count()
+            .get();
+          const propertiesCount = propertiesCountSnap.data().count;
+
+          // 2. حساب عدد الغرف الفعلي النشط للمستخدم بالـ Realtime Database في الذاكرة
+          const roomsCount = allRooms.filter(room => 
+            (room.participants && room.participants[uId]) || 
+            room.ownerId === uId || 
+            room.buyerId === uId
+          ).length;
+
+          let lastLoginText = "غير نشط حالياً";
+          if (uData.lastLogin) {
+            try {
+              const date = uData.lastLogin.toDate ? uData.lastLogin.toDate() : new Date(uData.lastLogin);
+              lastLoginText = date.toLocaleString("ar-EG");
+            } catch (e) {
+              console.warn("Date parse warn:", e.message);
+            }
+          }
+
+          return {
+            id: uId,
+            name: uData.name || "مستخدم مجهول",
+            email: uData.email || "-",
+            phone: uData.phone || "غير مسجل",
+            status: uData.isBanned ? "banned" : "active",
+            propertiesCount,
+            roomsCount,
+            lastLoginText
+          };
+        }));
+
+        const countSnap = await db.collection("users").count().get();
+
+        return res.status(200).json({
+          users,
+          total: countSnap.data().count
+        });
+      }
+
+      // تفعيل حظر أو فك حظر حساب العضو
+      if (action === 'toggle_ban') {
+        const isBannedValue = (status === 'banned');
+        await db.collection('users').doc(uid).update({ 
+          isBanned: isBannedValue,
+          status: status,
+          bannedAt: isBannedValue ? FieldValue.serverTimestamp() : null 
+        });
+        return res.status(200).json({ success: true });
       }
     }
 
-    function renderTable(users) {
-      const tbody = document.getElementById('usersTbody');
-      tbody.innerHTML = users.length === 0 ?
-        '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 40px;">لا توجد بيانات تطابق البحث حالياً</td></tr>' :
-        users.map(u => {
-          const isBanned = u.status === 'banned';
-          return `
-            <tr style="${isBanned ? 'opacity: 0.5;' : ''}">
-              <td>
-                <div class="user-info">
-                  <div class="avatar">${(u.name || 'A').charAt(0).toUpperCase()}</div>
-                  <div style="text-align:right;">
-                    <div class="user-detail">${u.name || 'مستخدم مجهول'}</div>
-                    <div class="user-email">${u.email}</div>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <span style="color:#fff; font-weight: 700;">${u.phone || 'غير مسجل'}</span>
-              </td>
-              <!-- حسابات عدد العقارات الفعلي من الـ Backend -->
-              <td>
-                <span style="color:var(--primary); font-weight: 700; font-family:'Cairo';">${u.propertiesCount || 0}</span>
-              </td>
-              <!-- حسابات عدد الغرف الفعلي من الـ Backend -->
-              <td>
-                <span style="color:var(--primary); font-weight: 700; font-family:'Cairo';">${u.roomsCount || 0}</span>
-              </td>
-              <td>
-                <span class="status-badge ${isBanned ? 'status-banned' : 'status-active'}">
-                  ${isBanned ? '❌ محظور' : '✅ نشط'}
-                </span>
-              </td>
-              <td style="font-size: 0.8rem; color: var(--text-secondary);">${u.lastLoginText}</td>
-              <td>
-                <button onclick="toggleBan('${u.id}', '${u.status}')" class="action-btn btn-ban" title="${isBanned ? 'فك الحظر' : 'حظر العضو'}">
-                  ${isBanned ? '🔓' : '🚫'}
-                </button>
-              </td>
-            </tr>
-          `;
-        }).join('');
-    }
-
-    async function toggleBan(uid, currentStatus) {
-      const nextStatus = currentStatus === 'banned' ? 'active' : 'banned';
-      if (confirm(`هل تريد تأكيد تغيير حالة العضو إلى ${nextStatus === 'banned' ? '🚫 حظر الحساب' : '✅ نشط ومصرح له'}؟`)) {
-        const res = await apiRequest({ action: 'toggle_ban', uid, status: nextStatus });
-        if (res?.success) {
-          showToast(`✅ تم تعديل حالة العضو بنجاح`, 'success');
-          loadData();
-        }
-      }
-    }
-
-    function toggleUI(isLoggedIn) {
-      document.getElementById('loginBox').classList.toggle('hidden', isLoggedIn);
-      document.getElementById('main-ui').classList.toggle('hidden', !isLoggedIn);
-    }
-
-    document.getElementById('loginBtn').onclick = async () => {
-      const btn = document.getElementById('loginBtn');
-      const pass = document.getElementById('adminPass').value;
-
-      if (!pass) {
-        showToast('⚠️ أدخل رمز الوصول', 'warning');
-        return;
-      }
-
-      btn.disabled = true;
-      btn.textContent = '⏳ جاري التحقق...';
-
-      const res = await apiRequest({ action: 'admin_login', password: pass });
-      if (res?.success) {
-        toggleUI(true);
-        loadData();
-        showToast('✅ تم تسجيل الدخول بنجاح', 'success');
-      } else {
-        showToast('❌ رمز وصول غير صحيح', 'danger');
-      }
-
-      btn.disabled = false;
-      btn.textContent = 'دخول النظام';
-    };
-
-    document.getElementById('logoutBtn').onclick = () => {
-      document.cookie = 'adminToken=; max-age=0; path=/';
-      location.reload();
-    };
-
-    document.getElementById('syncBtn').onclick = resetAndLoad;
-    document.getElementById('nextBtn').onclick = () => loadData('next');
-    document.getElementById('prevBtn').onclick = () => loadData('prev');
-
-    let searchTimer;
-    document.getElementById('searchInput').oninput = () => {
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(resetAndLoad, 800);
-    };
-
-    window.onload = () => {
-      if (document.cookie.includes('adminToken')) {
-        toggleUI(true);
-        loadData();
-      }
-    };
-  </script>
-</body>
-</html>
+  } catch (e) { 
+    console.error("Session Error:", e.message);
+    return res.status(401).json({ error: "Session Expired" }); 
+  }
+}
