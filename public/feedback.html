@@ -55,37 +55,8 @@
         <p style="text-align: center; font-size: 13px; opacity: 0.8; margin-bottom: 25px;">تواصل معنا لمساعدتك في إتمام الحجوزات أو الإبلاغ عن عطل، وسنرد عليك في غضون 24 ساعة.</p>
         
         <form id="supportForm">
-            <label>نوع الطلب العقاري المعني</label>
-            <select id="requestType" required onchange="toggleFields()">
-                <option value="">-- كيف يمكننا مساعدتك اليوم؟ --</option>
-                <option value="استفسار عن حجز أو عقد">📝 استفسار بخصوص حجز أو عقد تعاقدي</option>
-                <option value="طلب صيانة طارئة">🔧 بلاغ صيانة أو عطل بالوحدة السكنية</option>
-                <option value="مشكلة في دفع العربون">💸 مشكلة في الدفع أو تحويل العربون</option>
-                <option value="عطل فني في الموقع">⚙️ عطل تقني أو فني بالمنصة</option>
-                <option value="اقتراح تطوير عقاري">💡 اقتراح ميزة أو خدمة جديدة</option>
-                <option value="شكوى ضد مستخدم">🛡️ شكوى ضد (مالك عقار / مستأجر)</option>
-            </select>
-
-            <!-- اختيار مخصص للأعطال العقارية والصيانة -->
-            <div id="serviceSelectionArea" style="display:none">
-                <label>اختر نوع الصيانة المطلوبة</label>
-                <select id="serviceName">
-                    <option value="غير محدد">-- اختر نوع العطل --</option>
-                    <option value="صيانة سباكة ومياه">🚰 صيانة سباكة ومواسير المياه</option>
-                    <option value="صيانة كهرباء وإنارة">⚡ صيانة كهرباء وعداد الإنارة</option>
-                    <option value="صيانة أجهزة وتكييف">❄️ صيانة أجهزة كهربائية وتكييف</option>
-                    <option value="تلف بالأثاث أو الجدران">Doors تلف في الأثاث أو الجدران والأبواب</option>
-                    <option value="أخرى">🛠️ مشكلة صيانة أخرى</option>
-                </select>
-            </div>
-
-            <div id="extraInputArea" style="display:none">
-                <label id="extraLabel">محددات رقمية أو مراجع</label>
-                <input type="text" id="extraValue">
-            </div>
-
             <label>اشرح لنا بالتفصيل</label>
-            <textarea id="message" rows="5" minlength="30" required placeholder="اشرح طلبك أو مشكلتك بالتفصيل (30 حرف على الأقل) لسرعة فحص ومعالجة الطلب..."></textarea>
+            <textarea id="message" rows="5" minlength="15" required placeholder="اكتب استفسارك، مشكلتك، بلاغ الصيانة، أو اقتراحك بوضوح (15 حرف على الأقل)..."></textarea>
 
             <button type="submit" class="btn-send" id="submitBtn">إرسال الطلب الآن 🚀</button>
         </form>
@@ -122,31 +93,6 @@
         if (u) { user = u; listenToTickets(); }
         else { window.location.href = "login.html"; }
     });
-
-    window.toggleFields = () => {
-        const type = document.getElementById('requestType').value;
-        const area = document.getElementById('extraInputArea');
-        const serviceArea = document.getElementById('serviceSelectionArea');
-        const label = document.getElementById('extraLabel');
-        const input = document.getElementById('extraValue');
-
-        area.style.display='none';
-        serviceArea.style.display='none';
-
-        if(type.includes('العربون') || type.includes('شكوى')) { 
-            area.style.display='block'; 
-            label.innerText='مُعرّف العقار أو المستخدم المعني (إن وجد)'; 
-            input.placeholder='ضع معرّف (ID) العقار المعني بالشكوى هنا'; 
-        }
-        else if(type.includes('حجز')) { 
-            area.style.display='block'; 
-            label.innerText='رقم العقد أو الحجز التعاقدي المعني'; 
-            input.placeholder='مثال: AM-102938'; 
-        }
-        else if(type.includes('صيانة')) { 
-            serviceArea.style.display='block'; 
-        }
-    };
 
     function escapeHTML(str) {
         if(!str) return "";
@@ -191,7 +137,6 @@
     document.getElementById('supportForm').onsubmit = async (e) => {
         e.preventDefault();
         const btn = document.getElementById('submitBtn');
-        const type = document.getElementById('requestType').value;
         const msg = document.getElementById('message').value;
         
         btn.disabled = true;
@@ -220,9 +165,9 @@
             await addDoc(collection(db, "support_tickets"), {
                 uid: user.uid,
                 email: user.email,
-                type: type,
-                selectedService: type.includes('صيانة') ? document.getElementById('serviceName').value : "غير محدد",
-                extraData: document.getElementById('extraValue').value || "لا يوجد",
+                type: "طلب دعم عقاري", // تعيين نوع موحد للحفاظ على هيكلية لوحة التحكم الإدارية
+                selectedService: "غير محدد",
+                extraData: "لا يوجد",
                 message: msg,
                 status: "pending",
                 adminReply: "", 
@@ -231,8 +176,6 @@
 
             Swal.fire("تم إرسال بلاغك", "شكراً لك، تم تلقي بلاغك العقاري بنجاح وسيتواصل معك فني أو مشرف الدعم الفني قريباً.", "success");
             document.getElementById('supportForm').reset();
-            document.getElementById('extraInputArea').style.display = 'none';
-            document.getElementById('serviceSelectionArea').style.display = 'none';
         } catch (error) { 
             console.error("Submit Error:", error);
             Swal.fire("عذراً", "حدث خطأ غير متوقع: " + (error.code || error.message), "error"); 
