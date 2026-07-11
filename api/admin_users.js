@@ -73,7 +73,19 @@ export default async function handler(req, res) {
             .where("email", ">=", searchQuery.toLowerCase().trim())
             .where("email", "<=", searchQuery.toLowerCase().trim() + "\uf8ff");
         } else {
-          queryRef = queryRef.orderBy("lastLogin", "desc");
+          // الفرز وتجنب أخطاء Firestore للأعضاء غير النشطين عبر حقول مضمون وجودها كلياً (Default Failsafe Ordering)
+          let sortField = "email";
+          let sortOrder = "asc";
+
+          if (sortBy === "lastLogin") {
+            sortField = "lastLogin";
+            sortOrder = "desc";
+          } else if (sortBy === "name") {
+            sortField = "name";
+            sortOrder = "asc";
+          }
+
+          queryRef = queryRef.orderBy(sortField, sortOrder);
         }
 
         if (lastId && !searchQuery) {
