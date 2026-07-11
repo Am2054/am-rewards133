@@ -1,6 +1,7 @@
-// /api/admin_users.js - موديول إدارة مستخدمي منصة العقارات بالخلفية
+// /api/admin-users.js - موديول إدارة مستخدمي منصة العقارات بالخلفية وحسابات الغرف والعقارات
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getDatabase } from "firebase-admin/database"; // استيراد قاعدة البيانات اللحظية
 import jwt from "jsonwebtoken";
 import { parse, serialize } from "cookie";
 
@@ -8,28 +9,32 @@ if (!getApps().length) {
   try {
     const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY.trim());
     if (serviceAccount.private_key) serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-    initializeApp({ credential: cert(serviceAccount) });
+    initializeApp({ 
+      credential: cert(serviceAccount),
+      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com" // ربط الـ RTDB لخدمات حساب غرف المحادثة
+    });
   } catch (e) { console.error("Firebase Init Error:", e.message); }
 }
 
 const db = getFirestore();
+const rtdb = getDatabase(); // كائن التحكم بالـ Realtime Database
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', 'https://am-rewards.vercel.app');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-  const { action, module, password, uid, points, status, lastId, searchQuery, sortBy } = req.body;
+  const { action, module, password, uid, status, lastId, searchQuery, sortBy } = req.body;
 
   // --- [1] نظام تسجيل الدخول الموحد لمدير المستخدمين ---
   if (action === 'admin_login') {
     let isValid = false;
     let role = "";
     
-    // التحقق من كلمة المرور الخاصة بمشرف المستخدمين
     if (module === 'users' && password === process.env.ADMIN_PASSWORD1) { 
       isValid = true; 
       role = "users_admin"; 
@@ -53,76 +58,87 @@ export default async function handler(req, res) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // التحقق من أن الدور المصرح به هو مدير مستخدمين فقط
     if (decoded.role !== 'users_admin' || decoded.module !== 'users') {
       return res.status(403).json({ error: "Forbidden" });
     }
 
-    // --- [3] موديول إدارة مستخدمي العقارات ---
+    // --- [3] موديول إدارة مستخدمي العقارات وشؤون الأعضاء ---
     if (module === 'users') {
       if (action === 'get_users') {
+        let queryRef = db.collection("users");
 
-  let sortField = "lastLogin"; // اسم الحقل عندك
+        if (searchQuery) {
+          queryRef = queryRef
+            .orderBy("email")
+            .where("email", ">=", searchQuery.toLowerCase().trim())
+            .where("email", "<=", searchQuery.toLowerCase().trim() + "\uf8ff");
+        } else {
+          queryRef = queryRef.orderBy("lastLogin", "desc");
+        }
 
-  let queryRef = db.collection("users")
-    .orderBy(sortField, "desc")
-    .limit(10);
+        if (lastId && !searchQuery) {
+          const lastSnapshot = await db.collection("users").doc(lastId).get();
+          if (lastSnapshot.exists) {
+            queryRef = queryRef.startAfter(lastSnapshot);
+          }
+        }
 
-  // البحث
-  if (searchQuery) {
-    queryRef = db.collection("users")
-      .where("email", ">=", searchQuery.toLowerCase())
-      .where("email", "<=", searchQuery.toLowerCase() + "\uf8ff")
-      .limit(10);
-  }
+        queryRef = queryRef.limit(10);
 
-  // الصفحات
-  else if (lastId) {
-    const lastSnapshot = await db.collection("users").doc(lastId).get();
+        const snap = await queryRef.get();
+        console.log("Users Found:", snap.size);
 
-    if (lastSnapshot.exists) {
-      queryRef = queryRef.startAfter(lastSnapshot);
-    }
-  }
+        // جلب غرف التفاوض النشطة كلياً ودفعة واحدة من قاعدة البيانات اللحظية (High-Performance Single Call)
+        const roomsSnap = await rtdb.ref("chatRooms").get();
+        const allRooms = roomsSnap.exists() ? Object.values(roomsSnap.val()) : [];
 
-  const snap = await queryRef.get();
+        // معالجة وحساب بيانات الأعضاء بالتوازي بكفاءة تامة (Promise.all Pipeline)
+        const users = await Promise.all(snap.docs.map(async (doc) => {
+          const uId = doc.id;
+          const uData = doc.data();
 
-  console.log("Users Found:", snap.size);
+          // 1. حساب عدد العقارات الفعلي للمستخدم في Firestore
+          const propertiesCountSnap = await db.collection("properties")
+            .where("ownerId", "==", uId)
+            .count()
+            .get();
+          const propertiesCount = propertiesCountSnap.data().count;
 
-  snap.forEach(doc => {
-    console.log(doc.id, doc.data());
-  });
+          // 2. حساب عدد الغرف الفعلي النشط للمستخدم بالـ Realtime Database في الذاكرة
+          const roomsCount = allRooms.filter(room => 
+            (room.participants && room.participants[uId]) || 
+            room.ownerId === uId || 
+            room.buyerId === uId
+          ).length;
 
-  const users = snap.docs.map(doc => {
-    const uData = doc.data();
+          let lastLoginText = "غير نشط حالياً";
+          if (uData.lastLogin) {
+            try {
+              const date = uData.lastLogin.toDate ? uData.lastLogin.toDate() : new Date(uData.lastLogin);
+              lastLoginText = date.toLocaleString("ar-EG");
+            } catch (e) {
+              console.warn("Date parse warn:", e.message);
+            }
+          }
 
-    return {
-      id: doc.id,
-      ...uData,
+          return {
+            id: uId,
+            name: uData.name || "مستخدم مجهول",
+            email: uData.email || "-",
+            phone: uData.phone || "غير مسجل",
+            status: uData.isBanned ? "banned" : "active",
+            propertiesCount,
+            roomsCount,
+            lastLoginText
+          };
+        }));
 
-      status: uData.isBanned ? "banned" : "active",
+        const countSnap = await db.collection("users").count().get();
 
-      lastLoginText: uData.lastLogin
-        ? uData.lastLogin.toDate().toLocaleString("ar-EG")
-        : "غير متاح"
-    };
-  });
-
-  const countSnap = await db.collection("users").count().get();
-
-  return res.status(200).json({
-    users,
-    total: countSnap.data().count
-  });
-             }
-
-      // تعديل رصيد محفظة أو نقاط العضو
-      if (action === 'edit_points') {
-        await db.collection('users').doc(uid).update({ 
-          points: Number(points), 
-          updatedAt: FieldValue.serverTimestamp() 
+        return res.status(200).json({
+          users,
+          total: countSnap.data().count
         });
-        return res.status(200).json({ success: true });
       }
 
       // تفعيل حظر أو فك حظر حساب العضو
@@ -130,7 +146,7 @@ export default async function handler(req, res) {
         const isBannedValue = (status === 'banned');
         await db.collection('users').doc(uid).update({ 
           isBanned: isBannedValue,
-          status: status, // متوافق مع الحالتين
+          status: status,
           bannedAt: isBannedValue ? FieldValue.serverTimestamp() : null 
         });
         return res.status(200).json({ success: true });
@@ -138,6 +154,7 @@ export default async function handler(req, res) {
     }
 
   } catch (e) { 
+    console.error("Session Error:", e.message);
     return res.status(401).json({ error: "Session Expired" }); 
   }
 }
