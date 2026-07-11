@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة الإدارة - مراقبة غرف المحادثة اللحظية</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: rgba(22, 30, 49, 0.7);
+      --bg-tertiary: #1f293d;
+      --primary: #00f2ff;
+      --secondary: #7000ff;
+      --text-primary: #f3f4f6;
+      --text-muted: #9ca3af;
+      --border: rgba(255, 255, 255, 0.08);
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --transition: all 0.3s ease;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Cairo', sans-serif; background-color: var(--bg-primary); color: var(--text-primary); padding: 1.5rem 1rem; position: relative; min-height: 100vh; }
+    
+    .admin-container { max-width: 1200px; margin: 0 auto; }
+    
+    .btn-back { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-muted); text-decoration: none; font-weight: 600; margin-bottom: 1rem; font-size: 0.95rem; transition: var(--transition); }
+    .btn-back:hover { color: var(--primary); }
+
+    .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+    h1 { font-weight: 900; color: var(--primary); font-size: 1.8rem; text-shadow: 0 0 15px rgba(0, 242, 255, 0.3); }
+
+    /* بطاقات المؤشرات الفورية للغرف والرسائل الكلية بالـ RTDB */
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 25px;
+    }
+
+    .stat-item {
+      padding: 22px 25px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-item::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; bottom: 0; width: 3px;
+      background: linear-gradient(180deg, var(--primary), var(--secondary));
+    }
+
+    .stat-item strong {
+      display: block;
+      font-size: 2.2rem;
+      font-weight: 900;
+      margin-top: 10px;
+      color: #fff;
+    }
+
+    .stat-item span {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .toolbar { background: var(--bg-secondary); border: 1px solid var(--border); padding: 1.25rem; border-radius: 16px; margin-bottom: 1.5rem; }
+    .search-row { width: 100%; position: relative; }
+    .search-input { width: 100%; padding: 0.75rem 2.5rem 0.75rem 1rem; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 10px; color: #fff; font-family: 'Cairo'; font-size: 0.95rem; }
+    .search-input:focus { border-color: var(--primary); outline: none; }
+    .search-row i { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+
+    /* كروت الغرف المفتوحة للتحكم والمراقبة */
+    .admin-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem; margin-bottom: 1.25rem; display: flex; gap: 20px; align-items: flex-start; overflow: hidden; transition: var(--transition); }
+    
+    .img-container { width: 100px; height: 100px; border-radius: 12px; overflow: hidden; flex-shrink: 0; background: var(--bg-tertiary); }
+    .prop-img { width: 100%; height: 100%; object-fit: cover; }
+
+    .prop-info { flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; overflow: hidden; }
+    .title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+    .prop-title { font-size: 1.15rem; font-weight: 900; color: #fff; line-height: 1.4; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+
+    .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.4rem; margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted); }
+    .meta-item { display: flex; align-items: center; gap: 0.4rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+    .meta-item i { color: var(--primary); width: 14px; text-align: center; }
+
+    /* حاوية الأزرار الجانبية */
+    .actions-wrapper { display: flex; flex-direction: column; gap: 0.5rem; justify-content: center; width: 180px; min-width: 180px; flex-shrink: 0; z-index: 10; }
+    .btn-action { width: 100%; padding: 0.65rem 0.8rem; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; transition: var(--transition); font-family: 'Cairo'; white-space: nowrap; }
+    .btn-approve { background: var(--primary); color: #000; }
+    .btn-approve:hover { background: #00d2df; }
+    .btn-delete { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+    .btn-delete:hover { background: var(--danger); color: #fff; }
+
+    /* المودال ونظام فحص المحادثات (Inspecting / Moderation Window) */
+    .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 9999; padding: 1rem; }
+    .modal-overlay.open { display: flex; }
+    .modal-content { background: #111827; border: 1px solid var(--border); padding: 1.5rem; border-radius: 16px; max-width: 650px; width: 100%; text-align: right; height: 90vh; display: flex; flex-direction: column; position: relative; }
+    .modal-close { position: absolute; left: 1rem; top: 1rem; background: var(--bg-tertiary); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+    .stream-messages-box { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: rgba(2,6,23,0.3); border-radius: 12px; border: 1px solid var(--border); margin: 2rem 0 1rem 0; }
+    .moderation-input-row { display: flex; gap: 8px; align-items: center; direction: rtl; }
+    .moderation-input { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color:#fff; padding:12px; border-radius:8px; font-family:'Cairo'; outline:none; font-size:0.9rem; }
+    .moderation-input:focus { border-color: var(--primary); }
+
+    /* الـ Toast System */
+    .toast-container { position: fixed; bottom: 2rem; left: 2rem; display: flex; flex-direction: column; gap: 0.75rem; z-index: 100000; }
+    .toast { background: #1f293d; border-right: 4px solid var(--primary); color: #fff; padding: 1rem 1.5rem; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 0.75rem; transform: translateX(-120%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); min-width: 280px; font-weight: 600; }
+    .toast.show { transform: translateX(0); }
+    .toast.success { border-color: var(--success); }
+    .toast.danger { border-color: var(--danger); }
+
+    .loading-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(11, 15, 25, 0.8); display: none; align-items: center; justify-content: center; z-index: 100001; flex-direction: column; gap: 1rem; }
+    .spinner { width: 50px; height: 50px; border: 4px solid rgba(0, 242, 255, 0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 768px) {
+      .admin-card { flex-direction: column; align-items: stretch; gap: 1rem; }
+      .actions-wrapper { width: 100%; min-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="admin-container">
+    <a href="admin.html" class="btn-back"><i class="fas fa-arrow-right"></i> العودة للوحة الإدارة العامة</a>
+    
+    <div class="header-section">
+      <h1><i class="fas fa-comments"></i> إدارة ومراقبة غرف التفاوض اللحظية</h1>
+    </div>
+
+    <!-- كروت إحصائية محسوبة حياً بالخلفية لـ (إجمالي الغرف والرسائل الكلية بالـ RTDB) -->
+    <div class="metrics">
+      <div class="stat-item">
+        <span>👥 إجمالي غرف التفاوض المفتوحة</span>
+        <strong id="metricTotalRooms">0</strong>
+      </div>
+      <div class="stat-item" style="border-color: var(--purple);">
+        <span>💬 إجمالي الرسائل المتداولة بالـ RTDB</span>
+        <strong id="metricTotalMessages" style="color: #a78bfa;">0</strong>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-row">
+        <i class="fas fa-search"></i>
+        <input type="text" id="roomsSearchInput" class="search-input" placeholder="البحث برقم الغرفة، معرف العقار، اسم أو معرف المالك، أو اسم ومعرف المشتري...">
+      </div>
+    </div>
+
+    <div id="adminRoomsList">جاري جلب إحصائيات وبناء غرف المحادثة الجارية من الـ Realtime Database...</div>
+  </div>
+
+  <!-- مودال فحص واستعراض المحادثة التاريخية وبعث التنبيهات الإدارية -->
+  <div class="modal-overlay" id="inspectModal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeInspectModal()"><i class="fas fa-times"></i></button>
+      <h2 id="inspectModalTitle" style="color:var(--primary); font-size:1.1rem; padding-left:2.5rem; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;"></h2>
+      
+      <div class="stream-messages-box" id="inspectMessagesBox"></div>
+
+      <div class="moderation-input-row">
+        <input type="text" id="moderationMsgInput" class="moderation-input" placeholder="اكتب تحذيراً إدارياً أو تنبيهاً رسمياً للأطراف...">
+        <button class="btn-action btn-approve" style="width: auto; padding: 12px 25px;" id="btnSendModeration">إرسال تنبيه إداري 🚨</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <div class="loading-overlay" id="globalLoading">
+    <div class="spinner"></div>
+    <p style="color:var(--primary); font-weight:700;" id="loadingText">جاري التحديث ومعالجة الطلبات...</p>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getDatabase, ref, onValue, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+      authDomain: "am--rewards.firebaseapp.com",
+      projectId: "am--rewards",
+      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const rtdb = getDatabase(app);
+
+    const API_URL = "https://am-rewards.vercel.app/api/admin_audit_tickets";
+
+    let allRawRooms = [];
+    let filteredRooms = [];
+    let activeInspectRoomId = null;
+    let activeInspectListener = null;
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        document.getElementById('adminRoomsList').innerHTML = "<div style='padding:2rem; text-align:center;'>غير مصرح بالدخول لغير مشرفي النظام.</div>";
+        return;
+      }
+      fetchRoomsDataFromServer();
+    });
+
+    // جلب وحساب غرف المحادثة العقارية كلياً عبر الـ Backend لتوفير كلف القراءة الفردية
+    async function fetchRoomsDataFromServer() {
+      showLoading("جاري الاتصال وجلب محتوى الغرف من السيرفر...");
+      try {
+        const idToken = await auth.currentUser.getIdToken(true);
+        const response = await fetch(API_URL, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${idToken}`
+          },
+          body: JSON.stringify({ 
+            module: 'rooms', 
+            action: 'get_admin_rooms'
+          })
+        });
+
+        const result = await response.json();
+        
+        if (response.ok && result.rooms) {
+          allRawRooms = result.rooms;
+          
+          document.getElementById('metricTotalRooms').innerText = result.stats.totalRooms.toLocaleString();
+          document.getElementById('metricTotalMessages').innerText = result.stats.totalMessages.toLocaleString();
+          
+          applyFiltersAndRender();
+        } else {
+          throw new Error(result.error || "فشل جلب الغرف");
+        }
+      } catch (err) {
+        showToast("فشل في تحميل غرف المحادثة عبر الباكند: " + err.message, "danger");
+      } finally {
+        hideLoading();
+      }
+    }
+
+    function applyFiltersAndRender() {
+      const searchText = document.getElementById('roomsSearchInput').value.toLowerCase().trim();
+
+      filteredRooms = allRawRooms.filter(room => {
+        if (searchText) {
+          const roomIdMatch = (room.id || "").toLowerCase().includes(searchText);
+          const titleMatch = (room.propertyTitle || "").toLowerCase().includes(searchText);
+          const ownerIdMatch = (room.ownerId || "").toLowerCase().includes(searchText);
+          const buyerIdMatch = (room.buyerId || "").toLowerCase().includes(searchText);
+          const lastMsgMatch = (room.lastMessage || "").toLowerCase().includes(searchText);
+
+          if (!roomIdMatch && !titleMatch && !ownerIdMatch && !buyerIdMatch && !lastMsgMatch) {
+            return false;
+          }
+        }
+        return true;
+      });
+
+      renderRoomsList();
+    }
+
+    document.getElementById('roomsSearchInput').addEventListener('input', applyFiltersAndRender);
+
+    function renderRoomsList() {
+      const listContainer = document.getElementById('adminRoomsList');
+      listContainer.innerHTML = '';
+
+      if (filteredRooms.length === 0) {
+        listContainer.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:3rem 0;">لا توجد أي غرف تطابق البحث حالياً.</p>`;
+        return;
+      }
+
+      filteredRooms.forEach((r) => {
+        const card = document.createElement('div');
+        card.className = 'admin-card';
+
+        const lastMsgTime = r.lastMessageTime ? new Date(r.lastMessageTime).toLocaleString('ar-EG') : 'غير متوفر';
+
+        card.innerHTML = `
+          <div class="img-container">
+            <img src="${r.propertyImage}" class="prop-img" alt="Property Cover">
+          </div>
+          <div class="prop-info">
+            <div class="title-row">
+              <div class="prop-title" style="color:var(--primary);">${r.propertyTitle}</div>
+            </div>
+            <div class="meta-grid">
+              <div class="meta-item"><i class="fas fa-hashtag"></i> مُعرّف الغرفة: ${r.id}</div>
+              <div class="meta-item"><i class="fas fa-user-shield"></i> معلن العقار: ${r.ownerId}</div>
+              <div class="meta-item"><i class="fas fa-user"></i> المشتري المستفسر: ${r.buyerId}</div>
+              <div class="meta-item" style="grid-column: span 2;"><i class="fas fa-comment-dots"></i> آخر همسة جارية: ${r.lastMessage || 'بدون محادثة'}</div>
+              <div class="meta-item"><i class="fas fa-clock"></i> توقيت آخر رسالة: ${lastMsgTime}</div>
+            </div>
+          </div>
+          <div class="actions-wrapper">
+            <button class="btn-action btn-approve" onclick="openInspectModal('${r.id}', '${r.propertyTitle}')"><i class="fas fa-search-plus"></i> فحص الدردشة</button>
+            <button class="btn-action btn-delete" onclick="handleClearRoomMessages('${r.id}')"><i class="fas fa-trash-alt"></i> تفريغ المحادثة</button>
+          </div>
+        `;
+        listContainer.appendChild(card);
+      });
+    }
+
+    // إرسال تنبيه إداري رسمي لغرفة التفاوض بالـ RTDB عبر الـ Backend المدمج
+    window.sendAdminModerationMessage = async function() {
+      const textInput = document.getElementById('moderationMsgInput');
+      const text = textInput.value.trim();
+      if(!text || !activeInspectRoomId) return;
+
+      showLoading("جاري إرسال التنبيه الرسمي للأطراف...");
+      try {
+        const idToken = await auth.currentUser.getIdToken(true);
+        const response = await fetch(API_URL, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${idToken}`
+          },
+          body: JSON.stringify({ 
+            module: 'rooms', 
+            action: 'admin_send_message',
+            roomId: activeInspectRoomId,
+            messageText: text
+          })
+        });
+
+        const result = await response.json();
+        if (response.ok && result.success) {
+          showToast(result.message, "success");
+          textInput.value = '';
+        } else {
+          showToast("فشل السيرفر: " + result.error, "danger");
+        }
+      } catch (err) {
+        showToast("فشل إرسال التنبيه: " + err.message, "danger");
+      } finally {
+        hideLoading();
+      }
+    }
+
+    // حذف وتفريغ محتوى الغرفة نهائياً من الـ RTDB والذاكرة
+    window.handleClearRoomMessages = async function(roomId) {
+      if(!confirm("⚠️ تنبيه إداري صارم للغاية: هل أنت متأكد تماماً من قرار تفريغ وحذف كامل محادثات ورسائل هذه الغرفة من السيرفر وقاعدة البيانات نهائياً؟ (لا يمكن التراجع عن هذا الإجراء)")) return;
+
+      showLoading("جاري حذف وتفريغ الرسائل نهائياً...");
+      try {
+        const idToken = await auth.currentUser.getIdToken(true);
+        const response = await fetch(API_URL, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${idToken}`
+          },
+          body: JSON.stringify({ 
+            module: 'rooms', 
+            action: 'admin_clear_room',
+            roomId: roomId
+          })
+        });
+
+        const result = await response.json();
+        if (response.ok && result.success) {
+          showToast(result.message, "success");
+          fetchRoomsDataFromServer(); // إعادة التحديث وجلب إحصائيات غرف السيرفر
+        } else {
+          showToast("خطأ السيرفر: " + result.error, "danger");
+        }
+      } catch(err) {
+        showToast("فشل الاتصال: " + err.message, "danger");
+      } finally {
+        hideLoading();
+      }
+    }
+
+    window.openInspectModal = function(roomId, propertyTitle) {
+      activeInspectRoomId = roomId;
+      document.getElementById('inspectModalTitle').innerText = `بث وفحص غرفة التفاوض: [ ${propertyTitle} ] (ID: ${roomId})`;
+      
+      const messagesBox = document.getElementById('inspectMessagesBox');
+      messagesBox.innerHTML = '<p style="text-align:center; color:var(--text-muted);">جاري الاتصال والبث الفوري للمحادثة الجارية...</p>';
+
+      const messagesRef = ref(rtdb, `messages/${roomId}`);
+      
+      // ربط استماع فوري ببث تيار الدردشة حياً أمام المشرف لمراقبة السلوك (Real-time Audit Streaming)
+      activeInspectListener = onValue(messagesRef, (snapshot) => {
+        messagesBox.innerHTML = '';
+        if (snapshot.exists()) {
+          snapshot.forEach((childSnap) => {
+            const msg = childSnap.val();
+            const isSystem = msg.senderId === 'SYSTEM';
+            
+            const item = document.createElement('div');
+            item.style.cssText = `
+              padding: 10px 14px;
+              border-radius: 12px;
+              max-width: 80%;
+              margin-bottom: 10px;
+              font-size: 0.85rem;
+              line-height: 1.5;
+              font-weight: 600;
+            `;
+
+            const timeStr = new Date(msg.createdAt).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'});
+
+            if (isSystem) {
+              item.style.cssText += `background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); color:#fca5a5; margin-left: auto; margin-right: auto; text-align: center; max-width: 90%;`;
+              item.innerText = msg.text;
+            } else {
+              const isOwner = msg.senderId === ChatState.currentUserId; // محاكاة ألوان الأطراف لعيون المشرف
+              if (msg.senderId === ChatState.currentUserId || msg.senderId === 'SYSTEM') {
+                item.style.cssText += `background: rgba(124, 58, 237, 0.2); border: 1px solid var(--purple); color:#fff; margin-right: auto; text-align: right;`;
+              } else {
+                item.style.cssText += `background: rgba(255,255,255,0.03); border: 1px solid var(--border); color:#fff; margin-left: auto; text-align: right;`;
+              }
+              
+              if(msg.type === 'image') {
+                item.innerHTML = `
+                  <div style="font-size:10px; color:var(--primary); margin-bottom:4px;">المرسل: [ ${msg.senderId} ]</div>
+                  <img src="${msg.preview || msg.image}" style="max-width:100%; border-radius:6px; max-height:150px; display:block; object-fit:cover; margin-bottom:4px;">
+                  ${msg.caption ? `<div style="font-size:12px; margin-bottom:4px;">${msg.caption}</div>` : ''}
+                  <div style="font-size:10px; color:var(--text-muted); text-align:left;">${timeStr}</div>
+                `;
+              } else {
+                item.innerHTML = `
+                  <div style="font-size:10px; color:var(--primary); margin-bottom:4px;">المرسل: [ ${msg.senderId} ]</div>
+                  <div>${msg.text}</div>
+                  <div style="font-size:10px; color:var(--text-muted); text-align:left; margin-top:4px;">${timeStr}</div>
+                `;
+              }
+            }
+
+            messagesBox.appendChild(item);
+          });
+          messagesBox.scrollTop = messagesBox.scrollHeight;
+        } else {
+          messagesBox.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:2rem 0;">محادثة مفرغة أو لم تتبادل أطرافها أي رسائل بعد.</p>';
+        }
+      });
+
+      document.getElementById('inspectModal').classList.add('open');
+    }
+
+    window.closeInspectModal = function() {
+      document.getElementById('inspectModal').classList.remove('open');
+      activeInspectRoomId = null;
+      if (activeInspectListener) {
+        off(ref(rtdb, `messages/${activeInspectRoomId}`));
+      }
+    }
+
+    document.getElementById('btnSendModeration').addEventListener('click', sendAdminModerationMessage);
+    document.getElementById('moderationMsgInput').addEventListener('keydown', (e) => {
+      if(e.key === 'Enter') sendAdminModerationMessage();
+    });
+
+    function showToast(message, type = "success") {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      
+      let icon = '<i class="fas fa-check-circle"></i>';
+      if(type === 'danger') icon = '<i class="fas fa-times-circle"></i>';
+
+      toast.innerHTML = `${icon} <span>${message}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => toast.classList.add('show'), 50);
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    function showLoading(msg) {
+      document.getElementById('loadingText').innerText = msg;
+      document.getElementById('globalLoading').style.display = 'flex';
+    }
+    function hideLoading() {
+      document.getElementById('globalLoading').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
