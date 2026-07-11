@@ -2,20 +2,23 @@
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { getDatabase } from "firebase-admin/database"; // استيراد قاعدة البيانات اللحظية
 import jwt from "jsonwebtoken";
 import { parse } from "cookie";
 
 if (!getApps().length) {
   initializeApp({
-    credential: cert(JSON.parse(process.env.FIREBASE_ADMIN_KEY))
+    credential: cert(JSON.parse(process.env.FIREBASE_ADMIN_KEY)),
+    databaseURL: "https://am--rewards-default-rtdb.firebaseio.com" // تهيئة الـ RTDB برابط الاتصال الفعلي
   });
 }
 
 const db = getFirestore();
 const auth = getAuth();
+const rtdb = getDatabase(); // كائن التحكم بـ Realtime Database
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
-// ✅ التحقق من الجلسة الأمنية للأدمن عبر الكوكيز المرفقة بالطلب بالخلفية
+// التحقق من الجلسة الأمنية للأدمن عبر الكوكيز المرفقة بالطلب
 function verifyAdminSession(req) {
   try {
     const cookies = parse(req.headers.cookie || "");
@@ -40,17 +43,17 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "GET") return res.status(405).json({ error: "Method Not Allowed" });
 
-  // ✅ التحقق من الجلسة
+  // التحقق من الجلسة الأمنية
   if (!verifyAdminSession(req)) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
   try {
-    // 1. حساب إجمالي عدد المستخدمين
+    // 1. حساب إجمالي عدد المستخدمين من Firestore
     const usersSnap = await db.collection("users").get();
     const totalUsers = usersSnap.size;
 
-    // 2. حساب إحصائيات العقارات الكلية وحالاتها حياً  
+    // 2. حساب إحصائيات العقارات الكلية وحالاتها حياً من Firestore
     const propertiesSnap = await db.collection("properties").get();  
     const totalProperties = propertiesSnap.size;  
 
@@ -65,38 +68,12 @@ export default async function handler(req, res) {
       else if (data.status === "rejected") rejectedProperties++;  
     });  
 
-    // 3. حساب غرف التفاوض النشطة
-    const messagesSnap = await db.collection("messages").get();  
-    const uniqueRooms = new Set();  
-    messagesSnap.forEach(doc => {  
-      const data = doc.data();  
-      if (data.propertyId && data.senderId) {  
-        uniqueRooms.add(`${data.propertyId}_${data.senderId}`);  
-      }  
-    });  
-    const activeRooms = uniqueRooms.size;  
+    // 3. حساب غرف التفاوض النشطة كلياً ومباشرة من الـ Realtime Database (RTDB)
+    const roomsRef = rtdb.ref("chatRooms");
+    const roomsSnap = await roomsRef.get();
+    const activeRooms = roomsSnap.exists() ? Object.keys(roomsSnap.val()).length : 0;  
 
-    // 4. حساب الصفقات المكتملة الإجمالية
-    const bookingsSnap = await db.collection("bookings")  
-      .where("status", "==", "approved")  
-      .get();  
-    const completedDeals = bookingsSnap.size;  
-
-    // 5. حساب صفقات اليوم المكتملة بدون تطلب كشاف مركب
-    const today = new Date();  
-    today.setUTCHours(0, 0, 0, 0);  
-
-    const todayBookingsSnap = await db.collection("bookings")  
-      .where("timestamp", ">=", today)  
-      .get();  
-      
-    let todayDeals = 0;  
-    todayBookingsSnap.forEach(doc => {  
-      if (doc.data().status === "approved") {  
-        todayDeals++;  
-      }  
-    });  
-
+    // إرسال كائن البيانات الإحصائية الفعلي بعد استبعاد الصفقات الملغاة
     return res.status(200).json({  
       totalUsers,  
       totalProperties,  
@@ -104,8 +81,6 @@ export default async function handler(req, res) {
       approvedProperties,  
       rejectedProperties,  
       activeRooms,  
-      completedDeals,  
-      todayDeals,  
       timestamp: new Date().toISOString()  
     });
 
