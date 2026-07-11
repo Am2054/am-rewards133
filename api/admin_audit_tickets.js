@@ -1,3 +1,4 @@
+// /api/admin_audit_tickets.js - إدارة ومعالجة تذاكر الدعم والاتصال العقاري بالخلفية
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import jwt from "jsonwebtoken";
@@ -14,18 +15,22 @@ if (!getApps().length) {
 const db = getFirestore();
 
 export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', 'https://am-rewards.vercel.app');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-  const { action, module, password, query, uid, status, tId, reply } = req.body;
+  const { action, module, password, uid, status, tId, reply } = req.body;
 
-  // --- [1] نظام تسجيل الدخول المنفصل ---
+  // --- [1] نظام تسجيل الدخول المنفصل للتذاكر ---
   if (action === 'admin_login') {
     let isValid = false;
     let tokenName = "";
 
-    if (module === 'audit' && password === process.env.ADMIN_PASSWORD5) {
-      isValid = true; tokenName = "auditToken";
-    } else if (module === 'tickets' && password === process.env.ADMIN_PASSWORD6) {
+    if (module === 'tickets' && password === process.env.ADMIN_PASSWORD6) {
       isValid = true; tokenName = "ticketToken";
     }
 
@@ -39,57 +44,40 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
+  // التحقق من الكوكيز
   const cookies = parse(req.headers.cookie || "");
 
   try {
-    // --- [2] موديول المراجعة العام (Audit Module) ---
-    if (module === 'audit') {
-      if (!cookies.auditToken) return res.status(401).json({ error: "No Audit Token" });
-      jwt.verify(cookies.auditToken, process.env.JWT_SECRET);
-
-      if (action === 'fetch_user') {
-        let userDoc = await db.collection("users").doc(query).get();
-        if (!userDoc.exists) {
-          const emailQuery = await db.collection("users").where("email", "==", query).limit(1).get();
-          if (emailQuery.empty) return res.status(404).json({ error: "User not found" });
-          userDoc = emailQuery.docs[0];
-        }
-        const targetUid = userDoc.id;
-        const userData = userDoc.data();
-
-        const [devices, tickets] = await Promise.all([
-          db.collection("userDevices").where("uid", "==", targetUid).limit(1).get(),
-          db.collection("support_tickets").where("uid", "==", targetUid).get()
-        ]);
-
-        return res.status(200).json({
-          profile: { uid: targetUid, ...userData, deviceId: devices.docs[0]?.data()?.deviceId || "غير مسجل", lastLogin: userData.lastLogin?.toDate() || null },
-          tickets: tickets.docs.map(d => ({ ...d.data(), id: d.id, timestamp: d.timestamp?.toDate() || null }))
-        });
-      }
-    }
-
-    // --- [3] موديول التذاكر النقي (Tickets Module) ---
+    // --- [2] موديول التذاكر والاتصال العقاري (Tickets Module) ---
     if (module === 'tickets') {
       if (!cookies.ticketToken) return res.status(401).json({ error: "No Ticket Token" });
       jwt.verify(cookies.ticketToken, process.env.JWT_SECRET);
 
       if (action === 'get_all_tickets') {
         const snap = await db.collection("support_tickets").orderBy("timestamp", "desc").get();
-        return res.status(200).json(snap.docs.map(doc => ({ id: doc.id, ...doc.data(), timestamp: doc.data().timestamp?.toDate() })));
+        return res.status(200).json(snap.docs.map(doc => ({ 
+          id: doc.id, 
+          ...doc.data(), 
+          timestamp: doc.data().timestamp?.toDate() 
+        })));
       }
 
       if (action === 'finalize_ticket') {
         const ticketRef = db.collection("support_tickets").doc(tId);
+        
+        // تحديث التذكرة بنجاح مع إلغاء حقل النقاط ومكافآت السحب تماماً (Pruned Points Metadata)
         await ticketRef.update({ 
           status, 
           adminReply: reply, 
           handledAt: FieldValue.serverTimestamp() 
         });
-        
+
         return res.status(200).json({ success: true });
       }
     }
 
-  } catch (e) { return res.status(401).json({ error: "Session Expired" }); }
-}
+  } catch (e) { 
+    console.error("Session Error:", e.message);
+    return res.status(401).json({ error: "Session Expired" }); 
+  }
+                                                          }
