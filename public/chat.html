@@ -186,7 +186,7 @@
     }
 
     /* ============================================
-       CHAT VIEWPORT
+       CHAT VIEWPORT & PREMIUM BACKGROUND
        ============================================ */
     .chat-viewport {
       display: flex;
@@ -302,7 +302,7 @@
 
     /* الرد والاقتباس الجمالي المتوافق مع مظهر المجموعات الراقية */
     .quoted-msg-box {
-      background: rgba(0, 0, 0, 0.2);
+      background: rgba(0, 0, 0, 0.25);
       border-right: 3px solid var(--neon-cyan);
       padding: 8px 12px;
       border-radius: 6px;
@@ -539,6 +539,25 @@
     </div>
   </div>
 
+  <!-- مودال تفاصيل العقار عند الضغط على الهيدر (Sleek Property Details Modal) -->
+  <div id="property-info-modal" class="custom-modal" style="display:none; z-index:15000; max-width:600px; max-height:85vh; overflow-y:auto;">
+    <h3 class="modal-title" style="font-size:1.15rem; color:var(--neon-cyan);"><i class="fas fa-building"></i> مواصفات وبيانات العقار المعني</h3>
+    <div id="prop-modal-loader" style="text-align:center; padding:2rem; color:var(--neon-cyan);"><i class="fas fa-spinner fa-spin"></i> جاري جلب مواصفات العقار...</div>
+    <div id="prop-modal-content" style="display:none; text-align:right; direction:rtl;">
+       <img id="prop-modal-cover" src="" style="width:100%; height:180px; object-fit:cover; border-radius:12px; border:1px solid var(--glass-border); margin-bottom:15px;">
+       <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px; font-size:0.85rem;">
+         <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:8px; border:1px solid var(--glass-border);"><b>العنوان:</b> <span id="pm-title"></span></div>
+         <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:8px; border:1px solid var(--glass-border);"><b>السعر:</b> <span id="pm-price" style="color:var(--neon-cyan); font-weight:bold;"></span></div>
+         <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:8px; border:1px solid var(--glass-border);"><b>المساحة:</b> <span id="pm-area"></span> م²</div>
+         <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:8px; border:1px solid var(--glass-border);"><b>نوع العملية:</b> <span id="pm-purpose"></span></div>
+         <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:8px; border:1px solid var(--glass-border);"><b>الغرف:</b> <span id="pm-rooms"></span></div>
+         <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:8px; border:1px solid var(--glass-border);"><b>الحمامات:</b> <span id="pm-baths"></span></div>
+       </div>
+       <div style="background:rgba(255,255,255,0.02); padding:12px; border-radius:10px; border:1px solid var(--glass-border); font-size:0.85rem; line-height:1.6; color:var(--text-main);" id="pm-desc"></div>
+    </div>
+    <button class="modal-close-btn" id="close-prop-modal">إغلاق المواصفات</button>
+  </div>
+
   <div class="app-layout" id="app-layout-wrapper">
     
     <!-- الشريط الجانبي: قائمة الدردشات (WhatsApp Style) -->
@@ -596,7 +615,7 @@
       activeRoomData: null,
       editingMessageId: null,
       replyingToMsg: null,
-      stagedFile: null, // تخزين الصورة المحضرة للإرسال محلياً
+      stagedFile: null, // تخزين الصورة المحضرة للإرسال محلياً قبل الرفع
       listeners: {}
     };
 
@@ -770,6 +789,13 @@
         // إغلاق المودال عند النقر على الخلفية المعتمة
         document.getElementById('actionModal').addEventListener('click', () => {
           document.getElementById('actionModal').style.display = 'none';
+        });
+
+        // إغلاق مودال تفاصيل العقار
+        document.getElementById('close-prop-modal').addEventListener('click', () => {
+          document.getElementById('property-info-modal').classList.remove('active');
+          document.getElementById('property-info-modal').style.display = 'none';
+          document.getElementById('overlay').classList.remove('active');
         });
       }
 
@@ -1023,7 +1049,7 @@
 
         viewport.innerHTML = `
           <div class="chat-header">
-            <div class="header-info">
+            <div class="header-info" id="active-chat-header-info">
               <button class="action-btn mobile-back-btn" onclick="document.getElementById('app-layout-wrapper').classList.remove('show-active-chat')">
                 <i class="fas fa-arrow-right"></i>
               </button>
@@ -1042,6 +1068,20 @@
             <!-- بث الرسائل اللحظي -->
           </div>
           
+          <!-- شريط تحضير ومعاينة الصور قبل الرفع والإرسال المطور (Image Staging Preview Bar) -->
+          <div id="imageStagingContainer" style="display:none; background:rgba(30, 41, 59, 0.95); border-top:1px solid var(--glass-border); border-right:4px solid var(--neon-cyan); padding:12px 25px; align-items:center; justify-content:space-between; direction:rtl;">
+            <div style="display:flex; align-items:center; gap:12px; min-width:0; flex:1;">
+               <img id="staged-thumb" src="" style="width:45px; height:45px; border-radius:8px; object-fit:cover; border:1px solid var(--glass-border);">
+               <div style="text-align:right; min-width:0;">
+                  <div style="color: var(--neon-cyan); font-weight: 900; font-size: 0.75rem; margin-bottom: 2px;">صورة محضرة للإرسال</div>
+                  <div style="font-size: 0.8rem; color: var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width: 90%;">اكتب وصفاً أو شرحاً للصورة بالأسفل، ثم انقر إرسال.</div>
+               </div>
+            </div>
+            <button type="button" style="background:none; border:none; color:var(--danger); cursor:pointer; padding:6px; font-size:1.15rem; display:flex; align-items:center; justify-content:center; transition: 0.2s;" onclick="chatApp.cancelImageStaging()">
+              <i class="fas fa-times-circle"></i>
+            </button>
+          </div>
+
           <!-- شريط المعاينة والتحضير للتعديل أو الرد المقتبس المطور والمحسّن بصرياً مع زر إلغاء مخصص -->
           <div id="replyContainer" class="reply-preview" style="display:none; background:rgba(30, 41, 59, 0.95); border-top:1px solid var(--glass-border); border-right:4px solid var(--neon-cyan); padding:12px 25px; align-items:center; justify-content:space-between; direction:rtl;">
             <div style="min-width:0; flex:1; text-align:right;">
@@ -1105,6 +1145,15 @@
           } else {
             bannerWrapper.innerHTML = '';
           }
+
+          // تفعيل الضغط على هيدر المحادثة لفتح بطاقة تفاصيل ومواصفات العقار الكلية
+          const headerInfoNode = document.getElementById('active-chat-header-info');
+          if (headerInfoNode) {
+            headerInfoNode.style.cursor = 'pointer';
+            headerInfoNode.onclick = () => {
+              this.openPropertyInfoModal(room.propertyId);
+            };
+          }
         });
 
         // جلب واستخراج اسم الطرف الآخر لتجنب أي مشاكل مرجعية تماماً (Dynamic Target User Resolution)
@@ -1150,10 +1199,40 @@
           messagesStream.innerHTML = '';
           let updates = {};
 
+          // في حال تم تفريغ وتطهير المحادثة بالكامل من الدعم الفني
+          if (!snapshot.exists()) {
+            const isPurgedByAdmin = ChatState.activeRoomData && ChatState.activeRoomData.lastMessage && ChatState.activeRoomData.lastMessage.includes('تفريغ');
+            if (isPurgedByAdmin) {
+              const emptyBanner = document.createElement('div');
+              emptyBanner.style.cssText = `
+                align-self: center;
+                background: rgba(239, 68, 68, 0.15);
+                border: 1px solid var(--danger);
+                border-right: 4px solid var(--danger);
+                color: #fca5a5;
+                padding: 15px 25px;
+                border-radius: 12px;
+                font-size: 0.9rem;
+                font-weight: 700;
+                text-align: center;
+                max-width: 90%;
+                margin: 30px auto;
+                box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+                direction: rtl;
+              `;
+              emptyBanner.innerHTML = `<div><i class="fas fa-exclamation-triangle"></i> تم تفريغ وحذف محتوى هذه المحادثة بالكامل بواسطة الدعم الفني لإجراءات الصيانة والتأمين.</div>`;
+              messagesStream.appendChild(emptyBanner);
+            } else {
+              messagesStream.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding: 2rem; font-size:0.85rem;">لا توجد رسائل سابقة. أرسل استفسارك الأول لبدء المحادثة الفورية بخصوص هذا العقار.</p>';
+            }
+            return;
+          }
+
           snapshot.forEach((childSnap) => {
             const msg = childSnap.val();
             const isMe = msg.senderId === currentUserId;
             const msgId = childSnap.key;
+            const isSystem = msg.senderId === 'SYSTEM';
             
             // قراءة الرسالة وتحديث حالتها إلى Seen
             if (!isMe && msg.status !== 'seen') {
@@ -1162,6 +1241,41 @@
 
             const bubble = document.createElement('div');
             bubble.id = `msg-${msgId}`;
+
+            const msgTime = new Date(msg.createdAt).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'});
+
+            // 1. معالجة وتجميل الرسالة الصادرة من الإدارة (SYSTEM Messages Centered)
+            if (isSystem) {
+              bubble.className = ''; // عزل الرسالة الإدارية تماماً عن فقاعات المحادثة العادية
+              bubble.style.cssText = `
+                align-self: center;
+                background: rgba(239, 68, 68, 0.15);
+                border: 1px solid var(--danger);
+                color: #fca5a5;
+                padding: 12px 20px;
+                border-radius: 12px;
+                font-size: 0.85rem;
+                font-weight: 700;
+                text-align: center;
+                max-width: 90%;
+                margin: 10px auto;
+                width: max-content;
+                direction: rtl;
+                box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+                border-right: 4px solid var(--danger);
+              `;
+              // استئصال بادئة السيرفر وعرض اسم المرسل ثابتاً بـ "الدعم"
+              const cleanText = msg.text.replace('🚨 [تنبيه إداري رسمي]: ', '');
+              bubble.innerHTML = `
+                <div style="font-size: 10px; font-weight: 900; color: var(--danger); margin-bottom: 4px; text-align: right;">
+                  <span>الدعم</span>
+                </div>
+                <div>${cleanText}</div>
+                <div style="font-size: 10px; color: var(--text-muted); text-align: left; margin-top: 4px;">${msgTime}</div>
+              `;
+              messagesStream.appendChild(bubble);
+              return; // تخطي بقية البناء لرسائل النظام
+            }
 
             // التحقق التام والمماثل لشات الأشباح من حذف الرسالة (data.deleted)
             if (msg.deleted) {
@@ -1185,8 +1299,6 @@
                 statusTicks = `<i class="fas fa-check" style="color:var(--muted); font-size:0.75rem; margin-right:4px;"></i>`;
               }
             }
-
-            const msgTime = new Date(msg.createdAt).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'});
 
             // فحص وتفسير الرد من النص بطريقة شات الأشباح مع صندوق اقتباس جمالي يحتوي على أيقونة الرد المائلة
             const isReply = msg.text && msg.text.startsWith('رد على @');
@@ -1217,7 +1329,8 @@
                 <div style="position:relative; border-radius:8px; overflow:hidden; margin-bottom:4px;">
                   <img src="${chatPreviewSrc}" class="chat-image-previewable" style="max-width:100%; max-height:220px; display:block; object-fit:cover; border-radius:8px;" loading="lazy">
                 </div>
-                ${msg.caption ? `<div class="text" style="font-size:0.85rem; color:#fff; margin-bottom:4px; font-weight:600;">${msg.caption}</div>` : ''}
+                <!-- حظر عرض أسماء ملفات الصور العشوائية والاحتفاظ بالوصف المكتوب من المستخدم فقط -->
+                ${(msg.caption && !msg.caption.startsWith('jpg.') && !msg.caption.startsWith('png.') && !msg.caption.toLowerCase().includes('screenshot')) ? `<div class="text" style="font-size:0.85rem; color:#fff; margin-bottom:4px; font-weight:600;">${msg.caption}</div>` : ''}
                 <div class="msg-meta-row" style="display:flex; justify-content:flex-end; align-items:center; font-size:0.65rem; color:var(--muted); gap:4px; margin-top:4px;">
                   <span>${msgTime}</span>
                   ${statusTicks}
@@ -1229,7 +1342,7 @@
                 e.stopPropagation();
                 resetViewerState();
                 viewerImg.src = targetOriginalSrc;
-                document.getElementById('viewer-caption').textContent = msg.caption || '';
+                document.getElementById('viewer-caption').textContent = (msg.caption && !msg.caption.startsWith('jpg.') && !msg.caption.startsWith('png.') && !msg.caption.toLowerCase().includes('screenshot')) ? msg.caption : '';
                 document.getElementById('image-viewer-modal').style.display = 'flex';
               });
             } else {
@@ -1286,7 +1399,39 @@
           }, 1500);
         });
 
-        const handleSend = () => {
+        const handleSend = async () => {
+          // التحقق ما إذا كانت هناك صورة محضرة ومجمدة للإرسال (Staged Image Send Flow)
+          if (ChatState.stagedFile) {
+            const file = ChatState.stagedFile;
+            const captionText = textInput.value.trim();
+
+            this.cancelImageStaging(); // تفريغ الحالة وإخفاء المعاينة فورياً لتجنب نقرات الإرسال المتكررة
+
+            // إظهار فقاعة تحميل بصرية داخل الشات حيوية
+            const streamContainer = document.getElementById('chat-messages-stream-node');
+            const loadingBubble = document.createElement('div');
+            loadingBubble.style.cssText = "align-self: center; background: rgba(0, 242, 255, 0.08); border: 1px solid var(--neon-cyan); color: #fff; padding: 10px 18px; border-radius: 12px; font-size: 0.85rem; text-align: center; margin: 10px auto; width: max-content; font-weight: 700;";
+            loadingBubble.innerHTML = `<span><i class="fas fa-spinner fa-spin"></i> جاري معالجة ورفع الصورة للـ CDN...</span>`;
+            streamContainer.appendChild(loadingBubble);
+            streamContainer.scrollTop = streamContainer.scrollHeight;
+
+            try {
+              const compressedPreview = await StorageService.compressImage(file, 400, 400, 0.65);
+              const compressedOriginal = await StorageService.compressImage(file, 1920, 1920, 0.91);
+
+              const previewUrl = await StorageService.uploadToVercelBlob(compressedPreview);
+              const originalUrl = await StorageService.uploadToVercelBlob(compressedOriginal);
+
+              await this.sendMessageImage(roomId, currentUserId, targetUserId, previewUrl, originalUrl, captionText);
+            } catch(err) {
+              console.error("Staged image upload error:", err);
+              alert("⚠️ فشل رفع الصورة للسيرفر.");
+            } finally {
+              loadingBubble.remove();
+            }
+            return;
+          }
+
           this.sendMessageText(roomId, currentUserId, targetUserId, textInput.value);
           textInput.value = '';
         };
@@ -1297,27 +1442,21 @@
 
         sendBtn.addEventListener('click', handleSend);
 
-        // واجهة اختيار وصور الكاميرا
+        // واجهة اختيار وحفظ الصورة كمسودة محضرة للإرسال (Staged Image Input Listener)
         attachBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', async (e) => {
           const file = e.target.files[0];
           if (!file) return;
 
-          try {
-            attachBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
-            const compressedPreview = await StorageService.compressImage(file, 400, 400, 0.65);
-            const compressedOriginal = await StorageService.compressImage(file, 1920, 1920, 0.91);
+          // تجميد الصورة في الحالة المحلية وبناء رابط المعاينة اللحظي بدون أي كلف شبكة
+          ChatState.stagedFile = file;
+          const localPreviewUrl = URL.createObjectURL(file);
+          
+          document.getElementById('staged-thumb').src = localPreviewUrl;
+          document.getElementById('imageStagingContainer').style.display = 'flex';
 
-            const previewUrl = await StorageService.uploadToVercelBlob(compressedPreview);
-            const originalUrl = await StorageService.uploadToVercelBlob(compressedOriginal);
-
-            await this.sendMessageImage(roomId, currentUserId, targetUserId, previewUrl, originalUrl, file.name);
-          } catch(err) {
-            console.error("Image send error:", err);
-            alert("⚠️ فشل رفع وإرسال الصورة.");
-          } finally {
-            attachBtn.innerHTML = `<i class="fas fa-camera"></i>`;
-          }
+          textInput.placeholder = "اكتب شرحاً أو وصفاً لهذه الصورة قبل الإرسال (اختياري)...";
+          textInput.focus();
         });
       }
 
@@ -1384,7 +1523,63 @@
         const replyContainer = document.getElementById('replyContainer');
         if (replyContainer) replyContainer.style.display = 'none';
         const textInput = document.getElementById('message-text-field');
-        if (textInput) textInput.value = '';
+        if (textInput) {
+          textInput.placeholder = "اهمس أو اعترف بـ #...";
+          textInput.value = '';
+        }
+      }
+
+      cancelImageStaging() {
+        ChatState.stagedFile = null;
+        const stagingContainer = document.getElementById('imageStagingContainer');
+        if (stagingContainer) stagingContainer.style.display = 'none';
+        const textInput = document.getElementById('message-text-field');
+        if (textInput) {
+          textInput.placeholder = "اهمس أو اعترف بـ #...";
+          textInput.value = '';
+        }
+      }
+
+      /**
+       * فتح بطاقة مواصفات العقار الكلية بسحب مباشر آمن من Firestore عند النقر على الهيدر
+       */
+      async openPropertyInfoModal(propertyId) {
+        const modal = document.getElementById('property-info-modal');
+        const loader = document.getElementById('prop-modal-loader');
+        const content = document.getElementById('prop-modal-content');
+        const overlay = document.getElementById('overlay');
+
+        overlay.classList.add('active');
+        modal.classList.add('active');
+        modal.style.display = 'block';
+        loader.style.display = 'block';
+        content.style.display = 'none';
+
+        try {
+          const docRef = doc(db, "properties", propertyId);
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists()) {
+            const prop = docSnap.data();
+            
+            document.getElementById('prop-modal-cover').src = prop.coverImage || (prop.images && prop.images[0]) || '';
+            document.getElementById('pm-title').textContent = prop.title || 'عقار معتمد بالمنصة';
+            document.getElementById('pm-price').textContent = `${Number(prop.price || 0).toLocaleString()} ج.م`;
+            document.getElementById('pm-area').textContent = prop.area || 0;
+            document.getElementById('pm-purpose').textContent = prop.purpose === 'sale' ? 'بيع' : 'إيجار';
+            document.getElementById('pm-rooms').textContent = prop.rooms || 0;
+            document.getElementById('pm-baths').textContent = prop.bathrooms || 0;
+            document.getElementById('pm-desc').textContent = prop.description || 'لا يوجد وصف كتابي مضاف.';
+
+            loader.style.display = 'none';
+            content.style.display = 'block';
+          } else {
+            loader.innerHTML = '<span style="color:var(--danger)">⚠️ تعذر العثور على مواصفات هذا العقار بالسيرفر.</span>';
+          }
+        } catch (e) {
+          console.error("Error loading property detail card inside chat:", e);
+          loader.innerHTML = '<span style="color:var(--danger)">⚠️ حدث خطأ فني أثناء جلب مستندات العقار.</span>';
+        }
       }
 
       async sendMessageText(roomId, senderId, receiverId, text) {
