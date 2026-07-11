@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AM CONTROL | PANEL</title>
+    <title>بوابة المتابعة وحل النزاعات | AM PANEL</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -15,6 +15,7 @@
             --text-main: #f3f4f6;
             --card-bg: #1f2937;
             --border: rgba(255,255,255,0.05);
+            --danger: #ef4444;
         }
 
         body {
@@ -28,6 +29,7 @@
             background-image: radial-gradient(circle at top right, rgba(124, 58, 237, 0.05), transparent);
         }
 
+        /* شاشة الدخول */
         #auth-gate { 
             position: fixed; inset: 0; background: var(--main-bg); z-index: 9999; 
             display: flex; align-items: center; justify-content: center; backdrop-filter: blur(15px);
@@ -128,10 +130,10 @@
 
     <nav class="top-nav">
         <div class="logo-area">
-            <h2>AM CONTROL</h2>
+            <h2>AM IMMOBILIER</h2>
             <span class="admin-badge">SUPPORT HUB</span>
         </div>
-        <button onclick="fetchTickets()" style="background:none; border:1px solid var(--accent); color:var(--accent); padding:5px 15px; border-radius:8px; cursor:pointer; font-size:12px;">تحديث 🔄</button>
+        <button onclick="fetchTickets()" style="background:none; border:1px solid var(--accent); color:var(--accent); padding:5px 15px; border-radius:8px; cursor:pointer; font-size:12px;">تحديث البلاغات 🔄</button>
     </nav>
 
     <div class="stats-grid">
@@ -141,27 +143,28 @@
         </div>
         <div class="stat-card">
             <div class="stat-icon">⏳</div>
-            <div class="stat-info"><h4 id="count-review">0</h4><p>قيد المراجعة</p></div>
+            <div class="stat-info"><h4 id="count-review">0</h4><p>قيد المعالجة</p></div>
         </div>
         <div class="stat-card">
             <div class="stat-icon">📁</div>
-            <div class="stat-info"><h4 id="count-archived">0</h4><p>الأرشيف</p></div>
+            <div class="stat-info"><h4 id="count-archived">0</h4><p>التذاكر المنتهية</p></div>
         </div>
     </div>
 
     <div class="control-bar">
         <button class="filter-btn active" onclick="setFilter('pending', this)">🆕 الوارد</button>
-        <button class="filter-btn" onclick="setFilter('reviewing', this)">⏳ المعالجة</button>
+        <button class="filter-btn" onclick="setFilter('reviewing', this)">⏳ قيد الحل</button>
         <button class="filter-btn" onclick="setFilter('archived', this)">✅ الأرشيف</button>
     </div>
 
-    <div id="loading" class="hidden">جاري جلب التذاكر من السيرفر...</div>
+    <div id="loading" class="hidden">جاري جلب البلاغات العقارية من السيرفر...</div>
     <main class="main-content" id="tickets-grid"></main>
 
 <script>
     let currentFilter = 'pending';
     let allTickets = [];
 
+    // --- نظام الدخول ---
     async function login() {
         const pass = document.getElementById('admin-pass').value;
         const res = await fetch('/api/admin_audit_tickets', {
@@ -177,6 +180,7 @@
         }
     }
 
+    // --- جلب البيانات ---
     async function fetchTickets() {
         document.getElementById('loading').classList.remove('hidden');
         try {
@@ -192,7 +196,7 @@
             renderTickets();
         } catch (e) {
             console.error(e);
-        } finaly {
+        } finally {
             document.getElementById('loading').classList.add('hidden');
         }
     }
@@ -221,7 +225,7 @@
         });
 
         if(filtered.length === 0) {
-            grid.innerHTML = '<div style="text-align:center; opacity:0.5; padding:50px;">لا توجد تذاكر في هذا القسم</div>';
+            grid.innerHTML = '<div style="text-align:center; opacity:0.5; padding:50px;">لا توجد تذاكر دعم في هذا القسم</div>';
             return;
         }
 
@@ -230,7 +234,7 @@
             grid.innerHTML += `
                 <div class="ticket-row">
                     <div class="ticket-main">
-                        <span class="ticket-type">${t.type || 'طلب عام'}</span>
+                        <span class="ticket-type">${t.type || 'استفسار عام'}</span>
                         <div class="user-info">
                             <div class="user-avatar">${(t.email || 'U')[0].toUpperCase()}</div>
                             <div>
@@ -238,20 +242,21 @@
                                 <div style="font-size:11px; opacity:0.5;">${date}</div>
                             </div>
                         </div>
-                        <div style="font-size:12px; color:var(--accent); font-weight:bold;">الخدمة: ${t.selectedService || 'غير حددة'}</div>
+                        <div style="font-size:12px; color:var(--accent); font-weight:bold;">الصيانة المعنية: ${t.selectedService || 'غير محددة'}</div>
                         <div class="ticket-msg">${t.message}</div>
+                        ${t.extraData && t.extraData !== "لا يوجد" ? `<div style="font-size:11px; margin-top:12px; color:var(--purple); background:rgba(124,58,237,0.1); padding:8px; border-radius:8px;">📎 مراجع إضافية: ${t.extraData}</div>` : ''}
                     </div>
                     
                     <div class="ticket-side">
                         ${(t.status === 'pending' || t.status === 'reviewing') ? `
-                            <p style="font-size:12px; margin-bottom:8px; opacity:0.7;">الإجراء السريع:</p>
-                            <textarea class="form-control" id="reply-${t.id}" placeholder="اكتب الرد للمستخدم..." rows="3"></textarea>
-                            <button class="btn-action btn-approve" onclick="finalize('${t.id}', '${t.uid}', 'approved')">حل / قبول الطلب</button>
-                            <button class="btn-action btn-reject" onclick="finalize('${t.id}', '${t.uid}', 'rejected')">إغلاق ورفض الطلب</button>
+                            <p style="font-size:12px; margin-bottom:8px; opacity:0.7;">الإجراء السريع والدعم:</p>
+                            <textarea class="form-control" id="reply-${t.id}" placeholder="اكتب رد الدعم للمستأجر/المالك..." rows="4"></textarea>
+                            <button class="btn-action btn-approve" onclick="finalize('${t.id}', '${t.uid}', 'approved')">قبول التذكرة وإرسال الرد</button>
+                            <button class="btn-action btn-reject" onclick="finalize('${t.id}', '${t.uid}', 'rejected')">رفض وإغلاق البلاغ</button>
                         ` : `
                             <div style="background:rgba(255,255,255,0.03); padding:15px; border-radius:15px; border:1px dashed var(--accent);">
                                 <div style="margin-bottom:10px; color:var(--accent); font-weight:900;">✅ تمت المعالجة</div>
-                                <div style="font-size:13px; opacity:0.8;"><b>رد الإدارة:</b> ${t.adminReply || 'بدون رد'}</div>
+                                <div style="font-size:13px; opacity:0.8;"><b>رد الدعم:</b> ${t.adminReply || 'بدون رد'}</div>
                             </div>
                         `}
                     </div>
@@ -262,19 +267,30 @@
 
     async function finalize(tId, uId, status) {
         const reply = document.getElementById(`reply-${tId}`).value;
-        if(!reply) return Swal.fire("تنبيه", "يجب كتابة رد للمستخدم", "warning");
+        
+        if(!reply) return Swal.fire("تنبيه", "يجب كتابة رد للدعم والاتصال", "warning");
 
-        Swal.fire({ title: 'جاري الحفظ...', didOpen: () => { Swal.showLoading(); } });
+        Swal.fire({
+            title: 'جاري الحفظ وإرسال الرد...',
+            didOpen: () => { Swal.showLoading(); }
+        });
 
         try {
             const res = await fetch('/api/admin_audit_tickets', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'finalize_ticket', module: 'tickets', tId, uid: uId, status, reply })
+                body: JSON.stringify({ 
+                    action: 'finalize_ticket', 
+                    module: 'tickets', 
+                    tId, 
+                    uid: uId, 
+                    status, 
+                    reply 
+                })
             });
 
             if(res.ok) {
-                Swal.fire("نجاح", "تمت معالجة التذكرة بنجاح", "success");
+                Swal.fire("نجاح", "تمت معالجة التذكرة وإرسال الرد بنجاح", "success");
                 fetchTickets();
             } else {
                 throw new Error("Failed to finalize");
@@ -285,4 +301,4 @@
     }
 </script>
 </body>
-</html>
+        </html>
