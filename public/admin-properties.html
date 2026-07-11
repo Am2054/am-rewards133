@@ -267,7 +267,7 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    // توجيه جميع العمليات لخادم الـ Backend المدمج لتقليل قراءات Firestore تماماً
+    // توجيه جميع العمليات لخادم الـ Backend المدمج لتقليل قراءات Firestore تماماً مع تفعيل الكوكيز (Credentials: Include)
     const API_URL = "https://am-rewards.vercel.app/api/admin_audit_tickets";
 
     let allRawProperties = []; 
@@ -289,7 +289,7 @@
       fetchInitialDataFromServer();
     });
 
-    // جلب وحساب العقارات والبيانات كلياً عبر الـ Backend لتوفير كلف القراءة الفردية
+    // جلب وحساب العقارات والبيانات كلياً عبر الـ Backend لتوفير كلف القراءة الفردية وإرفاق الكوكيز (Credentials Include)
     async function fetchInitialDataFromServer() {
       showLoading("جاري جلب إحصائيات وعقارات السيرفر...");
       try {
@@ -298,6 +298,7 @@
         // جلب عقارات السيرفر بناء على المنزلق النشط بالخلفية
         const response = await fetch(API_URL, {
           method: "POST",
+          credentials: "include", // تفعيل الكوكيز الإدارية بالطلب لمنع خطأ 401
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${idToken}`
@@ -535,6 +536,7 @@
 
         const response = await fetch(API_URL, {
           method: "POST",
+          credentials: "include", // تفعيل الكوكيز والتوثيق
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${idToken}`
@@ -545,7 +547,7 @@
         const result = await response.json();
         if (response.ok && result.success) {
           showToast(result.message, "success");
-          fetchInitialDataFromServer(); // إعادة التحميل وتحديث العدادات والبيانات من السيرفر مباشرة
+          fetchInitialDataFromServer(); // إعادة جلب البيانات والعدادات من الخادم
         } else {
           showToast("حدث خطأ من السيرفر: " + result.error, "danger");
         }
@@ -564,6 +566,7 @@
         const idToken = await auth.currentUser.getIdToken(true);
         const response = await fetch(API_URL, {
           method: "POST",
+          credentials: "include", // تفعيل الكوكيز والتوثيق
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${idToken}`
@@ -728,4 +731,4 @@
     }
   </script>
 </body>
-                                                                                                                                                                                                 </html>
+</html>
