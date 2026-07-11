@@ -33,8 +33,9 @@
     .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
     h1 { font-weight: 900; color: var(--primary); font-size: 1.8rem; }
     
-    .tab-wrapper { display: flex; gap: 1rem; background: var(--bg-tertiary); padding: 0.4rem; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 1.5rem; width: max-content; }
-    .tab-btn { padding: 0.6rem 1.5rem; border-radius: 8px; border: none; background: transparent; color: var(--text-muted); font-weight: 700; cursor: pointer; font-family: 'Cairo'; transition: var(--transition); }
+    /* محدد التبويبات الفسيح المطور بثلاثة منزلقات محتسبة حياً بالخلفية */
+    .tab-wrapper { display: flex; gap: 0.75rem; background: var(--bg-tertiary); padding: 0.5rem; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 1.5rem; flex-wrap: wrap; width: 100%; justify-content: flex-start; }
+    .tab-btn { padding: 0.7rem 1.5rem; border-radius: 8px; border: none; background: transparent; color: var(--text-muted); font-weight: 700; cursor: pointer; font-family: 'Cairo'; transition: var(--transition); font-size: 0.9rem; }
     .tab-btn.active { background: var(--primary); color: var(--bg-primary); }
 
     .toolbar { background: var(--bg-secondary); border: 1px solid var(--border); padding: 1.25rem; border-radius: 16px; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
@@ -43,7 +44,7 @@
     .search-input:focus { border-color: var(--primary); outline: none; }
     .search-row i { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
 
-    .filters-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; }
+    .filters-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; }
     .filter-select { background: var(--bg-primary); border: 1px solid var(--border); padding: 0.6rem; border-radius: 8px; color: #fff; font-family: 'Cairo'; font-size: 0.85rem; cursor: pointer; }
     .filter-select:focus { border-color: var(--primary); outline: none; }
 
@@ -144,22 +145,25 @@
         justify-content: center !important;
         white-space: nowrap !important;
       }
-      .tab-wrapper { width: 100%; justify-content: center; }
+      .tab-wrapper { width: 100%; justify-content: center; gap: 0.5rem; }
+      .tab-btn { width: 100%; text-align: center; }
     }
   </style>
 </head>
 <body>
 
   <div class="admin-container">
-    <a href="dashboard.html" class="btn-back"><i class="fas fa-arrow-right"></i> العودة للوحة الإحصائيات</a>
+    <a href="admin.html" class="btn-back"><i class="fas fa-arrow-right"></i> العودة للوحة الإدارة العامة</a>
     
     <div class="header-section">
       <h1><i class="fas fa-shield-alt"></i> لوحة تحكم العقارات الاحترافية</h1>
-      
-      <div class="tab-wrapper">
-        <button class="tab-btn active" id="tabPending" onclick="switchPanel('pending')">الطلبات الجديدة (المعلقة)</button>
-        <button class="tab-btn" id="tabAll" onclick="switchPanel('all')">إدارة جميع العقارات</button>
-      </div>
+    </div>
+
+    <!-- ثلاثة منزلقات محتسبة حياً بالخلفية لـ (المعلقة، المقبولة، المرفوضة) لتقليل كلف القراءة الفردية -->
+    <div class="tab-wrapper">
+      <button class="tab-btn active" id="tabPending" onclick="switchPanel('pending')">الطلبات المعلقة (---)</button>
+      <button class="tab-btn" id="tabApproved" onclick="switchPanel('approved')">العقارات المقبولة (---)</button>
+      <button class="tab-btn" id="tabRejected" onclick="switchPanel('rejected')">العقارات المرفوضة (---)</button>
     </div>
 
     <div class="toolbar">
@@ -168,12 +172,6 @@
         <input type="text" id="adminSearchInput" class="search-input" placeholder="بحث فوري بالعنوان، رقم العقار، اسم المعلن، هاتف المعلن، أو البريد الإلكتروني...">
       </div>
       <div class="filters-row">
-        <select id="filterStatus" class="filter-select" onchange="applyFiltersAndRender()">
-          <option value="all">كل الحالات</option>
-          <option value="pending">قيد الانتظار (Pending)</option>
-          <option value="approved">تمت الموافقة (Approved)</option>
-          <option value="rejected">المرفوضة (Rejected)</option>
-        </select>
         <select id="filterPurpose" class="filter-select" onchange="applyFiltersAndRender()">
           <option value="all">كل العمليات (بيع/إيجار)</option>
           <option value="sale">بيع</option>
@@ -256,67 +254,89 @@
     <p style="color:var(--primary); font-weight:700;" id="loadingText">جاري معالجة طلبك الإداري...</p>
   </div>
 
-   <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, query, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-  const firebaseConfig = {
+    const firebaseConfig = {
       apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
       authDomain: "am--rewards.firebaseapp.com",
       projectId: "am--rewards",
-      storageBucket: "am--rewards.firebasestorage.app"
-  };
+    };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const auth = getAuth(app);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
 
-  const API_URL = "https://am-rewards.vercel.app/api/manage-property";
+    // توجيه جميع العمليات لخادم الـ Backend المدمج لتقليل قراءات Firestore تماماً
+    const API_URL = "https://am-rewards.vercel.app/api/admin_audit_tickets";
 
-  let allRawProperties = []; 
-  let filteredProperties = []; 
-  let panelMode = 'pending'; 
-  let activeRejectDocId = null;
-  
-  let activeMediaArray = [];
-  let activeMediaIndex = 0;
+    let allRawProperties = []; 
+    let filteredProperties = []; 
+    let panelMode = 'pending'; 
+    let activeRejectDocId = null;
+    
+    let activeMediaArray = [];
+    let activeMediaIndex = 0;
 
-  let currentPage = 1;
-  const itemsPerPage = 20;
+    let currentPage = 1;
+    const itemsPerPage = 20;
 
-  onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, (user) => {
       if (!user) {
-          document.getElementById('adminPropertiesList').innerHTML = "<div style='padding:2rem; text-align:center;'>غير مسموح بالدخول لغير مسؤولي النظام. سجل دخولك أولاً.</div>";
-          return;
+        document.getElementById('adminPropertiesList').innerHTML = "<div style='padding:2rem; text-align:center;'>غير مسموح بالدخول لغير مسؤولي النظام. سجل دخولك أولاً.</div>";
+        return;
       }
       fetchInitialDataFromServer();
-  });
+    });
 
-  async function fetchInitialDataFromServer() {
-      showLoading("جاري جلب قائمة العقارات والبيانات...");
+    // جلب وحساب العقارات والبيانات كلياً عبر الـ Backend لتوفير كلف القراءة الفردية
+    async function fetchInitialDataFromServer() {
+      showLoading("جاري جلب إحصائيات وعقارات السيرفر...");
       try {
-          const q = query(collection(db, "properties"), orderBy("createdAt", "desc"));
-          const querySnapshot = await getDocs(q);
-          allRawProperties = [];
-          
-          querySnapshot.forEach((docSnap) => {
-              allRawProperties.push({
-                  id: docSnap.id,
-                  ...docSnap.data()
-              });
-          });
+        const idToken = await auth.currentUser.getIdToken(true);
+        
+        // جلب عقارات السيرفر بناء على المنزلق النشط بالخلفية
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${idToken}`
+          },
+          body: JSON.stringify({ 
+            module: 'properties', 
+            action: 'get_admin_properties', 
+            status: panelMode 
+          })
+        });
 
+        const result = await response.json();
+        
+        if (response.ok && result.properties) {
+          allRawProperties = result.properties;
+          
+          // تحديث عدادات التبويبات الفسيحة لحظياً وحياً من الخادم
+          updateTabSelectorsUI(result.stats);
+          
           populateDynamicFilters();
           applyFiltersAndRender();
+        } else {
+          throw new Error(result.error || "فشل جلب مستندات السيرفر");
+        }
       } catch (err) {
-          showToast("فشل في تحميل المستندات من Firestore: " + err.message, "danger");
+        showToast("فشل في تحميل المستندات عبر الباكند: " + err.message, "danger");
       } finally {
-          hideLoading();
+        hideLoading();
       }
-  }
+    }
 
-  function populateDynamicFilters() {
+    function updateTabSelectorsUI(stats) {
+      if (!stats) return;
+      document.getElementById('tabPending').innerText = `الطلبات المعلقة (${stats.pending || 0})`;
+      document.getElementById('tabApproved').innerText = `العقارات المقبولة (${stats.approved || 0})`;
+      document.getElementById('tabRejected').innerText = `العقارات المرفوضة (${stats.rejected || 0})`;
+    }
+
+    function populateDynamicFilters() {
       const typeSelect = document.getElementById('filterType');
       const govSelect = document.getElementById('filterGov');
       
@@ -324,8 +344,8 @@
       const govs = new Set(["all"]);
 
       allRawProperties.forEach(p => {
-          if(p.propertyType) types.add(p.propertyType);
-          if(p.governorate) govs.add(p.governorate);
+        if(p.propertyType) types.add(p.propertyType);
+        if(p.governorate) govs.add(p.governorate);
       });
 
       typeSelect.innerHTML = '<option value="all">كل أنواع العقارات</option>';
@@ -333,85 +353,80 @@
 
       govSelect.innerHTML = '<option value="all">كل المحافظات</option>';
       govs.forEach(g => { if(g !== 'all') govSelect.innerHTML += `<option value="${g}">${g}</option>`; });
-  }
+    }
 
-  window.switchPanel = function(mode) {
+    window.switchPanel = function(mode) {
       panelMode = mode;
       currentPage = 1;
       
       document.getElementById('tabPending').classList.remove('active');
-      document.getElementById('tabAll').classList.remove('active');
-      
-      const statusSelector = document.getElementById('filterStatus');
+      document.getElementById('tabApproved').classList.remove('active');
+      document.getElementById('tabRejected').classList.remove('active');
 
-      if(mode === 'pending') {
-          document.getElementById('tabPending').classList.add('active');
-          statusSelector.value = 'pending';
-          statusSelector.style.display = 'none';
-      } else {
-          document.getElementById('tabAll').classList.add('active');
-          statusSelector.value = 'all';
-          statusSelector.style.display = 'block';
+      if (mode === 'pending') {
+        document.getElementById('tabPending').classList.add('active');
+      } else if (mode === 'approved') {
+        document.getElementById('tabApproved').classList.add('active');
+      } else if (mode === 'rejected') {
+        document.getElementById('tabRejected').classList.add('active');
       }
-      applyFiltersAndRender();
-  }
+      
+      fetchInitialDataFromServer();
+    }
 
-  window.applyFiltersAndRender = function() {
+    window.applyFiltersAndRender = function() {
       const searchText = document.getElementById('adminSearchInput').value.toLowerCase().trim();
-      const statusVal = document.getElementById('filterStatus').value;
       const purposeVal = document.getElementById('filterPurpose').value;
       const typeVal = document.getElementById('filterType').value;
       const govVal = document.getElementById('filterGov').value;
       const sortVal = document.getElementById('sortOrder').value;
 
       filteredProperties = allRawProperties.filter(p => {
-          if (panelMode === 'pending' && p.status !== 'pending') return false;
-          if (panelMode === 'all' && statusVal !== 'all' && p.status !== statusVal) return false;
-          if (purposeVal !== 'all' && p.purpose !== purposeVal) return false;
-          if (typeVal !== 'all' && p.propertyType !== typeVal) return false;
-          if (govVal !== 'all' && p.governorate !== govVal) return false;
+        if (purposeVal !== 'all' && p.purpose !== purposeVal) return false;
+        if (typeVal !== 'all' && p.propertyType !== typeVal) return false;
+        if (govVal !== 'all' && p.governorate !== govVal) return false;
 
-          if (searchText) {
-              const titleMatch = (p.title || "").toLowerCase().includes(searchText);
-              const idMatch = (p.id || "").toLowerCase().includes(searchText);
-              const ownerNameMatch = (p.ownerName || "").toLowerCase().includes(searchText);
-              const ownerPhoneMatch = (p.ownerPhone || "").toLowerCase().includes(searchText);
-              const ownerEmailMatch = (p.ownerEmail || "").toLowerCase().includes(searchText);
+        if (searchText) {
+          const titleMatch = (p.title || "").toLowerCase().includes(searchText);
+          const idMatch = (p.id || "").toLowerCase().includes(searchText);
+          const ownerNameMatch = (p.ownerName || "").toLowerCase().includes(searchText);
+          const ownerPhoneMatch = (p.ownerPhone || "").toLowerCase().includes(searchText);
+          const ownerEmailMatch = (p.ownerEmail || "").toLowerCase().includes(searchText);
 
-              if (!titleMatch && !idMatch && !ownerNameMatch && !ownerPhoneMatch && !ownerEmailMatch) {
-                  return false;
-              }
+          if (!titleMatch && !idMatch && !ownerNameMatch && !ownerPhoneMatch && !ownerEmailMatch) {
+            return false;
           }
-          return true;
+        }
+        return true;
       });
 
       filteredProperties.sort((a, b) => {
-          if (sortVal === 'newest') return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
-          if (sortVal === 'oldest') return (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0);
-          if (sortVal === 'price-high') return (b.price || 0) - (a.price || 0);
-          if (sortVal === 'price-low') return (a.price || 0) - (b.price || 0);
-          if (sortVal === 'area-high') return (b.area || 0) - (a.area || 0);
-          if (sortVal === 'area-low') return (a.area || 0) - (b.area || 0);
-          return 0;
+        if (sortVal === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
+        if (sortVal === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+        if (sortVal === 'price-high') return (b.price || 0) - (a.price || 0);
+        if (sortVal === 'price-low') return (a.price || 0) - (b.price || 0);
+        if (sortVal === 'area-high') return (b.area || 0) - (a.area || 0);
+        if (sortVal === 'area-low') return (a.area || 0) - (b.area || 0);
+        return 0;
       });
 
       renderPropertiesList();
-  }
+    }
 
-  document.getElementById('adminSearchInput').addEventListener('input', () => {
+    document.getElementById('adminSearchInput').addEventListener('input', () => {
       currentPage = 1;
       applyFiltersAndRender();
-  });
+    });
 
-  function renderPropertiesList() {
+    function renderPropertiesList() {
       const listContainer = document.getElementById('adminPropertiesList');
       const paginationBox = document.getElementById('paginationBox');
       listContainer.innerHTML = '';
 
       if (filteredProperties.length === 0) {
-          listContainer.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:3rem 0;">لا توجد نتائج تطابق خيارات الفلترة أو البحث الحالية.</p>`;
-          paginationBox.innerHTML = '';
-          return;
+        listContainer.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:3rem 0;">لا توجد نتائج تطابق خيارات الفلترة أو البحث الحالية.</p>`;
+        paginationBox.innerHTML = '';
+        return;
       }
 
       const totalItems = filteredProperties.length;
@@ -423,65 +438,65 @@
       const paginatedSlice = filteredProperties.slice(startIndex, endIndex);
 
       paginatedSlice.forEach((p) => {
-          const card = document.createElement('div');
-          card.className = 'admin-card';
-          
-          const imgUrl = p.coverImage || (p.images && p.images[0]) || '';
-          const imgCount = p.images ? p.images.length : 0;
-          const hasVideo = p.videoUrl ? true : false;
-          
-          let statusClass = 'pending', statusText = 'معلق';
-          if (p.status === 'approved') { statusClass = 'approved'; statusText = 'مقبول ومنشور'; }
-          if (p.status === 'rejected') { statusClass = 'rejected'; statusText = 'مرفوض من الإدارة'; }
+        const card = document.createElement('div');
+        card.className = 'admin-card';
+        
+        const imgUrl = p.coverImage || (p.images && p.images[0]) || '';
+        const imgCount = p.images ? p.images.length : 0;
+        const hasVideo = p.videoUrl ? true : false;
+        
+        let statusClass = 'pending', statusText = 'معلق';
+        if (p.status === 'approved') { statusClass = 'approved'; statusText = 'مقبول ومنشور'; }
+        if (p.status === 'rejected') { statusClass = 'rejected'; statusText = 'مرفوض من الإدارة'; }
 
-          let dateString = "غير محدد";
-          if(p.createdAt && p.createdAt.seconds) {
-              dateString = new Date(p.createdAt.seconds * 1000).toLocaleDateString('ar-EG');
-          }
+        let dateString = "غير محدد";
+        if(p.createdAt) {
+          dateString = new Date(p.createdAt).toLocaleDateString('ar-EG');
+        }
 
-          let rejectBoxHtml = '';
-          if(p.status === 'rejected' && p.rejectReason) {
-              rejectBoxHtml = `<div class="reject-reason-box"><i class="fas fa-comment-slash"></i> <strong>سبب الرفض الحالي:</strong> ${p.rejectReason}</div>`;
-          }
+        let rejectBoxHtml = '';
+        if(p.status === 'rejected' && p.rejectReason) {
+          rejectBoxHtml = `<div class="reject-reason-box"><i class="fas fa-comment-slash"></i> <strong>سبب الرفض الحالي:</strong> ${p.rejectReason}</div>`;
+        }
 
-          card.innerHTML = `
-              <div class="img-container" onclick="openDetailsModal('${p.id}')">
-                  <img src="${imgUrl}" class="prop-img" alt="Property Cover">
-                  <div class="media-badges">
-                      <span class="m-badge"><i class="fas fa-image"></i> ${imgCount}</span>
-                      ${hasVideo ? `<span class="m-badge" style="color:var(--primary);"><i class="fas fa-video"></i> فيديو</span>` : ''}
-                  </div>
-              </div>
-              <div class="prop-info" onclick="openDetailsModal('${p.id}')">
-                  <div class="title-row">
-                      <div class="prop-title">${p.title || 'عقار بدون عنوان إعلاني ثابت'}</div>
-                      <span class="status-tag ${statusClass}">${statusText}</span>
-                  </div>
-                  
-                  ${rejectBoxHtml}
+        card.innerHTML = `
+          <div class="img-container" onclick="openDetailsModal('${p.id}')">
+            <img src="${imgUrl}" class="prop-img" alt="Property Cover">
+            <div class="media-badges">
+              <span class="m-badge"><i class="fas fa-image"></i> ${imgCount}</span>
+              ${hasVideo ? `<span class="m-badge" style="color:var(--primary);"><i class="fas fa-video"></i> فيديو</span>` : ''}
+            </div>
+          </div>
+          <div class="prop-info" onclick="openDetailsModal('${p.id}')">
+            <div class="title-row">
+              <div class="prop-title">${p.title || 'عقار بدون عنوان إعلاني ثابت'}</div>
+              <span class="status-tag ${statusClass}">${statusText}</span>
+            </div>
+            
+            ${rejectBoxHtml}
 
-                  <div class="meta-grid">
-                      <div class="meta-item"><i class="fas fa-money-bill-wave"></i> السعر: ${p.price || 0} ج.م</div>
-                      <div class="meta-item"><i class="fas fa-th-large"></i> المساحة: ${p.area || 0} م²</div>
-                      <div class="meta-item"><i class="fas fa-bullseye"></i> المعاملة: ${p.purpose === 'sale' ? 'بيع' : 'إيجار'}</div>
-                      <div class="meta-item"><i class="fas fa-building"></i> النوع: ${p.propertyType || 'غير محدد'}</div>
-                      <div class="meta-item"><i class="fas fa-map-marked-alt"></i> الموقع: ${p.governorate || ''} - ${p.city || ''}</div>
-                      <div class="meta-item"><i class="fas fa-calendar-alt"></i> أرسل في: ${dateString}</div>
-                  </div>
-              </div>
-              <div class="actions-wrapper">
-                  <button class="btn-action btn-approve" onclick="handleApiAction('${p.id}', 'approve')"><i class="fas fa-check"></i> موافقة</button>
-                  <button class="btn-action btn-reject" onclick="openRejectModal('${p.id}')"><i class="fas fa-ban"></i> رفض</button>
-                  <button class="btn-action btn-delete" onclick="handleDeleteProperty('${p.id}')"><i class="fas fa-trash-alt"></i> حذف نهائي</button>
-              </div>
-          `;
-          listContainer.appendChild(card);
+            <div class="meta-grid">
+              <div class="meta-item"><i class="fas fa-money-bill-wave"></i> السعر: ${p.price || 0} ج.م</div>
+              <div class="meta-item"><i class="fas fa-th-large"></i> المساحة: ${p.area || 0} م²</div>
+              <div class="meta-item"><i class="fas fa-bullseye"></i> المعاملة: ${p.purpose === 'sale' ? 'بيع' : 'إيجار'}</div>
+              <div class="meta-item"><i class="fas fa-building"></i> النوع: ${p.propertyType || 'غير محدد'}</div>
+              <div class="meta-item"><i class="fas fa-map-marked-alt"></i> الموقع: ${p.governorate || ''} - ${p.city || ''}</div>
+              <div class="meta-item"><i class="fas fa-calendar-alt"></i> أرسل في: ${dateString}</div>
+            </div>
+          </div>
+          <div class="actions-wrapper">
+            <button class="btn-action btn-approve" onclick="handleApiAction('${p.id}', 'approve')"><i class="fas fa-check"></i> موافقة</button>
+            <button class="btn-action btn-reject" onclick="openRejectModal('${p.id}')"><i class="fas fa-ban"></i> رفض</button>
+            <button class="btn-action btn-delete" onclick="handleDeleteProperty('${p.id}')"><i class="fas fa-trash-alt"></i> حذف نهائي</button>
+          </div>
+        `;
+        listContainer.appendChild(card);
       });
 
       renderPaginationControls(totalPages);
-  }
+    }
 
-  function renderPaginationControls(totalPages) {
+    function renderPaginationControls(totalPages) {
       const paginationBox = document.getElementById('paginationBox');
       paginationBox.innerHTML = '';
       if(totalPages <= 1) return;
@@ -504,82 +519,77 @@
       nextBtn.disabled = currentPage === totalPages;
       nextBtn.onclick = () => { currentPage++; renderPropertiesList(); };
       paginationBox.appendChild(nextBtn);
-  }
+    }
 
-  // تصدير الدالة للـ window لتصبح مرئية لأزرار الـ HTML المعروضة ديناميكياً
-  window.handleApiAction = async function(docId, actionType, rejectReason = null) {
-      showLoading(actionType === 'approve' ? 'جاري الموافقة ونشر الإعلان...' : 'جاري تحديث البيانات...');
+    window.handleApiAction = async function(docId, actionType, rejectReason = null) {
+      showLoading(actionType === 'approve' ? 'جاري الموافقة ونشر الإعلان...' : 'جاري تحديث البيانات الإدارية...');
       try {
-          const idToken = await auth.currentUser.getIdToken(true);
-          const payload = { propertyId: docId, action: actionType };
-          
-          if (rejectReason) payload.reason = rejectReason;
+        const idToken = await auth.currentUser.getIdToken(true);
+        const payload = { 
+          module: 'properties', 
+          action: actionType, 
+          propertyId: docId 
+        };
+        
+        if (rejectReason) payload.reason = rejectReason;
 
-          const response = await fetch(API_URL, {
-              method: "POST",
-              headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${idToken}`
-              },
-              body: JSON.stringify(payload)
-          });
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${idToken}`
+          },
+          body: JSON.stringify(payload)
+        });
 
-          const result = await response.json();
-          if (response.ok && result.success) {
-              showToast(result.message, "success");
-              
-              const index = allRawProperties.findIndex(p => p.id === docId);
-              if (index !== -1) {
-                  if (actionType === 'approve') {
-                      allRawProperties[index].status = 'approved';
-                      delete allRawProperties[index].rejectReason;
-                  } else if (actionType === 'reject') {
-                      allRawProperties[index].status = 'rejected';
-                      allRawProperties[index].rejectReason = rejectReason;
-                  }
-              }
-              applyFiltersAndRender();
-          } else {
-              showToast("حدث خطأ من السيرفر: " + result.error, "danger");
-          }
+        const result = await response.json();
+        if (response.ok && result.success) {
+          showToast(result.message, "success");
+          fetchInitialDataFromServer(); // إعادة التحميل وتحديث العدادات والبيانات من السيرفر مباشرة
+        } else {
+          showToast("حدث خطأ من السيرفر: " + result.error, "danger");
+        }
       } catch (err) {
-          showToast("فشل الاتصال بالـ Backend: " + err.message, "danger");
+        showToast("فشل الاتصال بالـ Backend: " + err.message, "danger");
       } finally {
-          hideLoading();
+        hideLoading();
       }
-  }
+    }
 
-  window.handleDeleteProperty = async function(docId) {
+    window.handleDeleteProperty = async function(docId) {
       if(!confirm("⚠️ تنبيه هام للغاية: هل أنت متأكد تماماً من قرار حذف هذا العقار بشكل نهائي ولا يمكن الرجوع عنه من السيرفر؟")) return;
       
       showLoading("جاري الحذف النهائي للمستند...");
       try {
-          const idToken = await auth.currentUser.getIdToken(true);
-          const response = await fetch(API_URL, {
-              method: "POST",
-              headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${idToken}`
-              },
-              body: JSON.stringify({ propertyId: docId, action: 'delete' })
-          });
+        const idToken = await auth.currentUser.getIdToken(true);
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${idToken}`
+          },
+          body: JSON.stringify({ 
+            module: 'properties', 
+            action: 'delete', 
+            propertyId: docId 
+          })
+        });
 
-          const result = await response.json();
-          if (response.ok && result.success) {
-              showToast(result.message, "success");
-              allRawProperties = allRawProperties.filter(p => p.id !== docId);
-              applyFiltersAndRender();
-          } else {
-              showToast("خطأ الحذف: " + result.error, "danger");
-          }
+        const result = await response.json();
+        if (response.ok && result.success) {
+          showToast(result.message, "success");
+          fetchInitialDataFromServer();
+        } else {
+          showToast("خطأ الحذف: " + result.error, "danger");
+        }
       } catch(err) {
-          showToast("فشل الاتصال: " + err.message, "danger");
+        showToast("فشل الاتصال: " + err.message, "danger");
       } finally {
-          hideLoading();
+        hideLoading();
       }
-  }
+    }
 
-  window.openDetailsModal = function(docId) {
+    window.openDetailsModal = function(docId) {
       const p = allRawProperties.find(item => item.id === docId);
       if(!p) return;
 
@@ -597,9 +607,9 @@
       document.getElementById('mdDesc').innerText = p.description || 'لا يوجد وصف مضاف للعقار.';
       
       if(p.features && p.features.length > 0) {
-          document.getElementById('mdFeatures').innerText = p.features.join(' ✦ ');
+        document.getElementById('mdFeatures').innerText = p.features.join(' ✦ ');
       } else {
-          document.getElementById('mdFeatures').innerText = 'لم يتم تحديد أي ميزات إضافية للعقار.';
+        document.getElementById('mdFeatures').innerText = 'لم يتم تحديد أي ميزات إضافية للعقار.';
       }
 
       document.getElementById('mdOwnerName').innerText = p.ownerName || 'غير متوفر';
@@ -609,88 +619,88 @@
 
       activeMediaArray = [];
       if(p.images && p.images.length > 0) {
-          p.images.forEach(url => activeMediaArray.push({ type: 'image', url: url }));
+        p.images.forEach(url => activeMediaArray.push({ type: 'image', url: url }));
       }
       if(p.videoUrl) {
-          activeMediaArray.push({ type: 'video', url: p.videoUrl });
+        activeMediaArray.push({ type: 'video', url: p.videoUrl });
       }
       
       activeMediaIndex = 0;
       renderMediaGalleryViewer();
 
       document.getElementById('detailsModal').classList.add('open');
-  }
+    }
 
-  function renderMediaGalleryViewer() {
+    function renderMediaGalleryViewer() {
       const previewBox = document.getElementById('mainPreviewBox');
       const thumbStrip = document.getElementById('thumbStrip');
       previewBox.innerHTML = '';
       thumbStrip.innerHTML = '';
 
       if(activeMediaArray.length === 0) {
-          previewBox.innerHTML = '<p style="color:var(--text-muted)">لا توجد صور أو فيديوهات مرفوعة لهذا العقار</p>';
-          return;
+        previewBox.innerHTML = '<p style="color:var(--text-muted)">لا توجد صور أو فيديوهات مرفوعة لهذا العقار</p>';
+        return;
       }
 
       const currentMedia = activeMediaArray[activeMediaIndex];
       if(currentMedia.type === 'image') {
-          previewBox.innerHTML = `<img src="${currentMedia.url}" alt="Preview" onclick="window.open('${currentMedia.url}', '_blank')">`;
+        previewBox.innerHTML = `<img src="${currentMedia.url}" alt="Preview" onclick="window.open('${currentMedia.url}', '_blank')">`;
       } else {
-          previewBox.innerHTML = `<video src="${currentMedia.url}" controls></video>`;
+        previewBox.innerHTML = `<video src="${currentMedia.url}" controls></video>`;
       }
 
       if(activeMediaArray.length > 1) {
-          previewBox.innerHTML += `<button class="nav-arrow prev-arr" onclick="navigateMedia(1)"><i class="fas fa-chevron-right"></i></button>`;
-          previewBox.innerHTML += `<button class="nav-arrow next-arr" onclick="navigateMedia(-1)"><i class="fas fa-chevron-left"></i></button>`;
+        previewBox.innerHTML += `<button class="nav-arrow prev-arr" onclick="navigateMedia(1)"><i class="fas fa-chevron-right"></i></button>`;
+        previewBox.innerHTML += `<button class="nav-arrow next-arr" onclick="navigateMedia(-1)"><i class="fas fa-chevron-left"></i></button>`;
       }
 
       activeMediaArray.forEach((media, idx) => {
-          const thumb = document.createElement('img');
-          thumb.src = media.type === 'image' ? media.url : 'https://img.icons8.com/flat-style/2x/video.png';
-          if(idx === activeMediaIndex) thumb.className = 'active';
-          thumb.onclick = () => { activeMediaIndex = idx; renderMediaGalleryViewer(); };
-          thumbStrip.appendChild(thumb);
+        const thumb = document.createElement('img');
+        thumb.src = media.type === 'image' ? media.url : 'https://img.icons8.com/flat-style/2x/video.png';
+        if(idx === activeMediaIndex) thumb.className = 'active';
+        thumb.onclick = () => { activeMediaIndex = idx; renderMediaGalleryViewer(); };
+        thumbStrip.appendChild(thumb);
       });
-  }
+    }
 
-  window.navigateMedia = function(direction) {
+    window.navigateMedia = function(direction) {
       activeMediaIndex += direction;
       if(activeMediaIndex >= activeMediaArray.length) activeMediaIndex = 0;
       if(activeMediaIndex < 0) activeMediaIndex = activeMediaArray.length - 1;
       renderMediaGalleryViewer();
-  }
+    }
 
-  window.closeDetailsModal = function() {
+    window.closeDetailsModal = function() {
       document.getElementById('detailsModal').classList.remove('open');
-  }
+    }
 
-  window.openRejectModal = function(docId) {
+    window.openRejectModal = function(docId) {
       activeRejectDocId = docId;
       document.getElementById('rejectReasonInput').value = '';
       document.getElementById('rejectModal').classList.add('open');
-  }
+    }
 
-  window.closeRejectModal = function() {
+    window.closeRejectModal = function() {
       document.getElementById('rejectModal').classList.remove('open');
-  }
+    }
 
-  document.getElementById('btnConfirmReject').addEventListener('click', () => {
+    document.getElementById('btnConfirmReject').addEventListener('click', () => {
       const reason = document.getElementById('rejectReasonInput').value.trim();
       if(!reason) { showToast("من فضلك اكتب سبب الرفض أولاً ليتم توثيقه", "warning"); return; }
       window.handleApiAction(activeRejectDocId, 'reject', reason);
       closeRejectModal();
-  });
+    });
 
-  window.copyTxt = function(elementId) {
+    window.copyTxt = function(elementId) {
       const txt = document.getElementById(elementId).innerText;
       navigator.clipboard.writeText(txt).then(() => {
-          showToast("تم النسخ إلى الحافظة بنجاح!", "success");
+        showToast("تم النسخ إلى الحافظة بنجاح!", "success");
       }).catch(() => {
-          showToast("فشل النسخ التلقائي", "danger");
+        showToast("فشل النسخ التلقائي", "danger");
       });
-  }
+    }
 
-  function showToast(message, type = "success") {
+    function showToast(message, type = "success") {
       const container = document.getElementById('toastContainer');
       const toast = document.createElement('div');
       toast.className = `toast ${type}`;
@@ -704,18 +714,18 @@
 
       setTimeout(() => toast.classList.add('show'), 50);
       setTimeout(() => {
-          toast.classList.remove('show');
-          setTimeout(() => toast.remove(), 300);
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
       }, 4000);
-  }
+    }
 
-  function showLoading(msg) {
+    function showLoading(msg) {
       document.getElementById('loadingText').innerText = msg;
       document.getElementById('globalLoading').style.display = 'flex';
-  }
-  function hideLoading() {
+    }
+    function hideLoading() {
       document.getElementById('globalLoading').style.display = 'none';
-  }
-</script>
+    }
+  </script>
 </body>
-</html>
+                                                                                                                                                                                                 </html>
