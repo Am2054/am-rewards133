@@ -21,16 +21,15 @@ console.log('✅ Firebase initialized in Service Worker');
 messaging.onBackgroundMessage((payload) => {
     console.log('📬 Background message received:', payload);
     
-    const notificationTitle = payload.notification?.title || 'رسالة عقارية جديدة';
+    const notificationTitle = payload.notification?.title || payload.data?.title || 'رسالة عقارية جديدة';
     const notificationOptions = {
-        body: payload.notification?.body || 'لديك رسالة غير مقروءة بخصوص العقار',
+        body: payload.notification?.body || payload.data?.body || 'لديك رسالة غير مقروءة بخصوص العقار',
         icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
         badge: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
         tag: 'am-chat-msg',
         renotify: true,
-        requireInteraction: false,
+        requireInteraction: true,
         silent: false,
-        priority: 'high',
         vibrate: [200, 100, 200],
         data: payload.data || {}
     };
@@ -41,10 +40,9 @@ messaging.onBackgroundMessage((payload) => {
 
 // معالجة توجيه المستخدم بدقة لصفحة chat.html عند النقر على الإشعار الوارد
 self.addEventListener('notificationclick', function(event) {
-    console.log('鼠标 Notification clicked');
+    console.log('Notification clicked');
     event.notification.close();
     
-    // التوجيه التلقائي للمستخدم إلى صفحة chat.html على العقدة الأساسية للموقع
     const urlToOpen = event.notification.data?.url || '/chat.html';
     
     event.waitUntil(
