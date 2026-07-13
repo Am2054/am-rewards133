@@ -43,6 +43,7 @@ self.addEventListener('notificationclick', function(event) {
     console.log('Notification clicked');
     event.notification.close();
     
+    // تأمين الحصول على الرابط الديناميكي أو العودة للشات الافتراضي
     const urlToOpen = event.notification.data?.url || '/chat.html';
     
     event.waitUntil(
