@@ -607,6 +607,7 @@
 
     const ChatState = {
       currentUserId: null,
+      currentUserName: "مستخدم المنصة", // سيتم ملؤه من الفايرستور لاحقاً لدعم الإشعارات
       activeRoomId: null,
       activeRoomData: null,
       editingMessageId: null,
@@ -794,6 +795,16 @@
 
           ChatState.currentUserId = user.uid;
           
+          // جلب اسم المستخدم الحالي لإرساله بالإشعارات
+          try {
+            const userSnap = await getDoc(doc(db, "users", user.uid));
+            if (userSnap.exists()) {
+              ChatState.currentUserName = userSnap.data().name || "مستخدم AM. Chat";
+            }
+          } catch(e) {
+            console.warn("Error fetching current user info:", e);
+          }
+
           this.initPresence(user.uid);
           this.loadThreads(user.uid);
 
@@ -907,7 +918,6 @@
             
             onMessage(messaging, (payload) => {
               console.log('📬 Message received in foreground:', payload);
-              // إظهار إشعار يدوي محلي في حال كان المستخدم يتصفح الموقع ولكنه في نافذة أخرى
               if (Notification.permission === 'granted' && document.hidden) {
                 new Notification(payload.notification?.title || 'رسالة جديدة', {
                   body: payload.notification?.body || '',
@@ -1513,6 +1523,29 @@
         }
       }
 
+      // 📢 دالة مساعدة مضافة لإرسال طلب الـ Push Notification لخادم الـ Vercel API الجديد
+      async triggerPushNotification(receiverId, bodyText, titleText = null) {
+        try {
+          const response = await fetch('https://am-property.vercel.app/api/send-notification', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              receiverId: receiverId,
+              senderName: ChatState.currentUserName, // اسمك الفعلي لجعل الإشعار مميزاً
+              title: titleText || `💬 رسالة جديدة من ${ChatState.currentUserName}`,
+              body: bodyText,
+              roomId: ChatState.activeRoomId
+            })
+          });
+          const resData = await response.json();
+          console.log("📨 Push notification Vercel status:", resData);
+        } catch (err) {
+          console.error("❌ Failed to send push notification via Vercel:", err);
+        }
+      }
+
       async sendMessageText(roomId, senderId, receiverId, text) {
         if (!text.trim()) return;
 
@@ -1577,6 +1610,9 @@
         const currentUnread = unreadSnap.exists() ? unreadSnap.val() : 0;
         await set(unreadRef, currentUnread + 1);
 
+        // 🔔 تشغيل الإشعار
+        this.triggerPushNotification(receiverId, textToSend);
+
         this.cancelReply();
       }
 
@@ -1620,6 +1656,10 @@
         const unreadSnap = await get(unreadRef);
         const currentUnread = unreadSnap.exists() ? unreadSnap.val() : 0;
         await set(unreadRef, currentUnread + 1);
+
+        // 🔔 تشغيل الإشعار للصورة
+        const notificationText = captionText ? `📷 صورة: ${captionText}` : "📷 أرسل إليك صورة";
+        this.triggerPushNotification(receiverId, notificationText);
       }
     }
 
