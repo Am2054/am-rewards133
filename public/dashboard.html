@@ -864,12 +864,12 @@
         <section id="section-property-intent" class="spa-section">
           <h2 class="section-title"><i class="fas fa-filter"></i> حدد نوع العملية العقارية المطلوبة</h2>
           <div class="search-mode-container">
-            <div class="search-mode-card rent-mode" id="card-mode-rent" onclick="app.selectSearchActionType('إيجار')">
+            <div class="search-mode-card rent-mode" id="card-mode-rent" onclick="app.selectSearchActionType('rent')">
               <i class="fas fa-key" style="color: var(--success);"></i>
               <h3>عقارات للإيجار</h3>
               <p style="color: var(--muted); font-size: 0.85rem; margin-top: 5px; font-weight: 600;">تصفح الشقق والشاليهات المتاحة للإيجار المباشر</p>
             </div>
-            <div class="search-mode-card sale-mode" id="card-mode-sale" onclick="app.selectSearchActionType('بيع')">
+            <div class="search-mode-card sale-mode" id="card-mode-sale" onclick="app.selectSearchActionType('sale')">
               <i class="fas fa-handshake" style="color: var(--neon-purple);"></i>
               <h3>عقارات للشراء / التمليك</h3>
               <p style="color: var(--muted); font-size: 0.85rem; margin-top: 5px; font-weight: 600;">ابحث عن وحدات عقارية مميزة معروضة للبيع</p>
@@ -895,6 +895,30 @@
                   <option value="القاهرة">القاهرة</option>
                   <option value="الجيزة">الجيزة</option>
                   <option value="الإسكندرية">الإسكندرية</option>
+                  <option value="القليوبية">القليوبية</option>
+                  <option value="المنوفية">المنوفية</option>
+                  <option value="الغربية">الغربية</option>
+                  <option value="الدقهلية">الدقهلية</option>
+                  <option value="الشرقية">الشرقية</option>
+                  <option value="البحيرة">البحيرة</option>
+                  <option value="كفر الشيخ">كفر الشيخ</option>
+                  <option value="دمياط">دمياط</option>
+                  <option value="بورسعيد">بورسعيد</option>
+                  <option value="الإسماعيلية">الإسماعيلية</option>
+                  <option value="السويس">السويس</option>
+                  <option value="شمال سيناء">شمال سيناء</option>
+                  <option value="جنوب سيناء">جنوب سيناء</option>
+                  <option value="بني سويف">بني سويف</option>
+                  <option value="الفيوم">الفيوم</option>
+                  <option value="المنيا">المنيا</option>
+                  <option value="أسيوط">أسيوط</option>
+                  <option value="سوهاج">سوهاج</option>
+                  <option value="قنا">قنا</option>
+                  <option value="الأقصر">الأقصر</option>
+                  <option value="أسوان">أسوان</option>
+                  <option value="البحر الأحمر">البحر الأحمر</option>
+                  <option value="الوادي الجديد">الوادي الجديد</option>
+                  <option value="مطروح">مطروح</option>
                 </select>
               </div>
               <div class="filter-box">
@@ -916,8 +940,8 @@
               <div class="filter-box">
                 <select id="filter-action-type" onchange="app.updateSearchCardsUI(); app.filterAndSortProperties();">
                   <option value="">نوع العملية</option>
-                  <option value="إيجار">إيجار</option>
-                  <option value="بيع">بيع</option>
+                  <option value="rent">إيجار</option>
+                  <option value="sale">بيع</option>
                 </select>
               </div>
             </div>
@@ -1129,8 +1153,8 @@
         if (rentCard && saleCard) {
           rentCard.classList.remove('active');
           saleCard.classList.remove('active');
-          if (currentAction === 'إيجار') rentCard.classList.add('active');
-          if (currentAction === 'بيع') saleCard.classList.add('active');
+          if (currentAction === 'rent') rentCard.classList.add('active');
+          if (currentAction === 'sale') saleCard.classList.add('active');
         }
       }
 
@@ -1228,7 +1252,7 @@
         const city = document.getElementById('filter-city').value.trim().toLowerCase();
         const district = document.getElementById('filter-district').value.trim().toLowerCase();
         const type = document.getElementById('filter-type').value;
-        const actionType = document.getElementById('filter-action-type').value; 
+        const actionType = document.getElementById('filter-action-type').value; // [تعديل] ستكون قيمتها 'sale' أو 'rent'
         const minPrice = Number(document.getElementById('filter-min-price').value) || 0;
         const maxPrice = Number(document.getElementById('filter-max-price').value) || Infinity;
         const rooms = document.getElementById('filter-rooms').value;
@@ -1238,11 +1262,10 @@
         const sortBy = document.getElementById('search-sort-engine').value;
 
         let filtered = AppState.properties.filter(p => {
-          // [تعديل الحماية الذكية من إخفاء الإعلانات والوفرة]
           // استبعاد العقار إذا كان مخفياً بواسطة المالك يدوياً
           if (p.isHidden === true) return false;
           
-          // استبعاد العقار إذا كانت حالته الشخصية غير "متاح" (مثل: مؤجر، تم البيع، غير متاح)
+          // استبعاد العقار إذا كانت حالته الشخصية غير "متاح"
           const availability = p.availability || 'available';
           if (availability !== 'available') return false;
 
@@ -1255,12 +1278,14 @@
             if (!matchTitle && !matchDesc && !matchCity && !matchGov && !matchDist) return false;
           }
 
+          // [تعديل] تصفية المحافظات: تطابق مباشر مع الحقل 'governorate'
           if (gov && p.governorate !== gov) return false;
           if (city && !(p.city || "").toLowerCase().includes(city)) return false;
           if (district && !(p.district || p.area_name || "").toLowerCase().includes(district)) return false;
           if (type && (p.propertyType !== type && p.type !== type)) return false;
           
-          if (actionType && p.actionType !== actionType) return false;
+          // [تعديل] الفلترة باستخدام الحقل 'purpose' وقيم 'sale' أو 'rent' المطابقة لقاعدة بياناتك
+          if (actionType && p.purpose !== actionType) return false;
 
           const price = Number(p.price || 0);
           if (price < minPrice || price > maxPrice) return false;
@@ -1314,11 +1339,13 @@
         let html = "";
         list.forEach((p) => {
           const imgUrl = p.coverImage || (p.images && p.images[0]) || "https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop";
-          const badgeClass = p.actionType === "بيع" ? "sale" : "rent";
-          const actionText = p.actionType || "إيجار";
-          const pricePeriod = p.actionType === "بيع" ? "ج.م" : "ج.م / شهر";
+          
+          // [تعديل] قراءة نوع العملية من الحقل purpose
+          const isSale = p.purpose === "sale";
+          const badgeClass = isSale ? "sale" : "rent";
+          const actionText = isSale ? "بيع" : "إيجار";
+          const pricePeriod = isSale ? "ج.م" : "ج.م / شهر";
 
-          // [تعديل] تم إزالة زر المفضلة (أيقونة القلب) من الكارد بالكامل
           html += `
             <div class="property-card">
               <div class="property-image-wrapper">
@@ -1420,13 +1447,7 @@
         }
       }
 
-      /**
-       * دالة التحقق البرمجي الآمن وتمرير البيانات لصفحة chat.html
-       */
       async startOrOpenChat(propertyId) {
-        console.log("Redirect check - Current AppState.currentUserId:", AppState.currentUserId);
-        console.log("Redirect check - Auth current user:", auth.currentUser ? auth.currentUser.uid : null);
-
         const buyerId = AppState.currentUserId || (auth.currentUser ? auth.currentUser.uid : null);
         if (!buyerId) {
           alert("⚠️ يرجى تسجيل الدخول أولاً لتتمكن من مراسلة المالك.");
@@ -1450,7 +1471,6 @@
           return;
         }
 
-        // التوجيه الفوري لصفحة chat.html مع تمرير محددات العلاقة
         window.location.href = `chat.html?propertyId=${propertyId}&ownerId=${ownerId}`;
       }
 
@@ -1507,7 +1527,6 @@
       }
     }
 
-    // تهيئة وتثبيت التطبيق على النطاق العام للتأكد من المزامنة الشاملة
     window.app = new AM_Dashboard_App();
   </script>
 </body>
