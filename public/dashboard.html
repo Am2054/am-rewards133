@@ -649,24 +649,6 @@
         color: #a7f3d0;
     }
 
-    .property-favorite-btn{
-        position:absolute;
-        top:15px;
-        left:15px;
-
-        width:40px;
-        height:40px;
-
-        border-radius:50%;
-        border:none;
-
-        background:rgba(0,0,0,.5);
-
-        color:white;
-
-        cursor:pointer;
-    }
-
     @media(max-width:992px){
 
     .property-card{
@@ -827,7 +809,6 @@
         <a href="add-property.html" class="sidebar-item"><i class="fas fa-plus-circle"></i> <span>إضافة عقار</span></a>
         <a href="my-properties.html" class="sidebar-item"><i class="fas fa-building"></i> <span>عقاراتي</span></a>
         
-        <!-- التبويب الجديد والمربوط ديناميكياً بصفحة المحادثات المستقلة -->
         <a href="chat.html" class="sidebar-item"><i class="fas fa-comments"></i> <span>رسائلي</span></a>
         
         <a href="profile.html" class="sidebar-item"><i class="fas fa-user-circle"></i> <span>الملف الشخصي</span></a>
@@ -1257,6 +1238,14 @@
         const sortBy = document.getElementById('search-sort-engine').value;
 
         let filtered = AppState.properties.filter(p => {
+          // [تعديل الحماية الذكية من إخفاء الإعلانات والوفرة]
+          // استبعاد العقار إذا كان مخفياً بواسطة المالك يدوياً
+          if (p.isHidden === true) return false;
+          
+          // استبعاد العقار إذا كانت حالته الشخصية غير "متاح" (مثل: مؤجر، تم البيع، غير متاح)
+          const availability = p.availability || 'available';
+          if (availability !== 'available') return false;
+
           if (keyword) {
             const matchTitle = (p.title || "").toLowerCase().includes(keyword);
             const matchDesc = (p.description || "").toLowerCase().includes(keyword);
@@ -1329,12 +1318,12 @@
           const actionText = p.actionType || "إيجار";
           const pricePeriod = p.actionType === "بيع" ? "ج.م" : "ج.م / شهر";
 
+          // [تعديل] تم إزالة زر المفضلة (أيقونة القلب) من الكارد بالكامل
           html += `
             <div class="property-card">
               <div class="property-image-wrapper">
                 <img src="${imgUrl}" onerror="this.src='https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop'">
                 <span class="property-badge-status ${badgeClass}">${actionText}</span>
-                <button class="property-favorite-btn" onclick="event.stopPropagation();"><i class="fas fa-heart"></i></button>
               </div>
               <div class="property-card-body">
                 <div class="property-card-price">
@@ -1418,7 +1407,6 @@
                 </div>
 
                 <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                  <!-- التوجيه الآمن ومباشر لصفحة chat.html مع البيانات المعالجة -->
                   <button class="property-edit-btn" style="width:auto; padding:0.75rem 2.5rem; background: linear-gradient(90deg, #10b981, var(--neon-cyan));" 
                           onclick="app.startOrOpenChat('${propDoc.id}')">
                     💬 تواصل مع المالك
