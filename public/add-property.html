@@ -92,45 +92,6 @@
     .checkbox-item { display: flex; align-items: center; gap: 0.75rem; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; }
     .checkbox-item input { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
 
-    /* تنسيق كروت تصنيف العقار الجديدة */
-    .property-classification-selector {
-      display: flex;
-      gap: 15px;
-    }
-    .classification-card {
-      flex: 1;
-      background: rgba(0,0,0,0.2);
-      border: 1px solid var(--border);
-      padding: 15px;
-      border-radius: 12px;
-      text-align: center;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      transition: var(--transition);
-    }
-    .classification-card i {
-      font-size: 1.5rem;
-      color: var(--text-muted);
-      transition: var(--transition);
-    }
-    .classification-card span {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      transition: var(--transition);
-    }
-    .classification-card.active {
-      border-color: var(--primary);
-      background: rgba(0, 242, 255, 0.05);
-      box-shadow: 0 0 15px rgba(0, 242, 255, 0.15);
-    }
-    .classification-card.active i, .classification-card.active span {
-      color: var(--primary);
-    }
-
     /* ستايل مخصص لتجميل الـ select */
     .styled-select {
       appearance: none;
@@ -155,7 +116,7 @@
     .media-box .badge-cover { position: absolute; bottom: 0; left: 0; right: 0; background: var(--primary); color: #020617; text-align: center; font-size: 0.75rem; font-weight: 900; padding: 2px 0; }
     .media-box .btn-del { position: absolute; top: 5px; left: 5px; background: var(--danger); border: none; color: white; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; z-index: 10; }
     
-    /* واجهة الخريطة الجغرافية الجديدة */
+    /* واجهة الخريطة الجغرافية */
     .map-section { background: rgba(0,0,0,0.2); border: 1px dashed var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; }
     .map-section-title { font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
     .map-section-title i { color: var(--primary); }
@@ -236,6 +197,16 @@
           </div>
         </div>
 
+        <!-- حقل تفاصيل هيكل السكن الديناميكي بالكامل -->
+        <div class="form-row hidden" id="residentialSubtypeRow">
+          <div class="form-group">
+            <label>تفاصيل هيكل السكن *</label>
+            <select id="residentialSubtype" class="styled-select">
+              <!-- يتم التحكم في الخيارات برمجيًا من الجافا سكريبت -->
+            </select>
+          </div>
+        </div>
+
         <div id="rentFields" class="hidden">
           <div class="form-row">
             <div class="form-group"><label>دورة الإيجار *</label>
@@ -278,26 +249,12 @@
         <div class="form-row" id="dynamicFields">
           <div class="form-group" id="field-rooms"><label>عدد الغرف *</label><input type="number" id="rooms" value="3"></div>
           <div class="form-group" id="field-bathrooms"><label>عدد الحمامات *</label><input type="number" id="bathrooms" value="1"></div>
-          
-          <div class="form-group" id="field-classification">
-            <label>تصنيف العقار السكني *</label>
-            <div class="property-classification-selector">
-              <div class="classification-card active" data-class="apartment">
-                <i class="fas fa-building"></i>
-                <span>شقة مستقلة</span>
-              </div>
-              <div class="classification-card" data-class="building">
-                <i class="fas fa-hotel"></i>
-                <span>عمارة كاملة</span>
-              </div>
-            </div>
-            <input type="hidden" id="propertyClass" value="apartment">
-          </div>
         </div>
 
-        <div class="form-row" id="apartmentSpecificFields">
-          <div class="form-group">
-            <label>الدور / الطابق المخصص *</label>
+        <!-- حقول الأدوار والهيكل السكني المحدثة والديناميكية -->
+        <div class="form-row hidden" id="dynamicResidentialFields">
+          <div class="form-group" id="field-floor-select-group">
+            <label id="floorSelectLabel">الدور / الطابق المخصص *</label>
             <select id="floorSelect" class="styled-select">
               <option value="الأرضي">الأرضي</option>
               <option value="الأول">الأول</option>
@@ -307,20 +264,9 @@
               <option value="الأخير">الأخير</option>
             </select>
           </div>
-          <div class="form-group">
-            <label>إجمالي عدد أدوار العمارة *</label>
-            <input type="number" id="buildingFloors" placeholder="مثال: عمارة من 5 أدوار" min="1" value="5">
-          </div>
-        </div>
-
-        <div class="form-row hidden" id="buildingSpecificFields">
-          <div class="form-group">
-            <label>عدد أدوار المبنى بالكامل *</label>
-            <input type="number" id="wholeBuildingFloors" placeholder="العمارة مكونة من كام طابق؟" min="1">
-          </div>
-          <div class="form-group">
-            <label>إجمالي عدد الشقق بالمبنى *</label>
-            <input type="number" id="wholeBuildingApartments" placeholder="مثال: 12 شقة" min="1">
+          <div class="form-group" id="field-building-floors-group">
+            <label id="buildingFloorsLabel">إجمالي عدد أدوار العمارة *</label>
+            <input type="number" id="buildingFloors" placeholder="مثال: مكون من 5 أدوار" min="1" value="5">
           </div>
         </div>
 
@@ -443,13 +389,95 @@
     // متغيرات الخريطة الجغرافية
     let map = null;
     let marker = null;
-    let selectedGeoLocation = null; // ستخزن { lat: X, lng: Y } الكود الحقيقي والتقريبي الذكي
+    let selectedGeoLocation = null;
 
-    // تهيئة واستقبال أحداث وعناصر الصفحة حركياً
+    // دالة التحكم التفاعلي والديناميكي في عرض الحقول وتغيير مسمياتها
+    const applyDynamicFloorRules = () => {
+        const type = document.getElementById('propertyType').value;
+        const subtype = document.getElementById('residentialSubtype').value;
+
+        const fRooms = document.getElementById('field-rooms');
+        const fBaths = document.getElementById('field-bathrooms');
+        const fDynamicResFields = document.getElementById('dynamicResidentialFields');
+        const fFloorGroup = document.getElementById('field-floor-select-group');
+        const fBuildingFloorsGroup = document.getElementById('field-building-floors-group');
+        const fGrid = document.getElementById('featuresGrid');
+
+        // إرجاع الوضع الافتراضي النظيف للحقول
+        fRooms.classList.remove('hidden'); 
+        fBaths.classList.remove('hidden'); 
+        fDynamicResFields.classList.add('hidden');
+        if (fGrid) fGrid.querySelectorAll('.checkbox-item').forEach(i => i.classList.remove('hidden'));
+
+        // إخفاء الحقول غير الملائمة عند اختيار "أرض"
+        if (type === 'أرض') {
+            fRooms.classList.add('hidden'); 
+            fBaths.classList.add('hidden'); 
+            fDynamicResFields.classList.add('hidden');
+            document.getElementById('residentialSubtypeRow').classList.add('hidden');
+            if (fGrid) fGrid.querySelectorAll('.checkbox-item').forEach(i => i.classList.add('hidden'));
+            return;
+        } 
+        // إخفاء الحقول غير الملائمة عند اختيار "مكتب" أو "محل"
+        else if (type === 'محل' || type === 'مكتب') {
+            fRooms.classList.add('hidden');
+            fDynamicResFields.classList.add('hidden');
+            document.getElementById('residentialSubtypeRow').classList.add('hidden');
+            return;
+        }
+
+        // معالجة الوحدات السكنية حسب نوع هيكلها المحدد
+        if (type === 'شقة') {
+            document.getElementById('residentialSubtypeRow').classList.remove('hidden');
+            fDynamicResFields.classList.remove('hidden');
+
+            if (subtype === 'apartment_in_building') {
+                // شقة داخل عمارة: يظهر الدور ✅ | ويظهر إجمالي أدوار العمارة ✅
+                fFloorGroup.classList.remove('hidden');
+                document.getElementById('floorSelectLabel').textContent = "الدور / الطابق المخصص *";
+                fBuildingFloorsGroup.classList.remove('hidden');
+                document.getElementById('buildingFloorsLabel').textContent = "إجمالي أدوار العمارة *";
+            } else if (subtype === 'independent_house') {
+                // منزل مستقل: لا يظهر الدور ❌ | يظهر عدد أدوار المبنى ✅
+                fFloorGroup.classList.add('hidden');
+                fBuildingFloorsGroup.classList.remove('hidden');
+                document.getElementById('buildingFloorsLabel').textContent = "عدد أدوار المبنى *";
+            }
+        } 
+        else if (type === 'دوبلكس') {
+            document.getElementById('residentialSubtypeRow').classList.remove('hidden');
+            fDynamicResFields.classList.remove('hidden');
+
+            if (subtype === 'duplex_in_building') {
+                // دوبلكس داخل عمارة: يظهر الدور الذي يبدأ منه ✅ | يظهر إجمالي أدوار العمارة ✅
+                fFloorGroup.classList.remove('hidden');
+                document.getElementById('floorSelectLabel').textContent = "الدور الذي يبدأ منه *";
+                fBuildingFloorsGroup.classList.remove('hidden');
+                document.getElementById('buildingFloorsLabel').textContent = "إجمالي أدوار العمارة *";
+            } else if (subtype === 'independent_duplex') {
+                // دوبلكس مستقل: لا يظهر الدور ❌ | يظهر عدد أدوار المبنى ✅
+                fFloorGroup.classList.add('hidden');
+                fBuildingFloorsGroup.classList.remove('hidden');
+                document.getElementById('buildingFloorsLabel').textContent = "عدد أدوار المبنى *";
+            }
+        } 
+        else if (type === 'فيلا') {
+            document.getElementById('residentialSubtypeRow').classList.add('hidden');
+            fDynamicResFields.classList.remove('hidden');
+            
+            // فيلا: لا يظهر الدور ❌ | يظهر عدد أدوار الفيلا ✅
+            fFloorGroup.classList.add('hidden');
+            fBuildingFloorsGroup.classList.remove('hidden');
+            document.getElementById('buildingFloorsLabel').textContent = "عدد أدوار الفيلا *";
+        }
+    };
+
+    // تهيئة واستقبل أحداث وعناصر الصفحة حركياً
     const initPageFlow = () => {
         const purposeSelect = document.getElementById('purpose');
         const paymentMethodSelect = document.getElementById('paymentMethod');
         const propertyTypeSelect = document.getElementById('propertyType');
+        const residentialSubtypeSelect = document.getElementById('residentialSubtype');
 
         const handlePurposeChange = () => {
             const val = purposeSelect.value;
@@ -477,71 +505,29 @@
 
         const handlePropertyTypeChange = () => {
             const val = propertyTypeSelect.value;
-            const fRooms = document.getElementById('field-rooms');
-            const fBaths = document.getElementById('field-bathrooms');
-            const fClassification = document.getElementById('field-classification');
-            const fApartmentFields = document.getElementById('apartmentSpecificFields');
-            const fBuildingFields = document.getElementById('buildingSpecificFields');
-            const fGrid = document.getElementById('featuresGrid');
-
-            fRooms.classList.remove('hidden'); 
-            fBaths.classList.remove('hidden'); 
-            fClassification.classList.remove('hidden');
             
-            // تهيئة الحقول السكنية الافتراضية بناء على الكرت النشط حالياً
-            const activeClass = document.getElementById('propertyClass').value;
-            if (activeClass === 'apartment') {
-              fApartmentFields.classList.remove('hidden');
-              fBuildingFields.classList.add('hidden');
-            } else {
-              fApartmentFields.classList.add('hidden');
-              fBuildingFields.classList.remove('hidden');
+            // ملء خيارات الهيكل السكني ديناميكيًا حسب النوع المختار
+            if (val === 'شقة') {
+                residentialSubtypeSelect.innerHTML = `
+                  <option value="apartment_in_building">شقة داخل عمارة 🏢</option>
+                  <option value="independent_house">منزل مستقل 🏠</option>
+                `;
+                residentialSubtypeSelect.value = "apartment_in_building";
+            } else if (val === 'دوبلكس') {
+                residentialSubtypeSelect.innerHTML = `
+                  <option value="duplex_in_building">دوبلكس داخل عمارة 🏢</option>
+                  <option value="independent_duplex">دوبلكس مستقل 🏠</option>
+                `;
+                residentialSubtypeSelect.value = "duplex_in_building";
             }
 
-            if (fGrid) fGrid.querySelectorAll('.checkbox-item').forEach(i => i.classList.remove('hidden'));
-
-            if (val === 'أرض') {
-                fRooms.classList.add('hidden'); 
-                fBaths.classList.add('hidden'); 
-                fClassification.classList.add('hidden');
-                fApartmentFields.classList.add('hidden');
-                fBuildingFields.classList.add('hidden');
-                if (fGrid) fGrid.querySelectorAll('.checkbox-item').forEach(i => i.classList.add('hidden'));
-            } else if (val === 'محل' || val === 'مكتب') {
-                fRooms.classList.add('hidden');
-                fClassification.classList.add('hidden');
-                fApartmentFields.classList.add('hidden');
-                fBuildingFields.classList.add('hidden');
-            }
+            applyDynamicFloorRules();
         };
-
-        // تفعيل النقر على كروت تصنيف العقار (شقة vs عمارة)
-        const classCards = document.querySelectorAll('.classification-card');
-        const propertyClassInput = document.getElementById('propertyClass');
-        const apartmentSpecificFields = document.getElementById('apartmentSpecificFields');
-        const buildingSpecificFields = document.getElementById('buildingSpecificFields');
-
-        classCards.forEach(card => {
-          card.addEventListener('click', () => {
-            classCards.forEach(c => c.classList.remove('active'));
-            card.classList.add('active');
-            
-            const selectedClass = card.getAttribute('data-class');
-            propertyClassInput.value = selectedClass;
-
-            if (selectedClass === 'apartment') {
-              apartmentSpecificFields.classList.remove('hidden');
-              buildingSpecificFields.classList.add('hidden');
-            } else {
-              apartmentSpecificFields.classList.add('hidden');
-              buildingSpecificFields.classList.remove('hidden');
-            }
-          });
-        });
 
         purposeSelect.addEventListener('change', handlePurposeChange);
         paymentMethodSelect.addEventListener('change', handlePaymentMethodChange);
         propertyTypeSelect.addEventListener('change', handlePropertyTypeChange);
+        residentialSubtypeSelect.addEventListener('change', applyDynamicFloorRules);
 
         handlePurposeChange();
         handlePaymentMethodChange();
@@ -552,7 +538,6 @@
             sect.classList.toggle('hidden');
         });
 
-        // تشغيل وإدارة الخريطة التفاعلية
         document.getElementById('btnToggleMap').addEventListener('click', initLeafletMap);
     };
 
@@ -560,7 +545,6 @@
     const initLeafletMap = () => {
         const wrapper = document.getElementById('mapWrapper');
         
-        // إذا كانت الخريطة مفتوحة بالفعل، نقوم بإغلاقها
         if (wrapper.style.display === 'block') {
             wrapper.style.display = 'none';
             return;
@@ -568,55 +552,45 @@
 
         wrapper.style.display = 'block';
 
-        // الحفاظ على نقطة ارتكاز أولية (مصر كمثال افتراضي: القاهرة)
         const defaultLat = 30.0444;
         const defaultLng = 31.2357;
 
         if (!map) {
-            // إنشاء الخريطة لأول مرة
             map = L.map('map').setView([defaultLat, defaultLng], 13);
 
-            // جلب طبقات الخريطة المجانية من OpenStreetMap
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: '© OpenStreetMap contributors'
             }).addTo(map);
 
-            // إنشاء دبوس التثبيت (Pin) ليكون قابلاً للسحب والإفلات برمجياً
             marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
 
-            // دالة تحديث الإحداثيات وحساب النقطة العشوائية للخصوصية
             const updateCoordinates = (lat, lng) => {
-                // دالة تشويش هندسي ذكي (Fuzzing) لإخفاء النقطة الحقيقية بنسبة بسيطة (حوالي 300 لـ 500 متر) للحفاظ على الخصوصية العامة
                 const randomOffsetLat = (Math.random() - 0.5) * 0.005;
                 const randomOffsetLng = (Math.random() - 0.5) * 0.005;
 
                 selectedGeoLocation = {
                     realLatitude: lat,
                     realLongitude: lng,
-                    approxLatitude: lat + randomOffsetLat, // التي ستعرض للعامة
+                    approxLatitude: lat + randomOffsetLat,
                     approxLongitude: lng + randomOffsetLng
                 };
 
-                // تحديث واجهة المستخدم بإشعار نجاح فخم
                 const statusBadge = document.getElementById('mapStatus');
                 statusBadge.className = 'map-status-badge';
                 statusBadge.innerHTML = `<i class="fas fa-check-circle"></i> تم التقاط إحداثيات الموقع الجغرافي بنجاح وجاهزة للحفظ الآمن.`;
             };
 
-            // عند انتهاء سحب الماركر من المستخدم
             marker.on('dragend', function (e) {
                 const position = marker.getLatLng();
                 updateCoordinates(position.lat, position.lng);
             });
 
-            // عند الضغط المباشر في أي مكان على سطح الخريطة
             map.on('click', function (e) {
                 marker.setLatLng(e.latlng);
                 updateCoordinates(e.latlng.lat, e.latlng.lng);
             });
 
-            // محاولة التقاط موقع المستخدم الحالي عبر المتصفح تلقائياً لتسهيل التجربة (اختياري)
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition((position) => {
                     const uLat = position.coords.latitude;
@@ -625,11 +599,10 @@
                     marker.setLatLng([uLat, uLng]);
                     updateCoordinates(uLat, uLng);
                 }, () => {
-                    console.log("Geolocation custom note: Permission denied or timeout, fallback to default center.");
+                    console.log("Geolocation fallback to default center.");
                 });
             }
         } else {
-            // تحديث حجم وأبعاد الخريطة لمنع مشاكل العرض الرندر عند الفتح والغلق المستمر
             setTimeout(() => { map.invalidateSize(); }, 200);
         }
     };
@@ -763,7 +736,7 @@
         videoEl.src = URL.createObjectURL(file);
         videoEl.onloadedmetadata = () => {
             if (videoEl.duration > 181) {
-                alert('الحد الأقصى لطول مقطع الفيديو هو 3 دقائق (180 ثانية) لتأجير الشقق والشاليهات.');
+                alert('الحد الأقصى لطول مقطع الفيديو هو 3 دقائق.');
                 return;
             }
             uploadedVideoFile = file;
@@ -806,7 +779,6 @@
 
         const rooms = document.getElementById('rooms').value;
         const bathrooms = document.getElementById('bathrooms').value;
-        const propClass = document.getElementById('propertyClass').value;
         const description = document.getElementById('description').value;
 
         let specsText = `
@@ -822,21 +794,19 @@
             <strong>عدد الغرف:</strong> ${rooms} غرف | <strong>عدد الحمامات:</strong> ${bathrooms} حمام <br>
           `;
           
-          if (propClass === 'apartment') {
-            const floor = document.getElementById('floorSelect').value;
-            const buildingFloors = document.getElementById('buildingFloors').value;
-            specsText += `
-              <strong>نوع العقار:</strong> شقة مستقلة <br>
-              <strong>الدور الحالي:</strong> ${floor || '-'} | <strong>إجمالي أدوار العمارة:</strong> ${buildingFloors || '-'} دور <br>
-            `;
-          } else {
-            const wholeFloors = document.getElementById('wholeBuildingFloors').value;
-            const wholeApts = document.getElementById('wholeBuildingApartments').value;
-            specsText += `
-              <strong>نوع العقار:</strong> عمارة كاملة / مبنى كامل <br>
-              <strong>عدد أدوار المبنى:</strong> ${wholeFloors || '-'} طابق | <strong>عدد الشقق بالمبنى:</strong> ${wholeApts || '-'} شقة <br>
-            `;
+          const subtext = type === 'فيلا' ? 'فيلا مستقلة' : document.getElementById('residentialSubtype').selectedOptions[0]?.text || '';
+          specsText += `<strong>هيكل السكن التفصيلي:</strong> ${subtext} <br>`;
+
+          const isFloorHidden = document.getElementById('field-floor-select-group').classList.contains('hidden');
+          if (!isFloorHidden) {
+            const floorLabel = document.getElementById('floorSelectLabel').textContent.replace(' *', '');
+            const floorValue = document.getElementById('floorSelect').value;
+            specsText += `<strong>${floorLabel}:</strong> ${floorValue} <br>`;
           }
+
+          const floorsLabel = document.getElementById('buildingFloorsLabel').textContent.replace(' *', '');
+          const floorsValue = document.getElementById('buildingFloors').value;
+          specsText += `<strong>${floorsLabel}:</strong> ${floorsValue} <br>`;
         }
 
         specsText += `<strong>الوصف التفصيلي:</strong> ${description}`;
@@ -859,7 +829,6 @@
         }
         document.getElementById('reviewPaymentText').innerHTML = paymentDetail;
 
-        // تم تعديل المراجعة لتتجاهل الفيديو بشكل منسق مع الإخفاء
         document.getElementById('reviewMediaText').innerHTML = `
           <strong>ألبوم الصور:</strong> تم ضغط وتجهيز ${uploadedImages.length} صور جاهزة للرفع <br>
           <strong>الوسائط الأخرى:</strong> تم الاكتفاء بالصور فقط.
@@ -920,22 +889,11 @@
 
             progBar.style.width = "80%";
 
-            // تحديد بيانات الأدوار بناءً على اختيار الكرت (شقة مستقلة أم مبنى كامل)
-            const propClass = document.getElementById('propertyClass').value;
-            let finalFloorValue = "";
-            let finalBuildingFloorsCount = 0;
-            let totalBuildingApartmentsCount = 0;
+            const isFloorHidden = document.getElementById('field-floor-select-group').classList.contains('hidden');
+            
+            let finalFloorValue = isFloorHidden ? "مستقل" : document.getElementById('floorSelect').value;
+            let finalBuildingFloorsCount = parseInt(document.getElementById('buildingFloors').value) || 0;
 
-            if (propClass === 'apartment') {
-              finalFloorValue = document.getElementById('floorSelect').value;
-              finalBuildingFloorsCount = parseInt(document.getElementById('buildingFloors').value) || 0;
-            } else {
-              finalFloorValue = "مبنى كامل";
-              finalBuildingFloorsCount = parseInt(document.getElementById('wholeBuildingFloors').value) || 0;
-              totalBuildingApartmentsCount = parseInt(document.getElementById('wholeBuildingApartments').value) || 0;
-            }
-
-            // بناء كائن العقار بكافة الحقول القديمة والجديدة مع دعم الخرائط
             const propertyPayload = {
                 ownerId: user.uid,
                 ownerName: ownerName,
@@ -943,7 +901,8 @@
                 title: document.getElementById('title').value,
                 purpose: document.getElementById('purpose').value,
                 propertyType: document.getElementById('propertyType').value,
-                propertyClassification: propClass, // "apartment" أو "building" لحفظ نوع الهيكل بالداتا
+                propertyClassification: "apartment", // تصنيف افتراضي متوافق مع هيكل قاعدة البيانات القديم
+                residentialSubtype: document.getElementById('propertyType').value === 'شقة' || document.getElementById('propertyType').value === 'دوبلكس' ? document.getElementById('residentialSubtype').value : "none",
                 governorate: document.getElementById('governorate').value,
                 city: document.getElementById('city').value,
                 district: document.getElementById('district').value,
@@ -951,7 +910,6 @@
                 area: parseFloat(document.getElementById('area').value),
                 description: document.getElementById('description').value,
                 
-                // تخزين البيانات الجغرافية بدقة عالية للبحث الخلفي والتقريبي للمستخدمين لحماية الخصوصية
                 hasCoordinates: selectedGeoLocation ? true : false,
                 coordinates: selectedGeoLocation ? {
                     latitude: selectedGeoLocation.realLatitude,
@@ -964,7 +922,7 @@
                 bathrooms: parseInt(document.getElementById('bathrooms').value) || 0,
                 floor: finalFloorValue,
                 buildingFloors: finalBuildingFloorsCount,
-                buildingApartments: totalBuildingApartmentsCount,
+                buildingApartments: 0,
 
                 rentCycle: document.getElementById('purpose').value === 'rent' ? document.getElementById('rentCycle').value : "",
                 leaseDuration: document.getElementById('purpose').value === 'rent' ? document.getElementById('leaseDuration').value : "",
