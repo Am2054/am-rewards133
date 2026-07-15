@@ -131,7 +131,7 @@
     .spinner { width: 50px; height: 50px; border: 5px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* مواءمة تصميم SweetAlert مع ثيم الموقع المظلم والمشوق */
+    /* مواءمة تصميم SweetAlert مع ثيم الموقع المظلم */
     .swal-custom-popup {
       background-color: var(--bg-primary) !important;
       border: 1px solid var(--border) !important;
@@ -469,73 +469,73 @@
     propertyTypeSelect.addEventListener('change', handlePropertyTypeChange);
     residentialSubtypeSelect.addEventListener('change', applyDynamicFloorRules);
 
-    // دالة التحقق البرمجي العميق لمعرفة ما إذا تم إجراء أي تعديلات حقيقية على البيانات
-    const checkIfFormChanged = () => {
+    // دالة فحص المطابقة والتحقق البرمجي العميق والمنظم للمقارنة بين النسختين
+    const checkIfPayloadChanged = (newData) => {
         if (!originalPropertyData) return true;
 
-        // 1. فحص حقول النصوص والأرقام الأساسية
-        const fields = {
-            title: document.getElementById('title').value,
-            purpose: document.getElementById('purpose').value,
-            propertyType: propertyTypeSelect.value,
-            residentialSubtype: propertyTypeSelect.value === 'شقة' || propertyTypeSelect.value === 'دوبلكس' ? residentialSubtypeSelect.value : "none",
-            governorate: document.getElementById('governorate').value,
-            city: document.getElementById('city').value,
-            district: document.getElementById('district').value,
-            googleMapsLink: document.getElementById('googleMapsLink').value,
-            latitude: document.getElementById('latitude').value,
-            longitude: document.getElementById('longitude').value,
-            price: parseFloat(document.getElementById('price').value) || 0,
-            area: parseFloat(document.getElementById('area').value) || 0,
-            description: document.getElementById('description').value,
-            rooms: parseInt(document.getElementById('rooms').value) || 0,
-            bathrooms: parseInt(document.getElementById('bathrooms').value) || 0,
-            finishing: document.getElementById('finishing').value || "",
-            electricityCard: document.getElementById('electricityCard').value || "",
-            waterCard: document.getElementById('waterCard').value || ""
-        };
+        const basicFields = [
+            'title', 'purpose', 'propertyType', 'residentialSubtype', 
+            'governorate', 'city', 'district', 'googleMapsLink', 
+            'latitude', 'longitude', 'price', 'area', 'description', 
+            'rooms', 'bathrooms', 'floor', 'buildingFloors', 
+            'finishing', 'electricityCard', 'waterCard'
+        ];
 
-        for (let key in fields) {
-            const oldVal = originalPropertyData[key] !== undefined ? originalPropertyData[key] : "";
-            const newVal = fields[key];
-            if (String(oldVal).trim() !== String(newVal).trim()) return true;
+        for (let field of basicFields) {
+            // جلب القيمة القديمة من قاعدة البيانات مع تهيئة القيم الافتراضية للواجهة لو كانت مفقودة لتلافي تزييف الفحص
+            let oldVal = originalPropertyData[field];
+            if (oldVal === undefined || oldVal === null) {
+                if (field === 'residentialSubtype') {
+                    oldVal = (originalPropertyData.propertyType === 'شقة' || originalPropertyData.propertyType === 'دوبلكس') ? 'apartment_in_building' : 'none';
+                }
+                else if (field === 'rooms') oldVal = 3;
+                else if (field === 'bathrooms') oldVal = 1;
+                else if (field === 'floor') oldVal = 'الأرضي';
+                else if (field === 'buildingFloors') oldVal = 5;
+                else oldVal = '';
+            }
+
+            let newVal = newData[field];
+            if (newVal === undefined || newVal === null) {
+                newVal = '';
+            }
+            
+            if (String(oldVal).trim() !== String(newVal).trim()) {
+                console.log(`Changed field detected: ${field} (Old: "${oldVal}" vs New: "${newVal}")`);
+                return true;
+            }
         }
 
-        // 2. فحص الأدوار والارتفاعات السكنية
-        const isFloorHidden = document.getElementById('field-floor-select-group').classList.contains('hidden');
-        const currentFloorVal = isFloorHidden ? "مستقل" : document.getElementById('floorSelect').value;
-        const currentBuildingFloors = parseInt(document.getElementById('buildingFloors').value) || 0;
-
-        if (String(originalPropertyData.floor || "").trim() !== String(currentFloorVal).trim()) return true;
-        if ((originalPropertyData.buildingFloors || 0) !== currentBuildingFloors) return true;
-
-        // 3. فحص المميزات الاختيارية
-        const features = {
-            elevator: document.getElementById('feat-elevator').checked,
-            garage: document.getElementById('feat-garage').checked,
-            security: document.getElementById('feat-security').checked,
-            balcony: document.getElementById('feat-balcony').checked,
-            airConditioner: document.getElementById('feat-airConditioner').checked,
-            furnished: document.getElementById('feat-furnished').checked,
-            naturalGas: document.getElementById('feat-naturalGas').checked,
-        };
-
+        // 2. مقارنة كائن المميزات الاختيارية (Features)
+        const featureFields = ['elevator', 'garage', 'security', 'balcony', 'airConditioner', 'furnished', 'naturalGas'];
         const oldFeatures = originalPropertyData.features || {};
-        for (let key in features) {
-            if (!!oldFeatures[key] !== !!features[key]) return true;
+        const newFeatures = newData.features || {};
+        
+        for (let feat of featureFields) {
+            const oldFeat = !!oldFeatures[feat];
+            const newFeat = !!newFeatures[feat];
+            if (oldFeat !== newFeat) {
+                console.log(`Changed feature detected: ${feat}`);
+                return true;
+            }
         }
 
-        // 4. فحص الصور
-        const hasNewFiles = uploadedImages.some(item => typeof item !== 'string');
-        if (hasNewFiles) return true;
-
+        // 3. مقارنة ألبوم الصور وترتيبها
         const oldImages = originalPropertyData.images || [];
-        if (oldImages.length !== uploadedImages.length) return true;
+        const newImages = newData.images || [];
+        
+        if (oldImages.length !== newImages.length) {
+            console.log("Images count changed");
+            return true;
+        }
         for (let i = 0; i < oldImages.length; i++) {
-            if (oldImages[i] !== uploadedImages[i]) return true;
+            if (oldImages[i] !== newImages[i]) {
+                console.log(`Image at index ${i} changed`);
+                return true;
+            }
         }
 
-        return false; // لم يتغير أي شيء على الإطلاق
+        return false; // متطابق تماماً ولم يتغير أي شيء
     };
 
     // جلب البيانات من Firestore وتعبئة الحقول
@@ -856,8 +856,51 @@
             return; 
         }
 
-        // 🔍 فحص هل قام المستخدم بتعديل أي بيانات مقارنة بالنسخة الأصلية؟
-        if (!checkIfFormChanged()) {
+        // تحديد بيانات الأدوار بناءً على اختيار الهيكل السكني الموحد بشكل مسبق لعمل المقارنة
+        const isFloorHidden = document.getElementById('field-floor-select-group').classList.contains('hidden');
+        let finalFloorValue = isFloorHidden ? "مستقل" : document.getElementById('floorSelect').value;
+        let finalBuildingFloorsCount = parseInt(document.getElementById('buildingFloors').value) || 0;
+
+        // تجميع البيانات مؤقتاً لمقارنتها بالنسخة الأصلية قبل الشروع في رفع الميديا لتوفير الباندويث والسيرفر
+        const tempPayload = {
+            title: document.getElementById('title').value,
+            purpose: document.getElementById('purpose').value,
+            propertyType: propertyTypeSelect.value,
+            residentialSubtype: propertyTypeSelect.value === 'شقة' || propertyTypeSelect.value === 'دوبلكس' ? residentialSubtypeSelect.value : "none",
+            governorate: document.getElementById('governorate').value,
+            city: document.getElementById('city').value,
+            district: document.getElementById('district').value,
+            googleMapsLink: document.getElementById('googleMapsLink').value,
+            latitude: document.getElementById('latitude').value,
+            longitude: document.getElementById('longitude').value,
+            price: parseFloat(document.getElementById('price').value) || 0,
+            area: parseFloat(document.getElementById('area').value) || 0,
+            description: document.getElementById('description').value,
+            rooms: parseInt(document.getElementById('rooms').value) || 0,
+            bathrooms: parseInt(document.getElementById('bathrooms').value) || 0,
+            floor: finalFloorValue,
+            buildingFloors: finalBuildingFloorsCount,
+            finishing: document.getElementById('finishing').value || "",
+            electricityCard: document.getElementById('electricityCard').value || "",
+            waterCard: document.getElementById('waterCard').value || "",
+            features: {
+                elevator: document.getElementById('feat-elevator').checked,
+                garage: document.getElementById('feat-garage').checked,
+                security: document.getElementById('feat-security').checked,
+                balcony: document.getElementById('feat-balcony').checked,
+                airConditioner: document.getElementById('feat-airConditioner').checked,
+                furnished: document.getElementById('feat-furnished').checked,
+                naturalGas: document.getElementById('feat-naturalGas').checked,
+            },
+            // نمرر الروابط النصية القديمة فقط لمقارنتها البرمجية
+            images: uploadedImages.filter(item => typeof item === 'string')
+        };
+
+        const hasNewFiles = uploadedImages.some(item => typeof item !== 'string');
+        const hasFormChanged = hasNewFiles || checkIfPayloadChanged(tempPayload);
+
+        // 🔍 فحص هل تم التعديل فعلياً؟ إن لم يتم، يتم إيقاف المعاملة
+        if (!hasFormChanged) {
             Swal.fire({
                 icon: 'info',
                 title: 'لم تقم بتعديل أي بيانات',
@@ -868,7 +911,7 @@
                 color: '#fff',
                 customClass: { popup: 'swal-custom-popup' }
             });
-            return; // إيقاف العملية لمنع حفظ مستندات مكررة خالية من التغيير
+            return;
         }
         
         const finalBtn = document.getElementById('btnSubmitFinal');
@@ -908,12 +951,7 @@
 
             progBar.style.width = "80%";
 
-            // تحديد بيانات الأدوار بناءً على اختيار الهيكل السكني الموحد
-            const isFloorHidden = document.getElementById('field-floor-select-group').classList.contains('hidden');
-            let finalFloorValue = isFloorHidden ? "مستقل" : document.getElementById('floorSelect').value;
-            let finalBuildingFloorsCount = parseInt(document.getElementById('buildingFloors').value) || 0;
-
-            // بناء كائن التحديث بالبيانات الجديدة المقترحة
+            // بناء كائن التحديث بالبيانات الجديدة المعتمدة بعد الرفع
             const propertyUpdatePayload = {
                 title: document.getElementById('title').value,
                 purpose: document.getElementById('purpose').value,
@@ -949,7 +987,6 @@
                     naturalGas: document.getElementById('feat-naturalGas').checked,
                 },
 
-                // الميديا المحدثة (الصور فقط)
                 images: finalImageUrls, 
                 coverImage: finalImageUrls[0] || null, 
                 video: null, 
@@ -960,7 +997,7 @@
 
             // الرفع والحفظ في الكولكشن الجديدة: property_edit_requests
             const editRequestsCollection = collection(db, "property_edit_requests");
-            const docRef = await addDoc(editRequestsCollection, {
+            await addDoc(editRequestsCollection, {
                 propertyId: propertyId,
                 ownerId: user.uid,
                 oldData: originalPropertyData,
@@ -995,18 +1032,11 @@
 
             progBar.style.width = '100%';
 
-            // نافذة نجاح تفاعلية، متميزة، ومتطابقة مع الهوية البصرية للمنصة
+            // نافذة نجاح مبسطة تعرض "تم إرسال طلب التعديل بنجاح" فقط كما طلبت
             Swal.fire({
                 icon: 'success',
-                title: 'تم إرسال طلب التعديل بنجاح! 🚀',
-                html: `
-                    <div style="font-size:14px; text-align:right; direction:rtl; line-height:1.7; margin-top:10px;">
-                        لقد تم تلقي وحفظ تعديلاتك بنجاح كطلب معلق للتحقق المالي والعقاري.<br>
-                        📌 <b>رقم معاملة المراجعة:</b> <code style="color:var(--primary)">${docRef.id}</code><br><br>
-                        يقوم مشرفو المنصة بمراجعة البيانات وتفعيلها على ملف العقار المباشر قريباً لضمان أمان التعاقد.
-                    </div>
-                `,
-                confirmButtonText: 'متابعة إلى عقاراتي',
+                title: 'تم إرسال طلب التعديل بنجاح',
+                confirmButtonText: 'حسناً',
                 confirmButtonColor: '#10b981',
                 background: '#020617',
                 color: '#fff',
