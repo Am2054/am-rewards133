@@ -41,7 +41,7 @@
     .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
     h1 { font-weight: 900; color: var(--primary); font-size: 1.8rem; text-shadow: 0 0 15px rgba(0, 242, 255, 0.3); }
     
-    /* محدد التبويبات الفسيحة بأربعة منزلقات محتسبة حياً بالخلفية */
+    /* محدد التبويبات الفسيحة بخمسة منزلقات محتسبة حياً بالخلفية للفرز المعتمد لطلبات التعديل */
     .tab-wrapper { display: flex; gap: 0.75rem; background: var(--bg-tertiary); padding: 0.5rem; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 1.5rem; flex-wrap: wrap; width: 100%; justify-content: flex-start; }
     .tab-btn { padding: 0.7rem 1.5rem; border-radius: 8px; border: none; background: transparent; color: var(--text-muted); font-weight: 700; cursor: pointer; font-family: 'Cairo'; transition: var(--transition); font-size: 0.9rem; }
     .tab-btn.active { background: var(--primary); color: var(--bg-primary); }
@@ -167,12 +167,13 @@
       <h1><i class="fas fa-shield-alt"></i> لوحة تحكم العقارات الاحترافية</h1>
     </div>
 
-    <!-- واجهة التبويبات الفسيحة بأربعة منزلقات لعزل طلبات التعديل كلياً -->
+    <!-- واجهة التبويبات الفسيحة بخمسة منزلقات لعزل طلبات التعديل المعتمدة تماماً -->
     <div class="tab-wrapper">
       <button class="tab-btn active" id="tabPending" onclick="switchPanel('pending')">الطلبات المعلقة (---)</button>
       <button class="tab-btn" id="tabApproved" onclick="switchPanel('approved')">العقارات المقبولة (---)</button>
       <button class="tab-btn" id="tabRejected" onclick="switchPanel('rejected')">العقارات المرفوضة (---)</button>
       <button class="tab-btn" id="tabEditRequests" onclick="switchPanel('edit_requests')">طلبات التعديل (---)</button>
+      <button class="tab-btn" id="tabApprovedEdits" onclick="switchPanel('approved_edits')">التعديلات المقبولة (---)</button>
     </div>
 
     <div class="toolbar">
@@ -209,7 +210,7 @@
       <button class="modal-close" onclick="closeDetailsModal()"><i class="fas fa-times"></i></button>
       <h2 id="mdTitle" style="color:var(--primary); margin-bottom:1rem; padding-left:2rem;"></h2>
       
-      <!-- حاوية مقارنة التعديلات المضافة حديثاً وتظهر عند معاينة طلب تعديل معلق -->
+      <!-- حاوية مقارنة التعديلات المضافة حديثاً وتظهر عند معاينة طلب تعديل معلق أو معتمد -->
       <div id="comparisonContainer" style="display:none;"></div>
 
       <div class="gallery-viewer">
@@ -349,7 +350,8 @@
       document.getElementById('tabPending').innerText = `الطلبات المعلقة (${stats.pending || 0})`;
       document.getElementById('tabApproved').innerText = `العقارات المقبولة (${stats.approved || 0})`;
       document.getElementById('tabRejected').innerText = `العقارات المرفوضة (${stats.rejected || 0})`;
-      document.getElementById('tabEditRequests').innerText = `طلبات التعديل (${stats.edit_requests || stats.editRequests || 0})`;
+      document.getElementById('tabEditRequests').innerText = `طلبات التعديل (${stats.edit_requests || 0})`;
+      document.getElementById('tabApprovedEdits').innerText = `التعديلات المقبولة (${stats.approved_edits || 0})`;
     }
 
     function populateDynamicFilters() {
@@ -361,7 +363,8 @@
 
       allRawProperties.forEach(pObj => {
         // فك قراءة كائن التعديل أو العقار لتغذية خيارات الفلترة
-        const p = panelMode === 'edit_requests' ? pObj.newData : pObj;
+        const isEditType = panelMode === 'edit_requests' || panelMode === 'approved_edits';
+        const p = isEditType ? pObj.newData : pObj;
         if(p && p.propertyType) types.add(p.propertyType);
         if(p && p.governorate) govs.add(p.governorate);
       });
@@ -381,6 +384,7 @@
       document.getElementById('tabApproved').classList.remove('active');
       document.getElementById('tabRejected').classList.remove('active');
       document.getElementById('tabEditRequests').classList.remove('active');
+      document.getElementById('tabApprovedEdits').classList.remove('active');
 
       if (mode === 'pending') {
         document.getElementById('tabPending').classList.add('active');
@@ -390,6 +394,8 @@
         document.getElementById('tabRejected').classList.add('active');
       } else if (mode === 'edit_requests') {
         document.getElementById('tabEditRequests').classList.add('active');
+      } else if (mode === 'approved_edits') {
+        document.getElementById('tabApprovedEdits').classList.add('active');
       }
       
       fetchInitialDataFromServer();
@@ -403,7 +409,8 @@
       const sortVal = document.getElementById('sortOrder').value;
 
       filteredProperties = allRawProperties.filter(pObj => {
-        const p = panelMode === 'edit_requests' ? pObj.newData : pObj;
+        const isEditType = panelMode === 'edit_requests' || panelMode === 'approved_edits';
+        const p = isEditType ? pObj.newData : pObj;
         if (!p) return false;
 
         if (purposeVal !== 'all' && p.purpose !== purposeVal) return false;
@@ -425,8 +432,9 @@
       });
 
       filteredProperties.sort((aObj, bObj) => {
-        const a = panelMode === 'edit_requests' ? aObj.newData : aObj;
-        const b = panelMode === 'edit_requests' ? bObj.newData : bObj;
+        const isEditType = panelMode === 'edit_requests' || panelMode === 'approved_edits';
+        const a = isEditType ? aObj.newData : aObj;
+        const b = isEditType ? bObj.newData : bObj;
         
         if (sortVal === 'newest') return new Date(bObj.createdAt) - new Date(aObj.createdAt);
         if (sortVal === 'oldest') return new Date(aObj.createdAt) - new Date(bObj.createdAt);
@@ -469,9 +477,11 @@
         card.className = 'admin-card';
         
         const isEdit = panelMode === 'edit_requests';
-        const p = isEdit ? item.newData : item;
+        const isApprovedEdit = panelMode === 'approved_edits';
+        
+        const p = (isEdit || isApprovedEdit) ? item.newData : item;
         const docId = item.id;
-        const originalPropertyId = isEdit ? item.propertyId : item.id;
+        const originalPropertyId = (isEdit || isApprovedEdit) ? item.propertyId : item.id;
 
         const imgUrl = p.coverImage || (p.images && p.images[0]) || '';
         const imgCount = p.images ? p.images.length : 0;
@@ -494,9 +504,24 @@
         // تحديد الأكشن الإداري بناءً على ما إذا كان الطلب إضافة جديدة أو تعديل عقار قائم
         const approveAction = isEdit ? 'approve_edit' : 'approve';
         const rejectAction = isEdit ? 'reject_edit' : 'reject';
-        const deleteAction = isEdit ? 'delete_edit' : 'delete';
+        const deleteAction = (isEdit || isApprovedEdit) ? 'delete_edit' : 'delete';
 
         const editRequestBadge = isEdit ? `<span class="status-tag pending" style="background: rgba(112, 0, 255, 0.15); color: #00f2ff; margin-right: 8px;">طلب تعديل ✏️</span>` : '';
+        const approvedEditBadge = isApprovedEdit ? `<span class="status-tag approved" style="background: rgba(16, 185, 129, 0.15); color: var(--success); margin-right: 8px;">تعديل معتمد ✅</span>` : '';
+
+        // فرز خيارات الأزرار؛ بحيث تختفي خيارات الموافقة/الرفض في الأرشيف المعتمد للتعديلات لضمان نظافة الواجهة
+        let actionsHtml = '';
+        if (isApprovedEdit) {
+          actionsHtml = `
+            <button class="btn-action btn-delete" style="background:rgba(239, 68, 68, 0.1); color:var(--danger); border:1px solid rgba(239, 68, 68, 0.2);" onclick="handleDeleteProperty('${docId}', '${deleteAction}', '${originalPropertyId}')"><i class="fas fa-trash-alt"></i> حذف المعاملة</button>
+          `;
+        } else {
+          actionsHtml = `
+            <button class="btn-action btn-approve" onclick="handleApiAction('${docId}', '${approveAction}', null, '${originalPropertyId}')"><i class="fas fa-check"></i> موافقة</button>
+            <button class="btn-action btn-reject" onclick="openRejectModal('${docId}', '${rejectAction}', '${originalPropertyId}')"><i class="fas fa-ban"></i> رفض</button>
+            <button class="btn-action btn-delete" onclick="handleDeleteProperty('${docId}', '${deleteAction}', '${originalPropertyId}')"><i class="fas fa-trash-alt"></i> حذف</button>
+          `;
+        }
 
         card.innerHTML = `
           <div class="img-container" onclick="openDetailsModal('${docId}')">
@@ -508,7 +533,7 @@
           </div>
           <div class="prop-info" onclick="openDetailsModal('${docId}')">
             <div class="title-row">
-              <div class="prop-title" style="display:flex; align-items:center; gap:8px;">${p.title || 'عقار بدون عنوان إعلاني ثابت'} ${editRequestBadge}</div>
+              <div class="prop-title" style="display:flex; align-items:center; gap:8px;">${p.title || 'عقار بدون عنوان إعلاني ثابت'} ${editRequestBadge} ${approvedEditBadge}</div>
               <span class="status-tag ${statusClass}">${statusText}</span>
             </div>
             
@@ -524,9 +549,7 @@
             </div>
           </div>
           <div class="actions-wrapper">
-            <button class="btn-action btn-approve" onclick="handleApiAction('${docId}', '${approveAction}', null, '${originalPropertyId}')"><i class="fas fa-check"></i> موافقة</button>
-            <button class="btn-action btn-reject" onclick="openRejectModal('${docId}', '${rejectAction}', '${originalPropertyId}')"><i class="fas fa-ban"></i> رفض</button>
-            <button class="btn-action btn-delete" onclick="handleDeleteProperty('${docId}', '${deleteAction}', '${originalPropertyId}')"><i class="fas fa-trash-alt"></i> حذف</button>
+            ${actionsHtml}
           </div>
         `;
         listContainer.appendChild(card);
@@ -642,10 +665,11 @@
 
     window.openDetailsModal = function(docId) {
       const isEdit = panelMode === 'edit_requests';
+      const isApprovedEdit = panelMode === 'approved_edits';
       let p;
       let editRequest = null;
 
-      if (isEdit) {
+      if (isEdit || isApprovedEdit) {
         editRequest = allRawProperties.find(item => item.id === docId);
         p = editRequest ? editRequest.newData : null;
       } else {
@@ -667,20 +691,25 @@
       document.getElementById('mdMeters').innerText = p.meters || 'لا يوجد';
       document.getElementById('mdDesc').innerText = p.description || 'لا يوجد وصف مضاف للعقار.';
       
-      // إدراج بنر مقارنة التعديلات المقترحة بالبيانات القديمة لطلب التعديل
+      // إدراج بنر مقارنة التعديلات المقترحة بالبيانات القديمة لطلب التعديل (أو التعديلات التي تم قبولها مسبقاً)
       const comparisonContainer = document.getElementById('comparisonContainer');
-      if (isEdit && editRequest) {
+      if ((isEdit || isApprovedEdit) && editRequest) {
         const old = editRequest.oldData || {};
         comparisonContainer.style.display = 'block';
+
+        const bannerTitle = isApprovedEdit 
+          ? `<h4 style="color: var(--success); font-weight: 900; margin-bottom: 8px;"><i class="fas fa-check-double"></i> التعديلات التي تم اعتمادها وتطبيقها بالفعل:</h4>`
+          : `<h4 style="color: var(--primary); font-weight: 900; margin-bottom: 8px;"><i class="fas fa-history"></i> التغييرات المقترحة مقارنة بالبيانات القديمة:</h4>`;
+
         comparisonContainer.innerHTML = `
-          <div style="background: rgba(112, 0, 255, 0.1); border-right: 4px solid var(--primary); padding: 15px; border-radius: 12px; margin-bottom: 20px; font-size: 0.85rem; direction: rtl; text-align: right;">
-            <h4 style="color: var(--primary); font-weight: 900; margin-bottom: 8px;"><i class="fas fa-history"></i> التغييرات المقترحة مقارنة بالبيانات القديمة:</h4>
+          <div style="background: rgba(112, 0, 255, 0.1); border-right: 4px solid ${isApprovedEdit ? 'var(--success)' : 'var(--primary)'}; padding: 15px; border-radius: 12px; margin-bottom: 20px; font-size: 0.85rem; direction: rtl; text-align: right;">
+            ${bannerTitle}
             <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 6px;">
-              ${String(old.price || 0) !== String(p.price || 0) ? `<li>💰 <b>السعر القديم:</b> ${Number(old.price || 0).toLocaleString()} ج.م ⬅️ <b>السعر المقترح الجديد:</b> <span style="color:var(--success); font-weight:bold;">${Number(p.price || 0).toLocaleString()} ج.م</span></li>` : ''}
-              ${String(old.title || "").trim() !== String(p.title || "").trim() ? `<li>📌 <b>العنوان القديم:</b> ${old.title || 'فارغ'} ⬅️ <b>العنوان المقترح الجديد:</b> <span style="color:var(--primary); font-weight:bold;">${p.title}</span></li>` : ''}
-              ${String(old.area || 0) !== String(p.area || 0) ? `<li>📏 <b>المساحة القديمة:</b> ${old.area || 0} م² ⬅️ <b>المساحة المقترحة الجديدة:</b> <span style="color:var(--primary); font-weight:bold;">${p.area} م²</span></li>` : ''}
-              ${String(old.description || "").trim() !== String(p.description || "").trim() ? `<li>📄 <b>تم رصد تعديلات في نص الوصف التفصيلي المرفق.</b></li>` : ''}
-              ${String(old.floor || "").trim() !== String(p.floor || "").trim() ? `<li>🏢 <b>الدور القديم:</b> ${old.floor || 'غير محدد'} ⬅️ <b>الدور المقترح الجديد:</b> <span style="color:var(--primary); font-weight:bold;">${p.floor}</span></li>` : ''}
+              ${String(old.price || 0) !== String(p.price || 0) ? `<li>💰 <b>السعر القديم:</b> ${Number(old.price || 0).toLocaleString()} ج.م ⬅️ <b>السعر المعتمد:</b> <span style="color:var(--success); font-weight:bold;">${Number(p.price || 0).toLocaleString()} ج.م</span></li>` : ''}
+              ${String(old.title || "").trim() !== String(p.title || "").trim() ? `<li>📌 <b>العنوان القديم:</b> ${old.title || 'فارغ'} ⬅️ <b>العنوان المعتمد:</b> <span style="color:var(--primary); font-weight:bold;">${p.title}</span></li>` : ''}
+              ${String(old.area || 0) !== String(p.area || 0) ? `<li>📏 <b>المساحة القديمة:</b> ${old.area || 0} م² ⬅️ <b>المساحة المعتمدة:</b> <span style="color:var(--primary); font-weight:bold;">${p.area} م²</span></li>` : ''}
+              ${String(old.description || "").trim() !== String(p.description || "").trim() ? `<li>📄 <b>تم رصد تعديلات في نص الوصف التفصيلي المرفق واعتمادها.</b></li>` : ''}
+              ${String(old.floor || "").trim() !== String(p.floor || "").trim() ? `<li>🏢 <b>الدور القديم:</b> ${old.floor || 'غير محدد'} ⬅️ <b>الدور المعتمد:</b> <span style="color:var(--primary); font-weight:bold;">${p.floor}</span></li>` : ''}
             </ul>
           </div>
         `;
@@ -710,8 +739,8 @@
         document.getElementById('mdFeatures').innerText = 'لم يتم تحديد أي ميزات إضافية للعقار.';
       }
 
-      // جلب بيانات المالك من oldData في حالة التعديل، أو من المستند المباشر في الحالة العادية
-      const ownerSource = isEdit ? editRequest : item;
+      // جلب بيانات المالك من oldData في حالة التعديل/التعديلات المقبولة، أو من المستند المباشر في الحالة العادية
+      const ownerSource = (isEdit || isApprovedEdit) ? editRequest : item;
       document.getElementById('mdOwnerName').innerText = ownerSource.ownerName || 'غير متوفر';
       document.getElementById('mdOwnerPhone').innerText = ownerSource.ownerPhone || 'غير متوفر';
       document.getElementById('mdOwnerEmail').innerText = ownerSource.ownerEmail || 'غير متوفر';
