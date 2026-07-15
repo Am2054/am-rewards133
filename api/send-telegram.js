@@ -37,10 +37,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // 💡 قاموس التحويل الذكي لمطابقة مسميات الواجهة الأمامية بالخلفية
+    // قاموس التحويل لمطابقة مسميات الواجهة الأمامية بالخلفية
     const typeMapping = {
       "new_user": "newUser",
       "new_property": "newProperty",
+      "edit_property": "editProperty", // ربط ميزة تعديل العقار
       "new_ticket": "newTicket",
       "new_message": "newMessage",
       "report": "report"
