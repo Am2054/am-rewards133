@@ -958,7 +958,32 @@
                 updatedAt: serverTimestamp()
             };
 
-            await addDoc(collection(db, "properties"), propertyPayload);
+            // رفع العقار في قاعدة البيانات والحصول على الرقم التعريفي له (docRef)
+            const docRef = await addDoc(collection(db, "properties"), propertyPayload);
+            progBar.style.width = '90%';
+
+            // 🔔 إرسال إشعار تليجرام عن إضافة عقار جديد
+            try {
+                await fetch("/api/send-telegram", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        type: "new_property",
+                        data: {
+                            title: propertyPayload.title,
+                            type: propertyPayload.propertyType,
+                            price: propertyPayload.price,
+                            owner: propertyPayload.ownerName,
+                            propertyId: docRef.id
+                        }
+                    })
+                });
+            } catch (notifError) {
+                console.error("Failed to send Telegram notification:", notifError);
+            }
+
             progBar.style.width = '100%';
             
             alert('تم إرسال العقار بنجاح، وهو الآن قيد المراجعة في لوحة الإدارة.');
