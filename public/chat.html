@@ -827,6 +827,10 @@
           const paramPropertyId = urlParams.get('propertyId');
           const paramOwnerId = urlParams.get('ownerId');
 
+          // قراءة المحادثة المحفوظة سابقاً من الجلسة في حال أعدنا تحميل الصفحة (Reload)
+          const savedRoomId = sessionStorage.getItem('activeRoomId');
+          const savedTargetUserId = sessionStorage.getItem('activeTargetUserId');
+
           if (paramPropertyId && paramOwnerId) {
             const currentUserId = user.uid;
             const roomId = `room_${currentUserId}_${paramOwnerId}_${paramPropertyId}`;
@@ -875,6 +879,13 @@
             } catch (err) {
               console.error("Error auto-initializing chat from parameters:", err);
             }
+          } 
+          // 💡 إذا تمت إعادة تحميل الصفحة وكان المستخدم يتحدث مع طرف آخر، نقوم بإعادة فتح الروم تلقائياً
+          else if (savedRoomId && savedTargetUserId) {
+            setTimeout(() => {
+              document.getElementById('app-layout-wrapper').classList.add('show-active-chat');
+              this.openChat(savedRoomId, user.uid, savedTargetUserId);
+            }, 500); // تأخير خفيف 500ms لضمان اكتمال تحميل القائمة الجانبية وعناصر الـ DOM
           }
         });
       }
@@ -980,7 +991,9 @@
                 : `<span style="color:var(--danger); font-size:0.75rem; font-weight:bold;">● غير متاح</span>`;
 
               const timeString = room.lastMessageTime ? new Date(room.lastMessageTime).toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'}) : '';
-              const isActive = ChatState.activeRoomId === room.roomId ? 'active' : '';
+              
+              const savedRoomId = sessionStorage.getItem('activeRoomId');
+              const isActive = ChatState.activeRoomId === room.roomId || savedRoomId === room.roomId ? 'active' : '';
 
               const threadItem = document.createElement('div');
               threadItem.className = `thread-item ${isActive}`;
@@ -1117,6 +1130,11 @@
 
       async openChat(roomId, currentUserId, targetUserId) {
         ChatState.activeRoomId = roomId;
+        
+        // 💾 حفظ المحادثة النشطة في الجلسة للاستمرار التلقائي بعد إعادة تحميل الصفحة (Reload)
+        sessionStorage.setItem('activeRoomId', roomId);
+        sessionStorage.setItem('activeTargetUserId', targetUserId);
+
         this.cancelReply(); 
 
         set(ref(rtdb, `unreadCounts/${roomId}/${currentUserId}`), 0);
