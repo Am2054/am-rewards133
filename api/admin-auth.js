@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 import { serialize, parse } from "cookie";
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth"; 
+import { notify } from "../lib/notifications.js"; // 👈 استيراد مركز الإشعارات بالخلفية
 
 // تهيئة آمنة ومقاومة لمشاكل السطور الجديدة في مفاتيح الاستضافة السحابية
 if (!getApps().length) {
@@ -114,6 +116,18 @@ export default async function handler(req, res) {
 
     if (checkLoginLockout(email)) {  
       await logAdminAction("login_attempt_locked", email, { ip: clientIp });  
+
+      // 🔔 إشعار تليجرام طارئ بمحاولة دخول فاشلة ومغلقة لتعدي الحد الأقصى للمحاولات
+      try {
+        await notify.adminLogin({
+          admin: email,
+          ip: clientIp,
+          status: "locked"
+        });
+      } catch (err) {
+        console.error("Failed to send admin locked Telegram notification:", err.message);
+      }
+
       return res.status(429).json({  
         message: "تم حظر محاولات الدخول مؤقتاً لحماية الحساب. يرجى الانتظار 15 دقيقة."  
       });  
@@ -148,6 +162,17 @@ export default async function handler(req, res) {
         ip: clientIp
       });
 
+      // 🔔 إرسال إشعار تليجرام بنجاح تسجيل دخول الأدمن
+      try {
+        await notify.adminLogin({
+          admin: email,
+          ip: clientIp,
+          status: "success"
+        });
+      } catch (err) {
+        console.error("Failed to send admin success Telegram notification:", err.message);
+      }
+
       return res.status(200).json({
         success: true,
         message: "تم تسجيل الدخول بنجاح"
@@ -156,6 +181,17 @@ export default async function handler(req, res) {
 
     recordFailedAttempt(email);  
     await logAdminAction("login_failed", email, { ip: clientIp });  
+
+    // 🔔 إرسال إشعار تليجرام بفشل محاولة تسجيل دخول للأدمن لزيادة المراقبة
+    try {
+      await notify.adminLogin({
+        admin: email,
+        ip: clientIp,
+        status: "failed"
+      });
+    } catch (err) {
+      console.error("Failed to send admin failed Telegram notification:", err.message);
+    }
 
     return res.status(401).json({  
       message: "❌ بيانات الدخول غير صحيحة"  
