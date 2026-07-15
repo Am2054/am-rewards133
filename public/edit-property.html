@@ -186,7 +186,8 @@
           <div class="media-grid" id="imagesPreviewGrid"></div>
         </div>
 
-        <div class="form-group" style="margin-top: 2rem;">
+        <!-- 🚫 تم إخفاء قسم الفيديو بصرياً وبرمجياً بالكامل بناء على طلبك -->
+        <div class="form-group hidden" style="margin-top: 2rem; display: none !important;">
           <label>فيديو للعقار (اختياري - فيديو واحد MP4 فقط - أقصى مدة 60 ثانية - الحجم الأقصى 100MB)</label>
           <div class="upload-zone" id="videoZone" onclick="document.getElementById('videoFile').click()">
             <p><i class="fas fa-video fa-2x" style="color:var(--primary)"></i><br>اضغط لاختيار أو تعديل الفيديو التوضيحي</p>
@@ -247,6 +248,7 @@
     let uploadedImages = []; 
     let uploadedVideoFile = null; 
     let existingVideoUrl = null; // للاحتفاظ برابط الفيديو القديم إذا لم يتغير
+    let currentUserName = "مستخدم مسجل"; // للاحتفاظ باسم المالك المحدث للإشعار
 
     if (!propertyId) {
         alert("خطأ: لم يتم تحديد معرف العقار المطلوب تعديله.");
@@ -257,9 +259,10 @@
     onAuthStateChanged(auth, async (user) => {
         if (!user) {
             alert("يجب تسجيل الدخول أولاً للوصول لهذه الصفحة.");
-            window.location.href = "login.html"; // ضع رابط صفحة الدخول الخاص بك هنا إن وجد
+            window.location.href = "login.html";
             return;
         }
+        currentUserName = user.displayName || "مستخدم مسجل";
         await loadPropertyData();
     });
 
@@ -497,7 +500,7 @@
         });
     };
 
-    // 4. نظام الفيديو (يقبل التعديل أو الاحتفاظ بالقديم)
+    // 4. نظام الفيديو
     document.getElementById('videoFile').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -547,7 +550,7 @@
     const compileReviewData = () => {
         const typeSelect = document.getElementById('propertyType');
         document.getElementById('reviewMainText').innerText = `العنوان: ${document.getElementById('title').value} | النوع: ${typeSelect.value} (${document.getElementById('purpose').value === 'sale' ? 'بيع' : 'إيجار'}) \nالموقع: ${document.getElementById('governorate').value}، ${document.getElementById('city').value}، ${document.getElementById('district').value} \nالسعر المطلوب: ${document.getElementById('price').value} ج.م | المساحة: ${document.getElementById('area').value} متر مربع.`;
-        document.getElementById('reviewMediaText').innerText = `إجمالي الصور النهائي: ${uploadedImages.length} صورة \nالفيديو المرفق: ${ (uploadedVideoFile || existingVideoUrl) ? 'موجود وجاهز للحفظ' : 'لا يوجد فيديو مرفق (اختياري)'}`;
+        document.getElementById('reviewMediaText').innerText = `إجمالي الصور النهائي: ${uploadedImages.length} صورة`;
     };
 
     // 5. التحديث النهائي الشامل للمستند الحالي بـ Firestore باستخدام updateDoc
@@ -593,24 +596,6 @@
                 progBar.style.width = `${20 + ((i + 1) / uploadedImages.length) * 50}%`;
             }
 
-            // إدارة رفع ميديا الفيديو
-            let finalVideoUrl = existingVideoUrl; // الافتراضي الرابط القديم إن وجد
-
-            if (uploadedVideoFile) {
-                const fd = new FormData();
-                fd.append("files", uploadedVideoFile);
-
-                const response = await fetch("/api/upload-media", {
-                    method: "POST",
-                    body: fd
-                });
-
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || "فشل رفع مقطع الفيديو الجديد");
-
-                finalVideoUrl = data.video;
-            }
-
             progBar.style.width = "80%";
 
             // بناء كائن التحديث بالبيانات الجديدة المعدلة
@@ -650,10 +635,10 @@
                     naturalGas: document.getElementById('feat-naturalGas').checked,
                 },
 
-                // الميديا المحدثة
+                // الميديا المحدثة (الصور فقط)
                 images: finalImageUrls, 
                 coverImage: finalImageUrls[0] || null, // تعيين الصورة الأولى دائماً كغلاف
-                video: finalVideoUrl,
+                video: null, // الحفاظ على قيمة الفيديو فارغة ليتوافق مع إلغاء الميزة
                 
                 // إعادة حالة المنشور إلى "pending" (تحت المراجعة) بعد التعديل لضمان الأمان
                 status: "pending",
@@ -664,6 +649,30 @@
             const docRef = doc(db, "properties", propertyId);
             await updateDoc(docRef, propertyUpdatePayload);
             
+            progBar.style.width = '90%';
+
+            // 🔔 إرسال إشعار تليجرام للمسؤول بوجود تعديل جديد على العقار عبر رابط Vercel المباشر
+            try {
+                await fetch("https://am-property.vercel.app/api/send-telegram", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        type: "edit_property",
+                        data: {
+                            title: propertyUpdatePayload.title,
+                            type: propertyUpdatePayload.propertyType,
+                            price: propertyUpdatePayload.price,
+                            owner: currentUserName,
+                            propertyId: propertyId
+                        }
+                    })
+                });
+            } catch (notifError) {
+                console.error("Failed to send Telegram notification:", notifError);
+            }
+
             progBar.style.width = '100%';
             alert('تم تحديث بيانات العقار بنجاح، وإرساله لإعادة المراجعة.');
             window.location.href = "my-properties.html";
