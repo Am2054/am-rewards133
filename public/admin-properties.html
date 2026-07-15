@@ -10,10 +10,11 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     :root {
-      --bg-primary: #0b0f19;
-      --bg-secondary: rgba(22, 30, 49, 0.7);
+      --bg-primary: #020617;
+      --bg-secondary: rgba(15, 23, 42, 0.75);
       --bg-tertiary: #1f293d;
-      --primary: #38bdf8;
+      --primary: #00f2ff; /* اللون السماوي المضيء الموحد */
+      --primary-hover: #0ea5e9;
       --text-primary: #f3f4f6;
       --text-muted: #9ca3af;
       --border: rgba(255, 255, 255, 0.08);
@@ -21,27 +22,34 @@
       --danger: #ef4444;
       --warning: #f59e0b;
       --transition: all 0.3s ease;
+      --neon-purple: #7000ff;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Cairo', sans-serif; background-color: var(--bg-primary); color: var(--text-primary); padding: 1.5rem 1rem; position: relative; min-height: 100vh; }
     
+    body::after {
+      content: ""; position: fixed; inset: 0; z-index: -1;
+      background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
+      opacity: 0.15; pointer-events: none;
+    }
+
     .admin-container { max-width: 1200px; margin: 0 auto; }
     
-    .btn-back { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-muted); text-decoration: none; font-weight: 600; margin-bottom: 1rem; font-size: 0.95rem; transition: var(--transition); }
+    .btn-back { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-muted); text-decoration: none; font-weight: 700; margin-bottom: 1rem; font-size: 0.95rem; transition: var(--transition); }
     .btn-back:hover { color: var(--primary); }
 
     .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
-    h1 { font-weight: 900; color: var(--primary); font-size: 1.8rem; }
+    h1 { font-weight: 900; color: var(--primary); font-size: 1.8rem; text-shadow: 0 0 15px rgba(0, 242, 255, 0.3); }
     
-    /* محدد التبويبات الفسيح المطور بثلاثة منزلقات محتسبة حياً بالخلفية */
+    /* محدد التبويبات الفسيحة بأربعة منزلقات محتسبة حياً بالخلفية */
     .tab-wrapper { display: flex; gap: 0.75rem; background: var(--bg-tertiary); padding: 0.5rem; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 1.5rem; flex-wrap: wrap; width: 100%; justify-content: flex-start; }
     .tab-btn { padding: 0.7rem 1.5rem; border-radius: 8px; border: none; background: transparent; color: var(--text-muted); font-weight: 700; cursor: pointer; font-family: 'Cairo'; transition: var(--transition); font-size: 0.9rem; }
     .tab-btn.active { background: var(--primary); color: var(--bg-primary); }
 
-    .toolbar { background: var(--bg-secondary); border: 1px solid var(--border); padding: 1.25rem; border-radius: 16px; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+    .toolbar { background: var(--bg-secondary); border: 1px solid var(--border); padding: 1.25rem; border-radius: 16px; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 1rem; backdrop-filter: blur(20px); }
     .search-row { width: 100%; position: relative; }
     .search-input { width: 100%; padding: 0.75rem 2.5rem 0.75rem 1rem; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 10px; color: #fff; font-family: 'Cairo'; font-size: 0.95rem; }
-    .search-input:focus { border-color: var(--primary); outline: none; }
+    .search-input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 12px rgba(0, 242, 255, 0.15); }
     .search-row i { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
 
     .filters-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; }
@@ -49,7 +57,7 @@
     .filter-select:focus { border-color: var(--primary); outline: none; }
 
     /* كروت العرض المصلحة لمنع الـ Overflow */
-    .admin-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem; margin-bottom: 1.25rem; display: flex; gap: 20px; align-items: flex-start; overflow: hidden; transition: var(--transition); }
+    .admin-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem; margin-bottom: 1.25rem; display: flex; gap: 20px; align-items: flex-start; overflow: hidden; transition: var(--transition); backdrop-filter: blur(20px); }
     
     .img-container { width: 180px; height: 135px; border-radius: 12px; overflow: hidden; position: relative; flex-shrink: 0; background: var(--bg-tertiary); cursor: pointer; }
     .prop-img { width: 100%; height: 100%; object-fit: cover; }
@@ -159,11 +167,12 @@
       <h1><i class="fas fa-shield-alt"></i> لوحة تحكم العقارات الاحترافية</h1>
     </div>
 
-    <!-- ثلاثة منزلقات محتسبة حياً بالخلفية لـ (المعلقة، المقبولة، المرفوضة) لتقليل كلف القراءة الفردية -->
+    <!-- واجهة التبويبات الفسيحة بأربعة منزلقات لعزل طلبات التعديل كلياً -->
     <div class="tab-wrapper">
       <button class="tab-btn active" id="tabPending" onclick="switchPanel('pending')">الطلبات المعلقة (---)</button>
       <button class="tab-btn" id="tabApproved" onclick="switchPanel('approved')">العقارات المقبولة (---)</button>
       <button class="tab-btn" id="tabRejected" onclick="switchPanel('rejected')">العقارات المرفوضة (---)</button>
+      <button class="tab-btn" id="tabEditRequests" onclick="switchPanel('edit_requests')">طلبات التعديل (---)</button>
     </div>
 
     <div class="toolbar">
@@ -194,12 +203,15 @@
     <div class="pagination-container" id="paginationBox"></div>
   </div>
 
-  <!-- مودال تفاصيل العقار الكاملة -->
+  <!-- مودال تفاصيل العقار الكاملة ومقارنة التعديلات المقترحة -->
   <div class="modal-overlay" id="detailsModal">
     <div class="modal-content">
       <button class="modal-close" onclick="closeDetailsModal()"><i class="fas fa-times"></i></button>
       <h2 id="mdTitle" style="color:var(--primary); margin-bottom:1rem; padding-left:2rem;"></h2>
       
+      <!-- حاوية مقارنة التعديلات المضافة حديثاً وتظهر عند معاينة طلب تعديل معلق -->
+      <div id="comparisonContainer" style="display:none;"></div>
+
       <div class="gallery-viewer">
         <div class="main-preview-box" id="mainPreviewBox"></div>
         <div class="thumb-strip" id="thumbStrip"></div>
@@ -274,6 +286,8 @@
     let filteredProperties = []; 
     let panelMode = 'pending'; 
     let activeRejectDocId = null;
+    let activeRejectActionType = 'reject';
+    let activeRejectOriginalPropertyId = null;
     
     let activeMediaArray = [];
     let activeMediaIndex = 0;
@@ -335,6 +349,7 @@
       document.getElementById('tabPending').innerText = `الطلبات المعلقة (${stats.pending || 0})`;
       document.getElementById('tabApproved').innerText = `العقارات المقبولة (${stats.approved || 0})`;
       document.getElementById('tabRejected').innerText = `العقارات المرفوضة (${stats.rejected || 0})`;
+      document.getElementById('tabEditRequests').innerText = `طلبات التعديل (${stats.edit_requests || stats.editRequests || 0})`;
     }
 
     function populateDynamicFilters() {
@@ -344,9 +359,11 @@
       const types = new Set(["all"]);
       const govs = new Set(["all"]);
 
-      allRawProperties.forEach(p => {
-        if(p.propertyType) types.add(p.propertyType);
-        if(p.governorate) govs.add(p.governorate);
+      allRawProperties.forEach(pObj => {
+        // فك قراءة كائن التعديل أو العقار لتغذية خيارات الفلترة
+        const p = panelMode === 'edit_requests' ? pObj.newData : pObj;
+        if(p && p.propertyType) types.add(p.propertyType);
+        if(p && p.governorate) govs.add(p.governorate);
       });
 
       typeSelect.innerHTML = '<option value="all">كل أنواع العقارات</option>';
@@ -363,6 +380,7 @@
       document.getElementById('tabPending').classList.remove('active');
       document.getElementById('tabApproved').classList.remove('active');
       document.getElementById('tabRejected').classList.remove('active');
+      document.getElementById('tabEditRequests').classList.remove('active');
 
       if (mode === 'pending') {
         document.getElementById('tabPending').classList.add('active');
@@ -370,6 +388,8 @@
         document.getElementById('tabApproved').classList.add('active');
       } else if (mode === 'rejected') {
         document.getElementById('tabRejected').classList.add('active');
+      } else if (mode === 'edit_requests') {
+        document.getElementById('tabEditRequests').classList.add('active');
       }
       
       fetchInitialDataFromServer();
@@ -382,17 +402,20 @@
       const govVal = document.getElementById('filterGov').value;
       const sortVal = document.getElementById('sortOrder').value;
 
-      filteredProperties = allRawProperties.filter(p => {
+      filteredProperties = allRawProperties.filter(pObj => {
+        const p = panelMode === 'edit_requests' ? pObj.newData : pObj;
+        if (!p) return false;
+
         if (purposeVal !== 'all' && p.purpose !== purposeVal) return false;
         if (typeVal !== 'all' && p.propertyType !== typeVal) return false;
         if (govVal !== 'all' && p.governorate !== govVal) return false;
 
         if (searchText) {
           const titleMatch = (p.title || "").toLowerCase().includes(searchText);
-          const idMatch = (p.id || "").toLowerCase().includes(searchText);
-          const ownerNameMatch = (p.ownerName || "").toLowerCase().includes(searchText);
-          const ownerPhoneMatch = (p.ownerPhone || "").toLowerCase().includes(searchText);
-          const ownerEmailMatch = (p.ownerEmail || "").toLowerCase().includes(searchText);
+          const idMatch = (pObj.id || "").toLowerCase().includes(searchText);
+          const ownerNameMatch = (pObj.ownerName || "").toLowerCase().includes(searchText);
+          const ownerPhoneMatch = (pObj.ownerPhone || "").toLowerCase().includes(searchText);
+          const ownerEmailMatch = (pObj.ownerEmail || "").toLowerCase().includes(searchText);
 
           if (!titleMatch && !idMatch && !ownerNameMatch && !ownerPhoneMatch && !ownerEmailMatch) {
             return false;
@@ -401,9 +424,12 @@
         return true;
       });
 
-      filteredProperties.sort((a, b) => {
-        if (sortVal === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
-        if (sortVal === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+      filteredProperties.sort((aObj, bObj) => {
+        const a = panelMode === 'edit_requests' ? aObj.newData : aObj;
+        const b = panelMode === 'edit_requests' ? bObj.newData : bObj;
+        
+        if (sortVal === 'newest') return new Date(bObj.createdAt) - new Date(aObj.createdAt);
+        if (sortVal === 'oldest') return new Date(aObj.createdAt) - new Date(bObj.createdAt);
         if (sortVal === 'price-high') return (b.price || 0) - (a.price || 0);
         if (sortVal === 'price-low') return (a.price || 0) - (b.price || 0);
         if (sortVal === 'area-high') return (b.area || 0) - (a.area || 0);
@@ -438,39 +464,51 @@
       const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
       const paginatedSlice = filteredProperties.slice(startIndex, endIndex);
 
-      paginatedSlice.forEach((p) => {
+      paginatedSlice.forEach((item) => {
         const card = document.createElement('div');
         card.className = 'admin-card';
         
+        const isEdit = panelMode === 'edit_requests';
+        const p = isEdit ? item.newData : item;
+        const docId = item.id;
+        const originalPropertyId = isEdit ? item.propertyId : item.id;
+
         const imgUrl = p.coverImage || (p.images && p.images[0]) || '';
         const imgCount = p.images ? p.images.length : 0;
         const hasVideo = p.videoUrl ? true : false;
         
         let statusClass = 'pending', statusText = 'معلق';
-        if (p.status === 'approved') { statusClass = 'approved'; statusText = 'مقبول ومنشور'; }
-        if (p.status === 'rejected') { statusClass = 'rejected'; statusText = 'مرفوض من الإدارة'; }
+        if (item.status === 'approved') { statusClass = 'approved'; statusText = 'مقبول ومنشور'; }
+        if (item.status === 'rejected') { statusClass = 'rejected'; statusText = 'مرفوض من الإدارة'; }
 
         let dateString = "غير محدد";
-        if(p.createdAt) {
-          dateString = new Date(p.createdAt).toLocaleDateString('ar-EG');
+        if(item.createdAt) {
+          dateString = new Date(item.createdAt).toLocaleDateString('ar-EG');
         }
 
         let rejectBoxHtml = '';
-        if(p.status === 'rejected' && p.rejectReason) {
-          rejectBoxHtml = `<div class="reject-reason-box"><i class="fas fa-comment-slash"></i> <strong>سبب الرفض الحالي:</strong> ${p.rejectReason}</div>`;
+        if(item.status === 'rejected' && item.rejectReason) {
+          rejectBoxHtml = `<div class="reject-reason-box"><i class="fas fa-comment-slash"></i> <strong>سبب الرفض الحالي:</strong> ${item.rejectReason}</div>`;
         }
 
+        // تحديد الأكشن الإداري بناءً على ما إذا كان الطلب إضافة جديدة أو تعديل عقار قائم
+        const approveAction = isEdit ? 'approve_edit' : 'approve';
+        const rejectAction = isEdit ? 'reject_edit' : 'reject';
+        const deleteAction = isEdit ? 'delete_edit' : 'delete';
+
+        const editRequestBadge = isEdit ? `<span class="status-tag pending" style="background: rgba(112, 0, 255, 0.15); color: #00f2ff; margin-right: 8px;">طلب تعديل ✏️</span>` : '';
+
         card.innerHTML = `
-          <div class="img-container" onclick="openDetailsModal('${p.id}')">
+          <div class="img-container" onclick="openDetailsModal('${docId}')">
             <img src="${imgUrl}" class="prop-img" alt="Property Cover">
             <div class="media-badges">
               <span class="m-badge"><i class="fas fa-image"></i> ${imgCount}</span>
               ${hasVideo ? `<span class="m-badge" style="color:var(--primary);"><i class="fas fa-video"></i> فيديو</span>` : ''}
             </div>
           </div>
-          <div class="prop-info" onclick="openDetailsModal('${p.id}')">
+          <div class="prop-info" onclick="openDetailsModal('${docId}')">
             <div class="title-row">
-              <div class="prop-title">${p.title || 'عقار بدون عنوان إعلاني ثابت'}</div>
+              <div class="prop-title" style="display:flex; align-items:center; gap:8px;">${p.title || 'عقار بدون عنوان إعلاني ثابت'} ${editRequestBadge}</div>
               <span class="status-tag ${statusClass}">${statusText}</span>
             </div>
             
@@ -486,9 +524,9 @@
             </div>
           </div>
           <div class="actions-wrapper">
-            <button class="btn-action btn-approve" onclick="handleApiAction('${p.id}', 'approve')"><i class="fas fa-check"></i> موافقة</button>
-            <button class="btn-action btn-reject" onclick="openRejectModal('${p.id}')"><i class="fas fa-ban"></i> رفض</button>
-            <button class="btn-action btn-delete" onclick="handleDeleteProperty('${p.id}')"><i class="fas fa-trash-alt"></i> حذف نهائي</button>
+            <button class="btn-action btn-approve" onclick="handleApiAction('${docId}', '${approveAction}', null, '${originalPropertyId}')"><i class="fas fa-check"></i> موافقة</button>
+            <button class="btn-action btn-reject" onclick="openRejectModal('${docId}', '${rejectAction}', '${originalPropertyId}')"><i class="fas fa-ban"></i> رفض</button>
+            <button class="btn-action btn-delete" onclick="handleDeleteProperty('${docId}', '${deleteAction}', '${originalPropertyId}')"><i class="fas fa-trash-alt"></i> حذف</button>
           </div>
         `;
         listContainer.appendChild(card);
@@ -522,16 +560,21 @@
       paginationBox.appendChild(nextBtn);
     }
 
-    window.handleApiAction = async function(docId, actionType, rejectReason = null) {
-      showLoading(actionType === 'approve' ? 'جاري الموافقة ونشر الإعلان...' : 'جاري تحديث البيانات الإدارية...');
+    window.handleApiAction = async function(docId, actionType, rejectReason = null, originalPropertyId = null) {
+      showLoading(actionType.includes('approve') ? 'جاري الموافقة ونشر البيانات...' : 'جاري تحديث البيانات الإدارية...');
       try {
         const idToken = await auth.currentUser.getIdToken(true);
         const payload = { 
           module: 'properties', 
           action: actionType, 
-          propertyId: docId 
+          propertyId: originalPropertyId || docId 
         };
         
+        if (actionType.includes('edit')) {
+          payload.requestId = docId; // تمرير معرف الطلب ليعتمده الباكند تلقائياً
+          payload.propertyId = originalPropertyId;
+        }
+
         if (rejectReason) payload.reason = rejectReason;
 
         const response = await fetch(API_URL, {
@@ -558,10 +601,14 @@
       }
     }
 
-    window.handleDeleteProperty = async function(docId) {
-      if(!confirm("⚠️ تنبيه هام للغاية: هل أنت متأكد تماماً من قرار حذف هذا العقار بشكل نهائي ولا يمكن الرجوع عنه من السيرفر؟")) return;
+    window.handleDeleteProperty = async function(docId, actionType = 'delete', originalPropertyId = null) {
+      const confirmMsg = actionType === 'delete_edit' 
+        ? "⚠️ هل أنت متأكد من حذف طلب التعديل هذا نهائياً من السيرفر؟"
+        : "⚠️ تنبيه هام للغاية: هل أنت متأكد تماماً من قرار حذف هذا العقار بشكل نهائي ولا يمكن الرجوع عنه من السيرفر؟";
+
+      if(!confirm(confirmMsg)) return;
       
-      showLoading("جاري الحذف النهائي للمستند...");
+      showLoading("جاري الحذف النهائي...");
       try {
         const idToken = await auth.currentUser.getIdToken(true);
         const response = await fetch(API_URL, {
@@ -573,8 +620,9 @@
           },
           body: JSON.stringify({ 
             module: 'properties', 
-            action: 'delete', 
-            propertyId: docId 
+            action: actionType, 
+            propertyId: originalPropertyId || docId,
+            requestId: actionType === 'delete_edit' ? docId : null
           })
         });
 
@@ -593,7 +641,17 @@
     }
 
     window.openDetailsModal = function(docId) {
-      const p = allRawProperties.find(item => item.id === docId);
+      const isEdit = panelMode === 'edit_requests';
+      let p;
+      let editRequest = null;
+
+      if (isEdit) {
+        editRequest = allRawProperties.find(item => item.id === docId);
+        p = editRequest ? editRequest.newData : null;
+      } else {
+        p = allRawProperties.find(item => item.id === docId);
+      }
+
       if(!p) return;
 
       document.getElementById('mdTitle').innerText = p.title || 'تفاصيل العقار المعاين';
@@ -605,20 +663,59 @@
       document.getElementById('mdBaths').innerText = p.bathrooms || 'غير متوفر';
       document.getElementById('mdFloor').innerText = p.floor || 'غير متوفر';
       document.getElementById('mdFinish').innerText = p.finishing || 'غير متوفر';
-      document.getElementById('mdLocation').innerText = `${p.governorate || ''} - ${p.city || ''} - ${p.region || ''}`;
+      document.getElementById('mdLocation').innerText = `${p.governorate || ''} - ${p.city || ''} - ${p.region || p.district || ''}`;
       document.getElementById('mdMeters').innerText = p.meters || 'لا يوجد';
       document.getElementById('mdDesc').innerText = p.description || 'لا يوجد وصف مضاف للعقار.';
       
-      if(p.features && p.features.length > 0) {
-        document.getElementById('mdFeatures').innerText = p.features.join(' ✦ ');
+      // إدراج بنر مقارنة التعديلات المقترحة بالبيانات القديمة لطلب التعديل
+      const comparisonContainer = document.getElementById('comparisonContainer');
+      if (isEdit && editRequest) {
+        const old = editRequest.oldData || {};
+        comparisonContainer.style.display = 'block';
+        comparisonContainer.innerHTML = `
+          <div style="background: rgba(112, 0, 255, 0.1); border-right: 4px solid var(--primary); padding: 15px; border-radius: 12px; margin-bottom: 20px; font-size: 0.85rem; direction: rtl; text-align: right;">
+            <h4 style="color: var(--primary); font-weight: 900; margin-bottom: 8px;"><i class="fas fa-history"></i> التغييرات المقترحة مقارنة بالبيانات القديمة:</h4>
+            <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 6px;">
+              ${String(old.price || 0) !== String(p.price || 0) ? `<li>💰 <b>السعر القديم:</b> ${Number(old.price || 0).toLocaleString()} ج.م ⬅️ <b>السعر المقترح الجديد:</b> <span style="color:var(--success); font-weight:bold;">${Number(p.price || 0).toLocaleString()} ج.م</span></li>` : ''}
+              ${String(old.title || "").trim() !== String(p.title || "").trim() ? `<li>📌 <b>العنوان القديم:</b> ${old.title || 'فارغ'} ⬅️ <b>العنوان المقترح الجديد:</b> <span style="color:var(--primary); font-weight:bold;">${p.title}</span></li>` : ''}
+              ${String(old.area || 0) !== String(p.area || 0) ? `<li>📏 <b>المساحة القديمة:</b> ${old.area || 0} م² ⬅️ <b>المساحة المقترحة الجديدة:</b> <span style="color:var(--primary); font-weight:bold;">${p.area} م²</span></li>` : ''}
+              ${String(old.description || "").trim() !== String(p.description || "").trim() ? `<li>📄 <b>تم رصد تعديلات في نص الوصف التفصيلي المرفق.</b></li>` : ''}
+              ${String(old.floor || "").trim() !== String(p.floor || "").trim() ? `<li>🏢 <b>الدور القديم:</b> ${old.floor || 'غير محدد'} ⬅️ <b>الدور المقترح الجديد:</b> <span style="color:var(--primary); font-weight:bold;">${p.floor}</span></li>` : ''}
+            </ul>
+          </div>
+        `;
+      } else {
+        comparisonContainer.style.display = 'none';
+        comparisonContainer.innerHTML = '';
+      }
+
+      if (p.features) {
+        let featureList = [];
+        if (typeof p.features === 'object' && !Array.isArray(p.features)) {
+          // التعامل مع بنية المميزات الجديدة (Object: true/false)
+          const featMap = {
+            elevator: "مصعد 🛗", garage: "جراج 🚗", security: "أمن حراسة 🛡️",
+            balcony: "بلكونة 🌅", airConditioner: "تكييف ❄️", furnished: "مفروش 🛋️",
+            naturalGas: "غاز طبيعي 🔥"
+          };
+          for (let key in p.features) {
+            if (p.features[key] && featMap[key]) featureList.push(featMap[key]);
+          }
+        } else if (Array.isArray(p.features)) {
+          featureList = p.features;
+        }
+
+        document.getElementById('mdFeatures').innerText = featureList.length > 0 ? featureList.join(' ✦ ') : 'لم يتم تحديد أي ميزات إضافية للعقار.';
       } else {
         document.getElementById('mdFeatures').innerText = 'لم يتم تحديد أي ميزات إضافية للعقار.';
       }
 
-      document.getElementById('mdOwnerName').innerText = p.ownerName || 'غير متوفر';
-      document.getElementById('mdOwnerPhone').innerText = p.ownerPhone || 'غير متوفر';
-      document.getElementById('mdOwnerEmail').innerText = p.ownerEmail || 'غير متوفر';
-      document.getElementById('mdOwnerUid').innerText = p.ownerId || p.uid || 'غير متوفر';
+      // جلب بيانات المالك من oldData في حالة التعديل، أو من المستند المباشر في الحالة العادية
+      const ownerSource = isEdit ? editRequest : item;
+      document.getElementById('mdOwnerName').innerText = ownerSource.ownerName || 'غير متوفر';
+      document.getElementById('mdOwnerPhone').innerText = ownerSource.ownerPhone || 'غير متوفر';
+      document.getElementById('mdOwnerEmail').innerText = ownerSource.ownerEmail || 'غير متوفر';
+      document.getElementById('mdOwnerUid').innerText = ownerSource.ownerId || ownerSource.uid || 'غير متوفر';
 
       activeMediaArray = [];
       if(p.images && p.images.length > 0) {
@@ -677,8 +774,10 @@
       document.getElementById('detailsModal').classList.remove('open');
     }
 
-    window.openRejectModal = function(docId) {
+    window.openRejectModal = function(docId, actionType = 'reject', originalPropertyId = null) {
       activeRejectDocId = docId;
+      activeRejectActionType = actionType;
+      activeRejectOriginalPropertyId = originalPropertyId;
       document.getElementById('rejectReasonInput').value = '';
       document.getElementById('rejectModal').classList.add('open');
     }
@@ -690,7 +789,7 @@
     document.getElementById('btnConfirmReject').addEventListener('click', () => {
       const reason = document.getElementById('rejectReasonInput').value.trim();
       if(!reason) { showToast("من فضلك اكتب سبب الرفض أولاً ليتم توثيقه", "warning"); return; }
-      window.handleApiAction(activeRejectDocId, 'reject', reason);
+      window.handleApiAction(activeRejectDocId, activeRejectActionType, reason, activeRejectOriginalPropertyId);
       closeRejectModal();
     });
 
