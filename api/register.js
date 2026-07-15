@@ -2,6 +2,7 @@
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { notify } from "../lib/notifications.js"; // استيراد مركز الإشعارات الموحد
 
 // تهيئة Firebase Admin
 if (!getApps().length) {
@@ -109,7 +110,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // ======== 2. التحقق من البيانات المكررة أولاً (لإظهار الرسائل الفعلية) ========
+    // ======== 2. التحقق من البيانات المكررة أولاً ========
     const [deviceSnap, phoneSnap, emailSnap] = await Promise.all([
       db.collection("userDevices").where("deviceId", "==", deviceId).limit(1).get(),
       db.collection("users").where("phone", "==", cleanPhone).limit(1).get(),
@@ -144,7 +145,7 @@ export default async function handler(req, res) {
       // البريد غير مكرر في الـ Auth، يمكن المتابعة بأمان
     }
 
-    // ======== 3. كشف الاحتيال وتعدد الحسابات (فحوصات محلية وسريعة) ========
+    // ======== 3. كشف الاحتيال وتعدد الحسابات ========
     const fraudCheck = await FraudDetection.analyzeSignup({ email: cleanEmail, phone: cleanPhone }, ip, fingerprint);
     
     if (fraudCheck.isSuspicious) {
@@ -165,7 +166,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // ======== 4. Rate Limiting (تحديد معدل التسجيل لمنع الإغراق) ========
+    // ======== 4. Rate Limiting ========
     const rateLimitDocId = ip.trim().replace(/[\.\:\s]/g, "_");
     const rateLimitRef = db.collection("rateLimits").doc(rateLimitDocId);
     const rateLimitSnap = await rateLimitRef.get();
@@ -210,7 +211,7 @@ export default async function handler(req, res) {
 
     const uid = userRecord.uid;
 
-    // ======== 6. حفظ البيانات في Firestore مع نظام التراجع الذاتي عند حدوث أي خطأ ========
+    // ======== 6. حفظ البيانات في Firestore مع نظام التراجع الذاتي ========
     try {
       await db.runTransaction(async (tr) => {
         tr.set(db.collection("users").doc(uid), {
@@ -255,6 +256,20 @@ export default async function handler(req, res) {
       });
 
       console.log(`[SUCCESS] User registered successfully: ${uid} - ${cleanEmail}`);
+
+      // 🔔 إرسال إشعار تليجرام للمسؤول بوجود مستخدم جديد
+      // تم وضعه داخل try/catch للتأكد من أنه في حال وجود مشكلة في تليجرام، لا يتعطل تسجيل المستخدم الأصلي
+      try {
+        await notify.newUser({
+          name: cleanName,
+          email: cleanEmail,
+          phone: cleanPhone,
+          uid: uid,
+          ip: ip
+        });
+      } catch (notifError) {
+        console.error("[TELEGRAM WARNING] Failed to send newUser notification:", notifError.message);
+      }
 
       return res.status(200).json({
         success: true,
