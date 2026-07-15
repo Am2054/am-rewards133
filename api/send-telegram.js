@@ -41,10 +41,12 @@ export default async function handler(req, res) {
     const typeMapping = {
       "new_user": "newUser",
       "new_property": "newProperty",
-      "edit_property": "editProperty", // ربط ميزة تعديل العقار
+      "edit_property": "editProperty",
       "new_ticket": "newTicket",
       "new_message": "newMessage",
-      "report": "report"
+      "report": "report",
+      "admin_login": "adminLogin",
+      "delete_account": "deleteAccount" // الربط لطلب تصفية الحسابات
     };
 
     const mappedType = typeMapping[type] || type;
@@ -74,4 +76,4 @@ export default async function handler(req, res) {
       error: err.message
     });
   }
-}
+      }
