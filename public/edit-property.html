@@ -314,7 +314,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, collection, addDoc, updateDoc, serverTimestamp, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -469,7 +469,7 @@
     propertyTypeSelect.addEventListener('change', handlePropertyTypeChange);
     residentialSubtypeSelect.addEventListener('change', applyDynamicFloorRules);
 
-    // دالة فحص المطابقة والتحقق البرمجي العميق والمنظم للمقارنة اللحظية بين النسختين
+    // دالة فحص المطابقة والتحقق البرمجي العميق والمنظم للمقارنة اللحظية الحية
     const checkIfPayloadChanged = (newData) => {
         if (!originalPropertyData) return true;
 
@@ -1004,6 +1004,10 @@
                 status: "pending",
                 createdAt: serverTimestamp()
             });
+
+            // 🔒 تحديث حالة العقار الأصلي نفسه إلى pending لكي يختفي من العرض العام فوراً أثناء المراجعة لضمان دقة البيانات
+            const originalDocRef = doc(db, "properties", propertyId);
+            await updateDoc(originalDocRef, { status: "pending" });
             
             progBar.style.width = '95%';
 
