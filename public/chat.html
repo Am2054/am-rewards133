@@ -122,6 +122,8 @@
       padding: 18px;
       border-bottom: 1px solid var(--glass-border);
       cursor: pointer;
+      user-select: none; /* لمنع تحديد النصوص أثناء الضغط المطول */
+      -webkit-user-select: none;
       transition: var(--transition);
     }
 
@@ -509,6 +511,15 @@
 <body>
 
   <div class="overlay" id="overlay"></div>
+
+  <!-- مودال لتأكيد حذف المحادثة بالضغط المطول -->
+  <div id="deleteThreadModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:15000; align-items:center; justify-content:center;">
+    <div class="modal-content" onclick="event.stopPropagation()" style="background:var(--bg-deep); border:1px solid var(--danger); padding:20px; border-radius:20px; width:80%; max-width:320px; display:flex; flex-direction:column; gap:8px;">
+        <h3 style="font-family:'Cairo'; text-align:center; color:#fff; font-size:1.05rem; margin-bottom:10px; line-height:1.6;">🗑️ هل تريد حذف هذه المحادثة ومسحها نهائياً؟</h3>
+        <button class="modal-btn" style="background:var(--danger); color:#fff; font-family:'Cairo'; font-weight:bold; width:100%; padding:12px; border:none; border-radius:10px; cursor:pointer;" id="confirmDeleteThreadBtn">حذف المحادثة</button>
+        <button class="modal-btn" style="background:transparent; border:none; color:var(--muted); font-family:'Cairo'; font-weight:bold; width:100%; padding:8px; cursor:pointer;" onclick="document.getElementById('deleteThreadModal').style.display='none'">إلغاء</button>
+    </div>
+  </div>
 
   <div id="image-viewer-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); backdrop-filter:blur(15px); z-index:20000; align-items:center; justify-content:center; flex-direction:column; direction:rtl; select-none;">
     <div style="position:absolute; top:20px; left:20px; right:20px; display:flex; justify-content:space-between; align-items:center; z-index:20001; direction:rtl;">
@@ -992,13 +1003,66 @@
                 </div>
               `;
 
-              threadItem.addEventListener('click', () => {
+              // برمجة مستشعرات اللمس والضغط للموبايل والكمبيوتر لدعم الضغط المطول
+              let pressTimer;
+              let isLongPress = false;
+              let startTx, startTy;
+
+              const startPress = (e) => {
+                isLongPress = false;
+                if (e.touches) {
+                  startTx = e.touches[0].clientX;
+                  startTy = e.touches[0].clientY;
+                }
+                pressTimer = setTimeout(() => {
+                  isLongPress = true;
+                  if (navigator.vibrate) navigator.vibrate(50); // اهتزاز خفيف كدليل على الضغط المطول
+                  this.showDeleteThreadModal(room.roomId);
+                }, 700); // الضغط مستمر لمدة 700 مللي ثانية
+              };
+
+              const cancelPress = () => {
+                clearTimeout(pressTimer);
+              };
+
+              const movePress = (e) => {
+                if (e.touches) {
+                  const moveX = e.touches[0].clientX;
+                  const moveY = e.touches[0].clientY;
+                  // إذا تحرك الإصبع أكثر من 10 بكسل، نلغي الضغطة المطولة لتجنب التمرير
+                  if (Math.abs(moveX - startTx) > 10 || Math.abs(moveY - startTy) > 10) {
+                    clearTimeout(pressTimer);
+                  }
+                } else {
+                  clearTimeout(pressTimer);
+                }
+              };
+
+              // أحداث الماوس للكمبيوتر
+              threadItem.addEventListener('mousedown', startPress);
+              threadItem.addEventListener('mouseup', (e) => {
+                clearTimeout(pressTimer);
+                if (isLongPress) {
+                  e.preventDefault();
+                  return;
+                }
+                // نقرة عادية
                 document.querySelectorAll('.thread-item').forEach(el => el.classList.remove('active'));
                 threadItem.classList.add('active');
-                
                 document.getElementById('app-layout-wrapper').classList.add('show-active-chat');
                 this.openChat(room.roomId, currentUserId, targetUserId);
               });
+              threadItem.addEventListener('mouseleave', cancelPress);
+
+              // أحداث اللمس للهواتف
+              threadItem.addEventListener('touchstart', startPress, { passive: true });
+              threadItem.addEventListener('touchend', (e) => {
+                clearTimeout(pressTimer);
+                if (isLongPress) {
+                  e.preventDefault();
+                }
+              });
+              threadItem.addEventListener('touchmove', movePress, { passive: true });
 
               const existingNode = document.getElementById(`thread-element-${room.roomId}`);
               if (existingNode) {
@@ -1009,6 +1073,46 @@
             });
           });
         });
+      }
+
+      // دالة مضافة لعرض نافذة تأكيد حذف المحادثة
+      showDeleteThreadModal(roomId) {
+        const modal = document.getElementById('deleteThreadModal');
+        modal.style.display = 'flex';
+        
+        document.getElementById('confirmDeleteThreadBtn').onclick = async () => {
+          try {
+            // حذف المحادثة والبيانات التابعة لها نهائياً من قاعدة البيانات
+            await Promise.all([
+              set(ref(rtdb, `chatRooms/${roomId}`), null),
+              set(ref(rtdb, `messages/${roomId}`), null),
+              set(ref(rtdb, `unreadCounts/${roomId}`), null),
+              set(ref(rtdb, `typing/${roomId}`), null)
+            ]);
+
+            // إذا كانت المحادثة المحذوفة مفتوحة حالياً، نقوم بإغلاق عرض الشات
+            if (ChatState.activeRoomId === roomId) {
+              ChatState.activeRoomId = null;
+              ChatState.activeRoomData = null;
+              const viewport = document.getElementById('active-chat-viewport');
+              if (viewport) {
+                viewport.innerHTML = `
+                  <div class="empty-state">
+                    <i class="far fa-comments"></i>
+                    <h3 style="font-weight: 900; color: #fff;">صندوق الوارد العقاري</h3>
+                    <p style="font-size: 0.85rem;">اختر محادثة عقار من القائمة الجانبية للبدء بالتواصل الفوري.</p>
+                  </div>
+                `;
+              }
+              document.getElementById('app-layout-wrapper').classList.remove('show-active-chat');
+            }
+          } catch (err) {
+            console.error("Error deleting chat room:", err);
+            alert("⚠️ فشل حذف المحادثة.");
+          } finally {
+            modal.style.display = 'none';
+          }
+        };
       }
 
       async openChat(roomId, currentUserId, targetUserId) {
@@ -1549,11 +1653,11 @@
       // 🔔 دالة مساعدة مضافة لإرسال إشعار تليجرام للمسؤول بوجود رسالة جديدة في الشات
       async triggerTelegramNotification(propertyTitle, senderName) {
         try {
-    await fetch("https://am-property.vercel.app/api/send-telegram", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
+          await fetch("https://am-property.vercel.app/api/send-telegram", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
             body: JSON.stringify({
               type: "new_message",
               data: {
