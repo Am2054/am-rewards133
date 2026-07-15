@@ -162,6 +162,7 @@
 
             btn.innerText = "🚀 جاري إرسال البلاغ...";
 
+            // حفظ تذكرة الدعم في Firestore
             await addDoc(collection(db, "support_tickets"), {
                 uid: user.uid,
                 email: user.email,
@@ -173,6 +174,26 @@
                 adminReply: "", 
                 timestamp: serverTimestamp()
             });
+
+            // 🔔 إرسال إشعار تليجرام للمسؤول بوجود تذكرة دعم جديدة
+            try {
+                await fetch("/api/send-telegram", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        type: "new_ticket",
+                        data: {
+                            name: user.displayName || "مستخدم مسجل",
+                            email: user.email,
+                            message: msg
+                        }
+                    })
+                });
+            } catch (notifError) {
+                console.error("Failed to send Telegram notification:", notifError);
+            }
 
             Swal.fire("تم إرسال بلاغك", "شكراً لك، تم تلقي بلاغك العقاري بنجاح وسيتواصل معك فني أو مشرف الدعم الفني قريباً.", "success");
             document.getElementById('supportForm').reset();
