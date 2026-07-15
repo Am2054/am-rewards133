@@ -314,7 +314,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -469,7 +469,7 @@
     propertyTypeSelect.addEventListener('change', handlePropertyTypeChange);
     residentialSubtypeSelect.addEventListener('change', applyDynamicFloorRules);
 
-    // دالة فحص المطابقة والتحقق البرمجي العميق والمنظم للمقارنة بين النسختين
+    // دالة فحص المطابقة والتحقق البرمجي العميق والمنظم للمقارنة اللحظية بين النسختين
     const checkIfPayloadChanged = (newData) => {
         if (!originalPropertyData) return true;
 
@@ -856,64 +856,6 @@
             return; 
         }
 
-        // تحديد بيانات الأدوار بناءً على اختيار الهيكل السكني الموحد بشكل مسبق لعمل المقارنة
-        const isFloorHidden = document.getElementById('field-floor-select-group').classList.contains('hidden');
-        let finalFloorValue = isFloorHidden ? "مستقل" : document.getElementById('floorSelect').value;
-        let finalBuildingFloorsCount = parseInt(document.getElementById('buildingFloors').value) || 0;
-
-        // تجميع البيانات مؤقتاً لمقارنتها بالنسخة الأصلية قبل الشروع في رفع الميديا لتوفير الباندويث والسيرفر
-        const tempPayload = {
-            title: document.getElementById('title').value,
-            purpose: document.getElementById('purpose').value,
-            propertyType: propertyTypeSelect.value,
-            residentialSubtype: propertyTypeSelect.value === 'شقة' || propertyTypeSelect.value === 'دوبلكس' ? residentialSubtypeSelect.value : "none",
-            governorate: document.getElementById('governorate').value,
-            city: document.getElementById('city').value,
-            district: document.getElementById('district').value,
-            googleMapsLink: document.getElementById('googleMapsLink').value,
-            latitude: document.getElementById('latitude').value,
-            longitude: document.getElementById('longitude').value,
-            price: parseFloat(document.getElementById('price').value) || 0,
-            area: parseFloat(document.getElementById('area').value) || 0,
-            description: document.getElementById('description').value,
-            rooms: parseInt(document.getElementById('rooms').value) || 0,
-            bathrooms: parseInt(document.getElementById('bathrooms').value) || 0,
-            floor: finalFloorValue,
-            buildingFloors: finalBuildingFloorsCount,
-            finishing: document.getElementById('finishing').value || "",
-            electricityCard: document.getElementById('electricityCard').value || "",
-            waterCard: document.getElementById('waterCard').value || "",
-            features: {
-                elevator: document.getElementById('feat-elevator').checked,
-                garage: document.getElementById('feat-garage').checked,
-                security: document.getElementById('feat-security').checked,
-                balcony: document.getElementById('feat-balcony').checked,
-                airConditioner: document.getElementById('feat-airConditioner').checked,
-                furnished: document.getElementById('feat-furnished').checked,
-                naturalGas: document.getElementById('feat-naturalGas').checked,
-            },
-            // نمرر الروابط النصية القديمة فقط لمقارنتها البرمجية
-            images: uploadedImages.filter(item => typeof item === 'string')
-        };
-
-        const hasNewFiles = uploadedImages.some(item => typeof item !== 'string');
-        const hasFormChanged = hasNewFiles || checkIfPayloadChanged(tempPayload);
-
-        // 🔍 فحص هل تم التعديل فعلياً؟ إن لم يتم، يتم إيقاف المعاملة
-        if (!hasFormChanged) {
-            Swal.fire({
-                icon: 'info',
-                title: 'لم تقم بتعديل أي بيانات',
-                text: 'لم يتم رصد أي تغييرات على مواصفات العقار الحالية مقارنة بالنسخة الأصلية المخزنة.',
-                confirmButtonText: 'حسناً',
-                confirmButtonColor: '#00f2ff',
-                background: '#020617',
-                color: '#fff',
-                customClass: { popup: 'swal-custom-popup' }
-            });
-            return;
-        }
-        
         const finalBtn = document.getElementById('btnSubmitFinal');
         const progContainer = document.getElementById('uploadProgressContainer');
         const progBar = document.getElementById('uploadProgressBar');
@@ -923,10 +865,101 @@
         progBar.style.width = '10%';
 
         try {
-            const finalImageUrls = [];
-            progBar.style.width = "20%";
+            // 1. التحقق من وجود طلب تعديل قيد المراجعة بالفعل (Pending) لمنع التكرار والإغراق
+            const pendingQuery = query(
+                collection(db, "property_edit_requests"),
+                where("propertyId", "==", propertyId),
+                where("status", "==", "pending")
+            );
+            const pendingSnap = await getDocs(pendingQuery);
 
-            // إدارة رفع ميديا الصور
+            if (!pendingSnap.empty) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'طلب معلق بالفعل',
+                    text: 'لديك طلب تعديل قيد المراجعة بالفعل لهذا العقار. يرجى الانتظار لحين اعتماده من قبل الإدارة.',
+                    confirmButtonText: 'حسناً',
+                    confirmButtonColor: '#00f2ff',
+                    background: '#020617',
+                    color: '#fff',
+                    customClass: { popup: 'swal-custom-popup' }
+                });
+                finalBtn.disabled = false;
+                progContainer.style.display = 'none';
+                return;
+            }
+
+            // 2. جلب أحدث بيانات للعقار الحالي مباشرة من Firestore لضمان المقارنة الدقيقة
+            const freshDocSnap = await getDoc(doc(db, "properties", propertyId));
+            if (!freshDocSnap.exists()) {
+                throw new Error("العقار غير موجود أو تم حذفه.");
+            }
+            const freshData = freshDocSnap.data();
+
+            // تحديد بيانات الأدوار بناءً على اختيار الهيكل السكني الموحد بشكل مسبق لعمل المقارنة اللحظية الحية
+            const isFloorHidden = document.getElementById('field-floor-select-group').classList.contains('hidden');
+            let finalFloorValue = isFloorHidden ? "مستقل" : document.getElementById('floorSelect').value;
+            let finalBuildingFloorsCount = parseInt(document.getElementById('buildingFloors').value) || 0;
+
+            // تجميع البيانات الحالية من الفورم للمقارنة البرمجية
+            const tempPayload = {
+                title: document.getElementById('title').value,
+                purpose: document.getElementById('purpose').value,
+                propertyType: propertyTypeSelect.value,
+                residentialSubtype: propertyTypeSelect.value === 'شقة' || propertyTypeSelect.value === 'دوبلكس' ? residentialSubtypeSelect.value : "none",
+                governorate: document.getElementById('governorate').value,
+                city: document.getElementById('city').value,
+                district: document.getElementById('district').value,
+                googleMapsLink: document.getElementById('googleMapsLink').value,
+                latitude: document.getElementById('latitude').value,
+                longitude: document.getElementById('longitude').value,
+                price: parseFloat(document.getElementById('price').value) || 0,
+                area: parseFloat(document.getElementById('area').value) || 0,
+                description: document.getElementById('description').value,
+                rooms: parseInt(document.getElementById('rooms').value) || 0,
+                bathrooms: parseInt(document.getElementById('bathrooms').value) || 0,
+                floor: finalFloorValue,
+                buildingFloors: finalBuildingFloorsCount,
+                finishing: document.getElementById('finishing').value || "",
+                electricityCard: document.getElementById('electricityCard').value || "",
+                waterCard: document.getElementById('waterCard').value || "",
+                features: {
+                    elevator: document.getElementById('feat-elevator').checked,
+                    garage: document.getElementById('feat-garage').checked,
+                    security: document.getElementById('feat-security').checked,
+                    balcony: document.getElementById('feat-balcony').checked,
+                    airConditioner: document.getElementById('feat-airConditioner').checked,
+                    furnished: document.getElementById('feat-furnished').checked,
+                    naturalGas: document.getElementById('feat-naturalGas').checked,
+                },
+                // نمرر الروابط النصية القديمة فقط لمقارنتها البرمجية
+                images: uploadedImages.filter(item => typeof item === 'string')
+            };
+
+            const hasNewFiles = uploadedImages.some(item => typeof item !== 'string');
+            const hasFormChanged = hasNewFiles || checkIfPayloadChanged(tempPayload);
+
+            // 🔍 فحص هل تم التعديل فعلياً؟ إن لم يتم، يتم إيقاف المعاملة لتوفير البيانات
+            if (!hasFormChanged) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'لم تقم بتعديل أي بيانات',
+                    text: 'لم يتم رصد أي تغييرات على مواصفات العقار الحالية مقارنة بالنسخة الأصلية المخزنة.',
+                    confirmButtonText: 'حسناً',
+                    confirmButtonColor: '#00f2ff',
+                    background: '#020617',
+                    color: '#fff',
+                    customClass: { popup: 'swal-custom-popup' }
+                });
+                finalBtn.disabled = false;
+                progContainer.style.display = 'none';
+                return;
+            }
+
+            // 4. البدء برفع ميديا الصور الجديدة في حال وجود تغيير فعلي
+            const finalImageUrls = [];
+            progBar.style.width = "40%";
+
             for (let i = 0; i < uploadedImages.length; i++) {
                 const item = uploadedImages[i];
                 
@@ -946,51 +979,17 @@
 
                     finalImageUrls.push(data.images[0]);
                 }
-                progBar.style.width = `${20 + ((i + 1) / uploadedImages.length) * 50}%`;
+                progBar.style.width = `${40 + ((i + 1) / uploadedImages.length) * 40}%`;
             }
 
-            progBar.style.width = "80%";
+            progBar.style.width = "85%";
 
-            // بناء كائن التحديث بالبيانات الجديدة المعتمدة بعد الرفع
+            // بناء كائن الحفظ النهائي بالصور المرفوعة
             const propertyUpdatePayload = {
-                title: document.getElementById('title').value,
-                purpose: document.getElementById('purpose').value,
-                propertyType: propertyTypeSelect.value,
-                residentialSubtype: propertyTypeSelect.value === 'شقة' || propertyTypeSelect.value === 'دوبلكس' ? residentialSubtypeSelect.value : "none",
-                governorate: document.getElementById('governorate').value,
-                city: document.getElementById('city').value,
-                district: document.getElementById('district').value,
-                
-                googleMapsLink: document.getElementById('googleMapsLink').value,
-                latitude: document.getElementById('latitude').value,
-                longitude: document.getElementById('longitude').value,
-
-                price: parseFloat(document.getElementById('price').value),
-                area: parseFloat(document.getElementById('area').value),
-                description: document.getElementById('description').value,
-                
-                rooms: parseInt(document.getElementById('rooms').value) || 0,
-                bathrooms: parseInt(document.getElementById('bathrooms').value) || 0,
-                floor: finalFloorValue,
-                buildingFloors: finalBuildingFloorsCount,
-
-                finishing: document.getElementById('finishing').value || "",
-                electricityCard: document.getElementById('electricityCard').value || "",
-                waterCard: document.getElementById('waterCard').value || "",
-                features: {
-                    elevator: document.getElementById('feat-elevator').checked,
-                    garage: document.getElementById('feat-garage').checked,
-                    security: document.getElementById('feat-security').checked,
-                    balcony: document.getElementById('feat-balcony').checked,
-                    airConditioner: document.getElementById('feat-airConditioner').checked,
-                    furnished: document.getElementById('feat-furnished').checked,
-                    naturalGas: document.getElementById('feat-naturalGas').checked,
-                },
-
+                ...tempPayload,
                 images: finalImageUrls, 
                 coverImage: finalImageUrls[0] || null, 
                 video: null, 
-                
                 status: "pending",
                 updatedAt: serverTimestamp()
             };
@@ -1000,13 +999,13 @@
             await addDoc(editRequestsCollection, {
                 propertyId: propertyId,
                 ownerId: user.uid,
-                oldData: originalPropertyData,
+                oldData: freshData, // نرفع البيانات المجلوبة الحية مباشرة لضمان الدقة والأمان
                 newData: propertyUpdatePayload,
                 status: "pending",
                 createdAt: serverTimestamp()
             });
             
-            progBar.style.width = '90%';
+            progBar.style.width = '95%';
 
             // 🔔 إرسال إشعار تليجرام للمسؤول بوجود طلب تعديل قيد الانتظار عبر رابط Vercel المباشر
             try {
@@ -1032,7 +1031,7 @@
 
             progBar.style.width = '100%';
 
-            // نافذة نجاح مبسطة تعرض "تم إرسال طلب التعديل بنجاح" فقط كما طلبت
+            // نافذة نجاح مبسطة تعرض "تم إرسال طلب التعديل بنجاح" فقط
             Swal.fire({
                 icon: 'success',
                 title: 'تم إرسال طلب التعديل بنجاح',
