@@ -10,10 +10,10 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     :root {
-      --bg-primary: #0b0f19;
-      --bg-secondary: rgba(22, 30, 49, 0.7);
+      --bg-primary: #020617;
+      --bg-secondary: rgba(15, 23, 42, 0.75);
       --bg-tertiary: #1f293d;
-      --primary: #38bdf8;
+      --primary: #00f2ff; /* اللون السماوي المضيء الموحد مع الإضافة */
       --primary-hover: #0ea5e9;
       --text-primary: #f3f4f6;
       --text-muted: #9ca3af;
@@ -21,65 +21,106 @@
       --success: #10b981;
       --danger: #ef4444;
       --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      --neon-purple: #7000ff;
+      --radius: 24px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Cairo', sans-serif; background-color: var(--bg-primary); color: var(--text-primary); min-height: 100vh; padding: 2rem; }
-    .container { max-width: 900px; margin: 0 auto; background: var(--bg-secondary); border: 1px solid var(--border); padding: 2.5rem; border-radius: 16px; }
+    
+    body { 
+      font-family: 'Cairo', sans-serif; 
+      background-color: var(--bg-primary); 
+      color: var(--text-primary); 
+      min-height: 100vh; 
+      padding: 2.5rem 1.5rem; 
+      background-image: 
+        radial-gradient(circle at 0% 0%, rgba(112, 0, 255, 0.15) 0%, transparent 35%),
+        radial-gradient(circle at 100% 100%, rgba(0, 242, 255, 0.15) 0%, transparent 35%);
+    }
+
+    body::after {
+      content: ""; position: fixed; inset: 0; z-index: -1;
+      background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
+      opacity: 0.15; pointer-events: none;
+    }
+
+    .container { 
+      max-width: 900px; 
+      margin: 0 auto; 
+      background: var(--bg-secondary); 
+      border: 1px solid var(--border); 
+      padding: 45px 35px; 
+      border-radius: var(--radius); 
+      backdrop-filter: blur(20px);
+      position: relative;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .container::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--neon-purple), var(--primary));
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
     
     /* مؤشر الخطوات */
     .steps-indicator { display: flex; justify-content: space-between; margin-bottom: 2.5rem; position: relative; }
     .steps-indicator::before { content: ''; position: absolute; top: 25px; left: 0; right: 0; height: 2px; background: var(--border); z-index: 1; }
     .step-tab { z-index: 2; text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; opacity: 0.4; transition: var(--transition); }
     .step-tab.active { opacity: 1; }
-    .step-tab.active .step-num { background: var(--primary); color: var(--bg-primary); box-shadow: 0 0 15px rgba(56,189,248,0.4); }
+    .step-tab.active .step-num { background: var(--primary); color: var(--bg-primary); box-shadow: 0 0 15px rgba(0, 242, 255, 0.4); }
     .step-num { width: 50px; height: 50px; border-radius: 50%; background: var(--bg-tertiary); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; }
-    .step-text { font-size: 0.85rem; font-weight: 600; }
+    .step-text { font-size: 0.85rem; font-weight: 700; color: #fff; }
 
-    h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.75rem; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 1rem;}
+    h2 { font-size: 1.8rem; font-weight: 900; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.75rem; color: #fff; text-shadow: 0 0 15px rgba(0, 242, 255, 0.3); border-bottom: 1px solid var(--border); padding-bottom: 1rem;}
+    h2 i { color: var(--primary); }
     .form-step-panel { display: none; }
     .form-step-panel.active { display: block; }
 
     .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
-    .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
-    label { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+    .form-group { display: flex; flex-direction: column; gap: 0.5rem; position: relative; }
+    label { font-size: 0.95rem; font-weight: 700; color: var(--text-muted); }
     input[type="text"], input[type="number"], select, textarea {
-      width: 100%; padding: 0.85rem 1.25rem; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-family: 'Cairo', sans-serif; transition: var(--transition);
+      width: 100%; padding: 0.85rem 1.25rem; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-family: 'Cairo', sans-serif; font-weight: 600; transition: var(--transition); outline: none;
     }
-    input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 10px rgba(56,189,248,0.2); }
+    input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 12px rgba(0, 242, 255, 0.15); background: rgba(0,0,0,0.4); }
     
-    .btn-toggle-more { background: transparent; border: 1px dashed var(--primary); color: var(--primary); padding: 0.75rem; border-radius: 8px; cursor: pointer; font-weight: 700; width: 100%; margin: 1rem 0; transition: var(--transition); }
+    .btn-toggle-more { background: transparent; border: 1px dashed var(--primary); color: var(--primary); padding: 0.75rem; border-radius: 10px; cursor: pointer; font-weight: 700; width: 100%; margin: 1rem 0; font-family: 'Cairo', sans-serif; transition: var(--transition); }
     .btn-toggle-more:hover { background: rgba(56,189,248,0.05); }
 
     .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
-    .checkbox-item { display: flex; align-items: center; gap: 0.75rem; background: var(--bg-primary); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; }
+    .checkbox-item { display: flex; align-items: center; gap: 0.75rem; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; }
     .checkbox-item input { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
     
     /* ميديا زون */
-    .upload-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 2.5rem 1.5rem; text-align: center; cursor: pointer; background: var(--bg-primary); position: relative; margin-bottom: 1.5rem; }
+    .upload-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 2.5rem 1.5rem; text-align: center; cursor: pointer; background: rgba(0,0,0,0.2); position: relative; margin-bottom: 1.5rem; }
     .upload-zone:hover { border-color: var(--primary); }
     
     .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
     .media-box { position: relative; width: 100%; height: 120px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); background: #000; cursor: grab; }
     .media-box img, .media-box video { width: 100%; height: 100%; object-fit: cover; }
-    .media-box .badge-cover { position: absolute; bottom: 0; left: 0; right: 0; background: var(--primary); color: var(--bg-primary); text-align: center; font-size: 0.75rem; font-weight: 700; padding: 2px 0; }
+    .media-box .badge-cover { position: absolute; bottom: 0; left: 0; right: 0; background: var(--primary); color: #020617; text-align: center; font-size: 0.75rem; font-weight: 900; padding: 2px 0; }
     .media-box .btn-del { position: absolute; top: 5px; left: 5px; background: var(--danger); border: none; color: white; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; z-index: 10; }
     
     /* التقدم والتنقل */
-    .progress-container { background: var(--bg-primary); border-radius: 8px; height: 12px; overflow: hidden; margin: 1.5rem 0; display: none; border: 1px solid var(--border); }
-    .progress-bar { height: 100%; background: linear-gradient(90deg, var(--primary), var(--success)); width: 0%; transition: width 0.1s ease; }
+    .progress-container { background: rgba(0,0,0,0.3); border-radius: 8px; height: 12px; overflow: hidden; margin: 1.5rem 0; display: none; border: 1px solid var(--border); }
+    .progress-bar { height: 100%; background: linear-gradient(90deg, var(--neon-purple), var(--primary)); width: 0%; transition: width 0.1s ease; }
     
     .nav-buttons { display: flex; justify-content: space-between; margin-top: 2rem; gap: 1rem; }
-    .btn-nav { padding: 0.85rem 2rem; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; transition: var(--transition); font-family: 'Cairo'; }
-    .btn-next { background: var(--primary); color: var(--bg-primary); }
-    .btn-prev { background: var(--bg-tertiary); color: var(--text-primary); }
+    .btn-nav { padding: 0.85rem 2rem; border-radius: 12px; font-weight: 900; cursor: pointer; border: none; transition: var(--transition); font-family: 'Cairo'; font-size: 1rem; }
+    .btn-next { background: linear-gradient(90deg, var(--neon-purple), var(--primary)); color: #fff; box-shadow: 0 5px 15px rgba(112,0,255,0.25); }
+    .btn-next:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(112,0,255,0.4); }
+    .btn-prev { background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--border); }
+    .btn-prev:hover { background: rgba(255,255,255,0.08); }
     .btn-submit-final { background: var(--success); color: white; display: none; }
+    .btn-submit-final:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3); }
     
-    .btn-back { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-muted); text-decoration: none; font-weight: 600; margin-bottom: 1.5rem; }
+    .btn-back { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-muted); text-decoration: none; font-weight: 700; margin-bottom: 1.5rem; font-size: 0.95rem; }
+    .btn-back:hover { color: var(--primary); }
     .hidden { display: none !important; }
     
     /* مراجعة البيانات */
-    .review-item { background: var(--bg-primary); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid var(--border); }
-    .review-item h4 { color: var(--primary); margin-bottom: 0.5rem; font-size: 0.95rem; }
+    .review-item { background: rgba(0,0,0,0.2); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.25rem; border: 1px solid var(--border); }
+    .review-item h4 { color: var(--primary); margin-bottom: 0.75rem; font-size: 1rem; font-weight: 900; }
+    .review-item p { font-size: 0.95rem; line-height: 1.7; font-weight: 600; color: #fff; }
     
     /* شاشة التحميل المبدئية لجلب البيانات */
     .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-primary); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; gap: 1rem; }
@@ -92,7 +133,7 @@
   <!-- شاشة التحميل قبل جلب بيانات المستند -->
   <div id="loadingOverlay" class="loading-overlay">
     <div class="spinner"></div>
-    <p>جاري جلب بيانات العقار وتجهيزها للتعديل...</p>
+    <p>جاري جلب بيانات العقار وتجهيزها للتعديل المعتمد...</p>
   </div>
 
   <div class="container">
@@ -105,7 +146,7 @@
       <div class="step-tab" id="tab-3"><div class="step-num">3</div><div class="step-text">المراجعة والتعديل</div></div>
     </div>
 
-    <h2><i class="fas fa-edit"></i> تعديل بيانات العقار</h2>
+    <h2><i class="fas fa-edit"></i> طلب تعديل بيانات العقار</h2>
     
     <form id="editPropertyForm" onsubmit="return false;">
       
@@ -116,18 +157,35 @@
         </div>
         <div class="form-row">
           <div class="form-group"><label>نوع العملية *</label><select id="purpose" required><option value="sale">بيع</option><option value="rent">إيجار</option></select></div>
-          <div class="form-group"><label>نوع العقار *</label><select id="propertyType" required>
-              <option value="شقة">شقة</option><option value="فيلا">فيلا</option><option value="دوبلكس">دوبلكس</option>
-              <option value="مكتب">مكتب</option><option value="محل">محل</option><option value="أرض">أرض</option>
-          </select></div>
+          <div class="form-group"><label>نوع العقار *</label>
+            <select id="propertyType" required>
+              <option value="شقة">شقة</option>
+              <option value="فيلا">فيلا</option>
+              <option value="دوبلكس">دوبلكس</option>
+              <option value="مكتب">مكتب</option>
+              <option value="محل">محل</option>
+              <option value="أرض">أرض</option>
+            </select>
+          </div>
         </div>
+
+        <!-- حقل تفاصيل هيكل السكن الديناميكي بالكامل المتطابق مع صفحة الإضافة -->
+        <div class="form-row hidden" id="residentialSubtypeRow">
+          <div class="form-group">
+            <label>تفاصيل هيكل السكن *</label>
+            <select id="residentialSubtype" class="styled-select">
+              <!-- يتم التحكم في الخيارات برمجيًا من الجافا سكريبت -->
+            </select>
+          </div>
+        </div>
+
         <div class="form-row">
           <div class="form-group"><label>المحافظة *</label><input type="text" id="governorate" required></div>
           <div class="form-group"><label>المدينة *</label><input type="text" id="city" required></div>
           <div class="form-group"><label>المنطقة *</label><input type="text" id="district" required></div>
         </div>
         
-        <!-- جزء الموقع الجغرافي المضاف حديثاً -->
+        <!-- الموقع الجغرافي الخرائطي -->
         <div class="form-row">
           <div class="form-group" style="grid-column: span 2;">
             <label><i class="fas fa-map-marker-alt" style="color:var(--primary)"></i> رابط الموقع الجغرافي من خرائط جوجل (اختياري)</label>
@@ -144,16 +202,34 @@
           <div class="form-group"><label>المساحة (م) *</label><input type="number" id="area" required></div>
         </div>
         
-        <!-- حقول ديناميكية تتبع نوع العقار المختار -->
+        <!-- حقول ديناميكية تتبع نوع العقار المختار بالتوافق التام مع الإضافة -->
         <div class="form-row" id="dynamicFields">
           <div class="form-group" id="field-rooms"><label>عدد الغرف *</label><input type="number" id="rooms" value="3"></div>
           <div class="form-group" id="field-bathrooms"><label>عدد الحمامات *</label><input type="number" id="bathrooms" value="1"></div>
-          <div class="form-group" id="field-floor"><label>الدور *</label><input type="text" id="floor" value="الground"></div>
+        </div>
+
+        <!-- حقول الأدوار والهيكل السكني المحدثة والديناميكية المضافة حديثاً -->
+        <div class="form-row hidden" id="dynamicResidentialFields">
+          <div class="form-group" id="field-floor-select-group">
+            <label id="floorSelectLabel">الدور / الطابق المخصص *</label>
+            <select id="floorSelect" class="styled-select">
+              <option value="الأرضي">الأرضي</option>
+              <option value="الأول">الأول</option>
+              <option value="الثاني">الثاني</option>
+              <option value="الثالث">الثالث</option>
+              <option value="أعلى من الثالث">أعلى من الثالث</option>
+              <option value="الأخير">الأخير</option>
+            </select>
+          </div>
+          <div class="form-group" id="field-building-floors-group">
+            <label id="buildingFloorsLabel">إجمالي عدد أدوار العمارة *</label>
+            <input type="number" id="buildingFloors" placeholder="مثال: مكون من 5 أدوار" min="1" value="5">
+          </div>
         </div>
 
         <div class="form-group"><label>وصف العقار *</label><textarea id="description" rows="4" required></textarea></div>
 
-        <!-- القسم الثاني الإختياري تفاصيل أكثر -->
+        <!-- تفاصيل إضافية وتشطيبات -->
         <button type="button" class="btn-toggle-more" id="btnMoreDetails">عرض تفاصيل أكثر (اختياري) <i class="fas fa-chevron-down"></i></button>
         
         <div id="optionalSection" class="hidden">
@@ -225,7 +301,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -244,11 +320,14 @@
     const propertyId = urlParams.get('id');
 
     let currentStep = 1;
-    // تحتوي المصفوفة الآن على خليط: إما كائنات روابط سترينج (صور قديمة) أو كائنات File (صور جديدة مرفوعة)
     let uploadedImages = []; 
     let uploadedVideoFile = null; 
-    let existingVideoUrl = null; // للاحتفاظ برابط الفيديو القديم إذا لم يتغير
-    let currentUserName = "مستخدم مسجل"; // للاحتفاظ باسم المالك المحدث للإشعار
+    let existingVideoUrl = null; 
+    let currentUserName = "مستخدم مسجل"; 
+    let originalPropertyData = null; // للاحتفاظ بنسخة كاملة من البيانات القديمة لرفعها في طلب التعديل
+
+    const propertyTypeSelect = document.getElementById('propertyType');
+    const residentialSubtypeSelect = document.getElementById('residentialSubtype');
 
     if (!propertyId) {
         alert("خطأ: لم يتم تحديد معرف العقار المطلوب تعديله.");
@@ -266,6 +345,105 @@
         await loadPropertyData();
     });
 
+    // دالة التحكم التفاعلي والديناميكي في عرض الحقول وتغيير مسمياتها المتطابقة تماماً مع الإضافة
+    const applyDynamicFloorRules = () => {
+        const type = propertyTypeSelect.value;
+        const subtype = residentialSubtypeSelect.value;
+
+        const fRooms = document.getElementById('field-rooms');
+        const fBaths = document.getElementById('field-bathrooms');
+        const fDynamicResFields = document.getElementById('dynamicResidentialFields');
+        const fFloorGroup = document.getElementById('field-floor-select-group');
+        const fBuildingFloorsGroup = document.getElementById('field-building-floors-group');
+        const fGrid = document.getElementById('featuresGrid');
+
+        // إرجاع الوضع الافتراضي النظيف للحقول
+        fRooms.classList.remove('hidden'); 
+        fBaths.classList.remove('hidden'); 
+        fDynamicResFields.classList.add('hidden');
+        if (fGrid) fGrid.querySelectorAll('.checkbox-item').forEach(i => i.classList.remove('hidden'));
+
+        // إخفاء الحقول غير الملائمة عند اختيار "أرض"
+        if (type === 'أرض') {
+            fRooms.classList.add('hidden'); 
+            fBaths.classList.add('hidden'); 
+            fDynamicResFields.classList.add('hidden');
+            document.getElementById('residentialSubtypeRow').classList.add('hidden');
+            if (fGrid) fGrid.querySelectorAll('.checkbox-item').forEach(i => i.classList.add('hidden'));
+            return;
+        } 
+        // إخفاء الحقول غير الملائمة عند اختيار "مكتب" أو "محل"
+        else if (type === 'محل' || type === 'مكتب') {
+            fRooms.classList.add('hidden');
+            fDynamicResFields.classList.add('hidden');
+            document.getElementById('residentialSubtypeRow').classList.add('hidden');
+            return;
+        }
+
+        // معالجة الوحدات السكنية حسب نوع هيكلها المحدد
+        if (type === 'شقة') {
+            document.getElementById('residentialSubtypeRow').classList.remove('hidden');
+            fDynamicResFields.classList.remove('hidden');
+
+            if (subtype === 'apartment_in_building') {
+                fFloorGroup.classList.remove('hidden');
+                document.getElementById('floorSelectLabel').textContent = "الدور / الطابق المخصص *";
+                fBuildingFloorsGroup.classList.remove('hidden');
+                document.getElementById('buildingFloorsLabel').textContent = "إجمالي أدوار العمارة *";
+            } else if (subtype === 'independent_house') {
+                fFloorGroup.classList.add('hidden');
+                fBuildingFloorsGroup.classList.remove('hidden');
+                document.getElementById('buildingFloorsLabel').textContent = "عدد أدوار المبنى *";
+            }
+        } 
+        else if (type === 'دوبلكس') {
+            document.getElementById('residentialSubtypeRow').classList.remove('hidden');
+            fDynamicResFields.classList.remove('hidden');
+
+            if (subtype === 'duplex_in_building') {
+                fFloorGroup.classList.remove('hidden');
+                document.getElementById('floorSelectLabel').textContent = "الدور الذي يبدأ منه *";
+                fBuildingFloorsGroup.classList.remove('hidden');
+                document.getElementById('buildingFloorsLabel').textContent = "إجمالي أدوار العمارة *";
+            } else if (subtype === 'independent_duplex') {
+                fFloorGroup.classList.add('hidden');
+                fBuildingFloorsGroup.classList.remove('hidden');
+                document.getElementById('buildingFloorsLabel').textContent = "عدد أدوار المبنى *";
+            }
+        } 
+        else if (type === 'فيلا') {
+            document.getElementById('residentialSubtypeRow').classList.add('hidden');
+            fDynamicResFields.classList.remove('hidden');
+            
+            fFloorGroup.classList.add('hidden');
+            fBuildingFloorsGroup.classList.remove('hidden');
+            document.getElementById('buildingFloorsLabel').textContent = "عدد أدوار الفيلا *";
+        }
+    };
+
+    const handlePropertyTypeChange = () => {
+        const val = propertyTypeSelect.value;
+        
+        if (val === 'شقة') {
+            residentialSubtypeSelect.innerHTML = `
+              <option value="apartment_in_building">شقة داخل عمارة 🏢</option>
+              <option value="independent_house">منزل مستقل 🏠</option>
+            `;
+            residentialSubtypeSelect.value = "apartment_in_building";
+        } else if (val === 'دوبلكس') {
+            residentialSubtypeSelect.innerHTML = `
+              <option value="duplex_in_building">دوبلكس داخل عمارة 🏢</option>
+              <option value="independent_duplex">دوبلكس مستقل 🏠</option>
+            `;
+            residentialSubtypeSelect.value = "duplex_in_building";
+        }
+
+        applyDynamicFloorRules();
+    };
+
+    propertyTypeSelect.addEventListener('change', handlePropertyTypeChange);
+    residentialSubtypeSelect.addEventListener('change', applyDynamicFloorRules);
+
     // جلب البيانات من Firestore وتعبئة الحقول
     async function loadPropertyData() {
         try {
@@ -279,8 +457,9 @@
             }
 
             const data = docSnap.data();
+            originalPropertyData = data; // الاحتفاظ بنسخة كاملة من البيانات القديمة للمقارنة لاحقاً بطلب التعديل
 
-            // التحقق من أن المستخدم الحالي هو صاحب العقار (أمان إضافي)
+            // التحقق من أن المستخدم الحالي هو صاحب العقار
             if (data.ownerId !== auth.currentUser.uid) {
                 alert("عذراً، لا تملك الصلاحية لتعديل هذا العقار.");
                 window.location.href = "my-properties.html";
@@ -290,7 +469,16 @@
             // ملء الحقول الأساسية
             document.getElementById('title').value = data.title || "";
             document.getElementById('purpose').value = data.purpose || "sale";
-            document.getElementById('propertyType').value = data.propertyType || "شقة";
+            
+            // تهيئة حقول نوع وهيكل العقار تفاعلياً
+            propertyTypeSelect.value = data.propertyType || "شقة";
+            handlePropertyTypeChange();
+
+            if (data.residentialSubtype) {
+                residentialSubtypeSelect.value = data.residentialSubtype;
+                applyDynamicFloorRules();
+            }
+
             document.getElementById('governorate').value = data.governorate || "";
             document.getElementById('city').value = data.city || "";
             document.getElementById('district').value = data.district || "";
@@ -303,10 +491,16 @@
             document.getElementById('latitude').value = data.latitude || "";
             document.getElementById('longitude').value = data.longitude || "";
 
-            // الحقول الديناميكية
+            // الحقول الديناميكية للأعداد والأدوار الموحدة
             document.getElementById('rooms').value = data.rooms ?? 3;
             document.getElementById('bathrooms').value = data.bathrooms ?? 1;
-            document.getElementById('floor').value = data.floor || "";
+            
+            if (data.floor && data.floor !== "مستقل") {
+                document.getElementById('floorSelect').value = data.floor;
+            }
+            if (data.buildingFloors) {
+                document.getElementById('buildingFloors').value = data.buildingFloors;
+            }
 
             // حقول التفاصيل الإضافية والاختيارية
             if (data.finishing || data.electricityCard || data.waterCard || data.features) {
@@ -326,10 +520,7 @@
                 }
             }
 
-            // تشغيل فلترة الحقول الديناميكية بناء على النوع المجلوب
-            handlePropertyTypeFields(data.propertyType);
-
-            // جلب الصور والفيديو القديمين
+            // جلب ميديا الصور والفيديوهات القديمة
             if (data.images && Array.isArray(data.images)) {
                 uploadedImages = [...data.images];
                 renderImagesPreview();
@@ -339,7 +530,7 @@
                 renderVideoPreview();
             }
 
-            // إخفاء شاشة التحميل بعد الانتهاء تماماً
+            // إخفاء شاشة التحميل
             document.getElementById('loadingOverlay').style.display = 'none';
 
         } catch (error) {
@@ -348,7 +539,7 @@
         }
     }
 
-    // 1. إدارة التنقل بين الـ 3 خطوات مع التحقق الشامل للفورم والوسائط
+    // إدارة التنقل بين الخطوات الثلاثة والتحقق من المدخلات
     const updateStepUI = () => {
         document.querySelectorAll('.form-step-panel').forEach(panel => panel.classList.remove('active'));
         document.querySelectorAll('.step-tab').forEach(tab => tab.classList.remove('active'));
@@ -393,29 +584,7 @@
         sect.classList.toggle('hidden');
     });
 
-    // فلترة الحقول الديناميكية (دالة منفصلة للاستخدام عند التغيير وعند التحميل المبدئي)
-    function handlePropertyTypeFields(val) {
-        const fRooms = document.getElementById('field-rooms');
-        const fBaths = document.getElementById('field-bathrooms');
-        const fFloor = document.getElementById('field-floor');
-        const fGrid = document.getElementById('featuresGrid');
-
-        fRooms.classList.remove('hidden'); fBaths.classList.remove('hidden'); fFloor.classList.remove('hidden');
-        fGrid.querySelectorAll('.checkbox-item').forEach(i => i.classList.remove('hidden'));
-
-        if (val === 'أرض') {
-            fRooms.classList.add('hidden'); fBaths.classList.add('hidden'); fFloor.classList.add('hidden');
-            fGrid.querySelectorAll('.checkbox-item').forEach(i => i.classList.add('hidden'));
-        } else if (val === 'محل' || val === 'مكتب') {
-            fRooms.classList.add('hidden');
-        }
-    }
-
-    document.getElementById('propertyType').addEventListener('change', (e) => {
-        handlePropertyTypeFields(e.target.value);
-    });
-
-    // 3. نظام الصور المتقدم (معاينة وحذف وضغط والتحقق من الترتيب الافتراضي)
+    // إدارة وضغط ومعاينة الصور والوسائط
     document.getElementById('imageFiles').addEventListener('change', async (e) => {
         const files = Array.from(e.target.files);
         if (uploadedImages.length + files.length > 15) { alert('الحد الأقصى المسموح به هو 15 صورة فقط للعقار الواحد.'); return; }
@@ -472,7 +641,6 @@
             });
 
             const img = document.createElement('img');
-            // التحقق إذا كان الرابط قادم من الـ database (String) أو صورة جديدة محلياً (File Object)
             if (typeof item === 'string') {
                 img.src = item; 
             } else {
@@ -499,27 +667,6 @@
             grid.appendChild(box);
         });
     };
-
-    // 4. نظام الفيديو
-    document.getElementById('videoFile').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        if (file.type !== 'video/mp4') { alert('عذراً، نظام الرفع يقبل فيديو بصيغة MP4 فقط.'); return; }
-        if (file.size > 100 * 1024 * 1024) { alert('الملف كبير جداً، الحد الأقصى للفيديو هو 100 ميجابايت.'); return; }
-
-        const videoEl = document.createElement('video');
-        videoEl.preload = 'metadata';
-        videoEl.src = URL.createObjectURL(file);
-        videoEl.onloadedmetadata = () => {
-            if (videoEl.duration > 61) {
-                alert('الحد الأقصى لطول مقطع الفيديو هو دقيقة واحدة (60 ثانية).');
-                return;
-            }
-            uploadedVideoFile = file;
-            existingVideoUrl = null; // الغاء الرابط القديم لأننا اخترنا ملف جديد
-            renderVideoPreview();
-        };
-    });
 
     const renderVideoPreview = () => {
         const grid = document.getElementById('videoPreviewGrid');
@@ -553,7 +700,7 @@
         document.getElementById('reviewMediaText').innerText = `إجمالي الصور النهائي: ${uploadedImages.length} صورة`;
     };
 
-    // 5. التحديث النهائي الشامل للمستند الحالي بـ Firestore باستخدام updateDoc
+    // 5. التحديث المطور برفع طلب التعديل لـ property_edit_requests وإرسال الإشعار
     document.getElementById('btnSubmitFinal').addEventListener('click', async () => {
         const user = auth.currentUser;
         if(!user) { alert('يجب تسجيل الدخول أولاً لتعديل العقارات.'); return; }
@@ -567,19 +714,16 @@
         progBar.style.width = '10%';
 
         try {
-            const typeSelect = document.getElementById('propertyType');
             const finalImageUrls = [];
             progBar.style.width = "20%";
 
-            // إدارة رفع ميديا الصور: نرفع الملفات الجديدة (File) ونحافظ على روابط الصور القديمة (String) بنفس ترتيبها
+            // إدارة رفع ميديا الصور
             for (let i = 0; i < uploadedImages.length; i++) {
                 const item = uploadedImages[i];
                 
                 if (typeof item === 'string') {
-                    // صورة قديمة مرفوعة بالفعل، نضع رابطها مباشرة
                     finalImageUrls.push(item);
                 } else {
-                    // صورة جديدة محتاجة رفع لـ Vercel Blob API
                     const fd = new FormData();
                     fd.append("files", item);
 
@@ -598,16 +742,21 @@
 
             progBar.style.width = "80%";
 
-            // بناء كائن التحديث بالبيانات الجديدة المعدلة
+            // تحديد بيانات الأدوار بناءً على اختيار الهيكل السكني الموحد
+            const isFloorHidden = document.getElementById('field-floor-select-group').classList.contains('hidden');
+            let finalFloorValue = isFloorHidden ? "مستقل" : document.getElementById('floorSelect').value;
+            let finalBuildingFloorsCount = parseInt(document.getElementById('buildingFloors').value) || 0;
+
+            // بناء كائن التحديث بالبيانات الجديدة المقترحة
             const propertyUpdatePayload = {
                 title: document.getElementById('title').value,
                 purpose: document.getElementById('purpose').value,
-                propertyType: typeSelect.value,
+                propertyType: propertyTypeSelect.value,
+                residentialSubtype: propertyTypeSelect.value === 'شقة' || propertyTypeSelect.value === 'دوبلكس' ? residentialSubtypeSelect.value : "none",
                 governorate: document.getElementById('governorate').value,
                 city: document.getElementById('city').value,
                 district: document.getElementById('district').value,
                 
-                // إضافة الموقع الجغرافي المحدث في كائن البيانات
                 googleMapsLink: document.getElementById('googleMapsLink').value,
                 latitude: document.getElementById('latitude').value,
                 longitude: document.getElementById('longitude').value,
@@ -616,12 +765,11 @@
                 area: parseFloat(document.getElementById('area').value),
                 description: document.getElementById('description').value,
                 
-                // الحقول الديناميكية
                 rooms: parseInt(document.getElementById('rooms').value) || 0,
                 bathrooms: parseInt(document.getElementById('bathrooms').value) || 0,
-                floor: document.getElementById('floor').value || "",
+                floor: finalFloorValue,
+                buildingFloors: finalBuildingFloorsCount,
 
-                // القسم الاختياري
                 finishing: document.getElementById('finishing').value || "",
                 electricityCard: document.getElementById('electricityCard').value || "",
                 waterCard: document.getElementById('waterCard').value || "",
@@ -635,23 +783,28 @@
                     naturalGas: document.getElementById('feat-naturalGas').checked,
                 },
 
-                // الميديا المحدثة (الصور فقط)
                 images: finalImageUrls, 
-                coverImage: finalImageUrls[0] || null, // تعيين الصورة الأولى دائماً كغلاف
-                video: null, // الحفاظ على قيمة الفيديو فارغة ليتوافق مع إلغاء الميزة
+                coverImage: finalImageUrls[0] || null, 
+                video: null, 
                 
-                // إعادة حالة المنشور إلى "pending" (تحت المراجعة) بعد التعديل لضمان الأمان
                 status: "pending",
                 updatedAt: serverTimestamp()
             };
 
-            // حفظ التعديلات في المستند المفتوح بـ Firestore عن طريق updateDoc
-            const docRef = doc(db, "properties", propertyId);
-            await updateDoc(docRef, propertyUpdatePayload);
+            // الرفع والحفظ في الكولكشن الجديدة: property_edit_requests
+            const editRequestsCollection = collection(db, "property_edit_requests");
+            await addDoc(editRequestsCollection, {
+                propertyId: propertyId,
+                ownerId: user.uid,
+                oldData: originalPropertyData,
+                newData: propertyUpdatePayload,
+                status: "pending",
+                createdAt: serverTimestamp()
+            });
             
             progBar.style.width = '90%';
 
-            // 🔔 إرسال إشعار تليجرام للمسؤول بوجود تعديل جديد على العقار عبر رابط Vercel المباشر
+            // 🔔 إرسال إشعار تليجرام للمسؤول بوجود طلب تعديل قيد الانتظار عبر رابط Vercel المباشر
             try {
                 await fetch("https://am-property.vercel.app/api/send-telegram", {
                     method: "POST",
@@ -674,12 +827,12 @@
             }
 
             progBar.style.width = '100%';
-            alert('تم تحديث بيانات العقار بنجاح، وإرساله لإعادة المراجعة.');
+            alert('تم إرسال طلب التعديل بنجاح، وسيقوم المسؤول بمراجعته واعتماده قريباً.');
             window.location.href = "my-properties.html";
 
         } catch (error) {
-            console.error("Critical edit submission error:", error);
-            alert(`حدث خطأ أثناء حفظ التعديلات: ${error.message}`);
+            console.error("Critical edit requests submission error:", error);
+            alert(`حدث خطأ أثناء إرسال طلب التعديل: ${error.message}`);
             finalBtn.disabled = false;
             progContainer.style.display = 'none';
         }
