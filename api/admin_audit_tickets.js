@@ -2,7 +2,7 @@
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getDatabase } from "firebase-admin/database"; 
-import { getAuth } from "firebase-admin/auth"; // 👈 [تعديل 1]: استيراد حزمة المصادقة للـ Admin
+import { getAuth } from "firebase-admin/auth"; 
 import jwt from "jsonwebtoken";
 import { parse, serialize } from "cookie";
 
@@ -19,7 +19,7 @@ if (!getApps().length) {
 
 const db = getFirestore();
 const rtdb = getDatabase(); 
-const auth = getAuth(); // 👈 [تعديل 2]: تعريف كائن auth لاستخدامه في التحقق الفيدرالي بالأسفل
+const auth = getAuth(); 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
 // التحقق من الجلسة الأمنية للأدمن عبر الكوكيز المرفقة بالطلب
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-  const { action, module, password, uid, status, tId, reply, propertyId, reason, roomId, messageText } = req.body;
+  const { action, module, password, uid, status, tId, reply, propertyId, requestId, reason, roomId, messageText } = req.body;
 
   if (action === 'admin_login') {
     let isValid = false;
@@ -83,7 +83,6 @@ export default async function handler(req, res) {
     if (authHeader && authHeader.startsWith("Bearer ")) {
       const idToken = authHeader.split("Bearer ")[1];
       try {
-        // سيعمل هذا السطر الآن بنجاح لأن auth تم تعريفه بالأعلى 🚀
         const decodedToken = await auth.verifyIdToken(idToken);
         if (decodedToken) {
           isAuthorized = true; 
@@ -122,28 +121,42 @@ export default async function handler(req, res) {
 
     if (module === 'properties') {
       if (action === 'get_admin_properties') {
-        const [pendingCountSnap, approvedCountSnap, rejectedCountSnap] = await Promise.all([
+        // حساب العدادات لكافة المنزلقات بما فيها منزلق التعديل الجديد (Edit Requests) في نفس الوقت لسرعة قصوى
+        const [pendingCountSnap, approvedCountSnap, rejectedCountSnap, editRequestsCountSnap] = await Promise.all([
           db.collection("properties").where("status", "==", "pending").count().get(),
           db.collection("properties").where("status", "==", "approved").count().get(),
-          db.collection("properties").where("status", "==", "rejected").count().get()
+          db.collection("properties").where("status", "==", "rejected").count().get(),
+          db.collection("property_edit_requests").where("status", "==", "pending").count().get()
         ]);
 
         const pendingCount = pendingCountSnap.data().count;
         const approvedCount = approvedCountSnap.data().count;
         const rejectedCount = rejectedCountSnap.data().count;
-        const totalCount = pendingCount + approvedCount + rejectedCount;
+        const editRequestsCount = editRequestsCountSnap.data().count;
+        const totalCount = pendingCount + approvedCount + rejectedCount + editRequestsCount;
 
-        let queryRef = db.collection("properties").orderBy("createdAt", "desc");
-        const snap = await queryRef.get();
-        
-        let propertiesList = snap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate()
-        }));
+        let propertiesList = [];
 
-        if (status && status !== 'all') {
-          propertiesList = propertiesList.filter(p => p.status === status);
+        if (status === 'edit_requests') {
+          // استعلام وجلب طلبات التعديل المعلقة كلياً من الكولكشن المخصصة لها
+          const snap = await db.collection("property_edit_requests").orderBy("createdAt", "desc").get();
+          propertiesList = snap.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate()
+          }));
+        } else {
+          // استعلام وجلب البيانات العامة من كولكشن العقارات الرئيسية
+          const snap = await db.collection("properties").orderBy("createdAt", "desc").get();
+          propertiesList = snap.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate()
+          }));
+
+          if (status && status !== 'all') {
+            propertiesList = propertiesList.filter(p => p.status === status);
+          }
         }
 
         return res.status(200).json({
@@ -152,11 +165,13 @@ export default async function handler(req, res) {
             pending: pendingCount,
             approved: approvedCount,
             rejected: rejectedCount,
+            edit_requests: editRequestsCount,
             total: totalCount
           }
         });
       }
 
+      // الموافقة على إعلان عقار جديد عادي
       if (action === 'approve') {
         await db.collection("properties").doc(propertyId).update({
           status: "approved",
@@ -166,6 +181,38 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, message: "✅ تمت الموافقة على العقار ونشره بنجاح بالمنصة." });
       }
 
+      // الموافقة على طلب تعديل قائم ونقل البيانات الجديدة للمستند الأصلي
+      if (action === 'approve_edit') {
+        if (!requestId || !propertyId) {
+          return res.status(400).json({ error: "Missing required parameters: requestId or propertyId" });
+        }
+
+        const requestSnap = await db.collection("property_edit_requests").doc(requestId).get();
+        if (!requestSnap.exists) {
+          return res.status(404).json({ error: "طلب التعديل المطلوب لم يتم العثور عليه." });
+        }
+
+        const requestData = requestSnap.data();
+        const proposedNewData = requestData.newData;
+
+        // 1. نقل وتحديث البيانات الجديدة في مستند العقار الأصلي ورفع الحجب عنه بجعله approved
+        await db.collection("properties").doc(propertyId).update({
+          ...proposedNewData,
+          status: "approved",
+          rejectReason: FieldValue.delete(),
+          updatedAt: FieldValue.serverTimestamp()
+        });
+
+        // 2. تحديث حالة طلب التعديل المعلق ليكون معتمداً ومغلقاً بالخلفية
+        await db.collection("property_edit_requests").doc(requestId).update({
+          status: "approved",
+          resolvedAt: FieldValue.serverTimestamp()
+        });
+
+        return res.status(200).json({ success: true, message: "✅ تم اعتماد وتطبيق التعديلات ونشر العقار المحدث بنجاح." });
+      }
+
+      // رفض إعلان عقار جديد عادي
       if (action === 'reject') {
         await db.collection("properties").doc(propertyId).update({
           status: "rejected",
@@ -175,9 +222,42 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, message: "⚠️ تم رفض الإعلان وإشعار المعلن بالسبب بنجاح." });
       }
 
+      // رفض طلب تعديل قائم وإخطار المستخدم بالسبب
+      if (action === 'reject_edit') {
+        if (!requestId || !propertyId) {
+          return res.status(400).json({ error: "Missing required parameters: requestId or propertyId" });
+        }
+
+        // 1. تحديث حالة طلب التعديل ليكون مرفوضاً وتوثيق السبب
+        await db.collection("property_edit_requests").doc(requestId).update({
+          status: "rejected",
+          rejectReason: reason || "تم رفض التعديل بواسطة الإدارة",
+          resolvedAt: FieldValue.serverTimestamp()
+        });
+
+        // 2. تحديث حالة العقار الأصلي نفسه ليكون مرفوضاً ومحجوباً عن العرض العام وتوثيق سبب الرفض للمالك
+        await db.collection("properties").doc(propertyId).update({
+          status: "rejected",
+          rejectReason: reason || "تم رفض التعديل المقترح بواسطة الإدارة",
+          updatedAt: FieldValue.serverTimestamp()
+        });
+
+        return res.status(200).json({ success: true, message: "⚠️ تم رفض التعديلات المقترحة بنجاح وإبقاء العقار محجوباً." });
+      }
+
+      // حذف مستند العقار الأصلي نهائياً
       if (action === 'delete') {
         await db.collection("properties").doc(propertyId).delete();
         return res.status(200).json({ success: true, message: "🗑️ تم حذف مستند العقار نهائياً من السيرفر بنجاح." });
+      }
+
+      // حذف طلب التعديل المعلق نهائياً دون التأثير على العقار الأصلي
+      if (action === 'delete_edit') {
+        if (!requestId) {
+          return res.status(400).json({ error: "Missing required parameter: requestId" });
+        }
+        await db.collection("property_edit_requests").doc(requestId).delete();
+        return res.status(200).json({ success: true, message: "🗑️ تم حذف مستند طلب التعديل نهائياً بنجاح." });
       }
     }
 
@@ -261,4 +341,4 @@ export default async function handler(req, res) {
     console.error("Admin API Internal Error Details:", error);
     return res.status(500).json({ error: "Failed to process request: " + error.message });
   }
-}
+      }
