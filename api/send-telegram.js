@@ -37,8 +37,19 @@ export default async function handler(req, res) {
       });
     }
 
-    // التحقق من وجود الدالة المطلوبة في مركز الإشعارات
-    if (!notify[type]) {
+    // 💡 قاموس التحويل الذكي لمطابقة مسميات الواجهة الأمامية بالخلفية
+    const typeMapping = {
+      "new_user": "newUser",
+      "new_property": "newProperty",
+      "new_ticket": "newTicket",
+      "new_message": "newMessage",
+      "report": "report"
+    };
+
+    const mappedType = typeMapping[type] || type;
+
+    // التحقق من وجود الدالة المطلوبة في مركز الإشعارات بعد التحويل
+    if (!notify[mappedType]) {
       return res.status(400).json({
         error: `Unknown notification type: ${type}`
       });
@@ -48,8 +59,8 @@ export default async function handler(req, res) {
     const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress || "Unknown";
     const enhancedData = { ...data, ip };
 
-    // تنفيذ الإشعار وإرساله إلى تليجرام
-    await notify[type](enhancedData);
+    // تنفيذ الإشعار وإرساله إلى تليجرام باستخدام الاسم المطابق
+    await notify[mappedType](enhancedData);
 
     return res.status(200).json({
       success: true
