@@ -112,7 +112,7 @@
     .stats-dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; }
     .stat-dashboard-card { background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border); padding: 1.25rem 1rem; border-radius: 12px; text-align: center; }
     .stats-dashboard-val { font-size: 1.85rem; font-weight: 900; color: var(--neon-cyan); margin-bottom: 0.25rem; }
-    .stat-dashboard-lbl { font-size: 0.8rem; color: var(--muted); font-weight: 700; }
+    .stats-dashboard-lbl { font-size: 0.8rem; color: var(--muted); font-weight: 700; }
 
     .property-edit-btn {
       width: 100%; background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan)); color: #fff;
@@ -631,16 +631,76 @@
         }
       }
 
+      // 🔒 دالة حذف الحساب المحدثة كلياً بالـ Snapshot Unsubscribe والأقسام الأمنية المزامنة
       async handleDeleteAccount() {
         if (confirm("🚨 هل أنت متأكد من رغبتك في مسح كافة بياناتك نهائياً؟ لا يمكن التراجع.")) {
+          
+          // 1. إلغاء الاشتراك في Snapshot Listener فوراً لمنع التوجيه التلقائي المفاجئ لصفحة الدخول
+          if (this.unsubscribeUser) {
+            this.unsubscribeUser();
+            this.unsubscribeUser = null;
+          }
+
+          // حفظ بيانات الحساب المعني مؤقتاً بالذاكرة لتمريرها تالياً في تليجرام
+          const oldName = AppState.currentUser?.name || "مستخدم مسجل";
+          const oldEmail = AppState.currentUser?.email || "غير معروف";
+          const oldPhone = AppState.currentUser?.phone || "غير معروف";
+          const oldUid = AppState.currentUserId;
+
           try {
-            if (AppState.currentUser?.id_card_url) {
-              try { await deleteObject(ref(storage, AppState.currentUser.id_card_url)); } catch (e) {}
+            // 2. محاولة حذف مستخدم الـ Auth أولاً لأنه يتطلب تسجيل دخول حديث (لو فشل، سيتوقف هنا ولن يتأثر مستند Firestore)
+            if (auth.currentUser) {
+              await deleteUser(auth.currentUser);
             }
+
+            // 3. حذف ملف وثيقة الهوية من الـ Storage إن وجد
+            if (AppState.currentUser?.id_card_url) {
+              try { 
+                await deleteObject(ref(storage, AppState.currentUser.id_card_url)); 
+              } catch (e) {
+                console.warn("Storage deletion skipped/failed:", e.message);
+              }
+            }
+
+            // 4. حذف مستند المستخدم بالكامل من كولكشن users بالـ Firestore
             await deleteDoc(doc(db, "users", AppState.currentUserId));
-            if (auth.currentUser) await deleteUser(auth.currentUser);
+
+            // 5. إرسال إشعار تليجرام فوري ومباشر للمسؤول بتصفية وحذف الحساب نهائياً عبر رابط Vercel المعتمد
+            try {
+              await fetch("https://am-property.vercel.app/api/send-telegram", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                  type: "delete_account",
+                  data: {
+                    name: oldName,
+                    email: oldEmail,
+                    phone: oldPhone,
+                    uid: oldUid
+                  }
+                })
+              });
+            } catch (err) {
+              console.error("Failed to send delete_account Telegram notification:", err);
+            }
+
+            alert("تم حذف حسابك وكافة بياناتك المسجلة نهائياً بنجاح.");
             this.redirectToLogin();
-          } catch(e) { alert("يتطلب هذا الإجراء إعادة تسجيل دخول حديث لحماية حسابك."); }
+
+          } catch (error) {
+            console.error("Critical Deletion Error:", error);
+            
+            // إعادة تفعيل الـ Snapshot Listener فوراً لو فشلت عملية الحذف حتى لا يتضرر أو يتعطل الحساب
+            this.initAuthAndSnapshotListener();
+
+            if (error.code === "auth/requires-recent-login") {
+              alert("⚠️ حماية أمنية: هذا الإجراء حساس للغاية ويتطلب تسجيل دخول حديث. يرجى تسجيل الخروج ثم الدخول مرة أخرى وإجراء الحذف فوراً لحماية حسابك.");
+            } else {
+              alert("حدث خطأ غير متوقع أثناء محاولة حذف الحساب: " + error.message);
+            }
+          }
         }
       }
     }
