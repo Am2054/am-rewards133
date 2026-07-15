@@ -1523,7 +1523,7 @@
         }
       }
 
-      // 📢 دالة مساعدة مضافة لإرسال طلب الـ Push Notification لخادم الـ Vercel API الجديد
+      // 📢 دالة مساعدة لإرسال طلب الـ Push Notification لخادم الـ Vercel API الجديد
       async triggerPushNotification(receiverId, bodyText, titleText = null) {
         try {
           const response = await fetch('https://am-property.vercel.app/api/send-notification', {
@@ -1543,6 +1543,27 @@
           console.log("📨 Push notification Vercel status:", resData);
         } catch (err) {
           console.error("❌ Failed to send push notification via Vercel:", err);
+        }
+      }
+
+      // 🔔 دالة مساعدة مضافة لإرسال إشعار تليجرام للمسؤول بوجود رسالة جديدة في الشات
+      async triggerTelegramNotification(propertyTitle, senderName) {
+        try {
+          await fetch("/api/send-telegram", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              type: "new_message",
+              data: {
+                property: propertyTitle || "عقار غير محدد",
+                sender: senderName || "مستخدم مجهول"
+              }
+            })
+          });
+        } catch (err) {
+          console.error("❌ Failed to send Telegram message notification:", err);
         }
       }
 
@@ -1610,8 +1631,14 @@
         const currentUnread = unreadSnap.exists() ? unreadSnap.val() : 0;
         await set(unreadRef, currentUnread + 1);
 
-        // 🔔 تشغيل الإشعار
+        // 🔔 تشغيل الإشعار العادي
         this.triggerPushNotification(receiverId, textToSend);
+
+        // 🔔 إرسال إشعار تليجرام للمسؤول بوجود رسالة جديدة داخل غرفة التفاوض
+        this.triggerTelegramNotification(
+          ChatState.activeRoomData ? ChatState.activeRoomData.propertyTitle : "عقار معتمد",
+          ChatState.currentUserName
+        );
 
         this.cancelReply();
       }
@@ -1657,9 +1684,15 @@
         const currentUnread = unreadSnap.exists() ? unreadSnap.val() : 0;
         await set(unreadRef, currentUnread + 1);
 
-        // 🔔 تشغيل الإشعار للصورة
+        // 🔔 تشغيل الإشعار العادي للصورة
         const notificationText = captionText ? `📷 صورة: ${captionText}` : "📷 أرسل إليك صورة";
         this.triggerPushNotification(receiverId, notificationText);
+
+        // 🔔 إرسال إشعار تليجرام للمسؤول بوجود صورة جديدة داخل غرفة التفاوض
+        this.triggerTelegramNotification(
+          ChatState.activeRoomData ? ChatState.activeRoomData.propertyTitle : "عقار معتمد",
+          ChatState.currentUserName
+        );
       }
     }
 
