@@ -121,25 +121,35 @@ export default async function handler(req, res) {
 
     if (module === 'properties') {
       if (action === 'get_admin_properties') {
-        // حساب العدادات لكافة المنزلقات بما فيها منزلق التعديل الجديد (Edit Requests) في نفس الوقت لسرعة قصوى
-        const [pendingCountSnap, approvedCountSnap, rejectedCountSnap, editRequestsCountSnap] = await Promise.all([
+        // حساب العدادات لكافة التبويبات بطريقة متوازية وسريعة جداً بما فيها التعديلات المقبولة المضافة حديثاً
+        const [pendingCountSnap, approvedCountSnap, rejectedCountSnap, editRequestsCountSnap, approvedEditsCountSnap] = await Promise.all([
           db.collection("properties").where("status", "==", "pending").count().get(),
           db.collection("properties").where("status", "==", "approved").count().get(),
           db.collection("properties").where("status", "==", "rejected").count().get(),
-          db.collection("property_edit_requests").where("status", "==", "pending").count().get()
+          db.collection("property_edit_requests").where("status", "==", "pending").count().get(),
+          db.collection("property_edit_requests").where("status", "==", "approved").count().get()
         ]);
 
         const pendingCount = pendingCountSnap.data().count;
         const approvedCount = approvedCountSnap.data().count;
         const rejectedCount = rejectedCountSnap.data().count;
         const editRequestsCount = editRequestsCountSnap.data().count;
-        const totalCount = pendingCount + approvedCount + rejectedCount + editRequestsCount;
+        const approvedEditsCount = approvedEditsCountSnap.data().count;
+        const totalCount = pendingCount + approvedCount + rejectedCount + editRequestsCount + approvedEditsCount;
 
         let propertiesList = [];
 
         if (status === 'edit_requests') {
-          // استعلام وجلب طلبات التعديل المعلقة كلياً من الكولكشن المخصصة لها
-          const snap = await db.collection("property_edit_requests").orderBy("createdAt", "desc").get();
+          // جلب طلبات التعديل المعلقة (pending) فقط لتظهر في قائمة "طلبات التعديل"
+          const snap = await db.collection("property_edit_requests").where("status", "==", "pending").orderBy("createdAt", "desc").get();
+          propertiesList = snap.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate()
+          }));
+        } else if (status === 'approved_edits') {
+          // جلب طلبات التعديل المعتمدة والمقبولة (approved) فقط لتظهر في القائمة الجديدة المخصصة لها كأرشيف
+          const snap = await db.collection("property_edit_requests").where("status", "==", "approved").orderBy("createdAt", "desc").get();
           propertiesList = snap.docs.map(doc => ({
             id: doc.id,
             ...doc.data(),
@@ -166,6 +176,7 @@ export default async function handler(req, res) {
             approved: approvedCount,
             rejected: rejectedCount,
             edit_requests: editRequestsCount,
+            approved_edits: approvedEditsCount,
             total: totalCount
           }
         });
@@ -203,7 +214,7 @@ export default async function handler(req, res) {
           updatedAt: FieldValue.serverTimestamp()
         });
 
-        // 2. تحديث حالة طلب التعديل المعلق ليكون معتمداً ومغلقاً بالخلفية
+        // 2. تحديث حالة طلب التعديل المعلق ليكون معتمداً ومغلقاً بالخلفية ليدخل في كولكشن التعديلات المقبولة تلقائياً
         await db.collection("property_edit_requests").doc(requestId).update({
           status: "approved",
           resolvedAt: FieldValue.serverTimestamp()
@@ -235,7 +246,7 @@ export default async function handler(req, res) {
           resolvedAt: FieldValue.serverTimestamp()
         });
 
-        // 2. تحديث حالة العقار الأصلي نفسه ليكون مرفوضاً ومحجوباً عن العرض العام وتوثيق سبب الرفض للمالك
+        // 2. تحديث حالة العقار الأصلي نفسه ليكون مرفوضاً ومحجوباً وتوثيق السبب
         await db.collection("properties").doc(propertyId).update({
           status: "rejected",
           rejectReason: reason || "تم رفض التعديل المقترح بواسطة الإدارة",
@@ -341,4 +352,4 @@ export default async function handler(req, res) {
     console.error("Admin API Internal Error Details:", error);
     return res.status(500).json({ error: "Failed to process request: " + error.message });
   }
-      }
+}
