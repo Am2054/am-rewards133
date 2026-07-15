@@ -481,6 +481,8 @@
             'finishing', 'electricityCard', 'waterCard'
         ];
 
+        let hasChanged = false;
+
         for (let field of basicFields) {
             // جلب القيمة القديمة من قاعدة البيانات مع تهيئة القيم الافتراضية للواجهة لو كانت مفقودة لتلافي تزييف الفحص
             let oldVal = originalPropertyData[field];
@@ -500,9 +502,27 @@
                 newVal = '';
             }
             
-            if (String(oldVal).trim() !== String(newVal).trim()) {
-                console.log(`Changed field detected: ${field} (Old: "${oldVal}" vs New: "${newVal}")`);
-                return true;
+            let isFieldDifferent = false;
+            
+            // معالجة الأرقام والإحداثيات لضمان عدم حدوث فروقات منطقية بسبب الفراغات أو الأنواع
+            const numericFields = ['price', 'area', 'rooms', 'bathrooms', 'buildingFloors', 'latitude', 'longitude'];
+            if (numericFields.includes(field)) {
+                const oldNum = (oldVal !== "" && !isNaN(oldVal)) ? Number(oldVal) : 0;
+                const newNum = (newVal !== "" && !isNaN(newVal)) ? Number(newVal) : 0;
+                isFieldDifferent = (oldNum !== newNum);
+            } else {
+                isFieldDifferent = (String(oldVal).trim() !== String(newVal).trim());
+            }
+
+            if (isFieldDifferent) {
+                console.table({
+                    "field": field,
+                    "oldValue": oldVal,
+                    "oldType": typeof oldVal,
+                    "newValue": newVal,
+                    "newType": typeof newVal
+                });
+                hasChanged = true;
             }
         }
 
@@ -515,8 +535,14 @@
             const oldFeat = !!oldFeatures[feat];
             const newFeat = !!newFeatures[feat];
             if (oldFeat !== newFeat) {
-                console.log(`Changed feature detected: ${feat}`);
-                return true;
+                console.table({
+                    "field": `features.${feat}`,
+                    "oldValue": oldFeat,
+                    "oldType": typeof oldFeat,
+                    "newValue": newFeat,
+                    "newType": typeof newFeat
+                });
+                hasChanged = true;
             }
         }
 
@@ -525,17 +551,30 @@
         const newImages = newData.images || [];
         
         if (oldImages.length !== newImages.length) {
-            console.log("Images count changed");
-            return true;
-        }
-        for (let i = 0; i < oldImages.length; i++) {
-            if (oldImages[i] !== newImages[i]) {
-                console.log(`Image at index ${i} changed`);
-                return true;
+            console.table({
+                "field": "images_count",
+                "oldValue": oldImages.length,
+                "oldType": typeof oldImages.length,
+                "newValue": newImages.length,
+                "newType": typeof newImages.length
+            });
+            hasChanged = true;
+        } else {
+            for (let i = 0; i < oldImages.length; i++) {
+                if (oldImages[i] !== newImages[i]) {
+                    console.table({
+                        "field": `images[${i}]`,
+                        "oldValue": oldImages[i],
+                        "oldType": typeof oldImages[i],
+                        "newValue": newImages[i],
+                        "newType": typeof newImages[i]
+                    });
+                    hasChanged = true;
+                }
             }
         }
 
-        return false; // متطابق تماماً ولم يتغير أي شيء
+        return hasChanged; // متطابق تماماً في حال إرجاع false
     };
 
     // جلب البيانات من Firestore وتعبئة الحقول
@@ -843,7 +882,7 @@
         document.getElementById('reviewMediaText').innerText = `إجمالي الصور النهائي: ${uploadedImages.length} صورة`;
     };
 
-    // 5. التحديث المطور برفع طلب التعديل لـ property_edit_requests وإرسال الإشعار
+    // 5. التحديث المطور برفع طلب التعديل لـ property_edit_requests وإرسال الإشعار لـ Vercel
     document.getElementById('btnSubmitFinal').addEventListener('click', async () => {
         const user = auth.currentUser;
         if(!user) { 
@@ -1002,6 +1041,7 @@
                 oldData: freshData, // نرفع البيانات المجلوبة الحية مباشرة لضمان الدقة والأمان
                 newData: propertyUpdatePayload,
                 status: "pending",
+                requestType: "edit", // إضافة حقل تعريفي مخصص لفرزها بالباكند
                 createdAt: serverTimestamp()
             });
 
