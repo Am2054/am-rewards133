@@ -11,6 +11,9 @@
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   
+  <!-- مكتبة SweetAlert2 الفخمة للنوافذ التنبيهية التفاعلية -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
   <style>
     :root {
       --bg-primary: #020617;
@@ -156,6 +159,15 @@
       .steps-indicator { margin-bottom: 1.75rem; }
       .step-num { width: 42px; height: 42px; font-size: 1rem; }
       .step-text { font-size: 0.75rem; }
+    }
+
+    /* مواءمة تصميم SweetAlert مع ثيم الموقع المظلم */
+    .swal-custom-popup {
+      background-color: var(--bg-primary) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 20px !important;
+      color: #fff !important;
+      font-family: 'Cairo', sans-serif !important;
     }
   </style>
 </head>
@@ -449,7 +461,7 @@
             fDynamicResFields.classList.remove('hidden');
 
             if (subtype === 'duplex_in_building') {
-                // دوبلكس داخل عمارة: يظهر الدور الذي يبدأ منه ✅ | يظهر إجمالي أدوار العمارة ✅
+                // دوبلكس داخل عمارة: يظهر الدور الذي يبدأ منه ✅ | ويظهر إجمالي أدوار العمارة ✅
                 fFloorGroup.classList.remove('hidden');
                 document.getElementById('floorSelectLabel').textContent = "الدور الذي يبدأ منه *";
                 fBuildingFloorsGroup.classList.remove('hidden');
@@ -633,10 +645,26 @@
             const requiredInputs = document.getElementById('step-panel-1').querySelectorAll('[required]');
             let valid = true;
             requiredInputs.forEach(input => { if(!input.value.trim()) valid = false; });
-            if (!valid) { alert('برجاء ملء جميع الحقول الإجبارية المحددة بعلامة (*) أولاً.'); return; }
+            if (!valid) { 
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'تنبيه ملء البيانات',
+                    text: 'برجاء ملء جميع الحقول الإجبارية المحددة بعلامة (*) أولاً.',
+                    customClass: { popup: 'swal-custom-popup' }
+                });
+                return; 
+            }
             currentStep = 2;
         } else if (currentStep === 2) {
-            if (uploadedImages.length < 5) { alert(`خطأ: لقد قمت باختيار ${uploadedImages.length} صور. الحد الأدنى لإرسال العقار هو 5 صور.`); return; }
+            if (uploadedImages.length < 5) { 
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ألبوم صور غير كافٍ',
+                    text: `خطأ: لقد قمت باختيار ${uploadedImages.length} صور. الحد الأدنى لإرسال العقار هو 5 صور.`,
+                    customClass: { popup: 'swal-custom-popup' }
+                });
+                return; 
+            }
             currentStep = 3;
         }
         updateStepUI();
@@ -648,10 +676,26 @@
 
     document.getElementById('imageFiles').addEventListener('change', async (e) => {
         const files = Array.from(e.target.files);
-        if (uploadedImages.length + files.length > 15) { alert('الحد الأقصى المسموح به هو 15 صورة فقط للعقار الواحدة.'); return; }
+        if (uploadedImages.length + files.length > 15) { 
+            Swal.fire({
+                icon: 'warning',
+                title: 'تجاوز الحد الأقصى',
+                text: 'الحد الأقصى المسموح به هو 15 صورة فقط للعقار الواحد.',
+                customClass: { popup: 'swal-custom-popup' }
+            });
+            return; 
+        }
         
         for (let file of files) {
-            if (!file.type.startsWith('image/')) { alert(`الملف ${file.name} غير مدعوم، يرجى رفع صور فقط.`); continue; }
+            if (!file.type.startsWith('image/')) { 
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ملف غير مدعوم',
+                    text: `الملف ${file.name} غير مدعوم، يرجى رفع صور فقط.`,
+                    customClass: { popup: 'swal-custom-popup' }
+                });
+                continue; 
+            }
             const compressed = await compressImage(file);
             uploadedImages.push(compressed);
         }
@@ -728,15 +772,36 @@
     document.getElementById('videoFile').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        if (file.type !== 'video/mp4') { alert('عذراً، يقبل فيديو بصيغة MP4 فقط.'); return; }
-        if (file.size > 100 * 1024 * 1024) { alert('الملف كبير جداً، الحد الأقصى للفيديو هو 100 ميجابايت.'); return; }
+        if (file.type !== 'video/mp4') { 
+            Swal.fire({
+                icon: 'error',
+                title: 'تنسيق غير مدعوم',
+                text: 'عذراً، نظام الرفع يقبل فيديو بصيغة MP4 فقط.',
+                customClass: { popup: 'swal-custom-popup' }
+            });
+            return; 
+        }
+        if (file.size > 100 * 1024 * 1024) { 
+            Swal.fire({
+                icon: 'warning',
+                title: 'تجاوز المساحة',
+                text: 'الملف كبير جداً، الحد الأقصى للفيديو هو 100 ميجابايت.',
+                customClass: { popup: 'swal-custom-popup' }
+            });
+            return; 
+        }
 
         const videoEl = document.createElement('video');
         videoEl.preload = 'metadata';
         videoEl.src = URL.createObjectURL(file);
         videoEl.onloadedmetadata = () => {
             if (videoEl.duration > 181) {
-                alert('الحد الأقصى لطول مقطع الفيديو هو 3 دقائق.');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'تجاوز الطول المسموح',
+                    text: 'الحد الأقصى لطول مقطع الفيديو هو 3 دقائق.',
+                    customClass: { popup: 'swal-custom-popup' }
+                });
                 return;
             }
             uploadedVideoFile = file;
@@ -837,7 +902,15 @@
 
     document.getElementById('btnSubmitFinal').addEventListener('click', async () => {
         const user = auth.currentUser;
-        if(!user) { alert('يجب تسجيل الدخول أولاً لإرسال العقارات.'); return; }
+        if(!user) { 
+            Swal.fire({
+                icon: 'error',
+                title: 'خطأ في المصادقة',
+                text: 'يجب تسجيل الدخول أولاً لإرسال العقارات.',
+                customClass: { popup: 'swal-custom-popup' }
+            });
+            return; 
+        }
         
         const finalBtn = document.getElementById('btnSubmitFinal');
         const progContainer = document.getElementById('uploadProgressContainer');
@@ -964,11 +1037,11 @@
 
             // 🔔 إرسال إشعار تليجرام عن إضافة عقار جديد
             try {
-    await fetch("https://am-property.vercel.app/api/send-telegram", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
+                await fetch("https://am-property.vercel.app/api/send-telegram", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
                     body: JSON.stringify({
                         type: "new_property",
                         data: {
@@ -985,13 +1058,34 @@
             }
 
             progBar.style.width = '100%';
-            
-            alert('تم إرسال العقار بنجاح، وهو الآن قيد المراجعة في لوحة الإدارة.');
-            window.location.href = "my-properties.html";
+
+            Swal.fire({
+                icon: 'success',
+                title: 'تم إرسال العقار بنجاح للمراجعة! 🚀',
+                html: `
+                    <div style="font-size:14px; text-align:right; direction:rtl; line-height:1.7; margin-top:10px;">
+                        لقد تم تسجيل وحفظ عقارك بنجاح تحت المراجعة الإدارية.<br>
+                        📌 <b>رقم العقار التعريفي:</b> <code style="color:var(--primary)">${docRef.id}</code><br><br>
+                        سيقوم مسؤولو المنصة بمراجعة البيانات وتفعيله للجمهور قريباً لضمان الأمان.
+                    </div>
+                `,
+                confirmButtonText: 'متابعة إلى عقاراتي',
+                confirmButtonColor: '#10b981',
+                background: '#020617',
+                color: '#fff',
+                customClass: { popup: 'swal-custom-popup' }
+            }).then(() => {
+                window.location.href = "my-properties.html";
+            });
 
         } catch (error) {
             console.error("Critical submission error:", error);
-            alert(`حدث خطأ أثناء معالجة العقار ونشره: ${error.message}`);
+            Swal.fire({
+                icon: 'error',
+                title: 'عذراً، فشل النشر',
+                text: "حدث خطأ غير متوقع أثناء معالجة وحفظ البيانات: " + error.message,
+                customClass: { popup: 'swal-custom-popup' }
+            });
             finalBtn.disabled = false;
             progContainer.style.display = 'none';
         }
