@@ -1,13 +1,20 @@
-import { put } from "@vercel/blob";
+// /api/upload-media.js
+import { v2 as cloudinary } from "cloudinary";
 import formidable from "formidable";
-import fs from "fs";
-import crypto from "crypto";
 
 export const config = {
   api: {
     bodyParser: false,
   },
 };
+
+// تهيئة إعدادات كلاوديناري من متغيرات بيئة Vercel الأربعة
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true,
+});
 
 export default async function handler(req, res) {
 
@@ -18,12 +25,11 @@ export default async function handler(req, res) {
   }
 
   const form = formidable({
-  multiples: true,
-  keepExtensions: true,
-
-  maxFileSize: 100 * 1024 * 1024,      // 100MB لكل ملف
-  maxTotalFileSize: 250 * 1024 * 1024, // إجمالي الملفات
-});
+    multiples: true,
+    keepExtensions: true,
+    maxFileSize: 100 * 1024 * 1024,      // 100MB لكل ملف
+    maxTotalFileSize: 250 * 1024 * 1024, // إجمالي الملفات
+  });
 
   form.parse(req, async (err, fields, files) => {
 
@@ -64,6 +70,9 @@ export default async function handler(req, res) {
           });
         }
 
+        // ============================================
+        // معالجة صور العقارات
+        // ============================================
         if (mime.startsWith("image/")) {
 
           if (
@@ -85,20 +94,23 @@ export default async function handler(req, res) {
             });
           }
 
-          const stream = fs.createReadStream(file.filepath);
+          // خيارات رفع الصور السحابية ومجلد الحفظ
+          const uploadOptions = {
+            folder: "properties/images",
+            resource_type: "image"
+          };
 
-          const filename =
-            `properties/images/${Date.now()}-${crypto.randomUUID()}-${file.originalFilename}`;
+          if (process.env.CLOUDINARY_UPLOAD_PRESET) {
+            uploadOptions.upload_preset = process.env.CLOUDINARY_UPLOAD_PRESET;
+          }
 
-          const blob = await put(filename, stream, {
-  access: "public",
-  contentType: mime,
-  token: process.env.BLOB_READ_WRITE_TOKEN,
-});
-          images.push(blob.url);
-
+          const uploadResult = await cloudinary.uploader.upload(file.filepath, uploadOptions);
+          images.push(uploadResult.secure_url);
         }
 
+        // ============================================
+        // معالجة فيديو جولة العقار التوضيحية
+        // ============================================
         else if (mime.startsWith("video/")) {
 
           if (video) {
@@ -119,45 +131,38 @@ export default async function handler(req, res) {
             });
           }
 
-          const stream = fs.createReadStream(file.filepath);
+          // خيارات رفع الفيديوهات السحابية ومجلد الحفظ (مهم جداً تحديد النوع كـ video)
+          const uploadOptions = {
+            folder: "properties/videos",
+            resource_type: "video"
+          };
 
-          const filename =
-            `properties/videos/${Date.now()}-${crypto.randomUUID()}-${file.originalFilename}`;
+          if (process.env.CLOUDINARY_UPLOAD_PRESET) {
+            uploadOptions.upload_preset = process.env.CLOUDINARY_UPLOAD_PRESET;
+          }
 
-          const blob = await put(filename, stream, {
-  access: "public",
-  contentType: mime,
-  token: process.env.BLOB_READ_WRITE_TOKEN,
-});
-          video = blob.url;
+          const uploadResult = await cloudinary.uploader.upload(file.filepath, uploadOptions);
+          video = uploadResult.secure_url;
         }
 
       }
 
-
+      // إرجاع مخرجات متطابقة كلياً مع كود الإضافة والتعديل لديك بالـ Frontend
       return res.status(200).json({
-
         success: true,
-
-        coverImage: images[0],
-
+        coverImage: images[0] || null,
         images,
-
         video,
-
       });
 
-} catch (e) {
-
-  console.error("UPLOAD ERROR:", e);
-
-  return res.status(500).json({
-    error: e.message,
-    stack: e.stack
-  });
-
-}
+    } catch (e) {
+      console.error("UPLOAD ERROR:", e);
+      return res.status(500).json({
+        error: e.message,
+        stack: e.stack
+      });
+    }
 
   });
 
-} 
+    }
