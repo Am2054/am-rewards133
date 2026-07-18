@@ -9,6 +9,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+  <!-- مكتبة SweetAlert2 الفخمة للنوافذ التنبيهية التفاعلية -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
   <style>
     /* ============================================
        THEME VARIABLES & BASE STYLES
@@ -506,6 +509,15 @@
         display: block;
       }
     }
+
+    /* مواءمة تصميم SweetAlert مع ثيم الموقع المظلم */
+    .swal-custom-popup {
+      background-color: var(--bg-deep) !important;
+      border: 1px solid var(--glass-border) !important;
+      border-radius: 20px !important;
+      color: #fff !important;
+      font-family: 'Cairo', sans-serif !important;
+    }
   </style>
 </head>
 <body>
@@ -696,24 +708,25 @@
         });
       },
 
-      async uploadToVercelBlob(file) {
+      // ☁️ تحديث دالة الرفع لتتصل بخادم كلاوديناري السحابي الجديد بدلاً من Vercel Blob
+      async uploadToCloudinary(file) {
         const formData = new FormData();
         formData.append('file', file);
 
         try {
-          const response = await fetch('/api/upload', {
+          const response = await fetch('https://am-property.vercel.app/api/upload', {
             method: 'POST',
             body: formData
           });
 
           if (!response.ok) {
-            throw new Error("فشل الرفع من خادم الويب");
+            throw new Error("فشل الرفع من خادم الويب السحابي");
           }
 
           const result = await response.json();
-          return result.url;
+          return result.url; // يعود برابط الصورة المباشر والآمن والمحسن من كلاوديناري
         } catch (e) {
-          console.warn("Vercel Blob fallback base64 used:", e);
+          console.warn("Cloudinary Upload fallback base64 used:", e);
           return new Promise((resolve) => {
             const reader = new FileReader();
             reader.onloadend = () => resolve(reader.result);
@@ -1494,13 +1507,18 @@
               const compressedPreview = await StorageService.compressImage(file, 400, 400, 0.65);
               const compressedOriginal = await StorageService.compressImage(file, 1920, 1920, 0.91);
 
-              const previewUrl = await StorageService.uploadToVercelBlob(compressedPreview);
-              const originalUrl = await StorageService.uploadToVercelBlob(compressedOriginal);
+              const previewUrl = await StorageService.uploadToCloudinary(compressedPreview);
+              const originalUrl = await StorageService.uploadToCloudinary(compressedOriginal);
 
               await this.sendMessageImage(roomId, currentUserId, targetUserId, previewUrl, originalUrl, captionText);
             } catch(err) {
               console.error("Staged image upload error:", err);
-              alert("⚠️ فشل رفع الصورة للسيرفر.");
+              Swal.fire({
+                  icon: 'error',
+                  title: 'فشل الرفع',
+                  text: '⚠️ عذراً، فشل رفع ومعالجة الصورة للسيرفر السحابي حالياً.',
+                  customClass: { popup: 'swal-custom-popup' }
+              });
             } finally {
               loadingBubble.remove();
             }
@@ -1601,7 +1619,7 @@
         if (stagingContainer) stagingContainer.style.display = 'none';
         const textInput = document.getElementById('message-text-field');
         if (textInput) {
-          textInput.placeholder = "اهمس أو اعترف بـ #...";
+          textInput.placeholder = "اكتب استفسارك #...";
           textInput.value = '';
         }
       }
