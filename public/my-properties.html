@@ -9,6 +9,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- مكتبة SweetAlert2 الفخمة للنوافذ التنبيهية التفاعلية -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
   <style>
     :root {
       --neon-cyan: #00f2ff; 
@@ -23,9 +27,10 @@
       --warning: #facc15;
       --radius: 24px;
       --shadow: 0 8px 32px 0 rgba(2, 6, 23, 0.5);
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    * { box-sizing: border-box; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0; padding: 0; font-family: 'Cairo', sans-serif;
@@ -49,8 +54,8 @@
       margin: 0 auto;
     }
     
-    .btn-back { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--muted); text-decoration: none; font-weight: 700; margin-bottom: 1.5rem; font-size: 0.95rem; }
-    .btn-back:hover { color: var(--neon-cyan); }
+    .btn-back { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--muted); text-decoration: none; font-weight: 700; margin-bottom: 1.5rem; font-size: 0.95rem; transition: var(--transition); }
+    .btn-back:hover { color: var(--neon-cyan); text-shadow: 0 0 10px rgba(0, 242, 255, 0.3); }
 
     h1 { font-weight: 900; margin-bottom: 2.5rem; color: #fff; text-shadow: 0 0 15px rgba(0, 242, 255, 0.3); font-size: 2rem; }
     
@@ -65,8 +70,10 @@
       gap: 2rem; 
       align-items: flex-start; 
       position: relative;
+      backdrop-filter: blur(20px);
+      transition: var(--transition);
     }
-    .prop-card:hover { border-color: var(--neon-cyan); box-shadow: 0 15px 30px rgba(0, 242, 255, 0.05); }
+    .prop-card:hover { border-color: rgba(0, 242, 255, 0.35); box-shadow: 0 15px 30px rgba(0, 242, 255, 0.08); transform: translateY(-2px); }
     
     /* تقليل الشفافية وتطبيق شريط مميز في حال تأجير العقار أو بيعه أو إخفائه */
     .prop-card.inactive-asset {
@@ -164,6 +171,7 @@
       align-items: center;
       gap: 0.5rem;
       font-family: 'Cairo', sans-serif;
+      transition: var(--transition);
     }
     .btn-action-asset:hover {
       border-color: var(--neon-cyan);
@@ -196,9 +204,19 @@
       font-size: 0.82rem;
       outline: none;
       cursor: pointer;
+      transition: var(--transition);
     }
     .status-select-el:focus {
       border-color: var(--neon-cyan);
+    }
+
+    /* مواءمة تصميم SweetAlert مع ثيم الموقع المظلم */
+    .swal-custom-popup {
+      background-color: var(--bg-deep) !important;
+      border: 1px solid var(--glass-border) !important;
+      border-radius: 20px !important;
+      color: #fff !important;
+      font-family: 'Cairo', sans-serif !important;
     }
 
     @media (max-width: 768px) {
@@ -325,6 +343,22 @@
                         ribbonMarkup = `<div class="asset-overlay-ribbon" style="background: rgba(112, 0, 255, 0.85);"><i class="fas fa-handshake"></i> تم بيع الأصل بالكامل</div>`;
                     }
 
+                    // 7. 🔒 [منع التعديل المزدوج]: قفل وتجميل أزرار التعديل في حال كان العقار تحت المراجعة الإدارية (Pending)
+                    let editButtonMarkup = '';
+                    if (data.status === 'pending') {
+                        editButtonMarkup = `
+                            <button class="btn-action-asset" style="opacity: 0.5; cursor: not-allowed; border-color: rgba(255,255,255,0.05); background: rgba(0,0,0,0.2);" onclick="window.showPendingEditWarning()">
+                              <i class="fas fa-lock"></i> قيد المراجعة (مغلق)
+                            </button>
+                        `;
+                    } else {
+                        editButtonMarkup = `
+                            <a href="edit-property.html?id=${id}" class="btn-action-asset ${data.status === 'rejected' ? 'btn-action-edit-resubmit' : ''}" style="text-decoration: none;">
+                              <i class="fas fa-edit"></i> ${data.status === 'rejected' ? 'تعديل وإعادة الإرسال' : 'تعديل البيانات'}
+                            </a>
+                        `;
+                    }
+
                     card.innerHTML = `
                         <div class="prop-img-wrapper">
                           <img src="${imgUrl}" class="prop-img" alt="Property Cover" onerror="this.src='https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop'">
@@ -345,12 +379,11 @@
 
                             ${seoMarkup}
 
-                            <!-- لوحة أزرار العمليات والتحكم المتكاملة الخالية من المعاينة والطلبات -->
+                            <!-- لوحة أزرار العمليات والتحكم المتكاملة الخالية من المعاينة والطلبات المحدثة -->
                             <div class="actions-panel-row">
-                              <!-- زر تعديل العقار يوجه لصفحة التعديل التلقائية edit-property.html لمنع بدء الإضافة من جديد -->
-                              <a href="edit-property.html?id=${id}" class="btn-action-asset ${data.status === 'rejected' ? 'btn-action-edit-resubmit' : ''}">
-                                <i class="fas fa-edit"></i> ${data.status === 'rejected' ? 'تعديل وإعادة الإرسال' : 'تعديل البيانات'}
-                              </a>
+                              
+                              <!-- زر التعديل المغلق أو التفاعلي المربوط بالمنطق الجديد -->
+                              ${editButtonMarkup}
                               
                               <!-- منسدل تعديل الوفرة حياً -->
                               <div class="status-select-wrapper">
@@ -381,27 +414,58 @@
         }
     });
 
-    // دالة تغيير حالة الوفرة حياً بداخل الـ Firestore
+    // دالة عرض التنبيه الجميل عند نقر زر التعديل المقفل
+    window.showPendingEditWarning = function() {
+      Swal.fire({
+        icon: 'warning',
+        title: 'تحت المراجعة',
+        text: 'لا يمكن تعديل العقار وهو قيد المراجعة الإدارية حالياً لحفظ خصوصية وسرية البيانات العقارية.',
+        confirmButtonColor: '#00f2ff',
+        background: '#020617',
+        color: '#fff',
+        customClass: { popup: 'swal-custom-popup' }
+      });
+    };
+
+    // دالة تغيير حالة الوفرة حياً بداخل الـ Firestore بنوافذ SweetAlert تفاعلية
     window.updateAssetAvailability = async function(propertyId, newStatus) {
       try {
         await updateDoc(doc(db, "properties", propertyId), {
           availability: newStatus,
           updated_at: new Date().toISOString()
         });
-        alert("✅ تم تحديث حالة الوفرة للعقار بنجاح.");
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'تم تحديث الوفرة',
+          text: '✅ تم تحديث حالة الوفرة للمنشأ العقاري بنجاح حياً بقاعدة البيانات.',
+          confirmButtonColor: '#10b981',
+          background: '#020617',
+          color: '#fff',
+          customClass: { popup: 'swal-custom-popup' }
+        });
       } catch (e) {
         console.error("Failed to update availability status: ", e);
       }
     };
 
-    // دالة إيقاف ونشر الإعلان حياً بداخل الـ Firestore دون حذفه
+    // دالة إيقاف ونشر الإعلان حياً بداخل الـ Firestore بنوافذ SweetAlert تفاعلية
     window.toggleAssetVisibility = async function(propertyId, currentIsHidden) {
       try {
         await updateDoc(doc(db, "properties", propertyId), {
           isHidden: !currentIsHidden,
           updated_at: new Date().toISOString()
         });
-        alert(currentIsHidden ? "✅ تم إعادة نشر وتفعيل الإعلان بنجاح." : "✅ تم إيقاف وإخفاء الإعلان مؤقتاً بنجاح.");
+        
+        Swal.fire({
+          icon: 'success',
+          title: currentIsHidden ? 'تم التفعيل والنشر' : 'تم الإخفاء المؤقت',
+          text: currentIsHidden ? '✅ تم إعادة نشر وتفعيل الإعلان بنجاح في القوائم العامة.' : '✅ تم إيقاف وإخفاء الإعلان مؤقتاً بنجاح من القوائم العامة.',
+          confirmButtonColor: '#10b981',
+          background: '#020617',
+          color: '#fff',
+          customClass: { popup: 'swal-custom-popup' }
+        });
       } catch (e) {
         console.error("Failed to toggle visibility: ", e);
       }
