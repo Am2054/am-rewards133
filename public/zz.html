@@ -667,17 +667,28 @@
   </div>
 
   <script>
-    // البيانات التجريبية الافتراضية
+    // خريطة أيام الأسبوع لربط الأسماء بالقيم الرقمية (JS Date)
+    const DAY_MAP = {
+      'الأحد': 0,
+      'الإثنين': 1,
+      'الثلاثاء': 2,
+      'الأربعاء': 3,
+      'الخميس': 4,
+      'الجمعة': 5,
+      'السبت': 6
+    };
+
+    // البيانات التجريبية المبدئية فقط عند عدم وجود بيانات في localStorage
     const defaultAlarms = [
       { id: '1', title: 'التمرين والرياضة 🏋️‍♂️', time: '16:00', active: true, days: ['السبت', 'الإثنين', 'الأربعاء'] },
       { id: '2', title: 'مذاكرة الرياضيات 📐', time: '18:00', active: true, days: ['يومياً'] },
       { id: '3', title: 'العمل على المشروعي 💻', time: '20:30', active: false, days: ['الأحد', 'الثلاثاء'] }
     ];
 
-    // جلب المنبهات من LocalStorage أو تعيين الافتراضية
+    // جلب البيانات مع الحفاظ الكامل على localStorage
     let alarms = JSON.parse(localStorage.getItem('foq_alarms')) || defaultAlarms;
 
-    // العناصر الرئيسية في HTML
+    // عناصر HTML الرئيسية
     const digitalClockEl = document.getElementById('digitalClock');
     const clockPeriodEl = document.getElementById('clockPeriod');
     const currentDateEl = document.getElementById('currentDate');
@@ -688,7 +699,7 @@
     const nextAlarmTime = document.getElementById('nextAlarmTime');
     const countdownTimer = document.getElementById('countdownTimer');
 
-    // عناصر الـ Modal والنموذج
+    // عناصر Modal والنموذج
     const alarmModal = document.getElementById('alarmModal');
     const openModalBtn = document.getElementById('openModalBtn');
     const closeModalBtn = document.getElementById('closeModalBtn');
@@ -704,7 +715,45 @@
     const settingsSection = document.getElementById('settingsSection');
     const alarmsListSection = document.querySelector('.alarms-list-section');
 
-    // 1. تحديث الساعة والتاريخ الحالي
+    // 1. حساب موعد المنبه القادم بدقة مع مراعاة أيام التكرار
+    function getNextOccurrenceDate(alarm, now) {
+      if (!alarm.active) return null;
+
+      const [hours, minutes] = alarm.time.split(':').map(Number);
+      const isDaily = alarm.days && (alarm.days.includes('يومياً') || alarm.days.length === 7);
+      const hasDays = alarm.days && alarm.days.length > 0 && !isDaily;
+
+      if (hasDays) {
+        // تحويل الأيام النصية إلى أرقام
+        const targetDayIndices = alarm.days.map(d => DAY_MAP[d]).filter(val => val !== undefined);
+        if (targetDayIndices.length === 0) return null;
+
+        // البحث في الأيام الـ 7 القادمة عن أقرب يوم متوافق
+        for (let i = 0; i < 7; i++) {
+          const candidate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, hours, minutes, 0, 0);
+          if (targetDayIndices.includes(candidate.getDay())) {
+            if (candidate > now) {
+              return candidate;
+            }
+          }
+        }
+        return null;
+      } else {
+        // إذا كان "يومياً" أو "بدون تكرار" (لمرة واحدة)
+        const candidate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0);
+        if (candidate > now) {
+          return candidate;
+        } else if (isDaily) {
+          candidate.setDate(candidate.getDate() + 1);
+          return candidate;
+        } else {
+          // منبه لمرة واحدة وموعده قد مر اليوم
+          return null;
+        }
+      }
+    }
+
+    // 2. تحديث الساعة والعداد التنازلي كل ثانية
     function updateClock() {
       const now = new Date();
       let hours = now.getHours();
@@ -712,75 +761,160 @@
       const seconds = String(now.getSeconds()).padStart(2, '0');
       const period = hours >= 12 ? 'م' : 'ص';
 
-      hours = hours % 12 || 12; // تحويل لنظام 12 ساعة
+      hours = hours % 12 || 12;
       digitalClockEl.textContent = `${String(hours).padStart(2, '0')}:${minutes}:${seconds}`;
       clockPeriodEl.textContent = period;
 
-      // خيارات التاريخ العربي
       const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
       currentDateEl.textContent = now.toLocaleDateString('ar-EG', options);
 
-      updateNextAlarmCountdown();
+      updateNextAlarmCountdown(now);
     }
 
-    // 2. حفظ ورسم قائمة المنبهات
+    // 3. تحديث المنبه القادم والعداد التنازلي
+    function updateNextAlarmCountdown(now = new Date()) {
+      let nextAlarm = null;
+      let minDiff = Infinity;
+      let targetOccurrence = null;
+
+      alarms.forEach(alarm => {
+        if (!alarm.active) return;
+        const nextDate = getNextOccurrenceDate(alarm, now);
+        if (nextDate) {
+          const diff = nextDate - now;
+          if (diff < minDiff) {
+            minDiff = diff;
+            nextAlarm = alarm;
+            targetOccurrence = nextDate;
+          }
+        }
+      });
+
+      if (nextAlarm && targetOccurrence) {
+        const hours = targetOccurrence.getHours();
+        const minutes = String(targetOccurrence.getMinutes()).padStart(2, '0');
+        const hour12 = (hours % 12) || 12;
+        const period = hours >= 12 ? 'م' : 'ص';
+
+        nextAlarmTitle.textContent = nextAlarm.title;
+        nextAlarmTime.textContent = `${String(hour12).padStart(2, '0')}:${minutes} ${period}`;
+
+        const hoursLeft = Math.floor(minDiff / (1000 * 60 * 60));
+        const minsLeft = Math.floor((minDiff % (1000 * 60 * 60)) / (1000 * 60));
+        const secsLeft = Math.floor((minDiff % (1000 * 60)) / 1000);
+
+        countdownTimer.textContent = `${String(hoursLeft).padStart(2, '0')}:${String(minsLeft).padStart(2, '0')}:${String(secsLeft).padStart(2, '0')}`;
+      } else {
+        nextAlarmTitle.textContent = 'لا توجد منبهات قادمة';
+        nextAlarmTime.textContent = '--:--';
+        countdownTimer.textContent = '00:00:00';
+      }
+    }
+
+    // 4. حفظ البيانات وعرض قائمة المنبهات بأمان (آمن ضد XSS)
     function saveAndRenderAlarms() {
       localStorage.setItem('foq_alarms', JSON.stringify(alarms));
       alarmsCountEl.textContent = `${alarms.length} منبهات`;
       alarmsContainer.innerHTML = '';
 
       if (alarms.length === 0) {
-        alarmsContainer.innerHTML = `<div class="empty-state">لا توجد منبهات مضافة حالياً. اضغط على زر الإضافة للبدء!</div>`;
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'empty-state';
+        emptyDiv.textContent = 'لا توجد منبهات مضافة حالياً. اضغط على زر الإضافة للبدء!';
+        alarmsContainer.appendChild(emptyDiv);
+        updateNextAlarmCountdown();
         return;
       }
 
-      // ترتيب المنبهات حسب الوقت
-      alarms.sort((a, b) => a.time.localeCompare(b.time));
+      // ترتيب العرض حسب وقت المنبه
+      const sortedAlarms = [...alarms].sort((a, b) => a.time.localeCompare(b.time));
 
-      alarms.forEach(alarm => {
+      sortedAlarms.forEach(alarm => {
         const card = document.createElement('div');
         card.className = `alarm-card ${!alarm.active ? 'disabled' : ''}`;
-        
-        // تحويل الوقت لصيغة 12 ساعة للعرض
+
+        const alarmInfo = document.createElement('div');
+        alarmInfo.className = 'alarm-info';
+
+        const titleEl = document.createElement('span');
+        titleEl.className = 'alarm-title';
+        titleEl.textContent = alarm.title; // حماية ضد XSS
+
+        const timeWrapper = document.createElement('div');
+        timeWrapper.className = 'alarm-time-wrapper';
+
         const [h, m] = alarm.time.split(':');
         const hour12 = (parseInt(h) % 12) || 12;
         const period = parseInt(h) >= 12 ? 'م' : 'ص';
 
-        card.innerHTML = `
-          <div class="alarm-info">
-            <span class="alarm-title">${alarm.title}</span>
-            <div class="alarm-time-wrapper">
-              <span class="alarm-time">${String(hour12).padStart(2, '0')}:${m} ${period}</span>
-              <span class="alarm-days">(${alarm.days.length ? alarm.days.join(', ') : 'بدون تكرار'})</span>
-            </div>
-          </div>
-          <div class="alarm-actions">
-            <label class="switch">
-              <input type="checkbox" ${alarm.active ? 'checked' : ''} onchange="toggleAlarm('${alarm.id}')">
-              <span class="slider"></span>
-            </label>
-            <button class="btn-action-icon" onclick="editAlarm('${alarm.id}')">✏️</button>
-            <button class="btn-action-icon" onclick="deleteAlarm('${alarm.id}')">🗑️</button>
-          </div>
-        `;
+        const timeEl = document.createElement('span');
+        timeEl.className = 'alarm-time';
+        timeEl.textContent = `${String(hour12).padStart(2, '0')}:${m} ${period}`;
+
+        const daysEl = document.createElement('span');
+        daysEl.className = 'alarm-days';
+        const daysText = alarm.days && alarm.days.length ? alarm.days.join(', ') : 'مرة واحدة';
+        daysEl.textContent = `(${daysText})`;
+
+        timeWrapper.appendChild(timeEl);
+        timeWrapper.appendChild(daysEl);
+
+        alarmInfo.appendChild(titleEl);
+        alarmInfo.appendChild(timeWrapper);
+
+        // أدوات التحكم بالبطاقة
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'alarm-actions';
+
+        const switchLabel = document.createElement('label');
+        switchLabel.className = 'switch';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = !!alarm.active;
+        checkbox.addEventListener('change', () => toggleAlarm(alarm.id));
+
+        const slider = document.createElement('span');
+        slider.className = 'slider';
+
+        switchLabel.appendChild(checkbox);
+        switchLabel.appendChild(slider);
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn-action-icon';
+        editBtn.textContent = '✏️';
+        editBtn.addEventListener('click', () => editAlarm(alarm.id));
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn-action-icon';
+        deleteBtn.textContent = '🗑️';
+        deleteBtn.addEventListener('click', () => deleteAlarm(alarm.id));
+
+        actionsDiv.appendChild(switchLabel);
+        actionsDiv.appendChild(editBtn);
+        actionsDiv.appendChild(deleteBtn);
+
+        card.appendChild(alarmInfo);
+        card.appendChild(actionsDiv);
+
         alarmsContainer.appendChild(card);
       });
 
       updateNextAlarmCountdown();
     }
 
-    // 3. التحكم في تفعيل وتعديل وحذف المنبهات
-    window.toggleAlarm = function(id) {
+    // 5. التفعيل والتعديل والحذف
+    function toggleAlarm(id) {
       alarms = alarms.map(a => a.id === id ? { ...a, active: !a.active } : a);
       saveAndRenderAlarms();
-    };
+    }
 
-    window.deleteAlarm = function(id) {
+    function deleteAlarm(id) {
       alarms = alarms.filter(a => a.id !== id);
       saveAndRenderAlarms();
-    };
+    }
 
-    window.editAlarm = function(id) {
+    function editAlarm(id) {
       const alarm = alarms.find(a => a.id === id);
       if (!alarm) return;
 
@@ -788,65 +922,15 @@
       document.getElementById('taskTitle').value = alarm.title;
       document.getElementById('taskTime').value = alarm.time;
 
-      // تحديد أيام التكرار
       document.querySelectorAll('.day-chip input').forEach(chip => {
-        chip.checked = alarm.days.includes(chip.value);
+        chip.checked = alarm.days ? alarm.days.includes(chip.value) : false;
       });
 
       modalTitle.textContent = 'تعديل المنبه';
       alarmModal.classList.remove('hidden');
-    };
-
-    // 4. تحديث العداد التنازلي للمنبه القادم
-    function updateNextAlarmCountdown() {
-      const activeAlarms = alarms.filter(a => a.active);
-
-      if (activeAlarms.length === 0) {
-        nextAlarmTitle.textContent = 'لا توجد منبهات قادمة';
-        nextAlarmTime.textContent = '--:--';
-        countdownTimer.textContent = '00:00:00';
-        return;
-      }
-
-      const now = new Date();
-      let nextAlarm = null;
-      let minDiff = Infinity;
-
-      activeAlarms.forEach(alarm => {
-        const [h, m] = alarm.time.split(':');
-        const alarmDate = new Date();
-        alarmDate.setHours(parseInt(h), parseInt(m), 0, 0);
-
-        // إذا كان وقت المنبه قد مر اليوم، نجدوله للغد
-        if (alarmDate <= now) {
-          alarmDate.setDate(alarmDate.getDate() + 1);
-        }
-
-        const diff = alarmDate - now;
-        if (diff < minDiff) {
-          minDiff = diff;
-          nextAlarm = { ...alarm, targetDate: alarmDate };
-        }
-      });
-
-      if (nextAlarm) {
-        const [h, m] = nextAlarm.time.split(':');
-        const hour12 = (parseInt(h) % 12) || 12;
-        const period = parseInt(h) >= 12 ? 'م' : 'ص';
-
-        nextAlarmTitle.textContent = nextAlarm.title;
-        nextAlarmTime.textContent = `${String(hour12).padStart(2, '0')}:${m} ${period}`;
-
-        // حساب الساعات والدقائق والثواني المتبقية
-        const hoursLeft = Math.floor(minDiff / (1000 * 60 * 60));
-        const minsLeft = Math.floor((minDiff % (1000 * 60 * 60)) / (1000 * 60));
-        const secsLeft = Math.floor((minDiff % (1000 * 60)) / 1000);
-
-        countdownTimer.textContent = `${String(hoursLeft).padStart(2, '0')}:${String(minsLeft).padStart(2, '0')}:${String(secsLeft).padStart(2, '0')}`;
-      }
     }
 
-    // 5. أحداث الـ Modal والنموذج
+    // 6. أحداث Modal وإحالة النموذج
     openModalBtn.addEventListener('click', () => {
       alarmForm.reset();
       alarmIdInput.value = '';
@@ -868,11 +952,13 @@
       const selectedDays = Array.from(document.querySelectorAll('.day-chip input:checked'))
                                 .map(chip => chip.value);
 
-      const existingIndex = alarms.findIndex(a => a.id === id);
+      const existingAlarm = alarms.find(a => a.id === id);
 
-      if (existingIndex > -1) {
-        alarms[existingIndex] = { ...alarms[existingIndex], title, time, days: selectedDays };
+      if (existingAlarm) {
+        // الحفاظ على حالة التفعيل الحالية للمنبه أثناء التعديل
+        alarms = alarms.map(a => a.id === id ? { ...a, title, time, days: selectedDays } : a);
       } else {
+        // تفعيل المنبه الجديد تلقائياً عند الإضافة
         alarms.push({ id, title, time, active: true, days: selectedDays });
       }
 
@@ -880,7 +966,7 @@
       closeModal();
     });
 
-    // 6. التبديل في شريط التنقل السفلي
+    // 7. التنقل السفلي
     navAlarmsBtn.addEventListener('click', () => {
       navAlarmsBtn.classList.add('active');
       navSettingsBtn.classList.remove('active');
@@ -899,7 +985,7 @@
       openModalBtn.click();
     });
 
-    // التشغيل المبدئي
+    // التشغيل المبدئي الدوري
     setInterval(updateClock, 1000);
     updateClock();
     saveAndRenderAlarms();
