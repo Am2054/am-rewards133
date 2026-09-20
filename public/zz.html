@@ -377,7 +377,7 @@
       font-size: 18px;
     }
 
-    /* Modal */
+    /* Modal العام */
     .modal-overlay {
       position: absolute;
       inset: 0;
@@ -526,6 +526,117 @@
       align-items: center;
       font-size: 14px;
     }
+
+    /* ------------------------------------------------------------- */
+    /* أنماط شاشة الرنين التفاعلية (Alarm Ringing Modal) */
+    /* ------------------------------------------------------------- */
+    .ringing-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(11, 17, 32, 0.95);
+      backdrop-filter: blur(12px);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 30px;
+      text-align: center;
+      animation: pulseBg 2s infinite ease-in-out;
+    }
+
+    @keyframes pulseBg {
+      0%, 100% { background: rgba(11, 17, 32, 0.95); }
+      50% { background: rgba(30, 15, 10, 0.96); }
+    }
+
+    .ringing-icon-wrapper {
+      position: relative;
+      margin-bottom: 25px;
+    }
+
+    .ringing-icon {
+      font-size: 64px;
+      animation: ringBell 0.6s infinite alternate ease-in-out;
+      display: inline-block;
+    }
+
+    @keyframes ringBell {
+      0% { transform: rotate(-18deg) scale(1); }
+      100% { transform: rotate(18deg) scale(1.15); }
+    }
+
+    .ringing-time {
+      font-size: 36px;
+      font-weight: 900;
+      color: var(--primary-orange);
+      margin-bottom: 8px;
+    }
+
+    .ringing-title {
+      font-size: 22px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 25px;
+      line-height: 1.3;
+    }
+
+    .ringing-feedback {
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid var(--accent-green);
+      color: var(--accent-green);
+      padding: 12px 18px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      width: 100%;
+    }
+
+    .ringing-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .btn-ring-action {
+      width: 100%;
+      padding: 14px;
+      border-radius: var(--radius-lg);
+      font-size: 15px;
+      font-weight: 900;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .btn-ring-action:active {
+      transform: scale(0.97);
+    }
+
+    .btn-start-task {
+      background: linear-gradient(90deg, #f97316, #ea580c);
+      color: white;
+      box-shadow: 0 8px 20px var(--primary-orange-glow);
+    }
+
+    .btn-snooze {
+      background: #334155;
+      color: var(--text-main);
+      border: 1px solid var(--card-border);
+    }
+
+    .btn-complete-task {
+      background: var(--accent-green);
+      color: white;
+    }
+
+    .btn-dismiss-feedback {
+      background: #334155;
+      color: white;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -664,6 +775,28 @@
       </div>
     </div>
 
+    <!-- Alarm Ringing Modal (شاشة الرنين المحاكاة داخل التطبيق) -->
+    <div class="ringing-overlay hidden" id="ringingModal">
+      <div class="ringing-icon-wrapper">
+        <span class="ringing-icon">🔔</span>
+      </div>
+      <div class="ringing-time" id="ringingTime">00:00</div>
+      <h2 class="ringing-title" id="ringingTitle">اسم المهمة</h2>
+
+      <!-- رسالة التشجيع عند بدء المهمة -->
+      <div class="ringing-feedback hidden" id="ringingFeedback"></div>
+
+      <div class="ringing-actions" id="ringingDefaultActions">
+        <button class="btn-ring-action btn-start-task" id="btnStartTask">🚀 بدأت المهمة الآن!</button>
+        <button class="btn-ring-action btn-snooze" id="btnSnooze">😴 غفوة 5 دقائق</button>
+        <button class="btn-ring-action btn-complete-task" id="btnCompleteTask">✅ تمت المهمة بنجاح</button>
+      </div>
+
+      <div class="ringing-actions hidden" id="ringingFeedbackActions">
+        <button class="btn-ring-action btn-dismiss-feedback" id="btnDismissFeedback">إغلاق وتفريغ الذهن للمهمة 🎯</button>
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -678,7 +811,7 @@
       'السبت': 6
     };
 
-    // البيانات التجريبية المبدئية فقط عند عدم وجود بيانات في localStorage
+    // البيانات التجريبية المبدئية عند عدم وجود بيانات في localStorage
     const defaultAlarms = [
       { id: '1', title: 'التمرين والرياضة 🏋️‍♂️', time: '16:00', active: true, days: ['السبت', 'الإثنين', 'الأربعاء'] },
       { id: '2', title: 'مذاكرة الرياضيات 📐', time: '18:00', active: true, days: ['يومياً'] },
@@ -687,6 +820,10 @@
 
     // جلب البيانات مع الحفاظ الكامل على localStorage
     let alarms = JSON.parse(localStorage.getItem('foq_alarms')) || defaultAlarms;
+
+    // متغيرات حالة الرنين والمنع لتجنب التكرار
+    let activeRingingAlarm = null; // المنبه الجاري رنينه حالياً
+    let lastTriggeredKey = null;   // لمنع تكرار الإطلاق في نفس الدقيقة/الثانية
 
     // عناصر HTML الرئيسية
     const digitalClockEl = document.getElementById('digitalClock');
@@ -699,7 +836,7 @@
     const nextAlarmTime = document.getElementById('nextAlarmTime');
     const countdownTimer = document.getElementById('countdownTimer');
 
-    // عناصر Modal والنموذج
+    // عناصر Modal وإضافة/تعديل منبه
     const alarmModal = document.getElementById('alarmModal');
     const openModalBtn = document.getElementById('openModalBtn');
     const closeModalBtn = document.getElementById('closeModalBtn');
@@ -708,6 +845,18 @@
     const modalTitle = document.getElementById('modalTitle');
     const alarmIdInput = document.getElementById('alarmId');
 
+    // عناصر شاشة الرنين التفاعلية
+    const ringingModal = document.getElementById('ringingModal');
+    const ringingTimeEl = document.getElementById('ringingTime');
+    const ringingTitleEl = document.getElementById('ringingTitle');
+    const ringingFeedback = document.getElementById('ringingFeedback');
+    const ringingDefaultActions = document.getElementById('ringingDefaultActions');
+    const ringingFeedbackActions = document.getElementById('ringingFeedbackActions');
+    const btnStartTask = document.getElementById('btnStartTask');
+    const btnSnooze = document.getElementById('btnSnooze');
+    const btnCompleteTask = document.getElementById('btnCompleteTask');
+    const btnDismissFeedback = document.getElementById('btnDismissFeedback');
+
     // عناصر التنقل السفلي
     const navAlarmsBtn = document.getElementById('navAlarmsBtn');
     const navAddBtn = document.getElementById('navAddBtn');
@@ -715,20 +864,23 @@
     const settingsSection = document.getElementById('settingsSection');
     const alarmsListSection = document.querySelector('.alarms-list-section');
 
-    // 1. حساب موعد المنبه القادم بدقة مع مراعاة أيام التكرار
+    // 1. حساب موعد المنبه القادم بدقة مع مراعاة أيام التكرار ووقات الغفوة المؤقتة
     function getNextOccurrenceDate(alarm, now) {
       if (!alarm.active) return null;
+
+      // إذا كان المنبه في حالة غفوة مؤقتة، نستخدم موعد الغفوة أولاً
+      if (alarm.snoozeUntil && alarm.snoozeUntil > now.getTime()) {
+        return new Date(alarm.snoozeUntil);
+      }
 
       const [hours, minutes] = alarm.time.split(':').map(Number);
       const isDaily = alarm.days && (alarm.days.includes('يومياً') || alarm.days.length === 7);
       const hasDays = alarm.days && alarm.days.length > 0 && !isDaily;
 
       if (hasDays) {
-        // تحويل الأيام النصية إلى أرقام
         const targetDayIndices = alarm.days.map(d => DAY_MAP[d]).filter(val => val !== undefined);
         if (targetDayIndices.length === 0) return null;
 
-        // البحث في الأيام الـ 7 القادمة عن أقرب يوم متوافق
         for (let i = 0; i < 7; i++) {
           const candidate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, hours, minutes, 0, 0);
           if (targetDayIndices.includes(candidate.getDay())) {
@@ -739,7 +891,6 @@
         }
         return null;
       } else {
-        // إذا كان "يومياً" أو "بدون تكرار" (لمرة واحدة)
         const candidate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0);
         if (candidate > now) {
           return candidate;
@@ -747,13 +898,12 @@
           candidate.setDate(candidate.getDate() + 1);
           return candidate;
         } else {
-          // منبه لمرة واحدة وموعده قد مر اليوم
-          return null;
+          return null; // منبه لمرة واحدة وموعده قد مر اليوم
         }
       }
     }
 
-    // 2. تحديث الساعة والعداد التنازلي كل ثانية
+    // 2. تحديث الساعة والتحقق من حلول وقت أي منبه نشط
     function updateClock() {
       const now = new Date();
       let hours = now.getHours();
@@ -768,10 +918,131 @@
       const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
       currentDateEl.textContent = now.toLocaleDateString('ar-EG', options);
 
+      // التحقق من المنبهات المطابقة للحظة الحالية
+      checkAlarmTriggers(now);
+
+      // تحديث شاشات المنبه القادم والعداد
       updateNextAlarmCountdown(now);
     }
 
-    // 3. تحديث المنبه القادم والعداد التنازلي
+    // 3. فحص انطلاق المنبه والتأكد من عدم التكرار أو تعدد الشاشات
+    function checkAlarmTriggers(now) {
+      if (activeRingingAlarm) return; // منع فتح أكثر من شاشة رنين في وقت واحد
+
+      const currentHours = String(now.getHours()).padStart(2, '0');
+      const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+      const currentTimeStr = `${currentHours}:${currentMinutes}`;
+      const currentDayName = Object.keys(DAY_MAP).find(key => DAY_MAP[key] === now.getDay());
+
+      alarms.forEach(alarm => {
+        if (!alarm.active || activeRingingAlarm) return;
+
+        let isTriggered = false;
+
+        // حالة 1: وقت الغفوة المؤقت انتهى
+        if (alarm.snoozeUntil && now.getTime() >= alarm.snoozeUntil) {
+          isTriggered = true;
+          alarm.snoozeUntil = null; // إعادة تعيين الغفوة
+        } 
+        // حالة 2: الموعد الأصلي للمنبه حان الآن (عند بداية الدقيقة والثواني الأولى)
+        else if (alarm.time === currentTimeStr && now.getSeconds() < 2) {
+          const isDaily = !alarm.days || alarm.days.length === 0 || alarm.days.includes('يومياً') || alarm.days.length === 7;
+          if (isDaily || (alarm.days && alarm.days.includes(currentDayName))) {
+            isTriggered = true;
+          }
+        }
+
+        if (isTriggered) {
+          const triggerKey = `${alarm.id}_${now.getFullYear()}${now.getMonth()}${now.getDate()}_${currentTimeStr}_${Math.floor(now.getTime() / 60000)}`;
+          
+          if (lastTriggeredKey !== triggerKey) {
+            lastTriggeredKey = triggerKey;
+            triggerAlarmRinging(alarm);
+          }
+        }
+      });
+    }
+
+    // 4. فتح شاشة الرنين التفاعلية للمنبه
+    function triggerAlarmRinging(alarm) {
+      activeRingingAlarm = alarm;
+
+      // ضبط النصوص والشاشة
+      const [h, m] = alarm.time.split(':');
+      const hour12 = (parseInt(h) % 12) || 12;
+      const period = parseInt(h) >= 12 ? 'م' : 'ص';
+
+      ringingTimeEl.textContent = `${String(hour12).padStart(2, '0')}:${m} ${period}`;
+      ringingTitleEl.textContent = alarm.title;
+
+      // إعادة ضبط واجهة الأزرار والرسائل
+      ringingFeedback.classList.add('hidden');
+      ringingFeedback.textContent = '';
+      ringingDefaultActions.classList.remove('hidden');
+      ringingFeedbackActions.classList.add('hidden');
+
+      ringingModal.classList.remove('hidden');
+    }
+
+    // 5. أحداث أزرار شاشة الرنين (بدأت المهمة / غفوة / تمت المهمة)
+    
+    // أ) زر: بدأت المهمة
+    btnStartTask.addEventListener('click', () => {
+      if (!activeRingingAlarm) return;
+
+      ringingFeedback.textContent = `عاش يا بطل! 🔥 بدأت في: "${activeRingingAlarm.title}". ركز الآن واستمتع بالإنجاز!`;
+      ringingFeedback.classList.remove('hidden');
+
+      ringingDefaultActions.classList.add('hidden');
+      ringingFeedbackActions.classList.remove('hidden');
+    });
+
+    // إغلاق رسالة التشجيع والعودة للتطبيق
+    btnDismissFeedback.addEventListener('click', () => {
+      dismissRingingModal();
+    });
+
+    // ب) زر: غفوة 5 دقائق
+    btnSnooze.addEventListener('click', () => {
+      if (!activeRingingAlarm) return;
+
+      const snoozeTime = Date.now() + (5 * 60 * 1000); // إضافة 5 دقائق
+      alarms = alarms.map(a => a.id === activeRingingAlarm.id ? { ...a, snoozeUntil: snoozeTime } : a);
+      
+      saveAndRenderAlarms();
+      dismissRingingModal();
+    });
+
+    // ج) زر: تمت المهمة
+    btnCompleteTask.addEventListener('click', () => {
+      if (!activeRingingAlarm) return;
+
+      const isOnce = !activeRingingAlarm.days || activeRingingAlarm.days.length === 0;
+
+      alarms = alarms.map(a => {
+        if (a.id === activeRingingAlarm.id) {
+          return {
+            ...a,
+            snoozeUntil: null,
+            // إذا كان لمرة واحدة يتم إيقافه تلقائياً بعد الإنجاز، وإلا يظل نشطاً للمرة القادمة
+            active: isOnce ? false : a.active
+          };
+        }
+        return a;
+      });
+
+      saveAndRenderAlarms();
+      dismissRingingModal();
+    });
+
+    // دالة إغلاق شاشة الرنين وإعادة الحالة
+    function dismissRingingModal() {
+      ringingModal.classList.add('hidden');
+      activeRingingAlarm = null;
+      updateNextAlarmCountdown();
+    }
+
+    // 6. تحديث المنبه القادم والعداد التنازلي
     function updateNextAlarmCountdown(now = new Date()) {
       let nextAlarm = null;
       let minDiff = Infinity;
@@ -811,7 +1082,7 @@
       }
     }
 
-    // 4. حفظ البيانات وعرض قائمة المنبهات بأمان (آمن ضد XSS)
+    // 7. حفظ البيانات وعرض قائمة المنبهات بأمان (آمن ضد XSS)
     function saveAndRenderAlarms() {
       localStorage.setItem('foq_alarms', JSON.stringify(alarms));
       alarmsCountEl.textContent = `${alarms.length} منبهات`;
@@ -826,7 +1097,6 @@
         return;
       }
 
-      // ترتيب العرض حسب وقت المنبه
       const sortedAlarms = [...alarms].sort((a, b) => a.time.localeCompare(b.time));
 
       sortedAlarms.forEach(alarm => {
@@ -838,7 +1108,7 @@
 
         const titleEl = document.createElement('span');
         titleEl.className = 'alarm-title';
-        titleEl.textContent = alarm.title; // حماية ضد XSS
+        titleEl.textContent = alarm.title;
 
         const timeWrapper = document.createElement('div');
         timeWrapper.className = 'alarm-time-wrapper';
@@ -853,7 +1123,14 @@
 
         const daysEl = document.createElement('span');
         daysEl.className = 'alarm-days';
-        const daysText = alarm.days && alarm.days.length ? alarm.days.join(', ') : 'مرة واحدة';
+
+        let daysText = 'مرة واحدة';
+        if (alarm.snoozeUntil && alarm.snoozeUntil > Date.now()) {
+          daysText = '😴 غفوة نشطة';
+        } else if (alarm.days && alarm.days.length) {
+          daysText = alarm.days.join(', ');
+        }
+
         daysEl.textContent = `(${daysText})`;
 
         timeWrapper.appendChild(timeEl);
@@ -862,7 +1139,6 @@
         alarmInfo.appendChild(titleEl);
         alarmInfo.appendChild(timeWrapper);
 
-        // أدوات التحكم بالبطاقة
         const actionsDiv = document.createElement('div');
         actionsDiv.className = 'alarm-actions';
 
@@ -903,14 +1179,17 @@
       updateNextAlarmCountdown();
     }
 
-    // 5. التفعيل والتعديل والحذف
+    // 8. التفعيل والتعديل والحذف
     function toggleAlarm(id) {
-      alarms = alarms.map(a => a.id === id ? { ...a, active: !a.active } : a);
+      alarms = alarms.map(a => a.id === id ? { ...a, active: !a.active, snoozeUntil: null } : a);
       saveAndRenderAlarms();
     }
 
     function deleteAlarm(id) {
       alarms = alarms.filter(a => a.id !== id);
+      if (activeRingingAlarm && activeRingingAlarm.id === id) {
+        dismissRingingModal();
+      }
       saveAndRenderAlarms();
     }
 
@@ -930,7 +1209,7 @@
       alarmModal.classList.remove('hidden');
     }
 
-    // 6. أحداث Modal وإحالة النموذج
+    // 9. أحداث Modal إضافة / تعديل المنبه
     openModalBtn.addEventListener('click', () => {
       alarmForm.reset();
       alarmIdInput.value = '';
@@ -955,10 +1234,8 @@
       const existingAlarm = alarms.find(a => a.id === id);
 
       if (existingAlarm) {
-        // الحفاظ على حالة التفعيل الحالية للمنبه أثناء التعديل
-        alarms = alarms.map(a => a.id === id ? { ...a, title, time, days: selectedDays } : a);
+        alarms = alarms.map(a => a.id === id ? { ...a, title, time, days: selectedDays, snoozeUntil: null } : a);
       } else {
-        // تفعيل المنبه الجديد تلقائياً عند الإضافة
         alarms.push({ id, title, time, active: true, days: selectedDays });
       }
 
@@ -966,7 +1243,7 @@
       closeModal();
     });
 
-    // 7. التنقل السفلي
+    // 10. التنقل السفلي
     navAlarmsBtn.addEventListener('click', () => {
       navAlarmsBtn.classList.add('active');
       navSettingsBtn.classList.remove('active');
