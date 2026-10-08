@@ -1,3 +1,4 @@
+// /api/sendMessage.js - النسخة النهائية المحدثة بنظام 12 ساعة
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getDatabase } from "firebase-admin/database";
 import { getAuth } from "firebase-admin/auth";
@@ -10,7 +11,7 @@ if (!getApps().length) {
         if (rawKey) {
             const serviceAccount = JSON.parse(rawKey.trim());
             if (serviceAccount.private_key) {
-                serviceAccount.private_key = serviceAccount.private_key.replace(/\n/g, '\n');
+                serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
             }
             initializeApp({
                 credential: cert(serviceAccount),
@@ -26,44 +27,53 @@ const db = getDatabase();
 const auth = getAuth();
 const messaging = getMessaging();
 
-function getFormattedDate() {
-    return new Intl.DateTimeFormat('en-CA', {
+// ✅ احتساب دورة الـ 12 ساعة بتوقيت القاهرة
+function getCairo12hPeriod() {
+    const formatter = new Intl.DateTimeFormat('en-US', {
         timeZone: 'Africa/Cairo',
         year: 'numeric',
         month: '2-digit',
-        day: '2-digit'
-    }).format(new Date()).replace(/-/g, '');
+        day: '2-digit',
+        hour: 'numeric',
+        hour12: false
+    });
+    const parts = formatter.formatToParts(new Date());
+    const map = {};
+    parts.forEach(p => map[p.type] = p.value);
+    const hour = parseInt(map.hour, 10);
+    const period = hour < 12 ? 'AM' : 'PM';
+    const dateKey = `${map.year}${map.month}${map.day}`;
+    return {
+        activePeriod: `${dateKey}_${period}`,
+        dateKey,
+        period,
+        hour
+    };
 }
 
-function generateDailyGhostName(uid) {
-    const egyptDate = getFormattedDate();
-    const hash = crypto.createHash('md5').update(uid + egyptDate).digest('hex');
+// ✅ توليد اسم شبح مجهول يتغير بدقة كل 12 ساعة
+function generate12hGhostName(uid, activePeriod) {
+    const hash = crypto.createHash('md5').update(uid + activePeriod).digest('hex');
     const index = parseInt(hash.substring(0, 8), 16);
-    const adjs = ["الغامض", "الثائر", "الهادئ", "المحارب", "العابر", "الصامت", "التائه", "المراقب", "المنسي", "الخفي"];
-    const names = ["طيف", "كيان", "سراب", "ظل", "نور", "صدى", "برق", "نجم", "وهم", "شبح"];
+    const adjs = ["الغامض", "الثائر", "الهادئ", "المحارب", "العابر", "الصامت", "التائه", "المراقب", "المنسي", "الخفي", "الحالم", "الحكيم"];
+    const names = ["طيف", "كيان", "سراب", "ظل", "نور", "صدى", "برق", "نجم", "وهم", "شبح", "ندى", "فجر"];
     const name = names[index % names.length];
     const adj = adjs[(index >> 2) % adjs.length];
     const pin = (index % 9000) + 1000;
     return `${name} ${adj} #${pin}`;
 }
 
-const bannedWords = [
-    'الإرهاب', 'تفجير', 'مخدرات', 'بيع',
-    'الرقم القومي', 'بطاقة الرقم', 'كود البنك',
-];
-
-const mentalHealthKeywords = [
-    'انتحار', 'موت', 'أقتل نفسي', 'حياتي انتهت',
-];
+const bannedWords = ['الإرهاب', 'تفجير', 'مخدرات', 'الرقم القومي', 'بطاقة الرقم', 'كود البنك'];
+const mentalHealthKeywords = ['انتحار', 'أقتل نفسي', 'حياتي انتهت'];
 
 function isContentBanned(text) {
-    const lowerText = text.toLowerCase();
-    return bannedWords.some(word => lowerText.includes(word));
+    const lower = text.toLowerCase();
+    return bannedWords.some(w => lower.includes(w));
 }
 
 function hasMentalHealthKeywords(text) {
-    const lowerText = text.toLowerCase();
-    return mentalHealthKeywords.some(word => lowerText.includes(word));
+    const lower = text.toLowerCase();
+    return mentalHealthKeywords.some(w => lower.includes(w));
 }
 
 export default async function handler(req, res) {
@@ -75,40 +85,74 @@ export default async function handler(req, res) {
     if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });      
 
     try {      
-        const { action, text, uid, token, msgId, day, reason } = req.body;   
+        const { action, text, uid, token, msgId, period, reason } = req.body;   
         
-        // ✅ التحقق من التوكن
-        let decodedToken;
-        try {
-            decodedToken = await auth.verifyIdToken(token);      
-            if (decodedToken.uid !== uid) throw new Error("Unauthorized");
-        } catch (e) {
-            console.warn("⚠️ التحقق من التوكن فشل:", e.message);
+        // 🔒 إغلاق الثغرة الأمنية: التحقق الصارم من صحة التوكن
+        if (!token || !uid) {
+            return res.status(401).json({ error: "مطلوب تسجيل الدخول" });
         }
 
-        const serverGhostName = generateDailyGhostName(uid);    
-        const now = Date.now();    
-        const todayDateFormatted = getFormattedDate();  
-        const activeDay = day || todayDateFormatted;  
+        try {
+            const decodedToken = await auth.verifyIdToken(token);      
+            if (decodedToken.uid !== uid) {
+                return res.status(403).json({ error: "معرّف المستخدم غير متطابق" });
+            }
+        } catch (e) {
+            console.error("❌ توكن غير صالح:", e.message);
+            return res.status(401).json({ error: "جلسة العمل منتهية أو غير صالحة" });
+        }
 
-        // 🛡️ فحص اليوم الجديد
-        const lastResetRef = db.ref('system/last_reset_date');    
-        const todayDateString = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });    
-          
+        const now = Date.now();    
+        const periodInfo = getCairo12hPeriod();  
+        const currentActivePeriod = period || periodInfo.activePeriod;  
+        const serverGhostName = generate12hGhostName(uid, currentActivePeriod);
+
+        // 🛡️ فحص تجدد دورة الـ 12 ساعة + إرسال إشعار التجدد الجماعي
+        const lastResetRef = db.ref('system/last_12h_period');    
         let isNewSession = false;  
         const { committed } = await lastResetRef.transaction(current => {  
-            if (current !== todayDateString) return todayDateString;  
+            if (current !== periodInfo.activePeriod) return periodInfo.activePeriod;  
             return;   
         });  
 
         if (committed) {    
-            await db.ref('messages/global').remove();  
-            isNewSession = true;   
+            isNewSession = true;
+            // 📢 إرسال إشعار للمستخدمين بتجدد الهوية ودورة الـ 12 ساعة
+            try {
+                const tokensSnap = await db.ref('users_tokens').once('value');
+                if (tokensSnap.exists()) {
+                    const tokensData = tokensSnap.val();
+                    const allTokens = Object.values(tokensData)
+                        .map(u => u && u.token)
+                        .filter(t => typeof t === 'string' && t.length > 20);
+
+                    if (allTokens.length > 0) {
+                        const resetPayload = {
+                            notification: {
+                                title: "🕯️ تجلّت الأرواح من جديد!",
+                                body: "مرت 12 ساعة.. تلاشت أرواح الأمس واستيقظت بهوية مجهولة جديدة. اكتشف شبحك الآن!",
+                            },
+                            data: {
+                                url: "https://am-rewards.vercel.app/ghost-chat.html",
+                                type: "IDENTITY_RESET"
+                            }
+                        };
+                        for (let i = 0; i < allTokens.length; i += 500) {
+                            await messaging.sendEachForMulticast({
+                                tokens: allTokens.slice(i, i + 500),
+                                ...resetPayload
+                            }).catch(() => {});
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn("⚠️ Push on 12h Reset Note:", err.message);
+            }
         }    
 
         // ✅ التعديل والحذف
         if (action === "EDIT" || action === "DELETE") {    
-            const msgRef = db.ref(`messages/global/${activeDay}/${msgId}`);    
+            const msgRef = db.ref(`messages/global/${currentActivePeriod}/${msgId}`);    
             const snap = await msgRef.once("value");    
             if (!snap.exists()) return res.status(404).json({ error: "NotFound" });    
             if (snap.val().uid !== uid) return res.status(403).json({ error: "Forbidden" });    
@@ -141,66 +185,63 @@ export default async function handler(req, res) {
 
             return res.status(200).json({   
                 ghostName: serverGhostName,  
-                activeDay: todayDateFormatted,   
+                activePeriod: periodInfo.activePeriod,   
                 rank: rank,  
                 welcomeCard: {  
                     show: isNewSession,  
                     title: "تجلّي جديد.. روح جديدة 🕯️",  
-                    message: `لقد تلاشت أرواح الأمس. رتبتك الحالية: ${rank}`,  
+                    message: `بدأت دورة جديدة مدتها 12 ساعة. رتبتك الحالية: ${rank}`,  
                 }  
             });    
         }    
 
         // ✅ الإبلاغ عن الرسائل
         if (action === "REPORT") {
-            const msgRef = db.ref(`messages/global/${activeDay}/${msgId}`);
+            const msgRef = db.ref(`messages/global/${currentActivePeriod}/${msgId}`);
             const snap = await msgRef.once("value");
             if (!snap.exists()) return res.status(404).json({ error: "Message not found" });
 
+            const newReports = (snap.val().reports || 0) + 1;
             await msgRef.update({
-                reports: (snap.val().reports || 0) + 1,
-                lastReportReason: reason
+                reports: newReports,
+                lastReportReason: reason || "inappropriate"
             });
 
-            if ((snap.val().reports || 0) + 1 >= 3) {
+            if (newReports >= 3) {
                 await msgRef.update({ deleted: true, autoDeleted: true });
             }
 
             return res.status(200).json({ success: true, message: "تم الإبلاغ" });
         }
 
-        // ✅ الحد من السبام
+        // ✅ الحماية من السبام ومعدل الإرسال
         const userLimitRef = db.ref(`userLimits/${uid}`);      
         const limitSnap = await userLimitRef.once("value");      
-        if (limitSnap.exists() && (now - limitSnap.val() < 3000)) {   
-            return res.status(429).json({ error: "انتظر قليلاً قبل الرسالة التالية" });  
+        if (limitSnap.exists() && (now - limitSnap.val() < 2500)) {   
+            return res.status(429).json({ error: "مهلاً.. انتظر ثانيتين بين كل همسة" });  
         }  
 
-        const dailyCountRef = db.ref(`dailyCount/${uid}/${todayDateFormatted}`);  
+        const dailyCountRef = db.ref(`periodCount/${uid}/${periodInfo.activePeriod}`);  
         const dailySnap = await dailyCountRef.once('value');  
         const count = dailySnap.exists() ? dailySnap.val() : 0;  
-        if (count >= 100) return res.status(429).json({ error: "بلغت الحد اليومي للهمسات (100)" });  
+        if (count >= 120) return res.status(429).json({ error: "بلغت الحد الأقصى لهمسات هذه الفترة (120)" });  
 
         // ✅ معالجة النص
         const rawInput = (text || "").trim();  
-        if (rawInput.length > 300) return res.status(400).json({ error: "الهمسة طويلة جداً" });  
-        if (/(.)\1{7,}/.test(rawInput)) return res.status(400).json({ error: "توقف عن الضجيج!" });  
+        if (rawInput.length > 300) return res.status(400).json({ error: "الهمسة طويلة جداً (الحد 300 حرف)" });  
+        if (/(.)\1{7,}/.test(rawInput)) return res.status(400).json({ error: "توقف عن تكرار الحروف!" });  
 
         if (isContentBanned(rawInput)) {
-            return res.status(400).json({ error: "المحتوى يحتوي على كلمات غير مسموحة" });
+            return res.status(400).json({ error: "تحتوي الهمسة على كلمات محظورة" });
         }
 
+        // حجب أرقام الهواتف لحماية المجهولية
         const cleanText = rawInput.replace(/((\d[\s-]?){11})/g, "[محجوب]");      
         const isConfession = rawInput.startsWith('#');      
         let finalDisplayContent = cleanText.replace(/^#|^\*/g, '').trim();  
 
-        let hasMentalHealthIssue = hasMentalHealthKeywords(finalDisplayContent);
-
-        const replyMatch = finalDisplayContent.match(/^رد على @(.+?):/);      
-        const replyToName = replyMatch ? replyMatch[1].trim() : null;      
-
-        // 📝 إرسال الرسالة
-        const msgRef = db.ref(`messages/global/${activeDay}`).push();      
+        // 📝 كتابة الرسالة في قاعدة البيانات
+        const msgRef = db.ref(`messages/global/${currentActivePeriod}`).push();      
         await msgRef.set({     
             uid, 
             sender: serverGhostName, 
@@ -214,87 +255,62 @@ export default async function handler(req, res) {
         await dailyCountRef.set(count + 1);  
         await db.ref(`userStats/${uid}/totalMessages`).transaction(c => (c || 0) + 1);  
 
-        // 🆘 رسالة نظام للصحة النفسية
-        if (hasMentalHealthIssue) {
-            const systemMsgRef = db.ref(`messages/global/${activeDay}`).push();
+        // 🆘 رسالة نظام للدعم النفسي عند رصد كلمات حساسة
+        if (hasMentalHealthKeywords(finalDisplayContent)) {
+            const systemMsgRef = db.ref(`messages/global/${currentActivePeriod}`).push();
             await systemMsgRef.set({
                 uid: "SYSTEM",
                 sender: "🆘 نظام الدعم",
-                text: `نحن نقلق عليك 💜\n\nإذا كنت تمر بوقت عصيب:\n📞 مصر: +20100123456`,
+                text: `نحن نهتم لأمرك 💜\nإذا كنت تمر بظرف صعب، لا تبقَ وحدك:\n📞 الدعم والاستشارات: 08008880700`,
                 timestamp: now + 1,
                 isSystem: true,
                 type: "mentalHealth"
             });
         }
 
-        // ✅ الإشعارات التراكمية
+        // 🔔 إرسال الإشعار للآخرين (استثناء المرسل نفسه لمنع الإزعاج)
         try {      
             const tokensSnap = await db.ref('users_tokens').once('value');      
             if (tokensSnap.exists()) {      
                 const tokensData = tokensSnap.val();
-                
-                // ✅ جمع جميع التوكنات
                 let targetTokens = [];
-                Object.values(tokensData).forEach(userData => {
-                    if (userData && userData.token && typeof userData.token === 'string' && userData.token.length > 10) {
-                        targetTokens.push(userData.token);
+                
+                Object.entries(tokensData).forEach(([userKey, val]) => {
+                    if (userKey !== uid && val && val.token && typeof val.token === 'string' && val.token.length > 20) {
+                        targetTokens.push(val.token);
                     }
                 });
 
                 if (targetTokens.length > 0) {      
-                    const payload = {      
+                    const pushPayload = {      
                         notification: {      
-                            title: isConfession ? `🕯️ اعتراف جديد` : `👻 ${serverGhostName}`,      
-                            body: finalDisplayContent.substring(0, 150),
+                            title: isConfession ? `🕯️ اعتراف في الظلام` : `👻 همسة من ${serverGhostName}`,      
+                            body: finalDisplayContent.substring(0, 120),
                         },      
                         data: {   
-                            url: `https://am-rewards.vercel.app/ghost-chat.html`,
-                            ghostName: serverGhostName,
-                        },  
-                        android: {   
-                            priority: 'high',   
-                            notification: { 
-                                tag: 'ghost-chat-msg',
-                                priority: 'max',
-                            }   
-                        },  
-                        webpush: {   
-                            headers: { "Urgency": "high" },   
-                            notification: { 
-                                tag: 'ghost-chat-msg',
-                            }   
-                        }  
+                            url: `https://am-rewards.vercel.app/ghost-chat.html`
+                        }
                     };      
                     
-                    // ✅ إرسال لجميع المستخدمين (تراكمي)
-                    console.log(`📢 Sending notifications to ${targetTokens.length} users`);
-                    
-                    const chunks = [];
                     for (let i = 0; i < targetTokens.length; i += 500) {
-                        chunks.push(targetTokens.slice(i, i + 500));
+                        messaging.sendEachForMulticast({ 
+                            tokens: targetTokens.slice(i, i + 500), 
+                            ...pushPayload 
+                        }).catch(() => {});
                     }
-                    
-                    for (const chunk of chunks) {
-                        await messaging.sendEachForMulticast({ 
-                            tokens: chunk, 
-                            ...payload 
-                        }).catch(err => console.error('❌ Multicast error:', err));
-                    }
-                    
-                    console.log('✅ Notifications sent');
                 }      
             }      
         } catch (e) { 
-            console.error("❌ Push Error", e); 
+            console.warn("⚠️ Push Error Ignored:", e.message); 
         }      
 
         return res.status(200).json({ 
             success: true, 
             ghostName: serverGhostName, 
-            activeDay
+            activePeriod: currentActivePeriod
         });      
     } catch (error) { 
-        console.error('❌ Handler Error:', error);
+        console.error('❌ Server Error:', error);
         return res.status(500).json({ error: error.message }); 
     }
-                    }
+}
