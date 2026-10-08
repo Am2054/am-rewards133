@@ -1,14 +1,15 @@
-<!-- ghost-chat.html - النسخة النهائية المحدثة -->
+<!-- ghost-chat.html - الإصدار المحدث مع الخلفيات وملء الشاشة -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#020617">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Ghost Chat">
+    <meta name="apple-mobile-web-app-title" content="شات الأشباح">
     <title>شات الأشباح | الإصدار النهائي</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -24,34 +25,62 @@
         } 
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; } 
         input, .text, .reply-text { user-select: text; } 
-        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; color: #fff; } 
+        html, body { 
+            height: 100%; 
+            width: 100%; 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
+            color: #fff; 
+        } 
         body { 
             font-family: 'Tajawal', sans-serif; 
             display: flex; 
             flex-direction: column; 
-            background: #020617 url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1500') no-repeat center center fixed; 
+            background-color: #020617; 
+            background-repeat: no-repeat; 
+            background-position: center center; 
             background-size: cover; 
+            background-attachment: fixed;
             user-select: none; 
             position: relative; 
+            transition: background-image 0.8s ease-in-out;
         } 
-        body::before { content: ""; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); z-index: -1; } 
+        body::before { 
+            content: ""; 
+            position: fixed; 
+            inset: 0; 
+            background: rgba(0, 0, 0, 0.6); 
+            z-index: -1; 
+        } 
         
+        /* شريط تنبيه متصفح فيسبوك */
+        #fbBrowserAlert {
+            display: none;
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+            color: #fff;
+            padding: 8px 12px;
+            font-size: 11px;
+            text-align: center;
+            font-weight: bold;
+            z-index: 10000;
+        }
+
         #installBtn { 
             display: none; 
-            background: linear-gradient(135deg, rgba(0, 242, 255, 0.2), rgba(112, 0, 255, 0.2));
+            background: linear-gradient(135deg, rgba(0, 242, 255, 0.25), rgba(112, 0, 255, 0.25));
             color: var(--cyan); 
             border: 2px solid var(--cyan); 
-            padding: 8px 18px; 
+            padding: 6px 16px; 
             border-radius: 25px; 
-            margin: 6px auto; 
+            margin: 4px auto; 
             cursor: pointer; 
             font-weight: 900; 
             font-size: 12px; 
             transition: 0.3s;
             animation: pulse 2s infinite;
         }
-        #installBtn.hidden { display: none !important; }
-        @keyframes pulse { 0%, 100% { opacity: 0.85; transform: scale(1); } 50% { opacity: 1; transform: scale(1.03); } }
+        @keyframes pulse { 0%, 100% { opacity: 0.9; transform: scale(1); } 50% { opacity: 1; transform: scale(1.03); } }
 
         #rulesOverlay { position: fixed; inset: 0; background: #020617; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; } 
         .rules-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(0, 242, 255, 0.3); border-radius: 28px; padding: 26px; max-width: 460px; width: 100%; text-align: center; box-shadow: 0 0 50px rgba(0, 242, 255, 0.1); max-height: 90vh; overflow-y: auto; } 
@@ -63,30 +92,56 @@
         .rules-list li b { color: var(--cyan); } 
         .agree-btn { width: 100%; background: linear-gradient(135deg, var(--cyan), var(--purple)); color: #fff; border: none; padding: 16px; border-radius: 50px; font-weight: 900; cursor: pointer; transition: 0.3s; font-size: 15px; } 
         
-        header { padding: calc(env(safe-area-inset-top, 10px) + 5px) 12px 8px; text-align: center; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(12px); box-shadow: 0 2px 12px rgba(0,0,0,0.4); z-index: 100; } 
-        header h2 { margin: 0 !important; font-size: 16px !important; font-weight: 900; letter-spacing: 0.5px; }
-        .header-meta { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 4px; font-size: 11px; flex-wrap: wrap; }
+        header { 
+            padding: calc(env(safe-area-inset-top, 5px) + 6px) 12px 6px; 
+            text-align: center; 
+            background: rgba(2, 6, 23, 0.85); 
+            backdrop-filter: blur(12px); 
+            box-shadow: 0 2px 12px rgba(0,0,0,0.5); 
+            z-index: 100; 
+        } 
+        header h2 { margin: 0 !important; font-size: 16px !important; font-weight: 900; }
+        .header-meta { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 4px; font-size: 11px; flex-wrap: wrap; }
         #status { color: var(--cyan); font-weight: 700; } 
         #timerBox { color: #cbd5e1; font-size: 10px; background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 12px; }
         
-        #chatBox { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; position: relative; } 
-        .msg { max-width: 85%; padding: 12px 16px; border-radius: 20px; font-size: 14.5px; backdrop-filter: blur(10px); animation: msgIn 0.3s ease; position: relative; line-height: 1.5; cursor: pointer; transition: 0.2s; } 
-        @keyframes msgIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } } 
+        #chatBox { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 16px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            scroll-behavior: smooth; 
+            position: relative; 
+        } 
+        .msg { 
+            max-width: 85%; 
+            padding: 12px 16px; 
+            border-radius: 20px; 
+            font-size: 14.5px; 
+            backdrop-filter: blur(10px); 
+            animation: msgIn 0.3s ease; 
+            position: relative; 
+            line-height: 1.5; 
+            cursor: pointer; 
+            transition: 0.2s; 
+        } 
+        @keyframes msgIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } 
         
-        .msg-remote { align-self: flex-start; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255,255,255,0.08); border-bottom-right-radius: 4px; } 
-        .msg-me { align-self: flex-end; background: linear-gradient(135deg, rgba(112, 0, 255, 0.6), rgba(70, 0, 255, 0.6)); border: 1px solid rgba(112, 0, 255, 0.4); border-bottom-left-radius: 4px; } 
+        .msg-remote { align-self: flex-start; background: rgba(15, 23, 42, 0.88); border: 1px solid rgba(255,255,255,0.1); border-bottom-right-radius: 4px; } 
+        .msg-me { align-self: flex-end; background: linear-gradient(135deg, rgba(112, 0, 255, 0.65), rgba(70, 0, 255, 0.65)); border: 1px solid rgba(112, 0, 255, 0.4); border-bottom-left-radius: 4px; } 
         .msg-reply { background: linear-gradient(135deg, #090e1a 0%, #150524 100%) !important; border: 1px solid rgba(112, 0, 255, 0.4) !important; } 
         
-        /* 🕯️ تصميم الاعتراف المتوهج */
         .msg-confession {
-            background: linear-gradient(135deg, rgba(30, 20, 5, 0.9), rgba(50, 30, 10, 0.9)) !important;
-            border: 1px solid rgba(245, 158, 11, 0.6) !important;
-            box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
+            background: linear-gradient(135deg, rgba(40, 25, 5, 0.92), rgba(65, 35, 10, 0.92)) !important;
+            border: 1px solid rgba(245, 158, 11, 0.7) !important;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
         }
         .msg-confession .sender { color: var(--amber) !important; }
         .msg-confession::before { content: "🕯️ اعتراف:"; display: block; font-size: 10px; color: var(--amber); font-weight: 900; margin-bottom: 4px; }
 
-        .msg-system { align-self: center; background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.5); color: #e9d5ff; font-weight: bold; max-width: 90%; text-align: center; border-radius: 14px; }
+        .msg-system { align-self: center; background: rgba(139, 92, 246, 0.25); border: 1px solid rgba(139, 92, 246, 0.5); color: #e9d5ff; font-weight: bold; max-width: 90%; text-align: center; border-radius: 14px; font-size: 13px; }
         
         .reply-target { font-size: 10.5px; color: #a5f3fc; font-weight: 700; margin-bottom: 4px; display: block; opacity: 0.9; } 
         .reply-text { font-size: 14px; color: #fff; border-right: 2px solid var(--cyan); padding-right: 8px; margin-top: 2px; display: block; }
@@ -104,12 +159,19 @@
         
         .edit-banner { display: none; background: rgba(245, 158, 11, 0.2); border-top: 1px solid var(--amber); padding: 6px 16px; font-size: 11px; color: var(--amber); }
 
-        .input-area { padding: 0; background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.08); padding-bottom: calc(10px + env(safe-area-inset-bottom)); } 
+        .input-area { 
+            padding: 0; 
+            background: rgba(2, 6, 23, 0.96); 
+            backdrop-filter: blur(20px); 
+            border-top: 1px solid rgba(255,255,255,0.08); 
+            padding-bottom: calc(10px + env(safe-area-inset-bottom)); 
+        } 
         .input-wrapper { display: flex; gap: 10px; align-items: center; max-width: 700px; margin: 0 auto; padding: 10px 14px; } 
-        input { flex: 1; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255,255,255,0.12); padding: 14px 20px; border-radius: 35px; color: #fff; outline: none; font-size: 15px; font-family: 'Tajawal'; transition: 0.3s; } 
+        input { flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.12); padding: 14px 20px; border-radius: 35px; color: #fff; outline: none; font-size: 15px; font-family: 'Tajawal'; transition: 0.3s; } 
         input:focus { border-color: var(--cyan); box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
         .send-btn { background: var(--cyan); border: none; width: 48px; height: 48px; border-radius: 50%; cursor: pointer; font-size: 20px; color: #000; font-weight: bold; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: 0.2s; } 
-        .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .send-btn:active { transform: scale(0.92); }
+        .send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
         
         #actionModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 2000; align-items: center; justify-content: center; } 
         .modal-content { background: var(--dark); border: 1px solid var(--cyan); padding: 20px; border-radius: 20px; width: 85%; max-width: 300px; } 
@@ -117,17 +179,21 @@
     </style>
 </head>
 <body>
+    <!-- شريط تنبيه متصفح فيسبوك -->
+    <div id="fbBrowserAlert">
+        ⚠️ أنت تتصفح من داخل فيسبوك. اضغط على (⋮) بالأعلى واختر "فتح في المتصفح / Chrome" ليعمل التطبيق بملء الشاشة والإشعارات.
+    </div>
+
     <div id="rulesOverlay">
         <div class="rules-card">
             <span class="intro-line">هنا، لا أحد يعرفك… لكن الجميع يسمعك.</span>
             <h3>ميثاق الأشباح – الإصدار التاسع</h3>
             <ul class="rules-list">
-                <li><b>👻 تجدد دوري:</b> لا اسم حقيقي ولا ماضٍ. هويتك تتجدد كل 12 ساعة تلقائياً.</li>
+                <li><b>👻 تجدد دوري:</b> هويتك وشكلك وخلفيتك تتجدد كل 12 ساعة تلقائياً.</li>
                 <li><b>🕯️ الاعتراف:</b> ابدأ رسالتك بـ # ليتوهج اعترافك في عتمة الشات.</li>
                 <li><b>🔒 أمان وخصوصية:</b> لا نطلب أي بيانات شخصية، هذا الفضاء حر للجميع.</li>
                 <li><b>✨ التطهير المستمر:</b> كل دورة تمحو رسائلها.. فكل شيء هنا عابر.</li>
                 <li><b>💜 الاحترام المتبادل:</b> لا كراهية ولا إيذاء ولا تنمر.</li>
-                <li><b>🆘 خط الدعم:</b> إذا كنت في أزمة، حياتك غالية ولست وحدك.</li>
             </ul>
             <button class="agree-btn" onclick="acceptRules()">تكلم بلا اسم… لكن بضمير 🕯️</button>
         </div>
@@ -143,7 +209,7 @@
 
     <header id="appHeader">
         <h2>شات الأشباح 👻</h2>
-        <button id="installBtn">📱 تثبيت التطبيق</button>
+        <button id="installBtn">📱 تثبيت التطبيق بملء الشاشة</button>
         <div class="header-meta">
             <span id="status">جاري استحضار هويتك...</span>
             <span id="timerBox">⏳ تتجدد الهوية بعد: --:--:--</span>
@@ -172,9 +238,36 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, onChildAdded, query, limitToLast, set, onDisconnect, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
+        import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
-        // ✅ حماية ضد XSS
+        // 🌌 مكتبة الخلفيات المتجددة كل 12 ساعة
+        const ghostWallpapers = [
+            'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1500', // جبال النجوم
+            'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?q=80&w=1500', // غابة الضباب
+            'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1500', // الشفق البنفسجي
+            'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1500', // البحر الليلي
+            'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1500', // الجبال الثلجية
+            'https://images.unsplash.com/photo-1514565131-fce0801e5785?q=80&w=1500', // مدينة الأشباح
+            'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=1500'  // رمال الصمت
+        ];
+
+        function applyDynamicBackground(seed) {
+            let hash = 0;
+            const str = String(seed || 'ghost');
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash |= 0;
+            }
+            const bgIndex = Math.abs(hash) % ghostWallpapers.length;
+            document.body.style.backgroundImage = `url('${ghostWallpapers[bgIndex]}')`;
+        }
+
+        // كشف متصفح فيسبوك/إنستغرام
+        const isFB = /FBAN|FBAV|Instagram/i.test(navigator.userAgent);
+        if (isFB) {
+            document.getElementById('fbBrowserAlert').style.display = 'block';
+        }
+
         function escapeHTML(str) {
             if (!str) return '';
             return str.replace(/[&<>'"]/g, 
@@ -182,27 +275,13 @@
             );
         }
 
-        // ✅ زر التثبيت ومعالجة PWA
+        // إعدادات PWA والتثبيت
         let deferredPrompt;
         const installBtn = document.getElementById('installBtn');
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
-        if (!isStandalone) {
-            if (isIOS) {
-                // إظهار الزر لمستخدمي iOS مع إرشاد لطيف
-                installBtn.style.display = 'block';
-                installBtn.innerText = '📲 تثبيت على الشاشة';
-                installBtn.onclick = () => {
-                    Swal.fire({
-                        title: 'تثبيت التطبيق على آيفون',
-                        html: 'اضغط على زر المشاركة <b>⎋</b> أسفل الشاشة، ثم اختر <b>إضافة إلى الشاشة الرئيسية (Add to Home Screen)</b> 📲',
-                        background: '#020617',
-                        color: '#fff',
-                        confirmButtonText: 'فهمت'
-                    });
-                };
-            }
+        if (!isStandalone && !isFB) {
+            installBtn.style.display = 'block';
         }
 
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -212,18 +291,22 @@
         });
 
         installBtn.addEventListener('click', async () => {
-            if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') installBtn.style.display = 'none';
-            deferredPrompt = null;
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') installBtn.style.display = 'none';
+                deferredPrompt = null;
+            } else {
+                Swal.fire({
+                    title: 'تثبيت التطبيق بملء الشاشة',
+                    html: 'اضغط على قائمة المتصفح <b>(⋮)</b> ثم اختر <b>"إضافة إلى الشاشة الرئيسية"</b> أو <b>"تثبيت التطبيق"</b> ليفتح كبرنامج كامل.',
+                    background: '#020617',
+                    color: '#fff',
+                    confirmButtonText: 'حسناً'
+                });
+            }
         });
 
-        window.addEventListener('appinstalled', () => {
-            installBtn.style.display = 'none';
-        });
-
-        // ✅ إعدادات Firebase
         const firebaseConfig = { 
             apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
             authDomain: "am--rewards.firebaseapp.com", 
@@ -246,21 +329,26 @@
         const renderedMsgIds = new Set();
         let activePeriod = "";
 
-        // ✅ عداد 12 ساعة المتبقي
+        // دالة مساعدة لتحديد دورة الـ 12 ساعة محلياً
+        function getLocal12hPeriod() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const hour = d.getHours();
+            const period = hour < 12 ? 'AM' : 'PM';
+            return `${year}${month}${day}_${period}`;
+        }
+
         function update12HourCountdown() {
             const now = new Date();
-            // توقيت القاهرة UTC+2 / UTC+3
             const cairoTimeStr = now.toLocaleString("en-US", { timeZone: "Africa/Cairo" });
             const cairoDate = new Date(cairoTimeStr);
             const hours = cairoDate.getHours();
             
-            // الهدف القادم: الساعة 12 ظهراً أو 24 منتصف الليل
             const target = new Date(cairoDate);
-            if (hours < 12) {
-                target.setHours(12, 0, 0, 0);
-            } else {
-                target.setHours(24, 0, 0, 0);
-            }
+            if (hours < 12) target.setHours(12, 0, 0, 0);
+            else target.setHours(24, 0, 0, 0);
             
             const diff = target - cairoDate;
             if (diff <= 0) {
@@ -299,11 +387,16 @@
                 });
                 const data = await res.json();
                 
+                // توافق ذكي: إذا كان الباك إند يرسل activePeriod أو activeDay
+                activePeriod = data.activePeriod || data.activeDay || getLocal12hPeriod();
+                
                 if (data.ghostName) {
-                    activePeriod = data.activePeriod;
                     myGhostName = data.ghostName;
                     document.getElementById('status').innerHTML = `<span class="online-dot"></span> هويتك: ${escapeHTML(myGhostName)} <span class="rank-badge">${escapeHTML(data.rank || 'روح عابرة')}</span>`;
                     
+                    // 🌌 تطبيق الخلفية الخاصة بهذه الهوية وهذه الدورة
+                    applyDynamicBackground(myGhostName + activePeriod);
+
                     initPresence();
                     initMessages();
                     requestNotificationPermission();
@@ -319,7 +412,11 @@
                     }
                 }
             } catch (e) { 
-                console.error("❌ Identity Failed", e); 
+                console.error("❌ Identity Failed", e);
+                // احتياط: تشغيل الرسائل حتى لو فشل جلب الهوية
+                activePeriod = getLocal12hPeriod();
+                applyDynamicBackground(activePeriod);
+                initMessages();
             }
         };
 
@@ -333,9 +430,8 @@
         async function requestNotificationPermission() {
             try {
                 if (!('Notification' in window)) return;
-                const permission = await Notification.requestPermission();
-                if (permission === 'granted' && 'serviceWorker' in navigator) {
-                    const reg = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+                if (Notification.permission === 'granted') {
+                    const reg = await navigator.serviceWorker.ready;
                     const token = await getToken(messaging, { 
                         vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
                         serviceWorkerRegistration: reg
@@ -348,9 +444,7 @@
                         });
                     }
                 }
-            } catch (err) { 
-                console.warn('⚠️ FCM Registration Note:', err.message); 
-            }
+            } catch (err) {}
         }
 
         onAuthStateChanged(auth, (user) => {
@@ -369,7 +463,9 @@
             document.getElementById('rulesOverlay').style.display = 'none';
             document.getElementById('msgInput').disabled = false;
             document.getElementById('sendBtn').disabled = false;
-            requestNotificationPermission();
+            if ('Notification' in window) {
+                Notification.requestPermission().then(requestNotificationPermission);
+            }
         };
 
         if (localStorage.getItem('ghost_rules_accepted') === 'true') {
@@ -377,19 +473,23 @@
         }
 
         async function send() {
-            if (Date.now() - lastSend < 3000) return;
+            if (Date.now() - lastSend < 2000) return;
             const input = document.getElementById('msgInput');
             let text = input.value.trim();
-            if (!text || !activePeriod || !currentUser) return;
+            if (!text || !currentUser) return;
+            if (!activePeriod) activePeriod = getLocal12hPeriod();
+            
             lastSend = Date.now();
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
             
             try {
                 const token = await auth.currentUser.getIdToken();
                 let textToSend = (!editingMsgId && currentReplyTo) ? `رد على @${currentReplyTo.sender}: ${text}` : text;
                 
                 const payload = editingMsgId ? 
-                    { action: "EDIT", msgId: editingMsgId, text: textToSend, uid: currentUser.uid, token, period: activePeriod } : 
-                    { text: textToSend, uid: currentUser.uid, token, period: activePeriod };
+                    { action: "EDIT", msgId: editingMsgId, text: textToSend, uid: currentUser.uid, token, period: activePeriod, day: activePeriod } : 
+                    { text: textToSend, uid: currentUser.uid, token, period: activePeriod, day: activePeriod };
 
                 const res = await fetch('/api/sendMessage', { 
                     method: 'POST', 
@@ -402,10 +502,11 @@
                     Swal.fire({
                         icon: 'warning',
                         title: 'تنبيه',
-                        text: data.error || 'حدث خطأ أثناء الإرسال',
+                        text: data.error || 'تعذر إرسال الهمسة',
                         background: '#020617',
                         color: '#fff'
                     });
+                    sendBtn.disabled = false;
                     return;
                 }
 
@@ -413,12 +514,19 @@
                 cancelReply(); 
                 cancelEdit();
             } catch(e) { 
-                console.error("❌ Send Error", e); 
+                console.error("❌ Send Error", e);
+                Swal.fire({ icon: 'error', title: 'خطأ', text: 'فشل الاتصال بالخادم', background: '#020617', color: '#fff' });
+            } finally {
+                sendBtn.disabled = false;
+                input.focus();
             }
         }
 
+        // ✅ الاستماع للرسائل مع معالجة الأخطاء والتنبيه الصريح
         function initMessages() {
-            if (!activePeriod) return;
+            if (!activePeriod) activePeriod = getLocal12hPeriod();
+            
+            // الاستماع لمسار الـ 12 ساعة
             const msgRef = ref(db, `messages/global/${activePeriod}`);
             
             onChildChanged(msgRef, (snap) => {
@@ -439,6 +547,15 @@
                 if (!renderedMsgIds.has(snap.key)) {
                     renderMsg(snap.key, snap.val());
                 }
+            }, (error) => {
+                console.error("Firebase Read Error:", error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'قواعد الأمان تمنع القراءة',
+                    text: 'تأكد من قواعد Firebase Realtime Database (Rules) أنها تسمح بالقراءة للمستخدمين المسجلين: ' + error.message,
+                    background: '#020617',
+                    color: '#fff'
+                });
             });
         }
 
@@ -497,8 +614,7 @@
                 div.appendChild(reportBtn);
             }
 
-            // التمرير الذكي (Smart Auto-Scroll)
-            const isNearBottom = (chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight) < 150;
+            const isNearBottom = (chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight) < 160;
             chatBox.appendChild(div);
             renderedMsgIds.add(id);
 
@@ -536,10 +652,11 @@
                                 reason: result.value,
                                 uid: currentUser.uid,
                                 token,
-                                period: activePeriod
+                                period: activePeriod,
+                                day: activePeriod
                             })
                         });
-                        Swal.fire({ icon: 'success', title: 'تم الإبلاغ', text: 'شكراً لحمايتك لسلامة المكان 💜', background: '#020617', color: '#fff' });
+                        Swal.fire({ icon: 'success', title: 'تم الإبلاغ', text: 'شكراً لمساعدتك 💜', background: '#020617', color: '#fff' });
                     } catch (e) {
                         console.error("❌ Report error:", e);
                     }
@@ -556,7 +673,7 @@
                 await fetch('/api/sendMessage', { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ action: "DELETE", msgId: id, uid: currentUser.uid, token, period: activePeriod }) 
+                    body: JSON.stringify({ action: "DELETE", msgId: id, uid: currentUser.uid, token, period: activePeriod, day: activePeriod }) 
                 });
                 modal.style.display = 'none';
             };
@@ -583,4 +700,4 @@
         signInAnonymously(auth);
     </script>
 </body>
-</html>
+    </html>
