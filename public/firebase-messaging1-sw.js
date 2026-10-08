@@ -1,7 +1,6 @@
+// firebase-messaging-sw.js - النسخة المانعة لتكرار الإشعارات
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
-
-console.log('🔧 Service Worker loaded');
 
 firebase.initializeApp({
     apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
@@ -15,54 +14,42 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-console.log('✅ Firebase initialized in Service Worker');
-
-// ✅ استقبال الإشعارات في الخلفية
+// 📬 استقبال الإشعارات في الخلفية مع منع التكرار
 messaging.onBackgroundMessage((payload) => {
-    console.log('📬 Background message received:', payload);
-    
-    const notificationTitle = payload.notification?.title || 'شات الأشباح';
-    const notificationOptions = {
-        body: payload.notification?.body || 'رسالة جديدة',
+    // 🛑 سر منع التكرار: إذا قام أندرويد بعرض الإشعار تلقائياً عبر payload.notification، نمنع الـ Service Worker من عرضه مرة ثانية
+    if (payload.notification) {
+        return; 
+    }
+
+    const title = payload.data?.title || 'شات الأشباح 👻';
+    const options = {
+        body: payload.data?.body || 'لديك همسة جديدة في الظلام..',
         icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
         badge: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
-        tag: 'ghost-chat-msg',
-        renotify: true,  // ✅ تراكمية
-        requireInteraction: false,
-        silent: false,
-        priority: 'high',
-        vibrate: [200, 100, 200],
+        tag: 'ghost-chat-latest', // يستبدل الإشعار القديم ولا يراكم تكراراً
+        renotify: true,
         data: payload.data || {}
     };
 
-    console.log('📢 Showing notification:', notificationTitle);
-    return self.registration.showNotification(notificationTitle, notificationOptions);
+    return self.registration.showNotification(title, options);
 });
 
-// ✅ معالجة الضغط على الإشعار
+// 🖱️ فتح التطبيق عند النقر
 self.addEventListener('notificationclick', function(event) {
-    console.log('🖱️ Notification clicked');
     event.notification.close();
-    
-    const urlToOpen = event.notification.data?.url || 'https://am-rewards.vercel.app/ghost-chat.html';
+    const urlToOpen = event.notification.data?.url || '/ghost-chat.html';
     
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(windowClients) {
-            // البحث عن نافذة مفتوحة
             for (let i = 0; i < windowClients.length; i++) {
                 const client = windowClients[i];
-                if (client.url.includes('am-rewards.vercel.app') && 'focus' in client) {
-                    console.log('🔍 Found existing window, focusing');
+                if ('focus' in client) {
                     return client.focus();
                 }
             }
-            // فتح نافذة جديدة
             if (clients.openWindow) {
-                console.log('📂 Opening new window');
                 return clients.openWindow(urlToOpen);
             }
         })
     );
 });
-
-console.log('✅ Service Worker ready');
