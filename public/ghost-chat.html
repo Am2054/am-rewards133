@@ -1,107 +1,133 @@
-<!-- ghost-chat.html - النسخة النهائية مع تثبيت دائم -->
+<!-- ghost-chat.html - النسخة النهائية المحدثة -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Ghost Chat">
-    <title>شات الأشباح | الإصدار الثامن</title>
+    <title>شات الأشباح | الإصدار النهائي</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        :root { --cyan: #00f2ff; --purple: #7000ff; --dark: #020617; --danger: #ff4444; --system: #94a3b8; --success: #10b981; } 
+        :root { 
+            --cyan: #00f2ff; 
+            --purple: #7000ff; 
+            --dark: #020617; 
+            --danger: #ff4444; 
+            --system: #94a3b8; 
+            --success: #10b981; 
+            --amber: #f59e0b;
+        } 
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; } 
-        input, .text { user-select: text; } 
+        input, .text, .reply-text { user-select: text; } 
         html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; color: #fff; } 
-        body { font-family: 'Tajawal', sans-serif; display: flex; flex-direction: column; background: #020617 url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1500') no-repeat center center fixed; background-size: cover; user-select: none; position: relative; } 
-        body::before { content: ""; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: -1; } 
+        body { 
+            font-family: 'Tajawal', sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            background: #020617 url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1500') no-repeat center center fixed; 
+            background-size: cover; 
+            user-select: none; 
+            position: relative; 
+        } 
+        body::before { content: ""; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); z-index: -1; } 
         
         #installBtn { 
             display: none; 
             background: linear-gradient(135deg, rgba(0, 242, 255, 0.2), rgba(112, 0, 255, 0.2));
             color: var(--cyan); 
             border: 2px solid var(--cyan); 
-            padding: 10px 20px; 
+            padding: 8px 18px; 
             border-radius: 25px; 
-            margin: 8px auto; 
+            margin: 6px auto; 
             cursor: pointer; 
             font-weight: 900; 
             font-size: 12px; 
             transition: 0.3s;
             animation: pulse 2s infinite;
         }
-        
-        #installBtn:hover { background: linear-gradient(135deg, rgba(0, 242, 255, 0.3), rgba(112, 0, 255, 0.3)); }
         #installBtn.hidden { display: none !important; }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 0.9; }
-            50% { opacity: 1; }
-        }
+        @keyframes pulse { 0%, 100% { opacity: 0.85; transform: scale(1); } 50% { opacity: 1; transform: scale(1.03); } }
 
         #rulesOverlay { position: fixed; inset: 0; background: #020617; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; } 
-        .rules-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(0, 242, 255, 0.3); border-radius: 30px; padding: 30px; max-width: 480px; width: 100%; text-align: center; box-shadow: 0 0 50px rgba(0, 242, 255, 0.1); max-height: 90vh; overflow-y: auto; } 
-        .intro-line { color: var(--cyan); font-weight: 900; font-size: 18px; margin-bottom: 20px; display: block; } 
-        .rules-card h3 { color: #fff; margin: 0 0 20px; font-weight: 900; font-size: 22px; } 
-        .rules-list { list-style: none; padding: 0; font-size: 14px; color: #cbd5e1; margin-bottom: 25px; text-align: right; } 
-        .rules-list li { margin-bottom: 15px; line-height: 1.6; padding-right: 25px; position: relative; } 
+        .rules-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(0, 242, 255, 0.3); border-radius: 28px; padding: 26px; max-width: 460px; width: 100%; text-align: center; box-shadow: 0 0 50px rgba(0, 242, 255, 0.1); max-height: 90vh; overflow-y: auto; } 
+        .intro-line { color: var(--cyan); font-weight: 900; font-size: 16px; margin-bottom: 16px; display: block; } 
+        .rules-card h3 { color: #fff; margin: 0 0 16px; font-weight: 900; font-size: 20px; } 
+        .rules-list { list-style: none; padding: 0; font-size: 13.5px; color: #cbd5e1; margin-bottom: 22px; text-align: right; } 
+        .rules-list li { margin-bottom: 12px; line-height: 1.6; padding-right: 22px; position: relative; } 
         .rules-list li::before { content: "✦"; position: absolute; right: 0; color: var(--cyan); } 
         .rules-list li b { color: var(--cyan); } 
-        .agree-btn { width: 100%; background: linear-gradient(135deg, var(--cyan), var(--purple)); color: #fff; border: none; padding: 18px; border-radius: 50px; font-weight: 900; cursor: pointer; transition: 0.3s; font-size: 16px; } 
+        .agree-btn { width: 100%; background: linear-gradient(135deg, var(--cyan), var(--purple)); color: #fff; border: none; padding: 16px; border-radius: 50px; font-weight: 900; cursor: pointer; transition: 0.3s; font-size: 15px; } 
         
-        header { padding: calc(env(safe-area-inset-top, 10px) + 5px) 10px 5px; text-align: center; background: rgba(2, 6, 23, 0.8); backdrop-filter: blur(10px); border-bottom: none; box-shadow: 0 2px 10px rgba(0,0,0,0.3); z-index: 100; } 
-        header h2 { margin: 0 !important; font-size: 16px !important; font-weight: 900; letter-spacing: 1px; }
-        #status { font-size: 10px; color: var(--cyan); display: block; margin-top: 2px; font-weight: 900; } 
+        header { padding: calc(env(safe-area-inset-top, 10px) + 5px) 12px 8px; text-align: center; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(12px); box-shadow: 0 2px 12px rgba(0,0,0,0.4); z-index: 100; } 
+        header h2 { margin: 0 !important; font-size: 16px !important; font-weight: 900; letter-spacing: 0.5px; }
+        .header-meta { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 4px; font-size: 11px; flex-wrap: wrap; }
+        #status { color: var(--cyan); font-weight: 700; } 
+        #timerBox { color: #cbd5e1; font-size: 10px; background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 12px; }
         
-        #chatBox { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth; position: relative; } 
-        .msg { max-width: 85%; padding: 14px 18px; border-radius: 24px; font-size: 15px; backdrop-filter: blur(10px); animation: msgIn 0.4s ease; position: relative; line-height: 1.5; cursor: pointer; transition: 0.2s; } 
-        @keyframes msgIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } } 
+        #chatBox { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; position: relative; } 
+        .msg { max-width: 85%; padding: 12px 16px; border-radius: 20px; font-size: 14.5px; backdrop-filter: blur(10px); animation: msgIn 0.3s ease; position: relative; line-height: 1.5; cursor: pointer; transition: 0.2s; } 
+        @keyframes msgIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } } 
         
-        .msg-remote { align-self: flex-start; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.08); border-bottom-right-radius: 4px; } 
-        .msg-me { align-self: flex-end; background: linear-gradient(135deg, rgba(112, 0, 255, 0.5), rgba(70, 0, 255, 0.5)); border: 1px solid rgba(112, 0, 255, 0.3); border-bottom-left-radius: 4px; } 
-        .msg-reply { background: linear-gradient(135deg, #020617 0%, #0a0101 50%, #1a0202 100%) !important; border: 1px solid rgba(255, 68, 68, 0.4) !important; border-radius: 18px !important; border-bottom-right-radius: 4px !important; } 
+        .msg-remote { align-self: flex-start; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255,255,255,0.08); border-bottom-right-radius: 4px; } 
+        .msg-me { align-self: flex-end; background: linear-gradient(135deg, rgba(112, 0, 255, 0.6), rgba(70, 0, 255, 0.6)); border: 1px solid rgba(112, 0, 255, 0.4); border-bottom-left-radius: 4px; } 
+        .msg-reply { background: linear-gradient(135deg, #090e1a 0%, #150524 100%) !important; border: 1px solid rgba(112, 0, 255, 0.4) !important; } 
         
-        .msg-system { align-self: center; background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.5); color: #e9d5ff; font-weight: bold; max-width: 90%; text-align: center; }
+        /* 🕯️ تصميم الاعتراف المتوهج */
+        .msg-confession {
+            background: linear-gradient(135deg, rgba(30, 20, 5, 0.9), rgba(50, 30, 10, 0.9)) !important;
+            border: 1px solid rgba(245, 158, 11, 0.6) !important;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
+        }
+        .msg-confession .sender { color: var(--amber) !important; }
+        .msg-confession::before { content: "🕯️ اعتراف:"; display: block; font-size: 10px; color: var(--amber); font-weight: 900; margin-bottom: 4px; }
+
+        .msg-system { align-self: center; background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.5); color: #e9d5ff; font-weight: bold; max-width: 90%; text-align: center; border-radius: 14px; }
         
-        .reply-target { font-size: 10px; color: #ffcccc; font-weight: 700; margin-bottom: 5px; display: block; } 
-        .reply-text { font-size: 15px; color: #fff; border-right: 2px solid #ff4444; padding-right: 8px; margin-top: 2px; display: block; }
+        .reply-target { font-size: 10.5px; color: #a5f3fc; font-weight: 700; margin-bottom: 4px; display: block; opacity: 0.9; } 
+        .reply-text { font-size: 14px; color: #fff; border-right: 2px solid var(--cyan); padding-right: 8px; margin-top: 2px; display: block; }
         
-        .report-btn { position: absolute; left: 10px; top: 10px; background: rgba(255, 68, 68, 0.1); border: 1px solid rgba(255, 68, 68, 0.3); color: #ff4444; padding: 4px 8px; border-radius: 6px; font-size: 11px; cursor: pointer; opacity: 0; transition: 0.2s; }
+        .report-btn { position: absolute; left: 8px; top: 8px; background: rgba(255, 68, 68, 0.15); border: 1px solid rgba(255, 68, 68, 0.3); color: #ff6b6b; padding: 2px 6px; border-radius: 6px; font-size: 10px; cursor: pointer; opacity: 0; transition: 0.2s; }
         .msg:hover .report-btn { opacity: 1; }
         
-        .sender { font-size: 10px; font-weight: 900; color: var(--cyan); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; opacity: 0.9; } 
-        .rank-badge { font-size: 8px; background: rgba(0, 242, 255, 0.15); color: var(--cyan); padding: 2px 6px; border-radius: 4px; margin-right: 5px; border: 1px solid rgba(0, 242, 255, 0.3); }
+        .sender { font-size: 10px; font-weight: 900; color: var(--cyan); margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; opacity: 0.9; } 
+        .rank-badge { font-size: 8px; background: rgba(0, 242, 255, 0.15); color: var(--cyan); padding: 1px 5px; border-radius: 4px; margin-right: 5px; border: 1px solid rgba(0, 242, 255, 0.3); }
         .online-dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; display: inline-block; margin-left: 5px; box-shadow: 0 0 5px var(--success); } 
         .text { word-wrap: break-word; } 
         
-        .reply-preview { display: none; background: rgba(15, 23, 42, 0.95); border-top: 1px solid var(--cyan); padding: 10px 20px; position: relative; } 
+        .reply-preview { display: none; background: rgba(15, 23, 42, 0.95); border-top: 1px solid var(--cyan); padding: 8px 16px; position: relative; font-size: 12px; } 
+        .reply-preview-close { position: absolute; left: 12px; top: 6px; color: var(--cyan); cursor: pointer; font-weight: bold; font-size: 14px; }
         
-        .input-area { padding: 0; background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.08); padding-bottom: calc(15px + env(safe-area-inset-bottom)); } 
-        .input-wrapper { display: flex; gap: 12px; align-items: center; max-width: 700px; margin: 0 auto; padding: 15px; } 
-        input { flex: 1; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 16px 22px; border-radius: 35px; color: #fff; outline: none; font-size: 16px; transition: 0.3s; } 
+        .edit-banner { display: none; background: rgba(245, 158, 11, 0.2); border-top: 1px solid var(--amber); padding: 6px 16px; font-size: 11px; color: var(--amber); }
+
+        .input-area { padding: 0; background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.08); padding-bottom: calc(10px + env(safe-area-inset-bottom)); } 
+        .input-wrapper { display: flex; gap: 10px; align-items: center; max-width: 700px; margin: 0 auto; padding: 10px 14px; } 
+        input { flex: 1; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255,255,255,0.12); padding: 14px 20px; border-radius: 35px; color: #fff; outline: none; font-size: 15px; font-family: 'Tajawal'; transition: 0.3s; } 
         input:focus { border-color: var(--cyan); box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
-        .send-btn { background: var(--cyan); border: none; width: 54px; height: 54px; border-radius: 50%; cursor: pointer; font-size: 22px; color: #000; font-weight: bold; flex-shrink: 0; display: flex; align-items: center; justify-content: center; } 
+        .send-btn { background: var(--cyan); border: none; width: 48px; height: 48px; border-radius: 50%; cursor: pointer; font-size: 20px; color: #000; font-weight: bold; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: 0.2s; } 
+        .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         
-        #actionModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; } 
-        .modal-content { background: var(--dark); border: 1px solid var(--cyan); padding: 20px; border-radius: 20px; width: 80%; max-width: 300px; } 
-        .modal-btn { width: 100%; padding: 12px; margin: 5px 0; border: none; border-radius: 10px; font-family: 'Tajawal'; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        #actionModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 2000; align-items: center; justify-content: center; } 
+        .modal-content { background: var(--dark); border: 1px solid var(--cyan); padding: 20px; border-radius: 20px; width: 85%; max-width: 300px; } 
+        .modal-btn { width: 100%; padding: 12px; margin: 6px 0; border: none; border-radius: 12px; font-family: 'Tajawal'; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 14px; }
     </style>
 </head>
 <body>
     <div id="rulesOverlay">
         <div class="rules-card">
             <span class="intro-line">هنا، لا أحد يعرفك… لكن الجميع يسمعك.</span>
-            <h3>ميثاق الأشباح – الإصدار الثامن</h3>
+            <h3>ميثاق الأشباح – الإصدار التاسع</h3>
             <ul class="rules-list">
-                <li><b>👻 المجهولية:</b> هنا لا اسم حقيقي، لا صورة، لا ماضٍ. روحك تتجدد كل يوم.</li>
-                <li><b>🕯️ الاعتراف:</b> استخدم #اعتراف عندما تريد أن يتوهج كلامك في الظلام.</li>
-                <li><b>🔒 الخصوصية:</b> لا نطلب بريداً أو رقماً أو هوية. هذا الفضاء لك كما أنت.</li>
-                <li><b>✨ التطهير:</b> هذا المكان يتجدد دائماً… فكل شيء هنا عابر.</li>
-                <li><b>💜 الاحترام:</b> كن لطيفاً. لا كراهية، لا عنصرية، لا إيذاء.</li>
-                <li><b>🆘 الدعم:</b> إذا كنت في أزمة، لا تتردد. حياتك مهمة.</li>
+                <li><b>👻 تجدد دوري:</b> لا اسم حقيقي ولا ماضٍ. هويتك تتجدد كل 12 ساعة تلقائياً.</li>
+                <li><b>🕯️ الاعتراف:</b> ابدأ رسالتك بـ # ليتوهج اعترافك في عتمة الشات.</li>
+                <li><b>🔒 أمان وخصوصية:</b> لا نطلب أي بيانات شخصية، هذا الفضاء حر للجميع.</li>
+                <li><b>✨ التطهير المستمر:</b> كل دورة تمحو رسائلها.. فكل شيء هنا عابر.</li>
+                <li><b>💜 الاحترام المتبادل:</b> لا كراهية ولا إيذاء ولا تنمر.</li>
+                <li><b>🆘 خط الدعم:</b> إذا كنت في أزمة، حياتك غالية ولست وحدك.</li>
             </ul>
             <button class="agree-btn" onclick="acceptRules()">تكلم بلا اسم… لكن بضمير 🕯️</button>
         </div>
@@ -118,16 +144,23 @@
     <header id="appHeader">
         <h2>شات الأشباح 👻</h2>
         <button id="installBtn">📱 تثبيت التطبيق</button>
-        <span id="status">جاري استحضار هويتك اليومية...</span>
+        <div class="header-meta">
+            <span id="status">جاري استحضار هويتك...</span>
+            <span id="timerBox">⏳ تتجدد الهوية بعد: --:--:--</span>
+        </div>
     </header>
 
     <div id="chatBox"></div>
 
     <div class="input-area">
+        <div id="editBanner" class="edit-banner">
+            <span>✏️ وضع التعديل (اضغط لإلغاء التعديل)</span>
+            <span style="float: left; cursor: pointer;" onclick="cancelEdit()">✕</span>
+        </div>
         <div id="replyContainer" class="reply-preview">
-            <span style="position: absolute; left: 15px; top: 8px; color: var(--cyan); cursor: pointer; font-weight: bold;" onclick="cancelReply()">✕</span>
-            <div style="color: #ffcccc; font-weight: 900; font-size: 10px; margin-bottom: 5px;" id="replyTargetName"></div>
-            <div id="replyTargetText"></div>
+            <span class="reply-preview-close" onclick="cancelReply()">✕</span>
+            <div style="color: var(--cyan); font-weight: 900; font-size: 11px; margin-bottom: 3px;" id="replyTargetName"></div>
+            <div id="replyTargetText" style="color: #cbd5e1;"></div>
         </div>
         <div class="input-wrapper">
             <input type="text" id="msgInput" placeholder="اهمس أو اعترف بـ #..." maxlength="300" disabled>
@@ -136,97 +169,70 @@
     </div>
 
     <script type="module">
-        // ✅ نظام التثبيت المحسّن (ثابت نهائياً)
-        let deferredPrompt;
-        const installBtn = document.getElementById('installBtn');
-        
-        // ✅ التحقق من حالة التطبيق عند التحميل
-        function checkInstallationStatus() {
-            console.log('🔍 Checking installation status...');
-            
-            // 1. التحقق من localStorage
-            const isInstalled = localStorage.getItem('ghost_app_installed') === 'true';
-            
-            // 2. التحقق من Standalone mode (التطبيق مثبت فعلاً)
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                               window.navigator.standalone === true;
-            
-            // 3. التحقق من appinstalled event السابق
-            const appInstalledBefore = sessionStorage.getItem('app_install_event_fired') === 'true';
-            
-            console.log(`localStorage: ${isInstalled}, Standalone: ${isStandalone}, Event fired: ${appInstalledBefore}`);
-            
-            if (isInstalled || isStandalone || appInstalledBefore) {
-                console.log('✅ App is already installed, hiding button');
-                installBtn.classList.add('hidden');
-            }
-        }
-
-        checkInstallationStatus();
-
-        // ✅ استماع لحدث beforeinstallprompt
-        window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('✅ beforeinstallprompt triggered');
-            e.preventDefault();
-            deferredPrompt = e;
-            
-            // فقط أظهر الزر إذا لم يتم التثبيت من قبل
-            const isInstalled = localStorage.getItem('ghost_app_installed') === 'true';
-            if (!isInstalled) {
-                installBtn.classList.remove('hidden');
-            }
-        });
-
-        // ✅ معالج الضغط على الزر
-        installBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            console.log('🔧 Install button clicked');
-            
-            if (!deferredPrompt) {
-                console.warn('⚠️ deferredPrompt is not available');
-                return;
-            }
-
-            // ✅ إظهار الـ prompt
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            
-            console.log(`User choice: ${outcome}`);
-            
-            if (outcome === 'accepted') {
-                console.log('✅ User accepted installation');
-                // ✅ حفظ في localStorage و sessionStorage
-                localStorage.setItem('ghost_app_installed', 'true');
-                sessionStorage.setItem('app_install_event_fired', 'true');
-                // ✅ إخفاء الزر نهائياً
-                installBtn.classList.add('hidden');
-            } else {
-                console.log('❌ User dismissed installation');
-            }
-            
-            deferredPrompt = null;
-        });
-
-        // ✅ استماع لحدث appinstalled (من قبل النظام)
-        window.addEventListener('appinstalled', () => {
-            console.log('✅ App installed event fired by system');
-            localStorage.setItem('ghost_app_installed', 'true');
-            sessionStorage.setItem('app_install_event_fired', 'true');
-            installBtn.classList.add('hidden');
-        });
-
-        // ✅ حل للـ iPhone (حفظ في Home Screen)
-        window.addEventListener('beforebeforeinstallprompt', (e) => {
-            e.preventDefault();
-            console.log('📱 beforebeforeinstallprompt (iOS)');
-        });
-
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onChildAdded, query, limitToLast, set, onDisconnect, update, onChildChanged, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, onChildAdded, query, limitToLast, set, onDisconnect, onChildChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
-        const firebaseConfig = { apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", authDomain: "am--rewards.firebaseapp.com", databaseURL: "https://am--rewards-default-rtdb.firebaseio.com", projectId: "am--rewards", storageBucket: "am--rewards.firebasestorage.app", messagingSenderId: "744783579735", appId: "1:744783579735:web:45e00de9998893bbc9b112" };
+        // ✅ حماية ضد XSS
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        // ✅ زر التثبيت ومعالجة PWA
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+        if (!isStandalone) {
+            if (isIOS) {
+                // إظهار الزر لمستخدمي iOS مع إرشاد لطيف
+                installBtn.style.display = 'block';
+                installBtn.innerText = '📲 تثبيت على الشاشة';
+                installBtn.onclick = () => {
+                    Swal.fire({
+                        title: 'تثبيت التطبيق على آيفون',
+                        html: 'اضغط على زر المشاركة <b>⎋</b> أسفل الشاشة، ثم اختر <b>إضافة إلى الشاشة الرئيسية (Add to Home Screen)</b> 📲',
+                        background: '#020617',
+                        color: '#fff',
+                        confirmButtonText: 'فهمت'
+                    });
+                };
+            }
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            if (!isStandalone) installBtn.style.display = 'block';
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') installBtn.style.display = 'none';
+            deferredPrompt = null;
+        });
+
+        window.addEventListener('appinstalled', () => {
+            installBtn.style.display = 'none';
+        });
+
+        // ✅ إعدادات Firebase
+        const firebaseConfig = { 
+            apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0", 
+            authDomain: "am--rewards.firebaseapp.com", 
+            databaseURL: "https://am--rewards-default-rtdb.firebaseio.com", 
+            projectId: "am--rewards", 
+            storageBucket: "am--rewards.firebasestorage.app", 
+            messagingSenderId: "744783579735", 
+            appId: "1:744783579735:web:45e00de9998893bbc9b112" 
+        };
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const auth = getAuth(app);
@@ -238,15 +244,53 @@
         let currentReplyTo = null;
         let lastSend = 0; 
         const renderedMsgIds = new Set();
-        let activeDay = "";
+        let activePeriod = "";
+
+        // ✅ عداد 12 ساعة المتبقي
+        function update12HourCountdown() {
+            const now = new Date();
+            // توقيت القاهرة UTC+2 / UTC+3
+            const cairoTimeStr = now.toLocaleString("en-US", { timeZone: "Africa/Cairo" });
+            const cairoDate = new Date(cairoTimeStr);
+            const hours = cairoDate.getHours();
+            
+            // الهدف القادم: الساعة 12 ظهراً أو 24 منتصف الليل
+            const target = new Date(cairoDate);
+            if (hours < 12) {
+                target.setHours(12, 0, 0, 0);
+            } else {
+                target.setHours(24, 0, 0, 0);
+            }
+            
+            const diff = target - cairoDate;
+            if (diff <= 0) {
+                document.getElementById('timerBox').innerText = `⏳ تتجدد الهويات الآن...`;
+                setTimeout(getDailyIdentity, 2000);
+                return;
+            }
+            
+            const h = Math.floor(diff / (1000 * 60 * 60)).toString().padStart(2, '0');
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+            const s = Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2, '0');
+            document.getElementById('timerBox').innerText = `⏳ تتجدد الهوية بعد: ${h}:${m}:${s}`;
+        }
+        setInterval(update12HourCountdown, 1000);
+        update12HourCountdown();
 
         window.cancelReply = () => {
             currentReplyTo = null;
             document.getElementById('replyContainer').style.display = 'none';
         };
 
+        window.cancelEdit = () => {
+            editingMsgId = null;
+            document.getElementById('editBanner').style.display = 'none';
+            document.getElementById('msgInput').value = '';
+        };
+
         const getDailyIdentity = async () => {
             try {
+                if (!auth.currentUser) return;
                 const token = await auth.currentUser.getIdToken();
                 const res = await fetch('/api/sendMessage', { 
                     method: 'POST', 
@@ -256,12 +300,23 @@
                 const data = await res.json();
                 
                 if (data.ghostName) {
-                    activeDay = data.activeDay;
+                    activePeriod = data.activePeriod;
                     myGhostName = data.ghostName;
-                    document.getElementById('status').innerHTML = `<span class="online-dot"></span> هويتك: ${myGhostName} <span class="rank-badge">${data.rank || 'روح عابرة'}</span>`;
+                    document.getElementById('status').innerHTML = `<span class="online-dot"></span> هويتك: ${escapeHTML(myGhostName)} <span class="rank-badge">${escapeHTML(data.rank || 'روح عابرة')}</span>`;
                     
                     initPresence();
-                    initMessages(); 
+                    initMessages();
+                    requestNotificationPermission();
+
+                    if (data.welcomeCard && data.welcomeCard.show) {
+                        Swal.fire({
+                            icon: 'info',
+                            title: data.welcomeCard.title,
+                            text: data.welcomeCard.message,
+                            background: '#020617',
+                            color: '#fff'
+                        });
+                    }
                 }
             } catch (e) { 
                 console.error("❌ Identity Failed", e); 
@@ -269,46 +324,32 @@
         };
 
         const initPresence = () => {
+            if (!currentUser || !myGhostName) return;
             const onlineRef = ref(db, `users_online/${currentUser.uid}`);
-            set(onlineRef, { name: myGhostName, status: 'online' });
+            set(onlineRef, { name: myGhostName, status: 'online', period: activePeriod });
             onDisconnect(onlineRef).remove();
         };
 
         async function requestNotificationPermission() {
             try {
-                console.log('🔔 Requesting notification permission...');
+                if (!('Notification' in window)) return;
                 const permission = await Notification.requestPermission();
-                console.log(`📢 Notification permission: ${permission}`);
-                
-                if (permission === 'granted') {
-                    if ('serviceWorker' in navigator) {
-                        navigator.serviceWorker.register('./firebase-messaging-sw.js')
-                            .then(registration => {
-                                console.log('✅ Service Worker registered');
-                                return getToken(messaging, { 
-                                    vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
-                                    serviceWorkerRegistration: registration
-                                });
-                            })
-                            .then(token => {
-                                console.log('✅ FCM Token obtained');
-                                if (token) {
-                                    return set(ref(db, `users_tokens/${currentUser.uid}`), { 
-                                        token, 
-                                        ghostName: myGhostName,
-                                        timestamp: Date.now()
-                                    });
-                                }
-                            })
-                            .catch(err => console.error('❌ FCM setup error:', err));
-                    }
-                    
-                    onMessage(messaging, (payload) => {
-                        console.log('📬 Message received (foreground)');
+                if (permission === 'granted' && 'serviceWorker' in navigator) {
+                    const reg = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+                    const token = await getToken(messaging, { 
+                        vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
+                        serviceWorkerRegistration: reg
                     });
+                    if (token && currentUser) {
+                        await set(ref(db, `users_tokens/${currentUser.uid}`), { 
+                            token, 
+                            ghostName: myGhostName,
+                            timestamp: Date.now()
+                        });
+                    }
                 }
             } catch (err) { 
-                console.error("❌ FCM Error", err); 
+                console.warn('⚠️ FCM Registration Note:', err.message); 
             }
         }
 
@@ -316,10 +357,9 @@
             if (user) {
                 currentUser = user;
                 getDailyIdentity();
-                if(localStorage.getItem('ghost_rules_accepted') === 'true') {
+                if (localStorage.getItem('ghost_rules_accepted') === 'true') {
                     document.getElementById('msgInput').disabled = false;
                     document.getElementById('sendBtn').disabled = false;
-                    requestNotificationPermission();
                 }
             }
         });
@@ -332,21 +372,24 @@
             requestNotificationPermission();
         };
 
-        if(localStorage.getItem('ghost_rules_accepted') === 'true') document.getElementById('rulesOverlay').style.display = 'none';
+        if (localStorage.getItem('ghost_rules_accepted') === 'true') {
+            document.getElementById('rulesOverlay').style.display = 'none';
+        }
 
         async function send() {
             if (Date.now() - lastSend < 3000) return;
             const input = document.getElementById('msgInput');
             let text = input.value.trim();
-            if(!text || !activeDay) return;
+            if (!text || !activePeriod || !currentUser) return;
             lastSend = Date.now();
+            
             try {
                 const token = await auth.currentUser.getIdToken();
-                let textToSend = currentReplyTo ? `رد على @${currentReplyTo.sender}: ${text}` : text;
+                let textToSend = (!editingMsgId && currentReplyTo) ? `رد على @${currentReplyTo.sender}: ${text}` : text;
                 
                 const payload = editingMsgId ? 
-                    { action: "EDIT", msgId: editingMsgId, text: textToSend, uid: currentUser.uid, token, day: activeDay } : 
-                    { text: textToSend, uid: currentUser.uid, token, day: activeDay };
+                    { action: "EDIT", msgId: editingMsgId, text: textToSend, uid: currentUser.uid, token, period: activePeriod } : 
+                    { text: textToSend, uid: currentUser.uid, token, period: activePeriod };
 
                 const res = await fetch('/api/sendMessage', { 
                     method: 'POST', 
@@ -358,8 +401,8 @@
                 if (!res.ok) {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'تحذير',
-                        text: data.error || 'حدث خطأ',
+                        title: 'تنبيه',
+                        text: data.error || 'حدث خطأ أثناء الإرسال',
                         background: '#020617',
                         color: '#fff'
                     });
@@ -368,25 +411,26 @@
 
                 input.value = ""; 
                 cancelReply(); 
-                editingMsgId = null;
+                cancelEdit();
             } catch(e) { 
                 console.error("❌ Send Error", e); 
             }
         }
 
         function initMessages() {
-            const msgRef = ref(db, `messages/global/${activeDay}`);
+            if (!activePeriod) return;
+            const msgRef = ref(db, `messages/global/${activePeriod}`);
             
             onChildChanged(msgRef, (snap) => {
                 const data = snap.val();
                 const el = document.getElementById(`msg-${snap.key}`);
                 if (el) {
                     if (data.deleted) { 
-                        el.className = 'msg msg-deleted'; 
-                        el.innerHTML = '<div class="text">تم حذف الهمسة</div>'; 
-                    }
-                    else if (data.edited) { 
-                        el.querySelector('.text').innerText = data.text; 
+                        el.className = 'msg msg-system'; 
+                        el.innerHTML = '<div class="text">تم حذف الهمسة 🗑️</div>'; 
+                    } else if (data.edited) { 
+                        const textEl = el.querySelector('.reply-text') || el.querySelector('.text');
+                        if (textEl) textEl.innerText = data.text; 
                     }
                 }
             });
@@ -404,29 +448,40 @@
             
             const div = document.createElement('div');
             div.id = `msg-${id}`;
-            const isMe = data.uid === currentUser.uid;
-            const isReply = data.text.startsWith('رد على @');
+            const isMe = data.uid === currentUser?.uid;
+            const isReply = data.text && data.text.startsWith('رد على @');
             const isSystem = data.type === 'mentalHealth' || data.uid === 'SYSTEM';
+            const isConfession = data.isConfession === true;
             
-            div.className = `msg ${isSystem ? 'msg-system' : (isMe ? 'msg-me' : 'msg-remote')} ${isReply ? 'msg-reply' : ''}`;
+            div.className = `msg ${isSystem ? 'msg-system' : (isMe ? 'msg-me' : 'msg-remote')} ${isReply ? 'msg-reply' : ''} ${isConfession ? 'msg-confession' : ''}`;
             
             div.onclick = () => {
                 if (isMe && !isSystem) showMsgActions(id);
                 else if (!isSystem) {
                     currentReplyTo = data;
-                    document.getElementById('replyTargetName').innerText = `رد على ${data.sender}`;
+                    document.getElementById('replyTargetName').innerText = `رد على: ${data.sender}`;
                     document.getElementById('replyTargetText').innerText = data.text;
                     document.getElementById('replyContainer').style.display = 'block';
                 }
             };
 
             let contentHTML = '';
+            const safeSender = escapeHTML(isMe ? 'أنت' : data.sender);
+
             if (isReply) {
                 const parts = data.text.split(': ');
-                const targetName = parts[0].replace('رد على @', '');
-                contentHTML = `<div class="sender"><span>${isMe ? 'أنت' : data.sender}</span></div><div class="reply-target">رد على @${targetName}</div><div class="reply-text">${parts.slice(1).join(': ')}</div>`;
+                const targetName = escapeHTML(parts[0].replace('رد على @', ''));
+                const messageBody = escapeHTML(parts.slice(1).join(': '));
+                contentHTML = `
+                    <div class="sender"><span>${safeSender}</span></div>
+                    <div class="reply-target">رد على @${targetName}</div>
+                    <div class="reply-text">${messageBody}</div>
+                `;
             } else {
-                contentHTML = `<div class="sender"><span>${isMe ? 'أنت' : data.sender}</span></div><div class="text">${data.text}</div>`;
+                contentHTML = `
+                    <div class="sender"><span>${safeSender}</span></div>
+                    <div class="text">${escapeHTML(data.text)}</div>
+                `;
             }
 
             div.innerHTML = contentHTML;
@@ -434,7 +489,7 @@
             if (!isMe && !isSystem) {
                 const reportBtn = document.createElement('button');
                 reportBtn.className = 'report-btn';
-                reportBtn.innerText = '🚨 تقرير';
+                reportBtn.innerText = '🚨 إبلاغ';
                 reportBtn.onclick = (e) => {
                     e.stopPropagation();
                     reportMessage(id);
@@ -442,24 +497,30 @@
                 div.appendChild(reportBtn);
             }
 
+            // التمرير الذكي (Smart Auto-Scroll)
+            const isNearBottom = (chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight) < 150;
             chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
             renderedMsgIds.add(id);
+
+            if (isNearBottom || isMe) {
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
         }
 
         window.reportMessage = (msgId) => {
             Swal.fire({
-                title: 'الإبلاغ عن الرسالة',
+                title: 'الإبلاغ عن همسة',
                 input: 'select',
                 inputOptions: {
-                    'hate': 'محتوى يحتوي على كراهية',
-                    'spam': 'رسالة مزعجة',
+                    'hate': 'كراهية أو تنمر',
+                    'spam': 'إزعاج / سبام',
                     'inappropriate': 'محتوى غير لائق',
                     'other': 'سبب آخر'
                 },
                 inputPlaceholder: 'اختر السبب',
                 confirmButtonText: 'إرسال التقرير',
                 showCancelButton: true,
+                cancelButtonText: 'إلغاء',
                 background: '#020617',
                 color: '#fff'
             }).then(async (result) => {
@@ -475,16 +536,10 @@
                                 reason: result.value,
                                 uid: currentUser.uid,
                                 token,
-                                day: activeDay
+                                period: activePeriod
                             })
                         });
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'تم الإبلاغ',
-                            text: 'شكراً على المساعدة 💜',
-                            background: '#020617',
-                            color: '#fff'
-                        });
+                        Swal.fire({ icon: 'success', title: 'تم الإبلاغ', text: 'شكراً لحمايتك لسلامة المكان 💜', background: '#020617', color: '#fff' });
                     } catch (e) {
                         console.error("❌ Report error:", e);
                     }
@@ -492,7 +547,7 @@
             });
         };
 
-        async function showMsgActions(id) {
+        function showMsgActions(id) {
             const modal = document.getElementById('actionModal');
             modal.style.display = 'flex';
             
@@ -501,17 +556,18 @@
                 await fetch('/api/sendMessage', { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ action: "DELETE", msgId: id, uid: currentUser.uid, token, day: activeDay }) 
+                    body: JSON.stringify({ action: "DELETE", msgId: id, uid: currentUser.uid, token, period: activePeriod }) 
                 });
                 modal.style.display = 'none';
             };
             
             document.getElementById('editBtn').onclick = () => {
                 const msgEl = document.getElementById(`msg-${id}`);
-                const currentText = msgEl.querySelector('.reply-text') ? msgEl.querySelector('.reply-text').innerText : msgEl.querySelector('.text').innerText;
+                const textEl = msgEl.querySelector('.reply-text') || msgEl.querySelector('.text');
                 const input = document.getElementById('msgInput');
-                input.value = currentText;
+                input.value = textEl ? textEl.innerText : '';
                 editingMsgId = id;
+                document.getElementById('editBanner').style.display = 'block';
                 modal.style.display = 'none';
                 input.focus();
             };
