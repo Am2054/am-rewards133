@@ -1,4 +1,4 @@
-// /api/sendMessage.js - النسخة النهائية المحدثة بنظام 12 ساعة
+// /api/sendMessage.js - النسخة النهائية مع نظام التجميد الفعلي ومنع التكرار
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getDatabase } from "firebase-admin/database";
 import { getAuth } from "firebase-admin/auth";
@@ -27,7 +27,6 @@ const db = getDatabase();
 const auth = getAuth();
 const messaging = getMessaging();
 
-// ✅ احتساب دورة الـ 12 ساعة بتوقيت القاهرة
 function getCairo12hPeriod() {
     const formatter = new Intl.DateTimeFormat('en-US', {
         timeZone: 'Africa/Cairo',
@@ -43,15 +42,9 @@ function getCairo12hPeriod() {
     const hour = parseInt(map.hour, 10);
     const period = hour < 12 ? 'AM' : 'PM';
     const dateKey = `${map.year}${map.month}${map.day}`;
-    return {
-        activePeriod: `${dateKey}_${period}`,
-        dateKey,
-        period,
-        hour
-    };
+    return { activePeriod: `${dateKey}_${period}`, dateKey, period, hour };
 }
 
-// ✅ توليد اسم شبح مجهول يتغير بدقة كل 12 ساعة
 function generate12hGhostName(uid, activePeriod) {
     const hash = crypto.createHash('md5').update(uid + activePeriod).digest('hex');
     const index = parseInt(hash.substring(0, 8), 16);
@@ -85,9 +78,8 @@ export default async function handler(req, res) {
     if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });      
 
     try {      
-        const { action, text, uid, token, msgId, period, reason } = req.body;   
+        const { action, text, uid, token, msgId, period, day, reason } = req.body;   
         
-        // 🔒 إغلاق الثغرة الأمنية: التحقق الصارم من صحة التوكن
         if (!token || !uid) {
             return res.status(401).json({ error: "مطلوب تسجيل الدخول" });
         }
@@ -98,16 +90,28 @@ export default async function handler(req, res) {
                 return res.status(403).json({ error: "معرّف المستخدم غير متطابق" });
             }
         } catch (e) {
-            console.error("❌ توكن غير صالح:", e.message);
-            return res.status(401).json({ error: "جلسة العمل منتهية أو غير صالحة" });
+            return res.status(401).json({ error: "جلسة العمل منتهية" });
         }
 
         const now = Date.now();    
         const periodInfo = getCairo12hPeriod();  
-        const currentActivePeriod = period || periodInfo.activePeriod;  
+        const currentActivePeriod = period || day || periodInfo.activePeriod;  
         const serverGhostName = generate12hGhostName(uid, currentActivePeriod);
 
-        // 🛡️ فحص تجدد دورة الـ 12 ساعة + إرسال إشعار التجدد الجماعي
+        // ❄️ فحص التجميد الفعلي (هل المستخدم محظور؟)
+        const banRef = db.ref(`banned_users/${uid}`);
+        const banSnap = await banRef.once('value');
+        if (banSnap.exists()) {
+            const banData = banSnap.val();
+            if (banData.bannedUntil && banData.bannedUntil > now) {
+                const remainingMinutes = Math.ceil((banData.bannedUntil - now) / 60000);
+                return res.status(403).json({ 
+                    error: `طيفك مجمد ومحظور من الهمس لمدة ${remainingMinutes} دقيقة بسبب مخالفة ميثاق الأشباح ❄️` 
+                });
+            }
+        }
+
+        // 🛡️ فحص تجدد دورة الـ 12 ساعة
         const lastResetRef = db.ref('system/last_12h_period');    
         let isNewSession = false;  
         const { committed } = await lastResetRef.transaction(current => {  
@@ -117,7 +121,6 @@ export default async function handler(req, res) {
 
         if (committed) {    
             isNewSession = true;
-            // 📢 إرسال إشعار للمستخدمين بتجدد الهوية ودورة الـ 12 ساعة
             try {
                 const tokensSnap = await db.ref('users_tokens').once('value');
                 if (tokensSnap.exists()) {
@@ -130,24 +133,16 @@ export default async function handler(req, res) {
                         const resetPayload = {
                             notification: {
                                 title: "🕯️ تجلّت الأرواح من جديد!",
-                                body: "مرت 12 ساعة.. تلاشت أرواح الأمس واستيقظت بهوية مجهولة جديدة. اكتشف شبحك الآن!",
+                                body: "مرت 12 ساعة.. تلاشت أرواح الأمس واستيقظت بهوية مجهولة جديدة!",
                             },
-                            data: {
-                                url: "https://am-rewards.vercel.app/ghost-chat.html",
-                                type: "IDENTITY_RESET"
-                            }
+                            data: { url: "https://am-property.vercel.app/ghost-chat.html" }
                         };
                         for (let i = 0; i < allTokens.length; i += 500) {
-                            await messaging.sendEachForMulticast({
-                                tokens: allTokens.slice(i, i + 500),
-                                ...resetPayload
-                            }).catch(() => {});
+                            await messaging.sendEachForMulticast({ tokens: allTokens.slice(i, i + 500), ...resetPayload }).catch(() => {});
                         }
                     }
                 }
-            } catch (err) {
-                console.warn("⚠️ Push on 12h Reset Note:", err.message);
-            }
+            } catch (err) {}
         }    
 
         // ✅ التعديل والحذف
@@ -163,11 +158,7 @@ export default async function handler(req, res) {
             }    
             if (action === "EDIT") {  
                 const cleanText = text.replace(/(010|011|012|015|019|٠١٠|٠١١|٠١٢|٠١٥|٠١٩)[\s-]*\d{8}/g, "[محجوب]");    
-                await msgRef.update({     
-                    text: cleanText.replace(/^#|^\*/g, '').trim(),     
-                    edited: true,    
-                    timestamp: now     
-                });    
+                await msgRef.update({ text: cleanText.replace(/^#|^\*/g, '').trim(), edited: true, timestamp: now });    
                 return res.status(200).json({ success: true });    
             }    
         }    
@@ -186,6 +177,7 @@ export default async function handler(req, res) {
             return res.status(200).json({   
                 ghostName: serverGhostName,  
                 activePeriod: periodInfo.activePeriod,   
+                activeDay: periodInfo.activePeriod,
                 rank: rank,  
                 welcomeCard: {  
                     show: isNewSession,  
@@ -195,29 +187,45 @@ export default async function handler(req, res) {
             });    
         }    
 
-        // ✅ الإبلاغ عن الرسائل
+        // 🚨 الإبلاغ والحظر الفعلي التلقائي
         if (action === "REPORT") {
             const msgRef = db.ref(`messages/global/${currentActivePeriod}/${msgId}`);
             const snap = await msgRef.once("value");
             if (!snap.exists()) return res.status(404).json({ error: "Message not found" });
 
-            const newReports = (snap.val().reports || 0) + 1;
-            await msgRef.update({
-                reports: newReports,
-                lastReportReason: reason || "inappropriate"
-            });
+            const msgData = snap.val();
+            const newReports = (msgData.reports || 0) + 1;
+            await msgRef.update({ reports: newReports, lastReportReason: reason || "inappropriate" });
 
+            // 1. حذف الرسالة فوراً إذا بلغت 3 بلاغات
             if (newReports >= 3) {
                 await msgRef.update({ deleted: true, autoDeleted: true });
+                
+                // 2. تسجيل مخالفة على صاحب الرسالة
+                const offenderUid = msgData.uid;
+                if (offenderUid) {
+                    const strikesRef = db.ref(`user_strikes/${offenderUid}`);
+                    const strikeSnap = await strikesRef.once('value');
+                    const strikes = (strikeSnap.val() || 0) + 1;
+                    await strikesRef.set(strikes);
+
+                    // 3. تجميد الحساب لمدة 6 ساعات إذا وصلت المخالفات إلى 2
+                    if (strikes >= 2) {
+                        await db.ref(`banned_users/${offenderUid}`).set({
+                            bannedUntil: now + (6 * 60 * 60 * 1000), // 6 ساعات
+                            reason: "محتوى مخالف متكرر"
+                        });
+                    }
+                }
             }
 
-            return res.status(200).json({ success: true, message: "تم الإبلاغ" });
+            return res.status(200).json({ success: true, message: "تم تسجيل البلاغ" });
         }
 
-        // ✅ الحماية من السبام ومعدل الإرسال
+        // سبام ليميت
         const userLimitRef = db.ref(`userLimits/${uid}`);      
         const limitSnap = await userLimitRef.once("value");      
-        if (limitSnap.exists() && (now - limitSnap.val() < 2500)) {   
+        if (limitSnap.exists() && (now - limitSnap.val() < 2000)) {   
             return res.status(429).json({ error: "مهلاً.. انتظر ثانيتين بين كل همسة" });  
         }  
 
@@ -226,49 +234,33 @@ export default async function handler(req, res) {
         const count = dailySnap.exists() ? dailySnap.val() : 0;  
         if (count >= 120) return res.status(429).json({ error: "بلغت الحد الأقصى لهمسات هذه الفترة (120)" });  
 
-        // ✅ معالجة النص
         const rawInput = (text || "").trim();  
-        if (rawInput.length > 300) return res.status(400).json({ error: "الهمسة طويلة جداً (الحد 300 حرف)" });  
+        if (rawInput.length > 300) return res.status(400).json({ error: "الهمسة طويلة جداً" });  
         if (/(.)\1{7,}/.test(rawInput)) return res.status(400).json({ error: "توقف عن تكرار الحروف!" });  
 
         if (isContentBanned(rawInput)) {
             return res.status(400).json({ error: "تحتوي الهمسة على كلمات محظورة" });
         }
 
-        // حجب أرقام الهواتف لحماية المجهولية
         const cleanText = rawInput.replace(/((\d[\s-]?){11})/g, "[محجوب]");      
         const isConfession = rawInput.startsWith('#');      
         let finalDisplayContent = cleanText.replace(/^#|^\*/g, '').trim();  
 
-        // 📝 كتابة الرسالة في قاعدة البيانات
         const msgRef = db.ref(`messages/global/${currentActivePeriod}`).push();      
-        await msgRef.set({     
-            uid, 
-            sender: serverGhostName, 
-            text: finalDisplayContent,     
-            timestamp: now, 
-            isConfession,
-            reports: 0
-        });      
+        await msgRef.set({ uid, sender: serverGhostName, text: finalDisplayContent, timestamp: now, isConfession, reports: 0 });      
           
         await userLimitRef.set(now);     
         await dailyCountRef.set(count + 1);  
         await db.ref(`userStats/${uid}/totalMessages`).transaction(c => (c || 0) + 1);  
 
-        // 🆘 رسالة نظام للدعم النفسي عند رصد كلمات حساسة
         if (hasMentalHealthKeywords(finalDisplayContent)) {
             const systemMsgRef = db.ref(`messages/global/${currentActivePeriod}`).push();
             await systemMsgRef.set({
-                uid: "SYSTEM",
-                sender: "🆘 نظام الدعم",
-                text: `نحن نهتم لأمرك 💜\nإذا كنت تمر بظرف صعب، لا تبقَ وحدك:\n📞 الدعم والاستشارات: 08008880700`,
-                timestamp: now + 1,
-                isSystem: true,
-                type: "mentalHealth"
+                uid: "SYSTEM", sender: "🆘 نظام الدعم", text: `نحن نهتم لأمرك 💜\nإذا كنت تمر بظرف صعب: 08008880700`, timestamp: now + 1, isSystem: true, type: "mentalHealth"
             });
         }
 
-        // 🔔 إرسال الإشعار للآخرين (استثناء المرسل نفسه لمنع الإزعاج)
+        // 🔔 إرسال إشعار واحد ذكي للآخرين (مع تفضيل التطبيق المثبت واستثناء المرسل)
         try {      
             const tokensSnap = await db.ref('users_tokens').once('value');      
             if (tokensSnap.exists()) {      
@@ -276,6 +268,7 @@ export default async function handler(req, res) {
                 let targetTokens = [];
                 
                 Object.entries(tokensData).forEach(([userKey, val]) => {
+                    // استثناء المرسل نفسه
                     if (userKey !== uid && val && val.token && typeof val.token === 'string' && val.token.length > 20) {
                         targetTokens.push(val.token);
                     }
@@ -287,30 +280,18 @@ export default async function handler(req, res) {
                             title: isConfession ? `🕯️ اعتراف في الظلام` : `👻 همسة من ${serverGhostName}`,      
                             body: finalDisplayContent.substring(0, 120),
                         },      
-                        data: {   
-                            url: `https://am-rewards.vercel.app/ghost-chat.html`
-                        }
+                        data: { url: `https://am-property.vercel.app/ghost-chat.html` }
                     };      
                     
                     for (let i = 0; i < targetTokens.length; i += 500) {
-                        messaging.sendEachForMulticast({ 
-                            tokens: targetTokens.slice(i, i + 500), 
-                            ...pushPayload 
-                        }).catch(() => {});
+                        messaging.sendEachForMulticast({ tokens: targetTokens.slice(i, i + 500), ...pushPayload }).catch(() => {});
                     }
                 }      
             }      
-        } catch (e) { 
-            console.warn("⚠️ Push Error Ignored:", e.message); 
-        }      
+        } catch (e) {}      
 
-        return res.status(200).json({ 
-            success: true, 
-            ghostName: serverGhostName, 
-            activePeriod: currentActivePeriod
-        });      
+        return res.status(200).json({ success: true, ghostName: serverGhostName, activePeriod: currentActivePeriod });      
     } catch (error) { 
-        console.error('❌ Server Error:', error);
         return res.status(500).json({ error: error.message }); 
     }
-}
+                      }
