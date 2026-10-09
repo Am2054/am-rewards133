@@ -1,4 +1,4 @@
-<!-- ghost-chat.html - الإصدار الشامل للحظر ومنع تكرار الإشعارات -->
+<!-- ghost-chat.html - النسخة المزودة بالتطهير وتصفير الحظر كل 12 ساعة -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -129,24 +129,20 @@
             <span class="intro-line">هنا، لا أحد يعرفك… لكن الجميع يسمعك.</span>
             <h3>ميثاق الأشباح – الإصدار التاسع</h3>
             <ul class="rules-list">
-                <li><b>👻 تجدد دوري:</b> هويتك وشكلك وخلفيتك تتجدد كل 12 ساعة تلقائياً.</li>
+                <li><b>👻 تجدد دوري:</b> هويتك وخلفيتك تتجدد كل 12 ساعة تلقائياً.</li>
+                <li><b>✨ التطهير الشامل:</b> كل 12 ساعة تُمحى كل الرسائل وقواعد البيانات تماماً لمنع أي تتبع.</li>
                 <li><b>🕯️ الاعتراف:</b> ابدأ رسالتك بـ # ليتوهج اعترافك في عتمة الشات.</li>
-                <li><b>🔒 أمان وخصوصية:</b> لا نطلب أي بيانات شخصية، هذا الفضاء حر للجميع.</li>
-                <li><b>✨ التطهير المستمر:</b> كل دورة تمحو رسائلها.. فكل شيء هنا عابر.</li>
-                <li><b>💜 الاحترام المتبادل:</b> لا كراهية ولا إيذاء ولا تنمر.</li>
+                <li><b>🔒 خصوصية مطلقة:</b> صفر بيانات، صفر سجلات دائمة.</li>
+                <li><b>💜 الاحترام:</b> لا كراهية ولا إيذاء ولا تنمر.</li>
             </ul>
             <button class="agree-btn" onclick="acceptRules()">تكلم بلا اسم… لكن بضمير 🕯️</button>
         </div>
     </div>
 
-    <!-- نافذة الإجراءات المحدثة بالحظر الشخصي -->
     <div id="actionModal" onclick="this.style.display='none'">
         <div class="modal-content" onclick="event.stopPropagation()">
-            <!-- يظهر إذا كانت رسالتي -->
             <button class="modal-btn" style="background:var(--cyan); color:#000; display:none;" id="editBtn">✏️ تعديل الهمسة</button>
             <button class="modal-btn" style="background:var(--danger); color:#fff; display:none;" id="deleteBtn">🗑️ حذف الرسالة</button>
-            
-            <!-- يظهر إذا كانت رسالة شخص آخر -->
             <button class="modal-btn" style="background:#475569; color:#fff; display:none;" id="replyBtn">💬 رد على الهمسة</button>
             <button class="modal-btn" style="background:#e11d48; color:#fff; display:none;" id="blockUserBtn">🚫 تجاهل هذا الشبح (حظر)</button>
             <button class="modal-btn" style="background:#3b82f6; color:#fff; display:none;" id="reportBtn">🚨 إبلاغ عن همسة</button>
@@ -186,7 +182,6 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
-        // 🌌 مكتبة الخلفيات المتجددة كل 12 ساعة
         const ghostWallpapers = [
             'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1500',
             'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?q=80&w=1500',
@@ -208,11 +203,8 @@
             document.body.style.backgroundImage = `url('${ghostWallpapers[bgIndex]}')`;
         }
 
-        // كشف متصفح فيسبوك/إنستغرام
         const isFB = /FBAN|FBAV|Instagram/i.test(navigator.userAgent);
-        if (isFB) {
-            document.getElementById('fbBrowserAlert').style.display = 'block';
-        }
+        if (isFB) document.getElementById('fbBrowserAlert').style.display = 'block';
 
         function escapeHTML(str) {
             if (!str) return '';
@@ -221,7 +213,6 @@
             );
         }
 
-        // قائمة الأشباح المحظورة محلياً
         let blockedUsers = JSON.parse(localStorage.getItem('ghost_blocked_users') || '[]');
 
         function isUserBlocked(uid) {
@@ -231,7 +222,7 @@
         window.blockGhost = (targetUid, targetName) => {
             Swal.fire({
                 title: 'تجاهل هذا الشبح؟',
-                text: `لن ترى أي همسات قادمة من ${targetName} في هذه الجلسة.`,
+                text: `لن ترى أي همسات قادمة من ${targetName} في هذه الجلسة. سيعود كل شيء كما كان في الدورة القادمة.`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#e11d48',
@@ -245,21 +236,41 @@
                         blockedUsers.push(targetUid);
                         localStorage.setItem('ghost_blocked_users', JSON.stringify(blockedUsers));
                     }
-                    // إخفاء رسائله فوراً من الشاشة
                     document.querySelectorAll(`.user-msg-${targetUid}`).forEach(el => el.remove());
-                    Swal.fire({ icon: 'success', title: 'تم التجاهل', text: 'تم إخفاء همسات هذا الشبح عنك.', background: '#020617', color: '#fff' });
+                    Swal.fire({ icon: 'success', title: 'تم التجاهل', text: 'تم إخفاء همسات هذا الشبح عنك لهذه الفترة.', background: '#020617', color: '#fff' });
                 }
             });
         };
 
-        // إعدادات PWA والتثبيت
+        // 🧹 وظيفة التطهير المحلي: مسح الشات وتصفير الحظر عند كل دورة 12 ساعة
+        function checkAndResetPeriodData(newPeriod) {
+            const storedPeriod = localStorage.getItem('ghost_last_active_period');
+            if (storedPeriod && storedPeriod !== newPeriod) {
+                // تصفير قائمة الحظر بالكامل
+                localStorage.removeItem('ghost_blocked_users');
+                blockedUsers = [];
+                
+                // مسح الشات ليبدأ نظيفاً بدون رسايل قديمة
+                const chatBox = document.getElementById('chatBox');
+                if (chatBox) chatBox.innerHTML = '';
+                renderedMsgIds.clear();
+
+                Swal.fire({
+                    icon: 'info',
+                    title: '✨ التطهير الشامل',
+                    text: 'بدأت دورة جديدة مدتها 12 ساعة. تلاشت كل الهمسات ورُفع الحظر عن الجميع لبداية بيضاء.',
+                    background: '#020617',
+                    color: '#fff'
+                });
+            }
+            localStorage.setItem('ghost_last_active_period', newPeriod);
+        }
+
         let deferredPrompt;
         const installBtn = document.getElementById('installBtn');
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
-        if (!isStandalone && !isFB) {
-            installBtn.style.display = 'block';
-        }
+        if (!isStandalone && !isFB) installBtn.style.display = 'block';
 
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
@@ -276,7 +287,7 @@
             } else {
                 Swal.fire({
                     title: 'تثبيت التطبيق بملء الشاشة',
-                    html: 'اضغط على قائمة المتصفح <b>(⋮)</b> ثم اختر <b>"إضافة إلى الشاشة الرئيسية"</b> أو <b>"تثبيت التطبيق"</b> ليفتح كبرنامج كامل.',
+                    html: 'اضغط على قائمة المتصفح <b>(⋮)</b> ثم اختر <b>"إضافة إلى الشاشة الرئيسية"</b> أو <b>"تثبيت التطبيق"</b>.',
                     background: '#020617',
                     color: '#fff',
                     confirmButtonText: 'حسناً'
@@ -363,7 +374,9 @@
                 });
                 const data = await res.json();
                 
-                activePeriod = data.activePeriod || data.activeDay || getLocal12hPeriod();
+                const newPeriod = data.activePeriod || data.activeDay || getLocal12hPeriod();
+                checkAndResetPeriodData(newPeriod);
+                activePeriod = newPeriod;
                 
                 if (data.ghostName) {
                     myGhostName = data.ghostName;
@@ -400,7 +413,6 @@
             onDisconnect(onlineRef).remove();
         };
 
-        // تسجيل التوكن مع وسم نوع الجهاز لمنع التكرار (app أو web)
         async function requestNotificationPermission() {
             try {
                 if (!('Notification' in window)) return;
@@ -414,7 +426,7 @@
                         await set(ref(db, `users_tokens/${currentUser.uid}`), { 
                             token, 
                             ghostName: myGhostName,
-                            platform: isStandalone ? 'app' : 'web', // وسم الجهاز
+                            platform: isStandalone ? 'app' : 'web',
                             timestamp: Date.now()
                         });
                     }
@@ -525,7 +537,6 @@
         function renderMsg(id, data) {
             const chatBox = document.getElementById('chatBox');
             if (data.deleted) return;
-            // فحص الحظر الشخصي
             if (isUserBlocked(data.uid)) return;
             
             const div = document.createElement('div');
@@ -540,9 +551,7 @@
             div.className = `msg ${isSystem ? 'msg-system' : (isMe ? 'msg-me' : 'msg-remote')} ${isReply ? 'msg-reply' : ''} ${isConfession ? 'msg-confession' : ''} user-msg-${data.uid}`;
             
             div.onclick = () => {
-                if (!isSystem) {
-                    openActionModal(id, data, isMe);
-                }
+                if (!isSystem) openActionModal(id, data, isMe);
             };
 
             let contentHTML = '';
@@ -575,7 +584,6 @@
             }
         }
 
-        // نافذة الإجراءات الشاملة (تعديل - حذف - رد - حظر - إبلاغ)
         function openActionModal(id, data, isMe) {
             const modal = document.getElementById('actionModal');
             const editBtn = document.getElementById('editBtn');
