@@ -1,4 +1,4 @@
-// /api/sendMessage.js - النسخة النهائية مع نظام التجميد الفعلي ومنع التكرار
+// /api/sendMessage.js - التطهير الشامل ومنع التتبع كل 12 ساعة
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getDatabase } from "firebase-admin/database";
 import { getAuth } from "firebase-admin/auth";
@@ -87,7 +87,7 @@ export default async function handler(req, res) {
         try {
             const decodedToken = await auth.verifyIdToken(token);      
             if (decodedToken.uid !== uid) {
-                return res.status(403).json({ error: "معرّف المستخدم غير متطابق" });
+                return res.status(403).json({ error: "معرّف غير متطابق" });
             }
         } catch (e) {
             return res.status(401).json({ error: "جلسة العمل منتهية" });
@@ -98,20 +98,7 @@ export default async function handler(req, res) {
         const currentActivePeriod = period || day || periodInfo.activePeriod;  
         const serverGhostName = generate12hGhostName(uid, currentActivePeriod);
 
-        // ❄️ فحص التجميد الفعلي (هل المستخدم محظور؟)
-        const banRef = db.ref(`banned_users/${uid}`);
-        const banSnap = await banRef.once('value');
-        if (banSnap.exists()) {
-            const banData = banSnap.val();
-            if (banData.bannedUntil && banData.bannedUntil > now) {
-                const remainingMinutes = Math.ceil((banData.bannedUntil - now) / 60000);
-                return res.status(403).json({ 
-                    error: `طيفك مجمد ومحظور من الهمس لمدة ${remainingMinutes} دقيقة بسبب مخالفة ميثاق الأشباح ❄️` 
-                });
-            }
-        }
-
-        // 🛡️ فحص تجدد دورة الـ 12 ساعة
+        // 🛡️ فحص تجدد دورة الـ 12 ساعة + التطهير الكامل (THE GREAT PURGE)
         const lastResetRef = db.ref('system/last_12h_period');    
         let isNewSession = false;  
         const { committed } = await lastResetRef.transaction(current => {  
@@ -121,6 +108,7 @@ export default async function handler(req, res) {
 
         if (committed) {    
             isNewSession = true;
+            // 1. إرسال الإشعار لجميع الأجهزة أولاً قبل الحذف
             try {
                 const tokensSnap = await db.ref('users_tokens').once('value');
                 if (tokensSnap.exists()) {
@@ -132,8 +120,8 @@ export default async function handler(req, res) {
                     if (allTokens.length > 0) {
                         const resetPayload = {
                             notification: {
-                                title: "🕯️ تجلّت الأرواح من جديد!",
-                                body: "مرت 12 ساعة.. تلاشت أرواح الأمس واستيقظت بهوية مجهولة جديدة!",
+                                title: "✨ التطهير الشامل.. تجلّت الأرواح!",
+                                body: "تم محو همسات الدورة السابقة بالكامل. وُلدت بهوية جديدة في الظلام!",
                             },
                             data: { url: "https://am-property.vercel.app/ghost-chat.html" }
                         };
@@ -143,7 +131,31 @@ export default async function handler(req, res) {
                     }
                 }
             } catch (err) {}
+
+            // 2. 🧹 مسح كل شيء من قاعدة البيانات لتوفير الاستهلاك ومنع أي تتبع
+            await Promise.allSettled([
+                db.ref('messages/global').remove(),      // حذف كل الرسائل السابقة 100%
+                db.ref('userLimits').remove(),           // تصفير مؤقتات السبام
+                db.ref('periodCount').remove(),          // تصفير عدادات الرسائل
+                db.ref('user_strikes').remove(),         // تصفير البلاغات السابقة
+                db.ref('banned_users').remove(),         // فك تجميد الجميع لبداية بيضاء
+                db.ref('users_tokens').remove()          // حذف كل التوكنات لمنع التتبع (يتم إعادة تسجيلها عند الفتح)
+            ]);
+            console.log("🧹 The Great 12h Purge executed successfully!");
         }    
+
+        // ❄️ فحص التجميد الفعلي للدورة الحالية
+        const banRef = db.ref(`banned_users/${uid}`);
+        const banSnap = await banRef.once('value');
+        if (banSnap.exists()) {
+            const banData = banSnap.val();
+            if (banData.bannedUntil && banData.bannedUntil > now) {
+                const remainingMinutes = Math.ceil((banData.bannedUntil - now) / 60000);
+                return res.status(403).json({ 
+                    error: `طيفك مجمد ومحظور من الهمس لمدة ${remainingMinutes} دقيقة بسبب مخالفة ميثاق الأشباح ❄️` 
+                });
+            }
+        }
 
         // ✅ التعديل والحذف
         if (action === "EDIT" || action === "DELETE") {    
@@ -182,12 +194,12 @@ export default async function handler(req, res) {
                 welcomeCard: {  
                     show: isNewSession,  
                     title: "تجلّي جديد.. روح جديدة 🕯️",  
-                    message: `بدأت دورة جديدة مدتها 12 ساعة. رتبتك الحالية: ${rank}`,  
+                    message: `تم محو همسات الدورة السابقة بالكامل. رتبتك الحالية: ${rank}`,  
                 }  
             });    
         }    
 
-        // 🚨 الإبلاغ والحظر الفعلي التلقائي
+        // 🚨 الإبلاغ والحظر
         if (action === "REPORT") {
             const msgRef = db.ref(`messages/global/${currentActivePeriod}/${msgId}`);
             const snap = await msgRef.once("value");
@@ -197,11 +209,9 @@ export default async function handler(req, res) {
             const newReports = (msgData.reports || 0) + 1;
             await msgRef.update({ reports: newReports, lastReportReason: reason || "inappropriate" });
 
-            // 1. حذف الرسالة فوراً إذا بلغت 3 بلاغات
             if (newReports >= 3) {
                 await msgRef.update({ deleted: true, autoDeleted: true });
                 
-                // 2. تسجيل مخالفة على صاحب الرسالة
                 const offenderUid = msgData.uid;
                 if (offenderUid) {
                     const strikesRef = db.ref(`user_strikes/${offenderUid}`);
@@ -209,10 +219,9 @@ export default async function handler(req, res) {
                     const strikes = (strikeSnap.val() || 0) + 1;
                     await strikesRef.set(strikes);
 
-                    // 3. تجميد الحساب لمدة 6 ساعات إذا وصلت المخالفات إلى 2
                     if (strikes >= 2) {
                         await db.ref(`banned_users/${offenderUid}`).set({
-                            bannedUntil: now + (6 * 60 * 60 * 1000), // 6 ساعات
+                            bannedUntil: now + (6 * 60 * 60 * 1000),
                             reason: "محتوى مخالف متكرر"
                         });
                     }
@@ -260,7 +269,7 @@ export default async function handler(req, res) {
             });
         }
 
-        // 🔔 إرسال إشعار واحد ذكي للآخرين (مع تفضيل التطبيق المثبت واستثناء المرسل)
+        // 🔔 إرسال الإشعار
         try {      
             const tokensSnap = await db.ref('users_tokens').once('value');      
             if (tokensSnap.exists()) {      
@@ -268,7 +277,6 @@ export default async function handler(req, res) {
                 let targetTokens = [];
                 
                 Object.entries(tokensData).forEach(([userKey, val]) => {
-                    // استثناء المرسل نفسه
                     if (userKey !== uid && val && val.token && typeof val.token === 'string' && val.token.length > 20) {
                         targetTokens.push(val.token);
                     }
@@ -294,4 +302,4 @@ export default async function handler(req, res) {
     } catch (error) { 
         return res.status(500).json({ error: error.message }); 
     }
-                      }
+}
