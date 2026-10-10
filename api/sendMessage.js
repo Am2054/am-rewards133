@@ -1,4 +1,4 @@
-// /api/sendMessage.js - التطهير الشامل ومنع التتبع كل 12 ساعة
+// /api/sendMessage.js - تسريع الإشعارات والحد 500 حرف
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getDatabase } from "firebase-admin/database";
 import { getAuth } from "firebase-admin/auth";
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
         const { action, text, uid, token, msgId, period, day, reason } = req.body;   
         
         if (!token || !uid) {
-            return res.status(401).json({ error: "مطلوب تسجيل الدخول" });
+            return res.status(401).json({ error: "لازم تسجل الأول" });
         }
 
         try {
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
                 return res.status(403).json({ error: "معرّف غير متطابق" });
             }
         } catch (e) {
-            return res.status(401).json({ error: "جلسة العمل منتهية" });
+            return res.status(401).json({ error: "الجلسة خلصت" });
         }
 
         const now = Date.now();    
@@ -98,7 +98,20 @@ export default async function handler(req, res) {
         const currentActivePeriod = period || day || periodInfo.activePeriod;  
         const serverGhostName = generate12hGhostName(uid, currentActivePeriod);
 
-        // 🛡️ فحص تجدد دورة الـ 12 ساعة + التطهير الكامل (THE GREAT PURGE)
+        // ❄️ فحص التجميد
+        const banRef = db.ref(`banned_users/${uid}`);
+        const banSnap = await banRef.once('value');
+        if (banSnap.exists()) {
+            const banData = banSnap.val();
+            if (banData.bannedUntil && banData.bannedUntil > now) {
+                const remainingMinutes = Math.ceil((banData.bannedUntil - now) / 60000);
+                return res.status(403).json({ 
+                    error: `روحك متجمدة وممنوع من الكلام لمدة ${remainingMinutes} دقيقة لمخالفة القواعد ❄️` 
+                });
+            }
+        }
+
+        // 🧹 التطهير الشامل
         const lastResetRef = db.ref('system/last_12h_period');    
         let isNewSession = false;  
         const { committed } = await lastResetRef.transaction(current => {  
@@ -108,7 +121,6 @@ export default async function handler(req, res) {
 
         if (committed) {    
             isNewSession = true;
-            // 1. إرسال الإشعار لجميع الأجهزة أولاً قبل الحذف
             try {
                 const tokensSnap = await db.ref('users_tokens').once('value');
                 if (tokensSnap.exists()) {
@@ -120,8 +132,8 @@ export default async function handler(req, res) {
                     if (allTokens.length > 0) {
                         const resetPayload = {
                             notification: {
-                                title: "✨ التطهير الشامل.. تجلّت الأرواح!",
-                                body: "تم محو همسات الدورة السابقة بالكامل. وُلدت بهوية جديدة في الظلام!",
+                                title: "✨ لفة جديدة ع النضيف!",
+                                body: "الـ 12 ساعة خلصوا.. كل كلام الدورة اللي فاتت اتمسح وصحيت بروح واسم جديد!",
                             },
                             data: { url: "https://am-property.vercel.app/ghost-chat.html" }
                         };
@@ -132,32 +144,17 @@ export default async function handler(req, res) {
                 }
             } catch (err) {}
 
-            // 2. 🧹 مسح كل شيء من قاعدة البيانات لتوفير الاستهلاك ومنع أي تتبع
             await Promise.allSettled([
-                db.ref('messages/global').remove(),      // حذف كل الرسائل السابقة 100%
-                db.ref('userLimits').remove(),           // تصفير مؤقتات السبام
-                db.ref('periodCount').remove(),          // تصفير عدادات الرسائل
-                db.ref('user_strikes').remove(),         // تصفير البلاغات السابقة
-                db.ref('banned_users').remove(),         // فك تجميد الجميع لبداية بيضاء
-                db.ref('users_tokens').remove()          // حذف كل التوكنات لمنع التتبع (يتم إعادة تسجيلها عند الفتح)
+                db.ref('messages/global').remove(),
+                db.ref('userLimits').remove(),
+                db.ref('periodCount').remove(),
+                db.ref('user_strikes').remove(),
+                db.ref('banned_users').remove(),
+                db.ref('users_tokens').remove()
             ]);
-            console.log("🧹 The Great 12h Purge executed successfully!");
         }    
 
-        // ❄️ فحص التجميد الفعلي للدورة الحالية
-        const banRef = db.ref(`banned_users/${uid}`);
-        const banSnap = await banRef.once('value');
-        if (banSnap.exists()) {
-            const banData = banSnap.val();
-            if (banData.bannedUntil && banData.bannedUntil > now) {
-                const remainingMinutes = Math.ceil((banData.bannedUntil - now) / 60000);
-                return res.status(403).json({ 
-                    error: `طيفك مجمد ومحظور من الهمس لمدة ${remainingMinutes} دقيقة بسبب مخالفة ميثاق الأشباح ❄️` 
-                });
-            }
-        }
-
-        // ✅ التعديل والحذف
+        // التعديل والحذف
         if (action === "EDIT" || action === "DELETE") {    
             const msgRef = db.ref(`messages/global/${currentActivePeriod}/${msgId}`);    
             const snap = await msgRef.once("value");    
@@ -175,7 +172,7 @@ export default async function handler(req, res) {
             }    
         }    
 
-        // ✅ الحصول على الهوية
+        // الهوية
         if (action === "GET_IDENTITY") {    
             const statsRef = db.ref(`userStats/${uid}/totalMessages`);  
             const statsSnap = await statsRef.once('value');  
@@ -193,13 +190,13 @@ export default async function handler(req, res) {
                 rank: rank,  
                 welcomeCard: {  
                     show: isNewSession,  
-                    title: "تجلّي جديد.. روح جديدة 🕯️",  
-                    message: `تم محو همسات الدورة السابقة بالكامل. رتبتك الحالية: ${rank}`,  
+                    title: "بداية جديدة وروح جديدة 🕯️",  
+                    message: `كل همسات الفترة اللي فاتت اتمسحت. رتبتك الحالية: ${rank}`,  
                 }  
             });    
         }    
 
-        // 🚨 الإبلاغ والحظر
+        // البلاغات
         if (action === "REPORT") {
             const msgRef = db.ref(`messages/global/${currentActivePeriod}/${msgId}`);
             const snap = await msgRef.once("value");
@@ -235,20 +232,21 @@ export default async function handler(req, res) {
         const userLimitRef = db.ref(`userLimits/${uid}`);      
         const limitSnap = await userLimitRef.once("value");      
         if (limitSnap.exists() && (now - limitSnap.val() < 2000)) {   
-            return res.status(429).json({ error: "مهلاً.. انتظر ثانيتين بين كل همسة" });  
+            return res.status(429).json({ error: "براحة شوية.. استنى ثانيتين بين كل رسالة" });  
         }  
 
         const dailyCountRef = db.ref(`periodCount/${uid}/${periodInfo.activePeriod}`);  
         const dailySnap = await dailyCountRef.once('value');  
         const count = dailySnap.exists() ? dailySnap.val() : 0;  
-        if (count >= 120) return res.status(429).json({ error: "بلغت الحد الأقصى لهمسات هذه الفترة (120)" });  
+        if (count >= 150) return res.status(429).json({ error: "جبت آخرك في الـ 12 ساعة دول (150 رسالة)" });  
 
-        const rawInput = (text || "").trim();  
-        if (rawInput.length > 300) return res.status(400).json({ error: "الهمسة طويلة جداً" });  
-        if (/(.)\1{7,}/.test(rawInput)) return res.status(400).json({ error: "توقف عن تكرار الحروف!" });  
+        // 📏 فحص طول الرسالة (تم رفعه لـ 1000 حرف!)
+const rawInput = (text || "").trim();  
+if (rawInput.length > 1000) return res.status(400).json({ error: "الكلام طويل أوي.. الحد الأقصى 1000 حرف" });
+        if (/(.)\1{8,}/.test(rawInput)) return res.status(400).json({ error: "بلاش تكرار حروف كتير!" });  
 
         if (isContentBanned(rawInput)) {
-            return res.status(400).json({ error: "تحتوي الهمسة على كلمات محظورة" });
+            return res.status(400).json({ error: "في كلام مش مسموح بيه في الشات" });
         }
 
         const cleanText = rawInput.replace(/((\d[\s-]?){11})/g, "[محجوب]");      
@@ -256,7 +254,15 @@ export default async function handler(req, res) {
         let finalDisplayContent = cleanText.replace(/^#|^\*/g, '').trim();  
 
         const msgRef = db.ref(`messages/global/${currentActivePeriod}`).push();      
-        await msgRef.set({ uid, sender: serverGhostName, text: finalDisplayContent, timestamp: now, isConfession, reports: 0 });      
+        await msgRef.set({ 
+            uid, 
+            sender: serverGhostName, 
+            text: finalDisplayContent, 
+            timestamp: now, 
+            isConfession, 
+            candles: 0,
+            reports: 0 
+        });      
           
         await userLimitRef.set(now);     
         await dailyCountRef.set(count + 1);  
@@ -265,11 +271,11 @@ export default async function handler(req, res) {
         if (hasMentalHealthKeywords(finalDisplayContent)) {
             const systemMsgRef = db.ref(`messages/global/${currentActivePeriod}`).push();
             await systemMsgRef.set({
-                uid: "SYSTEM", sender: "🆘 نظام الدعم", text: `نحن نهتم لأمرك 💜\nإذا كنت تمر بظرف صعب: 08008880700`, timestamp: now + 1, isSystem: true, type: "mentalHealth"
+                uid: "SYSTEM", sender: "🆘 خط المساعدة", text: `إحنا حاسين بيك 💜\nلو بتمر بوقت صعب، متقعدش لوحدك: 08008880700`, timestamp: now + 1, isSystem: true, type: "mentalHealth"
             });
         }
 
-        // 🔔 إرسال الإشعار
+        // ⚡ إرسال الإشعار فائق السرعة
         try {      
             const tokensSnap = await db.ref('users_tokens').once('value');      
             if (tokensSnap.exists()) {      
@@ -285,10 +291,15 @@ export default async function handler(req, res) {
                 if (targetTokens.length > 0) {      
                     const pushPayload = {      
                         notification: {      
-                            title: isConfession ? `🕯️ اعتراف في الظلام` : `👻 همسة من ${serverGhostName}`,      
+                            title: isConfession ? `🕯️ اعتراف جديد في سرك` : `👻 ${serverGhostName} قال:`,      
                             body: finalDisplayContent.substring(0, 120),
                         },      
-                        data: { url: `https://am-property.vercel.app/ghost-chat.html` }
+                        data: { url: `https://am-property.vercel.app/ghost-chat.html` },
+                        webpush: {
+                            headers: { "Urgency": "high" },
+                            notification: { tag: "ghost-msg", renotify: true }
+                        },
+                        android: { priority: "high" }
                     };      
                     
                     for (let i = 0; i < targetTokens.length; i += 500) {
@@ -302,4 +313,4 @@ export default async function handler(req, res) {
     } catch (error) { 
         return res.status(500).json({ error: error.message }); 
     }
-}
+                                                 }
