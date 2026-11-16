@@ -26,7 +26,6 @@ const db = getDatabase();
 const auth = getAuth();
 const messaging = getMessaging();
 
-// ✅ حساب الهوية كل 12 ساعة بدقة بدون أي لخبطة عند منتصف الليل
 function get12HourSlot() {
     const now = new Date();
     const parts = new Intl.DateTimeFormat('en-CA', {
@@ -89,7 +88,6 @@ export default async function handler(req, res) {
         const now = Date.now();
         const activeSlot = day || slotKey;
 
-        // 🛡️ فحص الهوية الجديدة كل 12 ساعة ومسح القاعدة عند التبديل
         const lastResetRef = db.ref('system/last_reset_slot');
         const resetPromise = lastResetRef.transaction(current => {
             if (current !== slotKey) return slotKey;
@@ -105,7 +103,6 @@ export default async function handler(req, res) {
             }
         });
 
-        // ✅ جلب الهوية بسرعة (بالتوازي مع فحص التصفير)
         if (action === "GET_IDENTITY") {
             const [, statsSnap] = await Promise.all([
                 resetPromise,
@@ -129,7 +126,6 @@ export default async function handler(req, res) {
 
         await resetPromise;
 
-        // ✅ التعديل والحذف
         if (action === "EDIT" || action === "DELETE") {
             const msgRef = db.ref(`messages/global/${activeSlot}/${msgId}`);
             const snap = await msgRef.once("value");
@@ -151,7 +147,6 @@ export default async function handler(req, res) {
             }
         }
 
-        // ✅ الإبلاغ عن الرسائل
         if (action === "REPORT") {
             const msgRef = db.ref(`messages/global/${activeSlot}/${msgId}`);
             const snap = await msgRef.once("value");
@@ -166,7 +161,6 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true });
         }
 
-        // ✅ منع السبام
         const userLimitRef = db.ref(`userLimits/${uid}`);
         const limitSnap = await userLimitRef.once("value");
         if (limitSnap.exists() && (now - limitSnap.val() < 3000)) {
@@ -178,7 +172,6 @@ export default async function handler(req, res) {
         const count = dailySnap.exists() ? dailySnap.val() : 0;
         if (count >= 120) return res.status(429).json({ error: "وصلت للحد الأقصى للرسايل في الهوية دي" });
 
-        // ✅ فحص النص (حد أقصى 500 حرف)
         const rawInput = (text || "").trim();
         if (!rawInput) return res.status(400).json({ error: "الرسالة فاضية" });
         if (rawInput.length > 500) return res.status(400).json({ error: "الرسالة طويلة جداً (الحد الأقصى 500 حرف)" });
@@ -222,7 +215,6 @@ export default async function handler(req, res) {
             });
         }
 
-        // ✅ إرسال الإشعارات بسرعة وحذف التوكنات البايظة تلقائياً
         const tokensSnap = await db.ref('users_tokens').once('value');
         if (tokensSnap.exists()) {
             const entries = Object.entries(tokensSnap.val());
@@ -266,4 +258,4 @@ export default async function handler(req, res) {
         console.error('Handler Error:', error);
         return res.status(500).json({ error: error.message });
     }
-}
+        }
