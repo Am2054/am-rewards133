@@ -29,11 +29,11 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener('notificationclick', function(event) {
     event.notification.close();
-    const urlToOpen = event.notification.data?.url || 'https://chat-elashbah.vercel.app/ghost-chat.html';
+    const urlToOpen = event.notification.data?.url || 'https://am-property.vercel.app/ghost-chat.html';
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
             for (const client of windowClients) {
-                if (client.url.includes('chat-elashbah.vercel.app') && 'focus' in client) {
+                if (client.url.includes('am-property.vercel.app') && 'focus' in client) {
                     return client.focus();
                 }
             }
