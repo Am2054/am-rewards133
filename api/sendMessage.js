@@ -243,7 +243,7 @@ export default async function handler(req, res) {
                         body: finalDisplayContent.substring(0, 140),
                     },
                     data: {
-                        url: `https://chat-elashbah.vercel.app/ghost-chat.html`,
+                        url: `https://am-property.vercel.app/ghost-chat.html`,
                     },
                     android: { priority: 'high', notification: { tag: 'ghost-chat-msg', priority: 'max' } },
                     webpush: { headers: { "Urgency": "high" }, notification: { tag: 'ghost-chat-msg' } }
