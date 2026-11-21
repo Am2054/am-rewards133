@@ -1,1111 +1,439 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AM. Dashboard - إضافة عقار جديد</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  
-  <!-- مكتبة SweetAlert2 الفخمة للنوافذ التنبيهية التفاعلية -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-  <style>
-    :root {
-      --bg-primary: #020617;
-      --bg-secondary: rgba(15, 23, 42, 0.75);
-      --bg-tertiary: #1f293d;
-      --primary: #00f2ff; /* اللون السماوي المضيء */
-      --primary-hover: #0ea5e9;
-      --text-primary: #f3f4f6;
-      --text-muted: #9ca3af;
-      --border: rgba(255, 255, 255, 0.08);
-      --success: #10b981;
-      --danger: #ef4444;
-      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      --neon-purple: #7000ff;
-      --radius: 24px;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    
-    body { 
-      font-family: 'Cairo', sans-serif; 
-      background-color: var(--bg-primary); 
-      color: var(--text-primary); 
-      min-height: 100vh; 
-      padding: 2.5rem 1.5rem; 
-      background-image: 
-        radial-gradient(circle at 0% 0%, rgba(112, 0, 255, 0.15) 0%, transparent 35%),
-        radial-gradient(circle at 100% 100%, rgba(0, 242, 255, 0.15) 0%, transparent 35%);
-    }
-
-    body::after {
-      content: ""; position: fixed; inset: 0; z-index: -1;
-      background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
-      opacity: 0.15; pointer-events: none;
-    }
-
-    .container { 
-      max-width: 900px; 
-      margin: 0 auto; 
-      background: var(--bg-secondary); 
-      border: 1px solid var(--border); 
-      padding: 45px 35px; 
-      border-radius: var(--radius); 
-      backdrop-filter: blur(20px);
-      position: relative;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    }
-
-    .container::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-      background: linear-gradient(90deg, var(--neon-purple), var(--primary));
-      border-radius: var(--radius) var(--radius) 0 0;
-    }
-    
-    .steps-indicator { display: flex; justify-content: space-between; margin-bottom: 2.5rem; position: relative; }
-    .steps-indicator::before { content: ''; position: absolute; top: 25px; left: 0; right: 0; height: 2px; background: var(--border); z-index: 1; }
-    .step-tab { z-index: 2; text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; opacity: 0.4; transition: var(--transition); }
-    .step-tab.active { opacity: 1; }
-    .step-tab.active .step-num { background: var(--primary); color: var(--bg-primary); box-shadow: 0 0 15px rgba(56,189,248,0.4); }
-    .step-num { width: 50px; height: 50px; border-radius: 50%; background: var(--bg-tertiary); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; }
-    .step-text { font-size: 0.85rem; font-weight: 700; color: #fff; }
-
-    h2 { font-size: 1.8rem; font-weight: 900; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.75rem; color: #fff; text-shadow: 0 0 15px rgba(0, 242, 255, 0.3); border-bottom: 1px solid var(--border); padding-bottom: 1rem;}
-    h2 i { color: var(--primary); }
-    .form-step-panel { display: none; }
-    .form-step-panel.active { display: block; }
-
-    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
-    .form-group { display: flex; flex-direction: column; gap: 0.5rem; position: relative; }
-    label { font-size: 0.95rem; font-weight: 700; color: var(--text-muted); }
-    input[type="text"], input[type="number"], select, textarea {
-      width: 100%; padding: 0.85rem 1.25rem; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-family: 'Cairo', sans-serif; font-weight: 600; transition: var(--transition); outline: none;
-    }
-    input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 12px rgba(0, 242, 255, 0.15); background: rgba(0,0,0,0.4); }
-    
-    .btn-toggle-more { background: transparent; border: 1px dashed var(--primary); color: var(--primary); padding: 0.75rem; border-radius: 10px; cursor: pointer; font-weight: 700; width: 100%; margin: 1rem 0; font-family: 'Cairo', sans-serif; transition: var(--transition); }
-    .btn-toggle-more:hover { background: rgba(56,189,248,0.05); }
-
-    .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
-    .checkbox-item { display: flex; align-items: center; gap: 0.75rem; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; }
-    .checkbox-item input { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
-
-    /* ستايل مخصص لتجميل الـ select */
-    .styled-select {
-      appearance: none;
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2300f2ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
-      background-repeat: no-repeat;
-      background-position: left 1rem center;
-      background-size: 1.1rem;
-    }
-    .styled-select option {
-      background: #0f172a;
-      color: #fff;
-    }
-    
-    /* ميديا زون */
-    .upload-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 2.5rem 1.5rem; text-align: center; cursor: pointer; background: rgba(0,0,0,0.2); position: relative; margin-bottom: 1.5rem; }
-    .upload-zone:hover { border-color: var(--primary); }
-    .upload-zone p { font-weight: 700; color: var(--text-muted); margin-top: 10px; }
-    
-    .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
-    .media-box { position: relative; width: 100%; height: 120px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); background: #000; cursor: grab; }
-    .media-box img, .media-box video { width: 100%; height: 100%; object-fit: cover; }
-    .media-box .badge-cover { position: absolute; bottom: 0; left: 0; right: 0; background: var(--primary); color: #020617; text-align: center; font-size: 0.75rem; font-weight: 900; padding: 2px 0; }
-    .media-box .btn-del { position: absolute; top: 5px; left: 5px; background: var(--danger); border: none; color: white; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; z-index: 10; }
-    
-    /* واجهة الخريطة الجغرافية */
-    .map-section { background: rgba(0,0,0,0.2); border: 1px dashed var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; }
-    .map-section-title { font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
-    .map-section-title i { color: var(--primary); }
-    .btn-map-trigger { background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 0.75rem 1.5rem; border-radius: 10px; cursor: pointer; font-weight: 700; font-family: 'Cairo', sans-serif; transition: var(--transition); display: inline-flex; align-items: center; gap: 0.5rem; }
-    .btn-map-trigger:hover { background: var(--primary); color: var(--bg-primary); box-shadow: 0 0 15px rgba(0, 242, 255, 0.3); }
-    .map-wrapper { height: 350px; border-radius: 10px; border: 1px solid var(--border); margin-top: 1rem; position: relative; display: none; overflow: hidden; }
-    #map { width: 100%; height: 100%; background: #0b0f19; }
-    .map-status-badge { display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(16, 185, 129, 0.15); color: var(--success); font-size: 0.85rem; padding: 0.4rem 0.8rem; border-radius: 8px; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.2); margin-top: 0.5rem; }
-    
-    /* ستايل مخصص لتعتيم الخريطة لتناسب ثيم الـ Dashboard */
-    .leaflet-layer, .leaflet-control-zoom-in, .leaflet-control-zoom-out { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
-    
-    .progress-container { background: rgba(0,0,0,0.3); border-radius: 8px; height: 12px; overflow: hidden; margin: 1.5rem 0; display: none; border: 1px solid var(--border); }
-    .progress-bar { height: 100%; background: linear-gradient(90deg, var(--neon-purple), var(--primary)); width: 0%; transition: width 0.1s ease; }
-    
-    .nav-buttons { display: flex; justify-content: space-between; margin-top: 2rem; gap: 1rem; }
-    .btn-nav { padding: 0.85rem 2rem; border-radius: 12px; font-weight: 900; cursor: pointer; border: none; transition: var(--transition); font-family: 'Cairo', sans-serif; font-size: 1rem; }
-    .btn-next { background: linear-gradient(90deg, var(--neon-purple), var(--primary)); color: #fff; box-shadow: 0 5px 15px rgba(112,0,255,0.25); }
-    .btn-next:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(112,0,255,0.4); }
-    .btn-prev { background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--border); }
-    .btn-prev:hover { background: rgba(255,255,255,0.08); }
-    .btn-submit-final { background: var(--success); color: white; display: none; }
-    .btn-submit-final:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3); }
-    
-    .btn-back { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-muted); text-decoration: none; font-weight: 700; margin-bottom: 1.5rem; font-size: 0.95rem; }
-    .btn-back:hover { color: var(--primary); }
-    .hidden { display: none !important; }
-    
-    .review-item { background: rgba(0,0,0,0.2); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.25rem; border: 1px solid var(--border); }
-    .review-item h4 { color: var(--primary); margin-bottom: 0.75rem; font-size: 1rem; font-weight: 900; }
-    .review-item p { font-size: 0.95rem; line-height: 1.7; font-weight: 600; color: #fff; }
-
-    @media (max-width: 600px) {
-      body { padding: 1.5rem 1rem; }
-      .container { padding: 30px 16px; border-radius: 16px; }
-      .form-row { grid-template-columns: 1fr; gap: 1rem; }
-      .steps-indicator { margin-bottom: 1.75rem; }
-      .step-num { width: 42px; height: 42px; font-size: 1rem; }
-      .step-text { font-size: 0.75rem; }
-    }
-
-    /* مواءمة تصميم SweetAlert مع ثيم الموقع المظلم */
-    .swal-custom-popup {
-      background-color: var(--bg-primary) !important;
-      border: 1px solid var(--border) !important;
-      border-radius: 20px !important;
-      color: #fff !important;
-      font-family: 'Cairo', sans-serif !important;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>إضافة عقار | AM</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root{--bg:#f6f8fb;--card:#fff;--text:#0b1220;--muted:#566175;--line:#e2e8f0;--primary:#0284c7;--on-primary:#fff;--accent:#d97706;--ok:#16a34a;--bad:#dc2626;--glow:rgba(2,132,199,.12);
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#060b16;--card:#0f1626;--text:#f1f5f9;--muted:#94a3b8;--line:#1e293b;--primary:#38bdf8;--on-primary:#04121f;--accent:#facc15;--ok:#4ade80;--bad:#f87171;--glow:rgba(56,189,248,.14)}}
+:root[data-theme="dark"]{--bg:#060b16;--card:#0f1626;--text:#f1f5f9;--muted:#94a3b8;--line:#1e293b;--primary:#38bdf8;--on-primary:#04121f;--accent:#facc15;--ok:#4ade80;--bad:#f87171;--glow:rgba(56,189,248,.14)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:'Cairo',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;padding:20px 16px 40px;background-image:radial-gradient(ellipse 70% 40% at 50% 0,var(--glow),transparent)}
+a{color:inherit;text-decoration:none}button{font:inherit;cursor:pointer;color:inherit}[hidden]{display:none!important}
+.wrap{max-width:780px;margin:0 auto}
+.back{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-weight:700;margin-bottom:12px}.back:hover{color:var(--primary)}
+.box{position:relative;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:30px 26px;box-shadow:0 25px 50px -30px rgba(0,0,0,.5)}
+.box::before{content:"";position:absolute;inset:0 0 auto;height:4px;border-radius:24px 24px 0 0;background:linear-gradient(90deg,var(--primary),var(--accent))}
+.sky{display:block;margin:0 auto 6px;width:min(240px,60%);color:var(--primary)}
+h1{margin:0;text-align:center;font-size:1.7rem;font-weight:900}.sub{margin:0 0 22px;text-align:center;color:var(--muted)}
+.steps{display:flex;list-style:none;padding:0;margin:0 0 22px;gap:8px}
+.steps li{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:.82rem;font-weight:700;color:var(--muted);opacity:.55}
+.steps b{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--bg);border:2px solid var(--line);font-size:1rem}
+.steps li.on{opacity:1;color:var(--text)}.steps li.on b{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+.msg{margin-bottom:16px;padding:12px 14px;border-radius:12px;border:1px solid var(--bad);color:var(--bad);font-weight:700;font-size:.93rem;text-align:center}
+.pn{display:none}.pn.on{display:block}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:14px}
+.g{display:flex;flex-direction:column;gap:6px}
+label,.lbl{font-weight:700;font-size:.9rem;color:var(--muted)}
+input,select,textarea{width:100%;font:inherit;font-size:16px;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px;outline:none}
+input:focus-visible,select:focus-visible,textarea:focus-visible{border-color:var(--primary);box-shadow:0 0 0 3px var(--glow)}
+[aria-invalid="true"]{border-color:var(--bad)}
+.seg{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:none;padding:9px 10px;border-radius:9px;font-weight:700;color:var(--muted)}
+.seg button.on{background:var(--primary);color:var(--on-primary)}
+.note{background:var(--glow);border-radius:12px;padding:10px 14px;font-size:.9rem;font-weight:600;margin:4px 0 14px}
+.opt-btn{width:100%;padding:11px;border:1px dashed var(--primary);border-radius:12px;background:none;color:var(--primary);font-weight:700;margin:6px 0 14px}
+.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.checks label{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:var(--text);cursor:pointer}
+.checks input{width:18px;height:18px;accent-color:var(--primary);flex-shrink:0}
+.mapbox{background:var(--bg);border:1px dashed var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 22px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-weight:700}
+.btn.p{background:var(--primary);color:var(--on-primary);border-color:transparent}.btn.ok{background:var(--ok);color:#fff;border-color:transparent}
+.btn:hover:not(:disabled){filter:brightness(1.07)}.btn:disabled{opacity:.6;cursor:not-allowed}
+#map{height:320px;border-radius:12px;margin-top:10px;border:1px solid var(--line)}
+.mstat{margin-top:8px;color:var(--ok);font-weight:700;font-size:.88rem}
+.drop{border:2px dashed var(--line);border-radius:14px;padding:30px 16px;text-align:center;cursor:pointer;background:var(--bg);color:var(--muted);font-weight:700}
+.drop:hover{border-color:var(--primary)}.drop i{font-size:2rem;color:var(--primary);display:block;margin-bottom:6px}
+.cnt{margin:10px 0;color:var(--muted);font-weight:700;font-size:.9rem}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
+.th{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--line)}
+.th img{width:100%;height:100%;object-fit:cover;display:block}
+.th .cv{position:absolute;bottom:0;left:0;right:0;background:var(--primary);color:var(--on-primary);font-size:.72rem;font-weight:900;text-align:center}
+.th button{position:absolute;top:6px;width:28px;height:28px;border-radius:50%;border:0;display:grid;place-items:center;font-size:.8rem;color:#fff;background:rgba(0,0,0,.6)}
+.th .del{left:6px;background:var(--bad)}.th .star{right:6px}
+.rv{border:1px solid var(--line);border-radius:14px;padding:6px 16px;margin-bottom:14px}
+.rv div{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:.93rem}
+.rv div:last-child{border:0}.rv span{color:var(--muted);font-weight:700;flex-shrink:0}.rv b{text-align:left;overflow-wrap:anywhere}
+.prog{height:10px;border-radius:9px;background:var(--line);overflow:hidden;margin:12px 0}.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--primary),var(--accent));transition:width .2s}
+.nav{display:flex;justify-content:space-between;gap:12px;margin-top:20px}
+.done{text-align:center;padding:20px 0}.done i{font-size:3rem;color:var(--ok)}.done h2{margin:10px 0 6px}.done p{color:var(--muted)}
+@media(max-width:600px){.box{padding:24px 16px;border-radius:18px}}
+@media(prefers-reduced-motion:reduce){.prog i{transition:none}}
+</style>
 </head>
 <body>
+<main class="wrap">
+<a class="back" href="dashboard.html"><i class="fas fa-arrow-right"></i> العودة للوحة التحكم</a>
+<div class="box">
+  <svg class="sky" viewBox="0 0 320 70" fill="currentColor" aria-hidden="true"><rect x="10" y="30" width="30" height="40" opacity=".35"/><rect x="48" y="12" width="36" height="58" opacity=".6"/><rect x="92" y="24" width="28" height="46" opacity=".4"/><path d="M130 70V38l30-24 30 24v32z"/><rect x="198" y="20" width="34" height="50" opacity=".6"/><rect x="240" y="34" width="28" height="36" opacity=".35"/><rect x="276" y="26" width="34" height="44" opacity=".5"/><rect x="152" y="48" width="16" height="22" fill="var(--card)"/></svg>
+  <h1>إضافة عقار</h1>
+  <p class="sub">شقة أو أرض، للبيع أو الإيجار، مباشرة من المالك</p>
+  <ol class="steps"><li class="on" id="t1"><b>1</b>البيانات</li><li id="t2"><b>2</b>الصور</li><li id="t3"><b>3</b>المراجعة</li></ol>
+  <div id="msg" class="msg" role="alert" hidden></div>
 
-  <div class="container">
-    <a href="dashboard.html" class="btn-back"><i class="fas fa-arrow-right"></i> العودة للوحة التحكم</a>
-    
-    <div class="steps-indicator">
-      <div class="step-tab active" id="tab-1"><div class="step-num">1</div><div class="step-text">البيانات الأساسية</div></div>
-      <div class="step-tab" id="tab-2"><div class="step-num">2</div><div class="step-text">الوسائط المرفقة</div></div>
-      <div class="step-tab" id="tab-3"><div class="step-num">3</div><div class="step-text">المراجعة والنشر</div></div>
+  <form id="f" novalidate>
+  <section class="pn on" id="p1">
+    <div class="g" style="margin-bottom:14px"><label for="title">عنوان الإعلان *</label><input id="title" maxlength="80" placeholder="مثال: شقة 3 غرف بتشطيب سوبر لوكس في الحي الثالث"></div>
+    <div class="row">
+      <div class="g"><span class="lbl">نوع العملية *</span><div class="seg" data-k="purpose"><button type="button" data-v="sale" class="on">للبيع</button><button type="button" data-v="rent">للإيجار</button></div></div>
+      <div class="g"><span class="lbl">نوع العقار *</span><div class="seg" data-k="type"><button type="button" data-v="شقة" class="on">شقة</button><button type="button" data-v="أرض">أرض</button></div></div>
     </div>
 
-    <h2><i class="fas fa-plus-circle"></i> إضافة عقار جديد</h2>
-    
-    <form id="addPropertyForm" onsubmit="return false;">
-      
-      <div class="form-step-panel active" id="step-panel-1">
-        <div class="form-row">
-          <div class="form-group"><label>عنوان العقار *</label><input type="text" id="title" placeholder="مثال: شقة مودرن مطلة على النيل بمدخل خاص" required></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label>نوع العملية *</label>
-            <select id="purpose" required>
-              <option value="sale">بيع وشراء 🏡</option>
-              <option value="rent">إيجار تعاقدي 🏠</option>
-            </select>
-          </div>
-          <div class="form-group"><label>نوع العقار *</label>
-            <select id="propertyType" required>
-              <option value="شقة">شقة</option>
-              <option value="فيلا">فيلا</option>
-              <option value="دوبلكس">دوبلكس</option>
-              <option value="مكتب">مكتب</option>
-              <option value="محل">محل</option>
-              <option value="أرض">أرض</option>
-            </select>
-          </div>
-        </div>
+    <div class="row">
+      <div class="g"><label for="gov">المحافظة *</label><select id="gov"><option value="">اختر المحافظة</option></select></div>
+      <div class="g"><label for="city">المدينة *</label><input id="city" maxlength="40" placeholder="مثال: الشروق"></div>
+      <div class="g"><label for="district">المنطقة / الحي *</label><input id="district" maxlength="40" placeholder="مثال: الحي الثالث"></div>
+    </div>
 
-        <!-- حقل تفاصيل هيكل السكن الديناميكي بالكامل -->
-        <div class="form-row hidden" id="residentialSubtypeRow">
-          <div class="form-group">
-            <label>تفاصيل هيكل السكن *</label>
-            <select id="residentialSubtype" class="styled-select">
-              <!-- يتم التحكم في الخيارات برمجيًا من الجافا سكريبت -->
-            </select>
-          </div>
-        </div>
+    <div class="row">
+      <div class="g"><label for="price" id="priceL">السعر المطلوب (ج.م) *</label><input id="price" type="number" inputmode="numeric" min="1"></div>
+      <div class="g"><label for="area">المساحة (م²) *</label><input id="area" type="number" inputmode="numeric" min="1"></div>
+    </div>
+    <div class="note" id="fee" hidden></div>
 
-        <div id="rentFields" class="hidden">
-          <div class="form-row">
-            <div class="form-group"><label>دورة الإيجار *</label>
-              <select id="rentCycle">
-                <option value="شهري">شهري</option>
-                <option value="أسبوعي">أسبوعي</option>
-                <option value="سنوي">سنوي</option>
-              </select>
-            </div>
-            <div class="form-group"><label>مدة عقد الإيجار (بالشهور/السنوات) *</label>
-              <input type="text" id="leaseDuration" placeholder="مثال: سنة واحدة أو 6 أشهر">
-            </div>
-          </div>
-        </div>
+    <div id="saleBox"><div class="row">
+      <div class="g"><label for="pay">نظام الدفع *</label><select id="pay"><option value="كاش">كاش</option><option value="تقسيط">تقسيط</option></select></div>
+      <div class="g" id="instBox" hidden><label for="down">المقدم (ج.م) *</label><input id="down" type="number" inputmode="numeric" min="0"></div>
+      <div class="g" id="instBox2" hidden><label for="years">مدة التقسيط (سنوات) *</label><input id="years" type="number" inputmode="numeric" min="1"></div>
+    </div></div>
+    <div id="rentBox" hidden><div class="row">
+      <div class="g"><label for="lease">مدة العقد المطلوبة</label><select id="lease"><option>6 أشهر</option><option selected>سنة</option><option>سنتان</option><option>حسب الاتفاق</option></select></div>
+    </div></div>
 
-        <div id="saleFields">
-          <div class="form-row">
-            <div class="form-group"><label>نظام الدفع (للبيع) *</label>
-              <select id="paymentMethod">
-                <option value="كاش">كاش نقداً</option>
-                <option value="تقسيط">تقسيط وجدولة</option>
-              </select>
-            </div>
-            <div class="form-group hidden" id="field-installment">
-              <label>المقدم المطلوب (ج.م) *</label>
-              <input type="number" id="installmentDownpayment" placeholder="مثال: 150000" min="0">
-            </div>
-            <div class="form-group hidden" id="field-installment-years">
-              <label>فترة سداد الأقساط (بالسنوات) *</label>
-              <input type="number" id="installmentYears" placeholder="مثال: 5 سنوات" min="1">
-            </div>
-          </div>
+    <div id="aptBox">
+      <div class="row">
+        <div class="g"><label for="rooms">عدد الغرف *</label><input id="rooms" type="number" inputmode="numeric" min="1" max="20" placeholder="مثال: 3"></div>
+        <div class="g"><label for="baths">عدد الحمامات *</label><input id="baths" type="number" inputmode="numeric" min="1" max="20" placeholder="مثال: 1"></div>
+        <div class="g"><label for="floor">الدور *</label><select id="floor"><option value="">اختر الدور</option><option>الأرضي</option><option>الأول</option><option>الثاني</option><option>الثالث</option><option>الرابع</option><option>الخامس</option><option>السادس فأعلى</option><option>الأخير</option></select></div>
+        <div class="g"><label for="bfloors">إجمالي أدوار العمارة *</label><input id="bfloors" type="number" inputmode="numeric" min="1" max="60" placeholder="مثال: 5"></div>
+      </div>
+      <button type="button" class="opt-btn" id="optBtn">تفاصيل إضافية (اختياري) <i class="fas fa-chevron-down"></i></button>
+      <div id="opt" hidden>
+        <div class="row">
+          <div class="g"><label for="cyear">سنة البناء</label><input id="cyear" type="number" inputmode="numeric" placeholder="مثال: 2022"></div>
+          <div class="g"><label for="fin">التشطيب</label><select id="fin"><option value="">غير محدد</option><option>سوبر لوكس</option><option>لوكس</option><option>نصف تشطيب</option><option>بدون تشطيب</option></select></div>
+          <div class="g"><label for="elec">عداد الكهرباء</label><select id="elec"><option value="">غير محدد</option><option>كارت</option><option>قديم</option></select></div>
+          <div class="g"><label for="water">عداد المياه</label><select id="water"><option value="">غير محدد</option><option>مستقل</option><option>مشترك</option></select></div>
         </div>
-
-        <div class="form-row">
-          <div class="form-group"><label id="price-label">السعر المطلوب (ج.م) *</label><input type="number" id="price" required></div>
-          <div class="form-group"><label>المساحة الإجمالية (م) *</label><input type="number" id="area" required></div>
-        </div>
-        
-        <div class="form-row" id="dynamicFields">
-          <div class="form-group" id="field-rooms"><label>عدد الغرف *</label><input type="number" id="rooms" value="3"></div>
-          <div class="form-group" id="field-bathrooms"><label>عدد الحمامات *</label><input type="number" id="bathrooms" value="1"></div>
-        </div>
-
-        <!-- حقول الأدوار والهيكل السكني المحدثة والديناميكية -->
-        <div class="form-row hidden" id="dynamicResidentialFields">
-          <div class="form-group" id="field-floor-select-group">
-            <label id="floorSelectLabel">الدور / الطابق المخصص *</label>
-            <select id="floorSelect" class="styled-select">
-              <option value="الأرضي">الأرضي</option>
-              <option value="الأول">الأول</option>
-              <option value="الثاني">الثاني</option>
-              <option value="الثالث">الثالث</option>
-              <option value="أعلى من الثالث">أعلى من الثالث</option>
-              <option value="الأخير">الأخير</option>
-            </select>
-          </div>
-          <div class="form-group" id="field-building-floors-group">
-            <label id="buildingFloorsLabel">إجمالي عدد أدوار العمارة *</label>
-            <input type="number" id="buildingFloors" placeholder="مثال: مكون من 5 أدوار" min="1" value="5">
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group"><label>المحافظة *</label><input type="text" id="governorate" required placeholder="مثال: القاهرة"></div>
-          <div class="form-group"><label>المدينة *</label><input type="text" id="city" required placeholder="مثال: الشروق"></div>
-          <div class="form-group"><label>المنطقة / الحي *</label><input type="text" id="district" required placeholder="مثال: الحي الثالث"></div>
-        </div>
-
-        <div class="map-section">
-          <div class="map-section-title">
-            <i class="fas fa-map-marked-alt"></i>
-            <span>تحديد موقع العقار على الخريطة (اختياري)</span>
-          </div>
-          <button type="button" class="btn-map-trigger" id="btnToggleMap">
-            <i class="fas fa-map-pin"></i> تحديد الموقع الجغرافي 
-          </button>
-          <div id="mapStatus" class="hidden"></div>
-          
-          <div class="map-wrapper" id="mapWrapper">
-            <div id="map"></div>
-          </div>
-        </div>
-
-        <div class="form-group"><label>وصف العقار التفصيلي والخدمات المجاورة *</label><textarea id="description" rows="4" placeholder="اكتب مواصفات العقار وتشطيباته وجيرانه ومزاياه لتسهيل الحجز والبيع المباشر..." required></textarea></div>
-
-        <button type="button" class="btn-toggle-more" id="btnMoreDetails">إعادة تعيين وإضافة تفاصيل وتشطيبات أكثر (اختياري) <i class="fas fa-chevron-down"></i></button>
-        
-        <div id="optionalSection" class="hidden">
-          <div class="form-row">
-            <div class="form-group"><label>سنة بناء العقار</label><input type="number" id="constructionYear" placeholder="مثال: 2024"></div>
-            <div class="form-group"><label>حالة التشطيب</label><select id="finishing"><option value="">اختر التشطيب</option><option value="سوبر لوكس">سوبر لوكس</option><option value="لوكس">لوكس</option><option value="نصف تشطيب">نصف تشطيب</option><option value="بدون">بدون تشطيب</option></select></div>
-            <div class="form-group"><label>عداد الكهرباء</label><select id="electricityCard"><option value="">غير محدد</option><option value="كارت">كارت جديد</option><option value="قديم">عداد قديم</option></select></div>
-            <div class="form-group"><label>عداد المياه</label><select id="waterCard"><option value="">غير محدد</option><option value="مستقل">مستقل</option><option value="مشترك">مشترك</option></select></div>
-          </div>
-          <label>المميزات الإضافية</label>
-          <div class="checkbox-grid" id="featuresGrid">
-            <label class="checkbox-item feat-item"><input type="checkbox" id="feat-elevator"><span>مصعد</span></label>
-            <label class="checkbox-item feat-item"><input type="checkbox" id="feat-garage"><span>جراج</span></label>
-            <label class="checkbox-item feat-item"><input type="checkbox" id="feat-security"><span>أمن حراسة</span></label>
-            <label class="checkbox-item feat-item"><input type="checkbox" id="feat-balcony"><span>بلكونة</span></label>
-            <label class="checkbox-item feat-item"><input type="checkbox" id="feat-airConditioner"><span>تكييف</span></label>
-            <label class="checkbox-item feat-item"><input type="checkbox" id="feat-furnished"><span>مفروش</span></label>
-            <label class="checkbox-item feat-item"><input type="checkbox" id="feat-naturalGas"><span>غاز طبيعي</span></label>
-          </div>
+        <div class="lbl" style="margin-bottom:8px">المميزات</div>
+        <div class="checks">
+          <label><input type="checkbox" id="f-elevator">مصعد</label><label><input type="checkbox" id="f-garage">جراج</label>
+          <label><input type="checkbox" id="f-security">أمن وحراسة</label><label><input type="checkbox" id="f-balcony">بلكونة</label>
+          <label><input type="checkbox" id="f-ac">تكييف</label><label><input type="checkbox" id="f-furnished">مفروش</label>
+          <label><input type="checkbox" id="f-gas">غاز طبيعي</label>
         </div>
       </div>
+    </div>
+    <div id="landBox" hidden><div class="row">
+      <div class="g"><label for="landType">نوع الأرض</label><select id="landType"><option>سكنية</option><option>زراعية</option><option>تجارية</option><option>صناعية</option></select></div>
+    </div></div>
 
-      <div class="form-step-panel" id="step-panel-2">
-        <div class="form-group">
-          <label>ألبوم صور العقار (من 5 إلى 15 صورة كحد أقصى) * أول صورة هي الغلاف.</label>
-          <div class="upload-zone" onclick="document.getElementById('imageFiles').click()">
-            <p><i class="fas fa-images fa-2x" style="color:var(--primary)"></i><br>اضغط هنا لرفع الصور </p>
-            <input type="file" id="imageFiles" multiple accept="image/*" class="hidden">
-          </div>
-          <div class="media-grid" id="imagesPreviewGrid"></div>
-        </div>
+    <div class="mapbox">
+      <div class="lbl" style="margin-bottom:8px"><i class="fas fa-map-marked-alt" style="color:var(--primary)"></i> موقع العقار على الخريطة (اختياري)</div>
+      <button type="button" class="btn" id="mapBtn"><i class="fas fa-map-pin"></i> تحديد الموقع</button>
+      <div id="mstat" class="mstat" hidden></div>
+      <div id="mapWrap" hidden><div id="map"></div></div>
+    </div>
 
-        <div class="form-group hidden" style="margin-top: 2rem; display: none !important;">
-          <label>فيديو للعقار (اختياري - فيديو واحد MP4 فقط - أقصى مدة 3 دقائق - الحجم الأقصى 100MB)</label>
-          <div class="upload-zone" id="videoZone" onclick="document.getElementById('videoFile').click()">
-            <p><i class="fas fa-video fa-2x" style="color:var(--primary)"></i><br>اضغط لاختيار فيديو جولة عقارية توضيحية</p>
-            <input type="file" id="videoFile" accept="video/mp4" class="hidden">
-          </div>
-          <div class="media-grid" id="videoPreviewGrid"></div>
-        </div>
-      </div>
+    <div class="g"><label for="desc">وصف العقار والخدمات المجاورة *</label><textarea id="desc" rows="4" maxlength="2000" placeholder="اكتب مواصفات العقار ومميزاته والخدمات القريبة منه..."></textarea></div>
+  </section>
 
-      <div class="form-step-panel" id="step-panel-3">
-        <div class="review-item">
-          <h4>تفاصيل العقار الأساسية والموقع الجغرافي</h4>
-          <p id="reviewMainText"></p>
-        </div>
-        <div class="review-item">
-          <h4>الخيارات المالية ونظام السداد</h4>
-          <p id="reviewPaymentText"></p>
-        </div>
-        <div class="review-item">
-          <h4>حالة الوسائط الجاهزة للإرسال</h4>
-          <p id="reviewMediaText"></p>
-        </div>
-        
-        <div class="progress-container" id="uploadProgressContainer">
-          <div class="progress-bar" id="uploadProgressBar"></div>
-        </div>
-      </div>
+  <section class="pn" id="p2">
+    <div class="drop" id="drop"><i class="fas fa-images"></i>اضغط لإضافة الصور (من 5 إلى 15 صورة)<input type="file" id="files" accept="image/*" multiple hidden></div>
+    <div class="cnt" id="cnt">0 / 15 صورة (الحد الأدنى 5)</div>
+    <div class="thumbs" id="thumbs"></div>
+    <p style="color:var(--muted);font-size:.88rem">الصورة الأولى هي الغلاف. اضغط <i class="fas fa-star"></i> على أي صورة لتجعلها الغلاف.</p>
+  </section>
 
-      <div class="nav-buttons">
-        <button type="button" class="btn-nav btn-prev hidden" id="btnPrevStep">السابق</button>
-        <button type="button" class="btn-nav btn-next" id="btnNextStep">التالي</button>
-        <button type="button" class="btn-nav btn-submit-final" id="btnSubmitFinal">تأكيد ونشر العقار للمراجعة 🚀</button>
-      </div>
+  <section class="pn" id="p3">
+    <div class="rv" id="review"></div>
+    <div class="note"><i class="fas fa-info-circle"></i> سيراجع فريق AM إعلانك قبل نشره. رقم هاتفك لا يظهر للزوار، والتواصل يتم عبر المحادثة داخل الموقع.</div>
+    <div class="prog" id="progW" hidden><i id="prog"></i></div>
+  </section>
 
-    </form>
+  <div class="nav">
+    <button type="button" class="btn" id="prev" hidden>السابق</button>
+    <button type="button" class="btn p" id="next" style="margin-right:auto">التالي</button>
+    <button type="button" class="btn ok" id="submit" hidden style="margin-right:auto"><i class="fas fa-paper-plane"></i> إرسال للمراجعة</button>
   </div>
+  </form>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <div class="done" id="done" hidden>
+    <i class="fas fa-check-circle"></i>
+    <h2>تم إرسال عقارك للمراجعة</h2>
+    <p>سيظهر في الموقع بعد موافقة الفريق. تقدر تتابع حالته من صفحة عقاراتي.</p>
+    <a class="btn p" href="my-properties.html">عقاراتي</a>
+    <a class="btn" href="add-property.html">إضافة عقار آخر</a>
+  </div>
+</div>
+</main>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-        authDomain: "am--rewards.firebaseapp.com",
-        projectId: "am--rewards",
-        storageBucket: "am--rewards.firebasestorage.app"
+const app = initializeApp({
+  apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+  authDomain: "am--rewards.firebaseapp.com",
+  projectId: "am--rewards",
+});
+const db = getFirestore(app), auth = getAuth(app);
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const num = (n) => Number(n || 0).toLocaleString("ar-EG");
+const GOVS = ["القاهرة","الجيزة","الإسكندرية","القليوبية","المنوفية","الغربية","الدقهلية","الشرقية","البحيرة","كفر الشيخ","دمياط","بورسعيد","الإسماعيلية","السويس","شمال سيناء","جنوب سيناء","بني سويف","الفيوم","المنيا","أسيوط","سوهاج","قنا","الأقصر","أسوان","البحر الأحمر","الوادي الجديد","مطروح"];
+$("#gov").insertAdjacentHTML("beforeend", GOVS.map((g) => `<option>${g}</option>`).join(""));
+
+const S = { purpose: "sale", type: "شقة", step: 1, images: [], cache: new Map(), urls: [], loc: null, user: null };
+const isLand = () => S.type === "أرض";
+
+function show(t) { const m = $("#msg"); m.textContent = t; m.hidden = !t; if (t) m.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+function fail(id, t) { show(t); const el = $("#" + id); if (el) { el.setAttribute("aria-invalid", "true"); el.focus(); } return false; }
+$("#f").addEventListener("input", (e) => { e.target.removeAttribute?.("aria-invalid"); show(""); updateFee(); });
+
+/* ---------- dynamic fields ---------- */
+function sync() {
+  const land = isLand(), rent = S.purpose === "rent";
+  $("#aptBox").hidden = land; $("#landBox").hidden = !land;
+  $("#rentBox").hidden = !rent; $("#saleBox").hidden = rent;
+  const inst = !rent && $("#pay").value === "تقسيط";
+  $("#instBox").hidden = !inst; $("#instBox2").hidden = !inst;
+  $("#priceL").textContent = rent ? "الإيجار الشهري (ج.م) *" : "السعر المطلوب (ج.م) *";
+  updateFee();
+}
+function updateFee() {
+  const p = +$("#price").value || 0, el = $("#fee");
+  el.hidden = !p;
+  if (!p) return;
+  el.textContent = S.purpose === "sale"
+    ? `عمولة AM على المالك ٠٫٥٪ = ${num(p * 0.005)} ج.م، وتُدفع عند إتمام الاتفاق فقط.`
+    : `عمولة AM على المالك ١٠٪ من إيجار أول شهر = ${num(p * 0.1)} ج.م، وتُدفع مرة واحدة عند الاتفاق.`;
+}
+$$(".seg").forEach((g) => g.addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  $$("button", g).forEach((x) => x.classList.toggle("on", x === b));
+  S[g.dataset.k] = b.dataset.v; sync();
+}));
+$("#pay").addEventListener("change", sync);
+$("#optBtn").addEventListener("click", () => { $("#opt").hidden = !$("#opt").hidden; });
+sync();
+
+/* ---------- map (loaded only when needed) ---------- */
+function loadLeaflet() {
+  if (window.L) return Promise.resolve();
+  return new Promise((res, rej) => {
+    const l = document.createElement("link");
+    l.rel = "stylesheet"; l.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+    l.integrity = "sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="; l.crossOrigin = "";
+    document.head.appendChild(l);
+    const s = document.createElement("script");
+    s.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    s.integrity = "sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="; s.crossOrigin = "";
+    s.onload = res; s.onerror = () => rej(new Error("map"));
+    document.head.appendChild(s);
+  });
+}
+let map = null, marker = null;
+function place(lat, lng) {
+  // نحفظ موقعًا تقريبيًا فقط (±250م تقريبًا)، والعنوان الدقيق يُتفق عليه في المحادثة
+  S.loc = { lat: lat + (Math.random() - 0.5) * 0.005, lng: lng + (Math.random() - 0.5) * 0.005 };
+  const st = $("#mstat"); st.hidden = false;
+  st.textContent = "✅ تم تحديد الموقع (يظهر للزوار بشكل تقريبي فقط).";
+}
+$("#mapBtn").addEventListener("click", async () => {
+  const w = $("#mapWrap");
+  if (!w.hidden) { w.hidden = true; return; }
+  w.hidden = false;
+  try { await loadLeaflet(); } catch { w.hidden = true; return show("تعذّر تحميل الخريطة، يمكنك المتابعة بدونها."); }
+  if (!map) {
+    map = L.map("map").setView([30.0444, 31.2357], 12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+    marker = L.marker([30.0444, 31.2357], { draggable: true }).addTo(map);
+    marker.on("dragend", () => { const p = marker.getLatLng(); place(p.lat, p.lng); });
+    map.on("click", (e) => { marker.setLatLng(e.latlng); place(e.latlng.lat, e.latlng.lng); });
+    navigator.geolocation?.getCurrentPosition((pos) => {
+      const { latitude: a, longitude: b } = pos.coords;
+      map.setView([a, b], 15); marker.setLatLng([a, b]); place(a, b);
+    }, () => {});
+  }
+  setTimeout(() => map.invalidateSize(), 150);
+});
+
+/* ---------- validation ---------- */
+function validate1() {
+  const land = isLand(), rent = S.purpose === "rent", n = (id) => +$("#" + id).value;
+  if ($("#title").value.trim().length < 8) return fail("title", "اكتب عنوانًا واضحًا للإعلان (8 أحرف على الأقل)");
+  if (!$("#gov").value) return fail("gov", "اختر المحافظة");
+  if (!$("#city").value.trim()) return fail("city", "اكتب المدينة");
+  if (!$("#district").value.trim()) return fail("district", "اكتب المنطقة أو الحي");
+  if (!(n("price") > 0)) return fail("price", rent ? "اكتب قيمة الإيجار الشهري" : "اكتب السعر المطلوب");
+  if (!(n("area") > 0)) return fail("area", "اكتب المساحة");
+  if (!rent && $("#pay").value === "تقسيط") {
+    if ($("#down").value === "" || n("down") < 0) return fail("down", "اكتب قيمة المقدم");
+    if (!(n("years") >= 1)) return fail("years", "اكتب مدة التقسيط بالسنوات");
+  }
+  if (!land) {
+    if (!(n("rooms") >= 1)) return fail("rooms", "اكتب عدد الغرف");
+    if (!(n("baths") >= 1)) return fail("baths", "اكتب عدد الحمامات");
+    if (!$("#floor").value) return fail("floor", "اختر الدور");
+    if (!(n("bfloors") >= 1)) return fail("bfloors", "اكتب إجمالي أدوار العمارة");
+  }
+  if ($("#desc").value.trim().length < 20) return fail("desc", "اكتب وصفًا أوضح للعقار (20 حرفًا على الأقل)");
+  return true;
+}
+function validate2() {
+  if (S.images.length < 5) { show(`اخترت ${S.images.length} صور فقط. الحد الأدنى 5 صور.`); return false; }
+  return true;
+}
+
+/* ---------- images ---------- */
+function compress(file) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => {
+      URL.revokeObjectURL(url);
+      const max = 1600; let w = im.naturalWidth, h = im.naturalHeight;
+      if (w > max) { h = Math.round((h * max) / w); w = max; }
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      c.getContext("2d").drawImage(im, 0, 0, w, h);
+      c.toBlob((b) => (b ? res(new File([b], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" })) : rej(new Error("compress"))), "image/jpeg", 0.82);
     };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
-
-    let currentStep = 1;
-    let uploadedImages = []; 
-    let uploadedVideoFile = null;
-    let currentUserData = null;
-
-    // متغيرات الخريطة الجغرافية
-    let map = null;
-    let marker = null;
-    let selectedGeoLocation = null;
-
-    // دالة التحكم التفاعلي والديناميكي في عرض الحقول وتغيير مسمياتها
-    const applyDynamicFloorRules = () => {
-        const type = document.getElementById('propertyType').value;
-        const subtype = document.getElementById('residentialSubtype').value;
-
-        const fRooms = document.getElementById('field-rooms');
-        const fBaths = document.getElementById('field-bathrooms');
-        const fDynamicResFields = document.getElementById('dynamicResidentialFields');
-        const fFloorGroup = document.getElementById('field-floor-select-group');
-        const fBuildingFloorsGroup = document.getElementById('field-building-floors-group');
-        const fGrid = document.getElementById('featuresGrid');
-
-        // إرجاع الوضع الافتراضي النظيف للحقول
-        fRooms.classList.remove('hidden'); 
-        fBaths.classList.remove('hidden'); 
-        fDynamicResFields.classList.add('hidden');
-        if (fGrid) fGrid.querySelectorAll('.checkbox-item').forEach(i => i.classList.remove('hidden'));
-
-        // إخفاء الحقول غير الملائمة عند اختيار "أرض"
-        if (type === 'أرض') {
-            fRooms.classList.add('hidden'); 
-            fBaths.classList.add('hidden'); 
-            fDynamicResFields.classList.add('hidden');
-            document.getElementById('residentialSubtypeRow').classList.add('hidden');
-            if (fGrid) fGrid.querySelectorAll('.checkbox-item').forEach(i => i.classList.add('hidden'));
-            return;
-        } 
-        // إخفاء الحقول غير الملائمة عند اختيار "مكتب" أو "محل"
-        else if (type === 'محل' || type === 'مكتب') {
-            fRooms.classList.add('hidden');
-            fDynamicResFields.classList.add('hidden');
-            document.getElementById('residentialSubtypeRow').classList.add('hidden');
-            return;
-        }
-
-        // معالجة الوحدات السكنية حسب نوع هيكلها المحدد
-        if (type === 'شقة') {
-            document.getElementById('residentialSubtypeRow').classList.remove('hidden');
-            fDynamicResFields.classList.remove('hidden');
-
-            if (subtype === 'apartment_in_building') {
-                // شقة داخل عمارة: يظهر الدور ✅ | ويظهر إجمالي أدوار العمارة ✅
-                fFloorGroup.classList.remove('hidden');
-                document.getElementById('floorSelectLabel').textContent = "الدور / الطابق المخصص *";
-                fBuildingFloorsGroup.classList.remove('hidden');
-                document.getElementById('buildingFloorsLabel').textContent = "إجمالي أدوار العمارة *";
-            } else if (subtype === 'independent_house') {
-                // منزل مستقل: لا يظهر الدور ❌ | يظهر عدد أدوار المبنى ✅
-                fFloorGroup.classList.add('hidden');
-                fBuildingFloorsGroup.classList.remove('hidden');
-                document.getElementById('buildingFloorsLabel').textContent = "عدد أدوار المبنى *";
-            }
-        } 
-        else if (type === 'دوبلكس') {
-            document.getElementById('residentialSubtypeRow').classList.remove('hidden');
-            fDynamicResFields.classList.remove('hidden');
-
-            if (subtype === 'duplex_in_building') {
-                // دوبلكس داخل عمارة: يظهر الدور الذي يبدأ منه ✅ | ويظهر إجمالي أدوار العمارة ✅
-                fFloorGroup.classList.remove('hidden');
-                document.getElementById('floorSelectLabel').textContent = "الدور الذي يبدأ منه *";
-                fBuildingFloorsGroup.classList.remove('hidden');
-                document.getElementById('buildingFloorsLabel').textContent = "إجمالي أدوار العمارة *";
-            } else if (subtype === 'independent_duplex') {
-                // دوبلكس مستقل: لا يظهر الدور ❌ | يظهر عدد أدوار المبنى ✅
-                fFloorGroup.classList.add('hidden');
-                fBuildingFloorsGroup.classList.remove('hidden');
-                document.getElementById('buildingFloorsLabel').textContent = "عدد أدوار المبنى *";
-            }
-        } 
-        else if (type === 'فيلا') {
-            document.getElementById('residentialSubtypeRow').classList.add('hidden');
-            fDynamicResFields.classList.remove('hidden');
-            
-            // فيلا: لا يظهر الدور ❌ | يظهر عدد أدوار الفيلا ✅
-            fFloorGroup.classList.add('hidden');
-            fBuildingFloorsGroup.classList.remove('hidden');
-            document.getElementById('buildingFloorsLabel').textContent = "عدد أدوار الفيلا *";
-        }
-    };
-
-    // تهيئة واستقبل أحداث وعناصر الصفحة حركياً
-    const initPageFlow = () => {
-        const purposeSelect = document.getElementById('purpose');
-        const paymentMethodSelect = document.getElementById('paymentMethod');
-        const propertyTypeSelect = document.getElementById('propertyType');
-        const residentialSubtypeSelect = document.getElementById('residentialSubtype');
-
-        const handlePurposeChange = () => {
-            const val = purposeSelect.value;
-            const rentSect = document.getElementById('rentFields');
-            const saleSect = document.getElementById('saleFields');
-            const priceLabel = document.getElementById('price-label');
-
-            if (val === 'rent') {
-                rentSect.classList.remove('hidden');
-                saleSect.classList.add('hidden');
-                priceLabel.textContent = "القيمة الإيجارية المقترحة (ج.م) *";
-            } else {
-                rentSect.classList.add('hidden');
-                saleSect.classList.remove('hidden');
-                priceLabel.textContent = "السعر المطلوب الإجمالي (ج.م) *";
-            }
-        };
-
-        const handlePaymentMethodChange = () => {
-            const val = paymentMethodSelect.value;
-            const isInstallment = (val === 'تقسيط');
-            document.getElementById('field-installment').classList.toggle('hidden', !isInstallment);
-            document.getElementById('field-installment-years').classList.toggle('hidden', !isInstallment);
-        };
-
-        const handlePropertyTypeChange = () => {
-            const val = propertyTypeSelect.value;
-            
-            // ملء خيارات الهيكل السكني ديناميكيًا حسب النوع المختار
-            if (val === 'شقة') {
-                residentialSubtypeSelect.innerHTML = `
-                  <option value="apartment_in_building">شقة داخل عمارة 🏢</option>
-                  <option value="independent_house">منزل مستقل 🏠</option>
-                `;
-                residentialSubtypeSelect.value = "apartment_in_building";
-            } else if (val === 'دوبلكس') {
-                residentialSubtypeSelect.innerHTML = `
-                  <option value="duplex_in_building">دوبلكس داخل عمارة 🏢</option>
-                  <option value="independent_duplex">دوبلكس مستقل 🏠</option>
-                `;
-                residentialSubtypeSelect.value = "duplex_in_building";
-            }
-
-            applyDynamicFloorRules();
-        };
-
-        purposeSelect.addEventListener('change', handlePurposeChange);
-        paymentMethodSelect.addEventListener('change', handlePaymentMethodChange);
-        propertyTypeSelect.addEventListener('change', handlePropertyTypeChange);
-        residentialSubtypeSelect.addEventListener('change', applyDynamicFloorRules);
-
-        handlePurposeChange();
-        handlePaymentMethodChange();
-        handlePropertyTypeChange();
-
-        document.getElementById('btnMoreDetails').addEventListener('click', () => {
-            const sect = document.getElementById('optionalSection');
-            sect.classList.toggle('hidden');
-        });
-
-        document.getElementById('btnToggleMap').addEventListener('click', initLeafletMap);
-    };
-
-    // نظام إدارة الخرائط التفاعلية (Leaflet.js)
-    const initLeafletMap = () => {
-        const wrapper = document.getElementById('mapWrapper');
-        
-        if (wrapper.style.display === 'block') {
-            wrapper.style.display = 'none';
-            return;
-        }
-
-        wrapper.style.display = 'block';
-
-        const defaultLat = 30.0444;
-        const defaultLng = 31.2357;
-
-        if (!map) {
-            map = L.map('map').setView([defaultLat, defaultLng], 13);
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
-
-            marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
-
-            const updateCoordinates = (lat, lng) => {
-                const randomOffsetLat = (Math.random() - 0.5) * 0.005;
-                const randomOffsetLng = (Math.random() - 0.5) * 0.005;
-
-                selectedGeoLocation = {
-                    realLatitude: lat,
-                    realLongitude: lng,
-                    approxLatitude: lat + randomOffsetLat,
-                    approxLongitude: lng + randomOffsetLng
-                };
-
-                const statusBadge = document.getElementById('mapStatus');
-                statusBadge.className = 'map-status-badge';
-                statusBadge.innerHTML = `<i class="fas fa-check-circle"></i> تم التقاط إحداثيات الموقع الجغرافي بنجاح وجاهزة للحفظ الآمن.`;
-            };
-
-            marker.on('dragend', function (e) {
-                const position = marker.getLatLng();
-                updateCoordinates(position.lat, position.lng);
-            });
-
-            map.on('click', function (e) {
-                marker.setLatLng(e.latlng);
-                updateCoordinates(e.latlng.lat, e.latlng.lng);
-            });
-
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition((position) => {
-                    const uLat = position.coords.latitude;
-                    const uLng = position.coords.longitude;
-                    map.setView([uLat, uLng], 15);
-                    marker.setLatLng([uLat, uLng]);
-                    updateCoordinates(uLat, uLng);
-                }, () => {
-                    console.log("Geolocation fallback to default center.");
-                });
-            }
-        } else {
-            setTimeout(() => { map.invalidateSize(); }, 200);
-        }
-    };
-
-    const updateStepUI = () => {
-        document.querySelectorAll('.form-step-panel').forEach(panel => panel.classList.remove('active'));
-        document.querySelectorAll('.step-tab').forEach(tab => tab.classList.remove('active'));
-        
-        document.getElementById(`step-panel-${currentStep}`).classList.add('active');
-        for(let i=1; i<=currentStep; i++) {
-            document.getElementById(`tab-${i}`).classList.add('active');
-        }
-
-        document.getElementById('btnPrevStep').classList.toggle('hidden', currentStep === 1);
-        
-        if (currentStep === 3) {
-            document.getElementById('btnNextStep').style.display = 'none';
-            document.getElementById('btnSubmitFinal').style.display = 'block';
-            compileReviewData();
-        } else {
-            document.getElementById('btnNextStep').style.display = 'block';
-            document.getElementById('btnSubmitFinal').style.display = 'none';
-        }
-    };
-
-    document.getElementById('btnNextStep').addEventListener('click', () => {
-        if (currentStep === 1) {
-            const requiredInputs = document.getElementById('step-panel-1').querySelectorAll('[required]');
-            let valid = true;
-            requiredInputs.forEach(input => { if(!input.value.trim()) valid = false; });
-            if (!valid) { 
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'تنبيه ملء البيانات',
-                    text: 'برجاء ملء جميع الحقول الإجبارية المحددة بعلامة (*) أولاً.',
-                    customClass: { popup: 'swal-custom-popup' }
-                });
-                return; 
-            }
-            currentStep = 2;
-        } else if (currentStep === 2) {
-            if (uploadedImages.length < 5) { 
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'ألبوم صور غير كافٍ',
-                    text: `خطأ: لقد قمت باختيار ${uploadedImages.length} صور. الحد الأدنى لإرسال العقار هو 5 صور.`,
-                    customClass: { popup: 'swal-custom-popup' }
-                });
-                return; 
-            }
-            currentStep = 3;
-        }
-        updateStepUI();
-    });
-
-    document.getElementById('btnPrevStep').addEventListener('click', () => {
-        if (currentStep > 1) { currentStep--; updateStepUI(); }
-    });
-
-    document.getElementById('imageFiles').addEventListener('change', async (e) => {
-        const files = Array.from(e.target.files);
-        if (uploadedImages.length + files.length > 15) { 
-            Swal.fire({
-                icon: 'warning',
-                title: 'تجاوز الحد الأقصى',
-                text: 'الحد الأقصى المسموح به هو 15 صورة فقط للعقار الواحد.',
-                customClass: { popup: 'swal-custom-popup' }
-            });
-            return; 
-        }
-        
-        for (let file of files) {
-            if (!file.type.startsWith('image/')) { 
-                Swal.fire({
-                    icon: 'error',
-                    title: 'ملف غير مدعوم',
-                    text: `الملف ${file.name} غير مدعوم، يرجى رفع صور فقط.`,
-                    customClass: { popup: 'swal-custom-popup' }
-                });
-                continue; 
-            }
-            const compressed = await compressImage(file);
-            uploadedImages.push(compressed);
-        }
-        renderImagesPreview();
-    });
-
-    const compressImage = (file) => {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    const maxW = 1200;
-                    let width = img.width; let height = img.height;
-                    if (width > maxW) { height *= maxW / width; width = maxW; }
-                    canvas.width = width; canvas.height = height;
-                    ctx.drawImage(img, 0, 0, width, height);
-                    canvas.toBlob((blob) => {
-                        resolve(new File([blob], file.name, { type: 'image/jpeg' }));
-                    }, 'image/jpeg', 0.8);
-                };
-            };
-        });
-    };
-
-    const renderImagesPreview = () => {
-        const grid = document.getElementById('imagesPreviewGrid');
-        grid.innerHTML = '';
-        uploadedImages.forEach((file, index) => {
-          const box = document.createElement('div');
-          box.className = 'media-box';
-          box.draggable = true;
-          box.dataset.index = index;
-          
-          box.addEventListener('dragstart', (e) => e.dataTransfer.setData('text/plain', index));
-          box.addEventListener('dragover', (e) => e.preventDefault());
-          box.addEventListener('drop', (e) => {
-            e.preventDefault();
-            const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
-            const toIdx = parseInt(box.dataset.index);
-            const movedItem = uploadedImages.splice(fromIdx, 1)[0];
-            uploadedImages.splice(toIdx, 0, movedItem);
-            renderImagesPreview();
-          });
-
-          const img = document.createElement('img');
-          img.src = URL.createObjectURL(file);
-          box.appendChild(img);
-
-          if(index === 0) {
-            const badge = document.createElement('div');
-            badge.className = 'badge-cover';
-            badge.innerText = 'صورة الغلاف';
-            box.appendChild(badge);
-          }
-
-          const delBtn = document.createElement('button');
-          delBtn.className = 'btn-del';
-          delBtn.innerHTML = '<i class="fas fa-times"></i>';
-          delBtn.onclick = (e) => {
-            e.stopPropagation();
-            uploadedImages.splice(index, 1);
-            renderImagesPreview();
-          };
-          box.appendChild(delBtn);
-          grid.appendChild(box);
-        });
-    };
-
-    document.getElementById('videoFile').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        if (file.type !== 'video/mp4') { 
-            Swal.fire({
-                icon: 'error',
-                title: 'تنسيق غير مدعوم',
-                text: 'عذراً، نظام الرفع يقبل فيديو بصيغة MP4 فقط.',
-                customClass: { popup: 'swal-custom-popup' }
-            });
-            return; 
-        }
-        if (file.size > 100 * 1024 * 1024) { 
-            Swal.fire({
-                icon: 'warning',
-                title: 'تجاوز المساحة',
-                text: 'الملف كبير جداً، الحد الأقصى للفيديو هو 100 ميجابايت.',
-                customClass: { popup: 'swal-custom-popup' }
-            });
-            return; 
-        }
-
-        const videoEl = document.createElement('video');
-        videoEl.preload = 'metadata';
-        videoEl.src = URL.createObjectURL(file);
-        videoEl.onloadedmetadata = () => {
-            if (videoEl.duration > 181) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'تجاوز الطول المسموح',
-                    text: 'الحد الأقصى لطول مقطع الفيديو هو 3 دقائق.',
-                    customClass: { popup: 'swal-custom-popup' }
-                });
-                return;
-            }
-            uploadedVideoFile = file;
-            renderVideoPreview();
-        };
-    });
-
-    const renderVideoPreview = () => {
-        const grid = document.getElementById('videoPreviewGrid');
-        grid.innerHTML = '';
-        if(!uploadedVideoFile) return;
-
-        const box = document.createElement('div');
-        box.className = 'media-box';
-        box.style.width = '200px'; box.style.height = '120px';
-
-        const vid = document.createElement('video');
-        vid.src = URL.createObjectURL(uploadedVideoFile);
-        vid.controls = true;
-        box.appendChild(vid);
-
-        const delBtn = document.createElement('button');
-        delBtn.className = 'btn-del';
-        delBtn.innerHTML = '<i class="fas fa-times"></i>';
-        delBtn.onclick = () => { uploadedVideoFile = null; renderVideoPreview(); };
-        box.appendChild(delBtn);
-        grid.appendChild(box);
-    };
-
-    const compileReviewData = () => {
-        const title = document.getElementById('title').value;
-        const purposeVal = document.getElementById('purpose').value;
-        const purposeText = purposeVal === 'sale' ? 'بيع تمليك 🏡' : 'إيجار تعاقدي 🏠';
-        const type = document.getElementById('propertyType').value;
-        const gov = document.getElementById('governorate').value;
-        const city = document.getElementById('city').value;
-        const district = document.getElementById('district').value;
-        const price = document.getElementById('price').value;
-        const area = document.getElementById('area').value;
-
-        const rooms = document.getElementById('rooms').value;
-        const bathrooms = document.getElementById('bathrooms').value;
-        const description = document.getElementById('description').value;
-
-        let specsText = `
-          <strong>العنوان:</strong> ${title} <br>
-          <strong>نوع الوحدة والعملية:</strong> ${type} (${purposeText}) <br>
-          <strong>الموقع الجغرافي:</strong> محافظة ${gov} ، مدينة ${city} ، منطقة ${district} <br>
-          <strong>الموقع على الخريطة:</strong> ${selectedGeoLocation ? '✅ تم التحديد جغرافياً بدقة' : '❌ لم يتم التحديد (مكتفٍ بالنص)'} <br>
-          <strong>المساحة:</strong> ${area} متر مربع | <strong>السعر المطلق:</strong> ${Number(price).toLocaleString()} ج.م <br>
-        `;
-
-        if (type !== 'أرض' && type !== 'محل' && type !== 'مكتب') {
-          specsText += `
-            <strong>عدد الغرف:</strong> ${rooms} غرف | <strong>عدد الحمامات:</strong> ${bathrooms} حمام <br>
-          `;
-          
-          const subtext = type === 'فيلا' ? 'فيلا مستقلة' : document.getElementById('residentialSubtype').selectedOptions[0]?.text || '';
-          specsText += `<strong>هيكل السكن التفصيلي:</strong> ${subtext} <br>`;
-
-          const isFloorHidden = document.getElementById('field-floor-select-group').classList.contains('hidden');
-          if (!isFloorHidden) {
-            const floorLabel = document.getElementById('floorSelectLabel').textContent.replace(' *', '');
-            const floorValue = document.getElementById('floorSelect').value;
-            specsText += `<strong>${floorLabel}:</strong> ${floorValue} <br>`;
-          }
-
-          const floorsLabel = document.getElementById('buildingFloorsLabel').textContent.replace(' *', '');
-          const floorsValue = document.getElementById('buildingFloors').value;
-          specsText += `<strong>${floorsLabel}:</strong> ${floorsValue} <br>`;
-        }
-
-        specsText += `<strong>الوصف التفصيلي:</strong> ${description}`;
-        document.getElementById('reviewMainText').innerHTML = specsText;
-
-        let paymentDetail = "";
-        if (purposeVal === 'rent') {
-          paymentDetail = `
-            <strong>دورة الإيجار المحددة:</strong> ${document.getElementById('rentCycle').value} <br>
-            <strong>مدة عقد الإيجار المطلوبة:</strong> ${document.getElementById('leaseDuration').value || 'غير محددة'}
-          `;
-        } else {
-          const method = document.getElementById('paymentMethod').value;
-          paymentDetail = `<strong>نظام السداد والجدولة:</strong> ${method}`;
-          if (method === 'تقسيط') {
-            const down = document.getElementById('installmentDownpayment').value;
-            const years = document.getElementById('installmentYears').value;
-            paymentDetail += ` <br> (مقدم الحجز الكاش: ${Number(down).toLocaleString()} ج.م ، التقسيط على ${years} سنوات)`;
-          }
-        }
-        document.getElementById('reviewPaymentText').innerHTML = paymentDetail;
-
-        document.getElementById('reviewMediaText').innerHTML = `
-          <strong>ألبوم الصور:</strong> تم ضغط وتجهيز ${uploadedImages.length} صور جاهزة للرفع <br>
-          <strong>الوسائط الأخرى:</strong> تم الاكتفاء بالصور فقط.
-        `;
-    };
-
-    document.getElementById('btnSubmitFinal').addEventListener('click', async () => {
-        const user = auth.currentUser;
-        if(!user) { 
-            Swal.fire({
-                icon: 'error',
-                title: 'خطأ في المصادقة',
-                text: 'يجب تسجيل الدخول أولاً لإرسال العقارات.',
-                customClass: { popup: 'swal-custom-popup' }
-            });
-            return; 
-        }
-        
-        const finalBtn = document.getElementById('btnSubmitFinal');
-        const progContainer = document.getElementById('uploadProgressContainer');
-        const progBar = document.getElementById('uploadProgressBar');
-        
-        finalBtn.disabled = true;
-        progContainer.style.display = 'block';
-        progBar.style.width = '10%';
-
-        try {
-            const userSnap = await getDoc(doc(db, "users", user.uid));
-            const ownerName = userSnap.exists() ? (userSnap.data().name || "مستخدم غير مسمى") : "مستخدم عام";
-            const ownerPhone = userSnap.exists() ? (userSnap.data().phone || "غير مسجل") : "غير مسجل";
-
-            progBar.style.width = "20%";
-
-            const uploadedImageUrls = [];
-            for (let i = 0; i < uploadedImages.length; i++) {
-                const fd = new FormData();
-                fd.append("files", uploadedImages[i]);
-
-                const response = await fetch("/api/upload-media", {
-                    method: "POST",
-                    body: fd
-                });
-
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || ("فشل رفع الصورة " + (i + 1)));
-
-                uploadedImageUrls.push(data.images[0]);
-                progBar.style.width = `${20 + ((i + 1) / uploadedImages.length) * 50}%`;
-            }
-
-            let uploadedVideoUrl = null;
-            if (uploadedVideoFile) {
-                const fd = new FormData();
-                fd.append("files", uploadedVideoFile);
-
-                const response = await fetch("/api/upload-media", {
-                    method: "POST",
-                    body: fd
-                });
-
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || "فشل رفع الفيديو");
-
-                uploadedVideoUrl = data.video;
-            }
-
-            progBar.style.width = "80%";
-
-            const isFloorHidden = document.getElementById('field-floor-select-group').classList.contains('hidden');
-            
-            let finalFloorValue = isFloorHidden ? "مستقل" : document.getElementById('floorSelect').value;
-            let finalBuildingFloorsCount = parseInt(document.getElementById('buildingFloors').value) || 0;
-
-            const propertyPayload = {
-                ownerId: user.uid,
-                ownerName: ownerName,
-                ownerPhone: ownerPhone,
-                title: document.getElementById('title').value,
-                purpose: document.getElementById('purpose').value,
-                propertyType: document.getElementById('propertyType').value,
-                propertyClassification: "apartment", // تصنيف افتراضي متوافق مع هيكل قاعدة البيانات القديم
-                residentialSubtype: document.getElementById('propertyType').value === 'شقة' || document.getElementById('propertyType').value === 'دوبلكس' ? document.getElementById('residentialSubtype').value : "none",
-                governorate: document.getElementById('governorate').value,
-                city: document.getElementById('city').value,
-                district: document.getElementById('district').value,
-                price: parseFloat(document.getElementById('price').value),
-                area: parseFloat(document.getElementById('area').value),
-                description: document.getElementById('description').value,
-                
-                hasCoordinates: selectedGeoLocation ? true : false,
-                coordinates: selectedGeoLocation ? {
-                    latitude: selectedGeoLocation.realLatitude,
-                    longitude: selectedGeoLocation.realLongitude,
-                    approxLatitude: selectedGeoLocation.approxLatitude,
-                    approxLongitude: selectedGeoLocation.approxLongitude
-                } : null,
-
-                rooms: parseInt(document.getElementById('rooms').value) || 0,
-                bathrooms: parseInt(document.getElementById('bathrooms').value) || 0,
-                floor: finalFloorValue,
-                buildingFloors: finalBuildingFloorsCount,
-                buildingApartments: 0,
-
-                rentCycle: document.getElementById('purpose').value === 'rent' ? document.getElementById('rentCycle').value : "",
-                leaseDuration: document.getElementById('purpose').value === 'rent' ? document.getElementById('leaseDuration').value : "",
-                paymentMethod: document.getElementById('purpose').value === 'sale' ? document.getElementById('paymentMethod').value : "",
-                downPayment: (document.getElementById('purpose').value === 'sale' && document.getElementById('paymentMethod').value === 'تقسيط') ? parseFloat(document.getElementById('installmentDownpayment').value) : 0,
-                installmentYears: (document.getElementById('purpose').value === 'sale' && document.getElementById('paymentMethod').value === 'تقسيط') ? parseInt(document.getElementById('installmentYears').value) : 0,
-
-                constructionYear: parseInt(document.getElementById('constructionYear').value) || 0,
-                finishing: document.getElementById('finishing').value || "",
-                electricityCard: document.getElementById('electricityCard').value || "",
-                waterCard: document.getElementById('waterCard').value || "",
-                features: {
-                    elevator: document.getElementById('feat-elevator').checked,
-                    garage: document.getElementById('feat-garage').checked,
-                    security: document.getElementById('feat-security').checked,
-                    balcony: document.getElementById('feat-balcony').checked,
-                    airConditioner: document.getElementById('feat-airConditioner').checked,
-                    furnished: document.getElementById('feat-furnished').checked,
-                    naturalGas: document.getElementById('feat-naturalGas').checked,
-                },
-
-                images: uploadedImageUrls, 
-                coverImage: uploadedImageUrls[0], 
-                video: uploadedVideoUrl || null, 
-                
-                status: "pending",
-                rejectReason: "",
-                approvedAt: null,
-                approvedBy: null,
-                rejectedAt: null,
-                rejectedBy: null,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
-            };
-
-            // رفع العقار في قاعدة البيانات والحصول على الرقم التعريفي له (docRef)
-            const docRef = await addDoc(collection(db, "properties"), propertyPayload);
-            progBar.style.width = '90%';
-
-            // 🔔 إرسال إشعار تليجرام عن إضافة عقار جديد
-            try {
-                await fetch("https://am-property.vercel.app/api/send-telegram", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        type: "new_property",
-                        data: {
-                            title: propertyPayload.title,
-                            type: propertyPayload.propertyType,
-                            price: propertyPayload.price,
-                            owner: propertyPayload.ownerName,
-                            propertyId: docRef.id
-                        }
-                    })
-                });
-            } catch (notifError) {
-                console.error("Failed to send Telegram notification:", notifError);
-            }
-
-            progBar.style.width = '100%';
-
-            Swal.fire({
-                icon: 'success',
-                title: 'تم إرسال العقار بنجاح للمراجعة! 🚀',
-                html: `
-                    <div style="font-size:14px; text-align:right; direction:rtl; line-height:1.7; margin-top:10px;">
-                        لقد تم تسجيل وحفظ عقارك بنجاح تحت المراجعة الإدارية.<br>
-                        📌 <b>رقم العقار التعريفي:</b> <code style="color:var(--primary)">${docRef.id}</code><br><br>
-                        سيقوم مسؤولو المنصة بمراجعة البيانات وتفعيله للجمهور قريباً لضمان الأمان.
-                    </div>
-                `,
-                confirmButtonText: 'متابعة إلى عقاراتي',
-                confirmButtonColor: '#10b981',
-                background: '#020617',
-                color: '#fff',
-                customClass: { popup: 'swal-custom-popup' }
-            }).then(() => {
-                window.location.href = "my-properties.html";
-            });
-
-        } catch (error) {
-            console.error("Critical submission error:", error);
-            Swal.fire({
-                icon: 'error',
-                title: 'عذراً، فشل النشر',
-                text: "حدث خطأ غير متوقع أثناء معالجة وحفظ البيانات: " + error.message,
-                customClass: { popup: 'swal-custom-popup' }
-            });
-            finalBtn.disabled = false;
-            progContainer.style.display = 'none';
-        }
-    });
-
-    window.addEventListener('DOMContentLoaded', () => {
-        initPageFlow();
-        onAuthStateChanged(auth, async (user) => {
-          if (!user) {
-            window.location.href = "login.html";
-            return;
-          }
-          try {
-            const userSnap = await getDoc(doc(db, "users", user.uid));
-            if (userSnap.exists()) currentUserData = userSnap.data();
-          } catch (e) {
-            console.warn("User profile retrieval warning:", e);
-          }
-        });
-    });
-  </script>
+    im.onerror = () => { URL.revokeObjectURL(url); rej(new Error("bad image")); };
+    im.src = url;
+  });
+}
+function renderImages() {
+  S.urls.forEach((u) => URL.revokeObjectURL(u)); S.urls = [];
+  const grid = $("#thumbs"); grid.innerHTML = "";
+  S.images.forEach((f, i) => {
+    const u = URL.createObjectURL(f); S.urls.push(u);
+    const box = document.createElement("div"); box.className = "th";
+    const im = document.createElement("img"); im.src = u; im.alt = ""; box.appendChild(im);
+    if (i === 0) { const c = document.createElement("div"); c.className = "cv"; c.textContent = "الغلاف"; box.appendChild(c); }
+    else { const s = document.createElement("button"); s.type = "button"; s.className = "star"; s.setAttribute("aria-label", "اجعلها الغلاف"); s.innerHTML = '<i class="fas fa-star"></i>'; s.onclick = () => { S.images.unshift(S.images.splice(i, 1)[0]); renderImages(); }; box.appendChild(s); }
+    const d = document.createElement("button"); d.type = "button"; d.className = "del"; d.setAttribute("aria-label", "حذف"); d.innerHTML = '<i class="fas fa-times"></i>'; d.onclick = () => { S.images.splice(i, 1); renderImages(); }; box.appendChild(d);
+    grid.appendChild(box);
+  });
+  $("#cnt").textContent = `${S.images.length} / 15 صورة (الحد الأدنى 5)`;
+}
+$("#drop").addEventListener("click", () => $("#files").click());
+$("#files").addEventListener("change", async (e) => {
+  const files = [...e.target.files]; e.target.value = "";
+  const room = 15 - S.images.length;
+  if (files.length > room) show(`الحد الأقصى 15 صورة، تم تجاهل ${files.length - room} صورة.`);
+  for (const f of files.slice(0, room)) {
+    if (!f.type.startsWith("image/")) { show(`الملف ${f.name} ليس صورة`); continue; }
+    if (f.size > 25 * 1024 * 1024) { show(`الصورة ${f.name} كبيرة جدًا`); continue; }
+    try { S.images.push(await compress(f)); renderImages(); } catch { show(`تعذّر معالجة الصورة ${f.name}، جرّب صيغة JPG أو PNG.`); }
+  }
+});
+
+/* ---------- steps ---------- */
+function go(n) {
+  S.step = n; show("");
+  $$(".pn").forEach((p, i) => p.classList.toggle("on", i + 1 === n));
+  $$(".steps li").forEach((l, i) => l.classList.toggle("on", i < n));
+  $("#prev").hidden = n === 1; $("#next").hidden = n === 3; $("#submit").hidden = n !== 3;
+  if (n === 3) buildReview();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+$("#next").addEventListener("click", () => { if (S.step === 1 && validate1()) go(2); else if (S.step === 2 && validate2()) go(3); });
+$("#prev").addEventListener("click", () => go(S.step - 1));
+
+function buildReview() {
+  const land = isLand(), rent = S.purpose === "rent", v = (id) => $("#" + id).value;
+  const rows = [
+    ["الإعلان", v("title").trim()],
+    ["العملية والنوع", `${S.type} ${rent ? "للإيجار" : "للبيع"}`],
+    ["الموقع", [v("gov"), v("city").trim(), v("district").trim()].join(" • ")],
+    [rent ? "الإيجار الشهري" : "السعر", `${num(v("price"))} ج.م`],
+    ["المساحة", `${num(v("area"))} م²`],
+  ];
+  if (!rent) rows.push(["نظام الدفع", v("pay") === "تقسيط" ? `تقسيط (مقدم ${num(v("down"))} ج.م لمدة ${num(v("years"))} سنوات)` : "كاش"]);
+  else rows.push(["مدة العقد", v("lease")]);
+  if (land) rows.push(["نوع الأرض", v("landType")]);
+  else rows.push(["الغرف والحمامات", `${num(v("rooms"))} غرف، ${num(v("baths"))} حمام`], ["الدور", `${v("floor")} من ${num(v("bfloors"))} أدوار`]);
+  rows.push(["الخريطة", S.loc ? "تم تحديد موقع تقريبي" : "لم يتم التحديد"], ["الصور", `${num(S.images.length)} صور`]);
+  const box = $("#review"); box.innerHTML = "";
+  rows.forEach(([k, val]) => {
+    const d = document.createElement("div"), s = document.createElement("span"), b = document.createElement("b");
+    s.textContent = k; b.textContent = val; d.append(s, b); box.appendChild(d);
+  });
+}
+
+/* ---------- submit ---------- */
+async function uploadOne(file, token) {
+  if (S.cache.has(file)) return S.cache.get(file);
+  const fd = new FormData(); fd.append("files", file);
+  const r = await fetch("/api/upload-media", { method: "POST", headers: { Authorization: "Bearer " + token }, body: fd });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || !d.images?.[0]) throw new Error(d.error || "فشل رفع إحدى الصور");
+  S.cache.set(file, d.images[0]);
+  return d.images[0];
+}
+async function uploadAll(files, token, onProgress) {
+  const out = new Array(files.length); let next = 0, done = 0;
+  const worker = async () => { while (next < files.length) { const i = next++; out[i] = await uploadOne(files[i], token); onProgress(++done / files.length); } };
+  await Promise.all(Array.from({ length: Math.min(3, files.length) }, worker));
+  return out;
+}
+function build(user, urls) {
+  const land = isLand(), rent = S.purpose === "rent", n = (id) => +$("#" + id).value, v = (id) => $("#" + id).value;
+  const p = {
+    ownerId: user.uid, ownerName: S.user?.name || "",
+    title: v("title").trim(), purpose: S.purpose, propertyType: S.type,
+    governorate: v("gov"), city: v("city").trim(), district: v("district").trim(),
+    price: n("price"), area: n("area"), description: v("desc").trim(),
+    location: S.loc, hasCoordinates: !!S.loc,
+    images: urls, coverImage: urls[0],
+    availability: "available", isHidden: false,
+    status: "pending", rejectReason: "",
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  };
+  if (rent) { p.rentCycle = "شهري"; p.leaseDuration = v("lease"); }
+  else {
+    p.paymentMethod = v("pay");
+    if (p.paymentMethod === "تقسيط") { p.downPayment = n("down"); p.installmentYears = n("years"); }
+  }
+  if (land) p.landType = v("landType");
+  else {
+    const f = { elevator: $("#f-elevator").checked, garage: $("#f-garage").checked, security: $("#f-security").checked, balcony: $("#f-balcony").checked, airConditioner: $("#f-ac").checked, furnished: $("#f-furnished").checked, naturalGas: $("#f-gas").checked };
+    Object.assign(p, { rooms: n("rooms"), bathrooms: n("baths"), floor: v("floor"), buildingFloors: n("bfloors"), constructionYear: n("cyear") || 0, finishing: v("fin"), electricityCard: v("elec"), waterCard: v("water"), features: f, furnishing: f.furnished ? "furnished" : "unfurnished" });
+  }
+  return p;
+}
+function busy(on) { $("#submit").disabled = on; $("#prev").disabled = on; $("#progW").hidden = !on; }
+const prog = (x) => { $("#prog").style.width = Math.round(x * 100) + "%"; };
+$("#submit").addEventListener("click", async () => {
+  const user = auth.currentUser;
+  if (!user) return show("يجب تسجيل الدخول أولاً");
+  show(""); busy(true); prog(0.05);
+  try {
+    const token = await user.getIdToken();
+    const urls = await uploadAll(S.images, token, (x) => prog(0.05 + x * 0.8));
+    const payload = build(user, urls);
+    const ref = await addDoc(collection(db, "properties"), payload);
+    prog(1);
+    fetch("/api/send-telegram", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ type: "new_property", data: { title: payload.title, type: payload.propertyType, price: payload.price, owner: payload.ownerName, propertyId: ref.id } }) }).catch(() => {});
+    $("#f").hidden = true; $(".steps").hidden = true; $("#done").hidden = false;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (e) {
+    console.error("Submit error:", e);
+    show("تعذّر نشر العقار: " + (e.message || "خطأ غير متوقع") + ". حاول مرة أخرى، الصور التي رُفعت لن تُرفع من جديد.");
+    busy(false);
+  }
+});
+
+onAuthStateChanged(auth, async (u) => {
+  if (!u) { location.href = "login.html"; return; }
+  try { const s = await getDoc(doc(db, "users", u.uid)); if (s.exists()) { S.user = s.data(); if (S.user.isBanned) location.href = "login.html"; } } catch (e) { console.warn(e); }
+});
+</script>
 </body>
 </html>
