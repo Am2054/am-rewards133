@@ -1,437 +1,193 @@
-<!-- signup.html - النسخة النهائية المصلحة والمستقرة 100% -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <title>إنشاء حساب | AM</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --neon-cyan: #00f2ff; --neon-purple: #7000ff; --bg-deep: #020617;
-      --glass-bg: rgba(15, 23, 42, 0.75); --glass-border: rgba(255, 255, 255, 0.08);
-      --text-main: #f1f5f9; --muted: #94a3b8;
-      --success: #22c55e; --danger: #f87171; --warning: #facc15;
-      --radius: 24px;
-    }
-
-    * { box-sizing: border-box; transition: all 0.25s ease; }
-
-    body {
-      margin: 0; padding: 0; font-family: 'Cairo', sans-serif;
-      background: var(--bg-deep); color: var(--text-main);
-      min-height: 100vh; display: flex; align-items: center; justify-content: center;
-      background-image: 
-        radial-gradient(circle at 0% 0%, rgba(112, 0, 255, 0.15) 0%, transparent 35%),
-        radial-gradient(circle at 100% 100%, rgba(0, 242, 255, 0.15) 0%, transparent 35%);
-    }
-
-    .signup-card {
-      background: var(--glass-bg); border: 1px solid var(--glass-border);
-      border-radius: var(--radius); padding: 45px 35px; backdrop-filter: blur(20px);
-      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-      width: 90%;
-      max-width: 450px;
-      margin: 20px auto;
-      position: relative;
-    }
-    .signup-card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-      background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan));
-      border-radius: var(--radius) var(--radius) 0 0;
-    }
-    .signup-card h2 { text-align: center; font-weight: 900; font-size: 26px; margin: 0 0 8px 0; color: #fff; }
-    .signup-card p.sub { text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 25px; }
-
-    .input-group { margin-bottom: 20px; position: relative; }
-    .input-group label { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 8px; margin-right: 5px; text-align: right;}
-    
-    input[type="text"], input[type="tel"], input[type="email"], input[type="password"] {
-      width: 100%; padding: 16px 20px; border-radius: 12px; 
-      background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border);
-      color: #fff; font-family: 'Cairo', sans-serif; outline: none; font-size: 15px;
-    }
-    input:focus { border-color: var(--neon-cyan); box-shadow: 0 0 12px rgba(0, 242, 255, 0.15); background: rgba(0,0,0,0.4); }
-
-    .input-wrapper { position: relative; width: 100%; }
-    
-    /* تثبيت وعزل زر العين لمنع تداخله */
-    .toggle-pass {
-      position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
-      cursor: pointer; opacity: 0.7; z-index: 5; display: flex; align-items: center; justify-content: center;
-      width: 24px !important; height: 24px !important; background: none !important; border: none !important; padding: 0 !important;
-    }
-    .toggle-pass:hover { opacity: 1; color: var(--neon-cyan); }
-    .toggle-pass svg { width: 18px; height: 18px; fill: currentColor; display: block; }
-
-    .password-strength {
-      height: 5px; background: rgba(255,255,255,0.05); border-radius: 10px; margin-top: 8px; overflow: hidden;
-    }
-    .password-strength-bar {
-      height: 100%; width: 0%; transition: width 0.3s, background-color 0.3s;
-    }
-
-    /* هيكل خارجي آمن لخانة الموافقة يمنع مشاكل النقر المتداخل */
-    .agree-container {
-      font-size: 13px; margin-bottom: 22px; display: flex; align-items: center; gap: 8px;
-      text-align: right; justify-content: flex-start; direction: rtl;
-    }
-    .agree-container input[type="checkbox"] {
-      width: 18px; height: 18px; cursor: pointer; accent-color: var(--neon-cyan); flex-shrink: 0; margin: 0;
-    }
-    .agree-container label {
-      color: var(--text-main); cursor: pointer; user-select: none; font-weight: 600; margin: 0;
-    }
-
-    .btn-submit {
-      width: 100%; padding: 15px 0; margin-top: 10px; border-radius: 12px;
-      border: none; background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan));
-      color: #fff; font-weight: 900; font-size: 16px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-    }
-    .btn-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(112, 0, 255, 0.3); }
-    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .spinner {
-      width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.3);
-      border-radius: 50%; border-top-color: #fff;
-      animation: spin 0.8s linear infinite; display: none;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .status { text-align: center; margin-top: 15px; font-size: 14px; font-weight: 700; min-height: 22px; }
-    .error { color: var(--danger); }
-    .success { color: var(--success); }
-    .warning { color: var(--warning); }
-
-    .login-link { text-align: center; margin-top: 22px; font-size: 14px; color: var(--muted); }
-    .login-link a { color: var(--neon-cyan); text-decoration: none; font-weight: 900; margin-right: 5px; }
-
-    .modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
-      z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px;
-      opacity: 0; transition: opacity 0.3s ease;
-    }
-    .modal-overlay.show { display: flex; opacity: 1; }
-    .modal-card {
-      background: var(--bg-deep); border: 1px solid var(--glass-border);
-      border-radius: 20px; padding: 35px; max-width: 550px; width: 100%;
-      max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-    }
-
-    .alert { padding: 12px 16px; border-radius: 10px; margin-bottom: 18px; font-size: 13px; display: none; line-height: 1.6; }
-    .alert.show { display: block; }
-    .alert-error { background: rgba(248, 113, 113, 0.08); border: 1px solid var(--danger); color: var(--danger); }
-    .alert-warning { background: rgba(250, 204, 21, 0.08); border: 1px solid var(--warning); color: var(--warning); }
-
-    @media (max-width: 600px) {
-      .signup-card {
-        width: 95%; max-width: 95vw; padding: 40px 20px; margin: 15px auto; border-radius: 16px;
-      }
-      h2 { font-size: 1.6rem; }
-      input[type="text"], input[type="tel"], input[type="email"], input[type="password"] {
-        padding: 15px 18px;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#060b16">
+<title>إنشاء حساب | AM</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f8fb;--card:#fff;--text:#0b1220;--muted:#566175;--line:#e2e8f0;--primary:#0284c7;--on-primary:#fff;--accent:#d97706;--ok:#16a34a;--bad:#dc2626;--warn:#b45309;--glow:rgba(2,132,199,.14);
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#060b16;--card:#0f1626;--text:#f1f5f9;--muted:#94a3b8;--line:#1e293b;--primary:#38bdf8;--on-primary:#04121f;--accent:#facc15;--ok:#4ade80;--bad:#f87171;--warn:#facc15;--glow:rgba(56,189,248,.16)}}
+:root[data-theme="dark"]{--bg:#060b16;--card:#0f1626;--text:#f1f5f9;--muted:#94a3b8;--line:#1e293b;--primary:#38bdf8;--on-primary:#04121f;--accent:#facc15;--ok:#4ade80;--bad:#f87171;--warn:#facc15;--glow:rgba(56,189,248,.16)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;min-height:100%;font-family:'Cairo',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;display:grid;place-items:center;padding:20px;background-image:radial-gradient(ellipse 70% 50% at 50% 0,var(--glow),transparent)}
+a{color:inherit;text-decoration:none}
+.box{position:relative;width:100%;max-width:460px;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:34px 28px;box-shadow:0 25px 50px -28px rgba(0,0,0,.5)}
+.box::before{content:"";position:absolute;inset:0 0 auto;height:4px;border-radius:24px 24px 0 0;background:linear-gradient(90deg,var(--primary),var(--accent))}
+.sky{display:block;margin:0 auto 12px;width:min(300px,80%);color:var(--primary)}
+.mark{width:52px;height:52px;margin:0 auto 12px;border-radius:16px;background:linear-gradient(135deg,var(--primary),var(--accent));color:var(--on-primary);display:grid;place-items:center;font-weight:900}
+h1{margin:0 0 4px;font-size:1.6rem;font-weight:900;text-align:center}
+.sub{margin:0 0 22px;color:var(--muted);text-align:center;font-size:.95rem}
+.row{margin-bottom:14px}
+label{display:block;margin-bottom:6px;font-weight:700;font-size:.9rem;color:var(--muted)}
+.field{position:relative}
+input[type=email],input[type=password],input[type=text],input[type=tel]{width:100%;padding:13px 16px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit;font-size:16px;outline:none}
+input:focus-visible{border-color:var(--primary);box-shadow:0 0 0 3px var(--glow)}
+.pw{padding-left:48px!important}
+.eye{position:absolute;left:6px;top:50%;transform:translateY(-50%);width:40px;height:40px;border:0;background:none;color:var(--muted);cursor:pointer;display:grid;place-items:center;border-radius:10px}
+.eye:hover{color:var(--primary)}.eye svg{width:20px;height:20px;fill:currentColor}
+.strength{height:5px;background:var(--line);border-radius:9px;margin-top:8px;overflow:hidden}
+.strength i{display:block;height:100%;width:0;transition:width .3s,background-color .3s}
+.agree{display:flex;align-items:center;gap:8px;margin:4px 0 18px;font-size:.92rem;font-weight:600}
+.agree input{width:18px;height:18px;margin:0;accent-color:var(--primary);flex-shrink:0}
+.agree button{background:none;border:0;padding:0;font:inherit;font-weight:700;color:var(--primary);cursor:pointer}
+.btn{width:100%;padding:14px;border:0;border-radius:12px;background:var(--primary);color:var(--on-primary);font:inherit;font-weight:900;font-size:1.05rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover:not(:disabled){filter:brightness(1.08)}.btn:disabled{opacity:.6;cursor:not-allowed}
+.btn:focus-visible,.eye:focus-visible,.agree button:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.spinner{width:18px;height:18px;border:2.5px solid rgba(128,128,128,.35);border-top-color:currentColor;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.message{margin-bottom:16px;padding:12px 14px;border-radius:12px;border:1px solid var(--primary);text-align:center;font-weight:700;font-size:.93rem}
+.message.error{color:var(--bad);border-color:var(--bad)}.message.success{color:var(--ok);border-color:var(--ok)}.message.warning{color:var(--warn);border-color:var(--warn)}
+.alt{margin-top:20px;text-align:center;font-size:.95rem;color:var(--muted)}.alt a{color:var(--primary);font-weight:700}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:20px;z-index:100}
+.modal.show{display:flex}
+.sheet{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:26px;max-width:520px;width:100%;max-height:82vh;overflow-y:auto}
+.sheet h2{margin:0 0 14px;font-size:1.25rem}
+.sheet ul{list-style:none;padding:0;margin:0 0 18px;color:var(--muted);font-size:.93rem}.sheet li{margin-bottom:10px}
+@media(prefers-reduced-motion:reduce){.spinner{animation-duration:2s}}
+</style>
 </head>
 <body>
+<main class="box">
+  <svg class="sky" viewBox="0 0 320 70" fill="currentColor" aria-hidden="true"><rect x="10" y="30" width="30" height="40" opacity=".35"/><rect x="48" y="12" width="36" height="58" opacity=".6"/><rect x="92" y="24" width="28" height="46" opacity=".4"/><path d="M130 70V38l30-24 30 24v32z"/><rect x="198" y="20" width="34" height="50" opacity=".6"/><rect x="240" y="34" width="28" height="36" opacity=".35"/><rect x="276" y="26" width="34" height="44" opacity=".5"/><rect x="152" y="48" width="16" height="22" fill="var(--card)"/></svg>
+  <h1>إنشاء حساب</h1>
+  <p class="sub">ابحث عن شقة أو أرض، أو اعرض عقارك مباشرة</p>
 
-  <div class="signup-card">
-    <h2>إنشاء حساب</h2>
-    <p class="sub">ابدأ رحلتك في تأجير الشقق اليوم</p>
+  <div id="msg" class="message" style="display:none" role="alert"><span id="msg-text"></span></div>
 
-    <div id="errorAlert" class="alert alert-error"></div>
-    <div id="warningAlert" class="alert alert-warning"></div>
-
-    <form onsubmit="event.preventDefault(); window.signup();">
-      <div class="input-group">
-        <label>الاسم الكامل</label>
-        <input id="name" type="text" placeholder="مثال: أحمد محمد" minlength="3" maxlength="50" required />
+  <form id="signup-form" novalidate>
+    <div class="row"><label for="name">الاسم الكامل</label>
+      <input id="name" type="text" placeholder="مثال: أحمد محمد" minlength="3" maxlength="50" autocomplete="name" required></div>
+    <div class="row"><label for="phone">رقم الهاتف</label>
+      <input id="phone" type="tel" inputmode="numeric" placeholder="01xxxxxxxxx" maxlength="11" autocomplete="tel" required></div>
+    <div class="row"><label for="email">البريد الإلكتروني</label>
+      <input id="email" type="email" placeholder="name@example.com" maxlength="100" autocomplete="email" inputmode="email" required></div>
+    <div class="row"><label for="password">كلمة المرور (8 أحرف على الأقل)</label>
+      <div class="field">
+        <input id="password" class="pw" type="password" placeholder="كلمة المرور" minlength="8" maxlength="50" autocomplete="new-password" oninput="checkPasswordStrength()" required>
+        <button type="button" class="eye" onclick="togglePass('password')" aria-label="إظهار أو إخفاء كلمة المرور"><svg viewBox="0 0 24 24" id="eye-icon-password"></svg></button>
       </div>
+      <div class="strength"><i id="strengthBar"></i></div></div>
+    <div class="row"><label for="confirmPassword">تأكيد كلمة المرور</label>
+      <div class="field">
+        <input id="confirmPassword" class="pw" type="password" placeholder="أعد كتابة كلمة المرور" minlength="8" maxlength="50" autocomplete="new-password" required>
+        <button type="button" class="eye" onclick="togglePass('confirmPassword')" aria-label="إظهار أو إخفاء تأكيد كلمة المرور"><svg viewBox="0 0 24 24" id="eye-icon-confirmPassword"></svg></button>
+      </div></div>
+    <div class="agree"><input type="checkbox" id="agree" required><label for="agree" style="margin:0;color:var(--text)">أوافق على <button type="button" onclick="showPolicy()">سياسة الاستخدام</button></label></div>
+    <button id="signupBtn" class="btn" type="submit"><span id="btnText">إنشاء الحساب</span></button>
+  </form>
+  <p class="alt">لديك حساب بالفعل؟ <a href="login.html">تسجيل الدخول</a></p>
+</main>
 
-      <div class="input-group">
-        <label>رقم الهاتف</label>
-        <input id="phone" type="tel" inputmode="numeric" placeholder="01xxxxxxxxx" maxlength="11" required />
-      </div>
-
-      <div class="input-group">
-        <label>البريد الإلكتروني</label>
-        <input id="email" type="email" placeholder="name@example.com" maxlength="100" required />
-      </div>
-
-      <div class="input-group">
-        <label>كلمة المرور</label>
-        <div class="input-wrapper">
-          <input id="password" type="password" placeholder="••••••••" minlength="6" maxlength="50" required oninput="checkPasswordStrength()" />
-          <span class="toggle-pass" onclick="togglePass('password')">
-            <svg viewBox="0 0 24 24" id="eye-icon-password">
-              <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-            </svg>
-          </span>
-        </div>
-        <div class="password-strength">
-          <div class="password-strength-bar" id="strengthBar"></div>
-        </div>
-      </div>
-
-      <div class="input-group">
-        <label>تأكيد كلمة المرور</label>
-        <div class="input-wrapper">
-          <input id="confirmPassword" type="password" placeholder="أعد كتابة كلمة المرور" minlength="6" maxlength="50" required />
-          <span class="toggle-pass" onclick="togglePass('confirmPassword')">
-            <svg viewBox="0 0 24 24" id="eye-icon-confirmPassword">
-              <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-            </svg>
-          </span>
-        </div>
-      </div>
-
-      <!-- إعداد حقل الموافقة بطريقة معزولة تمنع تداخل الأحداث -->
-      <div class="agree-container">
-        <input type="checkbox" id="agree" required />
-        <label for="agree">أوافق على <a href="javascript:void(0)" onclick="showPolicy()" style="color:var(--neon-cyan); font-weight:700; text-decoration: none;">سياسة الاستخدام</a></label>
-      </div>
-
-      <button id="signupBtn" class="btn-submit" type="submit">
-        <span class="spinner" id="btnSpinner"></span>
-        <span id="btnText">بدء التشغيل الآن 🚀</span>
-      </button>
-      <div id="status" class="status"></div>
-
-      <div class="login-link">
-        لديك حساب بالفعل؟ <a href="login.html">تسجيل الدخول</a>
-      </div>
-    </form>
-  </div>
-
-<div id="policyModal" class="modal-overlay" onclick="closePolicy()">
-  <div class="modal-card" onclick="event.stopPropagation()">
-    <h2 style="color:var(--neon-cyan); font-weight: 900; margin-bottom: 20px;">📜 سياسة وشروط الاستخدام</h2>
-    
-    <p style="font-size: 14px; color: var(--text-main); font-weight: 700; text-align: right; margin-bottom: 15px;">
-      باستخدامك Am Property، أنت توافق على الآتي:
-    </p>
-
-    <ul style="line-height: 2; font-size: 14px; color: var(--muted); padding-right: 20px; text-align: right; margin-bottom: 25px; list-style-type: none;">
-      <li style="margin-bottom: 10px;">🏠 انشر عقارات حقيقية فقط، وتأكد أن بيانات الإعلان والصور صحيحة.</li>
-      <li style="margin-bottom: 10px;">🚫 ممنوع الإعلانات الوهمية أو المضللة أو انتحال صفة المالك.</li>
-      <li style="margin-bottom: 10px;">📸 يجب أن تكون لديك صلاحية استخدام الصور والمعلومات التي تنشرها.</li>
-      <li style="margin-bottom: 10px;">🤝 احترم باقي المستخدمين، وممنوع الاحتيال أو الإساءة أو الإزعاج.</li>
-      <li style="margin-bottom: 10px;">🔎 راجع بيانات العقار والمستندات بنفسك قبل إتمام أي بيع أو إيجار.</li>
-      <li style="margin-bottom: 10px;">⚠️ Am Property ينظم الإعلانات والتواصل، لكنه لا يضمن صحة كل معلومة يقدمها المستخدم ولا يضمن إتمام الصفقة.</li>
-      <li style="margin-bottom: 10px;">💰 إذا وُجدت عمولة أو رسوم على خدمة معينة، سيتم توضيحها لك قبل استحقاقها.</li>
-      <li style="margin-bottom: 10px;">🛡️ يحق لنا حذف أي إعلان مخالف أو تعليق الحساب عند إساءة استخدام المنصة.</li>
+<div id="policyModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="pol-title" onclick="closePolicy()">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <h2 id="pol-title">سياسة وشروط الاستخدام</h2>
+    <ul>
+      <li>🏠 انشر شققاً وأراضي حقيقية فقط، وتأكد أن بيانات الإعلان والصور صحيحة.</li>
+      <li>🚫 ممنوع الإعلانات الوهمية أو المضللة أو انتحال صفة المالك.</li>
+      <li>📸 يجب أن تكون لديك صلاحية استخدام الصور والمعلومات التي تنشرها.</li>
+      <li>🤝 احترم باقي المستخدمين، وممنوع الاحتيال أو الإساءة أو الإزعاج.</li>
+      <li>🔎 راجع بيانات العقار والمستندات بنفسك قبل إتمام أي بيع أو إيجار.</li>
+      <li>⚠️ AM وسيط تعارف بين الطرفين، ولا يضمن صحة المعلومات أو الملكية أو السعر أو إتمام الصفقة.</li>
+      <li>💰 عمولة AM معلنة في الموقع، ولا تُستحق إلا بعد اتفاق الطرفين وإتمام الصفقة.</li>
+      <li>🛡️ يحق لنا حذف أي إعلان مخالف أو تعليق الحساب عند إساءة استخدام المنصة.</li>
     </ul>
-
-    <p style="font-size: 13px; color: var(--neon-cyan); text-align: right; font-weight: 600; margin-bottom: 5px;">
-      باستخدام الموقع، أنت توافق على سياسة الاستخدام.
-    </p>
-    <p style="font-size: 12px; color: var(--muted); text-align: right; font-weight: 700; margin-bottom: 25px;">
-      Am Property — عقارات بشكل أبسط وأوضح.
-    </p>
-
-    <button class="btn-submit" onclick="closePolicy()" style="margin: 0;">فهمت ذلك والمتابعة</button>
+    <button class="btn" type="button" onclick="closePolicy()">فهمت، متابعة</button>
   </div>
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-    authDomain: "am--rewards.firebaseapp.com",
-    projectId: "am--rewards",
+const app = initializeApp({
+  apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+  authDomain: "am--rewards.firebaseapp.com",
+  projectId: "am--rewards",
+});
+const auth = getAuth(app);
+const $ = (id) => document.getElementById(id);
+
+function show(text, type = "error") {
+  $("msg-text").textContent = text;
+  $("msg").className = "message " + type;
+  $("msg").style.display = text ? "block" : "none";
+}
+function setLoading(on) {
+  $("signupBtn").disabled = on;
+  if (on) $("btnText").innerHTML = '<span class="spinner"></span> جارٍ إنشاء الحساب...';
+  else $("btnText").textContent = "إنشاء الحساب";
+}
+
+const EYE = '<path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>';
+const EYE_OFF = '<path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0-4.5C6.48 2.5 2 6.98 2 12s4.48 9.5 10 9.5 10-4.48 10-9.5S17.52 2.5 12 2.5zm0 17c-4.14 0-7.5-3.36-7.5-7.5S7.86 4.5 12 4.5s7.5 3.36 7.5 7.5-3.36 7.5-7.5 7.5z"/>';
+$("eye-icon-password").innerHTML = EYE;
+$("eye-icon-confirmPassword").innerHTML = EYE;
+window.togglePass = (id) => {
+  const input = $(id), hidden = input.type === "password";
+  input.type = hidden ? "text" : "password";
+  $("eye-icon-" + id).innerHTML = hidden ? EYE_OFF : EYE;
+};
+
+window.checkPasswordStrength = () => {
+  const p = $("password").value;
+  let s = 0;
+  if (p.length >= 8) s += 25;
+  if (p.length >= 12) s += 25;
+  if (/[A-Za-z]/.test(p) && /[0-9]/.test(p)) s += 25;
+  if (/[^A-Za-z0-9]/.test(p)) s += 25;
+  const bar = $("strengthBar");
+  bar.style.width = s + "%";
+  bar.style.backgroundColor = s < 50 ? "#f87171" : s < 75 ? "#facc15" : "#22c55e";
+};
+
+window.showPolicy = () => $("policyModal").classList.add("show");
+window.closePolicy = () => $("policyModal").classList.remove("show");
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") window.closePolicy(); });
+
+$("signup-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  show("");
+  const f = {
+    name: $("name").value.trim(),
+    phone: $("phone").value.trim(),
+    email: $("email").value.trim().toLowerCase(),
+    password: $("password").value,
+    confirmPassword: $("confirmPassword").value,
   };
+  if (f.name.length < 3) return show("الاسم يجب أن يكون 3 أحرف على الأقل");
+  if (!/^01[0125]\d{8}$/.test(f.phone)) return show("رقم الهاتف غير صحيح (يبدأ بـ 01 ويتكون من 11 رقماً)");
+  if (f.password.length < 8) return show("كلمة المرور يجب ألا تقل عن 8 أحرف");
+  if (f.password !== f.confirmPassword) return show("كلمات المرور غير متطابقة");
+  if (!$("agree").checked) return show("يجب الموافقة على سياسة الاستخدام للمتابعة");
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-
-  async function getFingerprint() {
+  setLoading(true);
+  try {
+    const res = await fetch("/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(f),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setLoading(false);
+      return show(data.error || "حدث خطأ غير متوقع، حاول مرة أخرى");
+    }
+    show("✅ تم إنشاء الحساب! جارٍ تسجيل دخولك...", "success");
     try {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      ctx.textBaseline = "top";
-      ctx.font = '14px "Arial"';
-      ctx.textBaseline = "alphabetic";
-      ctx.fillStyle = "#f60";
-      ctx.fillRect(125, 1, 62, 20);
-      ctx.fillStyle = "#069";
-      ctx.fillText("Browser Fingerprint", 2, 15);
-      
-      const canvasHash = btoa(canvas.toDataURL()).substring(0, 32);
-      const screen_hash = btoa(`${screen.width}x${screen.height}x${navigator.language}x${navigator.plugins.length}`).substring(0, 32);
-      const ua_hash = btoa(navigator.userAgent).substring(0, 32);
-      
-      return btoa(canvasHash + screen_hash + ua_hash).substring(0, 32);
-    } catch(e) { 
-      return generateFallbackFingerprint();
+      await signInWithEmailAndPassword(auth, f.email, f.password);
+      setTimeout(() => (window.location.href = "dashboard.html"), 800);
+    } catch {
+      show("تم إنشاء حسابك. سجّل دخولك من الصفحة التالية.", "success");
+      setTimeout(() => (window.location.href = "login.html"), 1800);
     }
+  } catch {
+    setLoading(false);
+    show("تعذّر الاتصال بالسيرفر، تأكد من الإنترنت وحاول مرة أخرى");
   }
-
-  function generateFallbackFingerprint() {
-    return btoa(
-      `${navigator.userAgent}${new Date().getTimezoneOffset()}${Math.random()}${new Date().getTime()}`
-    ).substring(0, 32);
-  }
-
-  window.checkPasswordStrength = function() {
-    const password = document.getElementById('password').value;
-    const bar = document.getElementById('strengthBar');
-    let strength = 0;
-
-    if (password.length >= 6) strength += 25;
-    if (password.length >= 10) strength += 25;
-    if (/[A-Z]/.test(password) && /[a-z]/.test(password)) strength += 25;
-    if (/[0-9]/.test(password) && /[!@#$%^&*]/.test(password)) strength += 25;
-
-    bar.style.width = strength + '%';
-    bar.style.backgroundColor = 
-      strength < 50 ? '#f87171' : 
-      strength < 75 ? '#facc15' : '#22c55e';
-  };
-
-  window.togglePass = (id) => {
-    const input = document.getElementById(id);
-    const eyeIcon = document.getElementById(`eye-icon-${id}`);
-    
-    if (input.type === "password") {
-      input.type = "text";
-      eyeIcon.innerHTML = `<path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0-4.5C6.48 2.5 2 6.98 2 12s4.48 9.5 10 9.5 10-4.48 10-9.5S17.52 2.5 12 2.5zm0 17c-4.14 0-7.5-3.36-7.5-7.5S7.86 4.5 12 4.5s7.5 3.36 7.5 7.5-3.36 7.5-7.5 7.5z"/>`;
-    } else {
-      input.type = "password";
-      eyeIcon.innerHTML = `<path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>`;
-    }
-  };
-
-  window.showPolicy = () => {
-    const modal = document.getElementById('policyModal');
-    modal.style.display = 'flex';
-    setTimeout(() => modal.classList.add('show'), 10);
-  };
-
-  window.closePolicy = () => {
-    const modal = document.getElementById('policyModal');
-    modal.classList.remove('show');
-    setTimeout(() => modal.style.display = 'none', 300);
-  };
-
-  function getDeviceId() {
-    let id = localStorage.getItem('appDeviceId');
-    if (!id) { 
-      id = 'device_' + Math.random().toString(36).substring(2, 15);
-      localStorage.setItem('appDeviceId', id); 
-    }
-    return id;
-  }
-
-  window.signup = async function() {
-    const statusEl = document.getElementById('status');
-    const signupBtn = document.getElementById('signupBtn');
-    const btnSpinner = document.getElementById('btnSpinner');
-    const btnText = document.getElementById('btnText');
-    const errorAlert = document.getElementById('errorAlert');
-    const warningAlert = document.getElementById('warningAlert');
-    const agreeChecked = document.getElementById('agree').checked;
-    
-    errorAlert.innerHTML = '';
-    errorAlert.classList.remove('show');
-    warningAlert.innerHTML = '';
-    warningAlert.classList.remove('show');
-
-    if (!agreeChecked) {
-      errorAlert.innerHTML = '❌ يجب الموافقة على سياسة الاستخدام للمتابعة.';
-      errorAlert.classList.add('show');
-      return;
-    }
-    
-    const fields = {
-      email: document.getElementById('email').value.trim().toLowerCase(),
-      password: document.getElementById('password').value,
-      confirmPassword: document.getElementById('confirmPassword').value,
-      phone: document.getElementById('phone').value.trim(),
-      name: document.getElementById('name').value.trim(),
-      deviceId: getDeviceId(),
-      fingerprint: await getFingerprint()
-    };
-
-    if (fields.name.length < 3) {
-      errorAlert.innerHTML = '❌ الاسم يجب أن يكون 3 أحرف على الأقل';
-      errorAlert.classList.add('show');
-      return;
-    }
-
-    if (!/^01[0125]\d{8}$/.test(fields.phone)) {
-      errorAlert.innerHTML = '❌ رقم الهاتف غير صحيح (يجب أن يبدأ بـ 01 ويتكون من 11 رقماً)';
-      errorAlert.classList.add('show');
-      return;
-    }
-
-    if (fields.password.length < 6) {
-      errorAlert.innerHTML = '❌ كلمة المرور ضعيفة جداً (الحد الأدنى 6 أحرف)';
-      errorAlert.classList.add('show');
-      return;
-    }
-
-    if (fields.password !== fields.confirmPassword) {
-      errorAlert.innerHTML = '❌ كلمات المرور غير متطابقة';
-      errorAlert.classList.add('show');
-      return;
-    }
-
-    statusEl.textContent = "⏳ جاري التحقق من أمان الجهاز والتسجيل...";
-    statusEl.className = "status warning";
-    
-    signupBtn.disabled = true;
-    btnSpinner.style.display = 'block';
-    btnText.textContent = 'جاري التحقق...';
-
-    try {
-      const response = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(fields)
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        statusEl.textContent = "✅ تم التحقق! جاري إنشاء الحساب...";
-        statusEl.className = "status success";
-        
-        setTimeout(() => {
-          statusEl.textContent = "🔄 جاري تسجيل الدخول تلقائياً...";
-          signInWithEmailAndPassword(auth, fields.email, fields.password)
-            .then(() => {
-              statusEl.textContent = "✅ تم بنجاح! جاري توجيهك للوحة التحكم...";
-              setTimeout(() => window.location.href = "dashboard.html", 1000);
-            })
-            .catch(err => {
-              statusEl.textContent = "❌ خطأ في التسجيل التلقائي: " + err.message;
-              statusEl.className = "status error";
-              signupBtn.disabled = false;
-              btnSpinner.style.display = 'none';
-              btnText.textContent = 'بدء التشغيل الآن 🚀';
-            });
-        }, 800);
-      } else {
-        errorAlert.innerHTML = `❌ ${data.message || data.error || 'حدث خطأ غير متوقع'}`;
-        errorAlert.classList.add('show');
-        statusEl.textContent = "";
-        signupBtn.disabled = false;
-        btnSpinner.style.display = 'none';
-        btnText.textContent = 'بدء التشغيل الآن 🚀';
-      }
-    } catch (err) {
-      errorAlert.innerHTML = "❌ خطأ في الاتصال بالسيرفر: " + err.message;
-      errorAlert.classList.add('show');
-      statusEl.textContent = "";
-      signupBtn.disabled = false;
-      btnSpinner.style.display = 'none';
-      btnText.textContent = 'بدء التشغيل الآن 🚀';
-    }
-  };
+});
 </script>
 </body>
 </html>
