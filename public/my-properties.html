@@ -1,475 +1,202 @@
-<!-- my-properties.html - النسخة الهندسية النهائية لإدارة الملاك (خالية تماماً من الحجوزات والمعاينة) -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>إدارة عقاراتي الاستثمارية | AM</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <!-- مكتبة SweetAlert2 الفخمة للنوافذ التنبيهية التفاعلية -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-  <style>
-    :root {
-      --neon-cyan: #00f2ff; 
-      --neon-purple: #7000ff; 
-      --bg-deep: #020617;
-      --glass-bg: rgba(15, 23, 42, 0.75); 
-      --glass-border: rgba(255, 255, 255, 0.08);
-      --text-main: #f1f5f9; 
-      --muted: #94a3b8;
-      --success: #22c55e; 
-      --danger: #f87171; 
-      --warning: #facc15;
-      --radius: 24px;
-      --shadow: 0 8px 32px 0 rgba(2, 6, 23, 0.5);
-      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0; padding: 0; font-family: 'Cairo', sans-serif;
-      background: var(--bg-deep); color: var(--text-main);
-      min-height: 100vh;
-      background-image: 
-        radial-gradient(circle at 0% 0%, rgba(112, 0, 255, 0.15) 0%, transparent 35%),
-        radial-gradient(circle at 100% 100%, rgba(0, 242, 255, 0.15) 0%, transparent 35%);
-      padding: 2.5rem 1.5rem;
-    }
-
-    body::after {
-      content: ""; position: fixed; inset: 0; z-index: -1;
-      background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
-      opacity: 0.15; pointer-events: none;
-    }
-
-    .properties-container {
-      width: 100%;
-      max-width: 1000px;
-      margin: 0 auto;
-    }
-    
-    .btn-back { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--muted); text-decoration: none; font-weight: 700; margin-bottom: 1.5rem; font-size: 0.95rem; transition: var(--transition); }
-    .btn-back:hover { color: var(--neon-cyan); text-shadow: 0 0 10px rgba(0, 242, 255, 0.3); }
-
-    h1 { font-weight: 900; margin-bottom: 2.5rem; color: #fff; text-shadow: 0 0 15px rgba(0, 242, 255, 0.3); font-size: 2rem; }
-    
-    /* كارد عقاري زجاجي فسيح ومرن للغاية */
-    .prop-card { 
-      background: var(--glass-bg); 
-      border: 1px solid var(--glass-border); 
-      border-radius: var(--radius); 
-      padding: 2rem; 
-      margin-bottom: 2rem; 
-      display: flex; 
-      gap: 2rem; 
-      align-items: flex-start; 
-      position: relative;
-      backdrop-filter: blur(20px);
-      transition: var(--transition);
-    }
-    .prop-card:hover { border-color: rgba(0, 242, 255, 0.35); box-shadow: 0 15px 30px rgba(0, 242, 255, 0.08); transform: translateY(-2px); }
-    
-    /* تقليل الشفافية وتطبيق شريط مميز في حال تأجير العقار أو بيعه أو إخفائه */
-    .prop-card.inactive-asset {
-      opacity: 0.7;
-    }
-
-    .prop-img-wrapper {
-      position: relative;
-      width: 220px;
-      height: 160px;
-      border-radius: 16px;
-      overflow: hidden;
-      flex-shrink: 0;
-      border: 1px solid var(--glass-border);
-      background: rgba(0,0,0,0.3);
-    }
-    .prop-img { width: 100%; height: 100%; object-fit: cover; }
-    
-    /* شريط البادج في حال تأجير العقار أو إخفائه */
-    .asset-overlay-ribbon {
-      position: absolute;
-      inset: 0;
-      background: rgba(16, 185, 129, 0.85);
-      color: #fff;
-      font-weight: 900;
-      font-size: 1.1rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      backdrop-filter: blur(4px);
-    }
-
-    .prop-details { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; width: 100%; }
-    .prop-title { font-size: 1.4rem; font-weight: 900; color: #fff; line-height: 1.4; }
-    
-    /* بادجات تصنيف مراجعة الإدارة */
-    .status-badge { width: max-content; padding: 0.4rem 1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 900; display: inline-flex; align-items: center; gap: 0.45rem; margin-bottom: 0.25rem; }
-    .status-pending { background: rgba(245, 158, 11, 0.12); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
-    .status-approved { background: rgba(16, 185, 129, 0.12); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
-    .status-rejected { background: rgba(239, 68, 68, 0.12); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
-    
-    /* بادجات حالة العقار الشخصية للمالك */
-    .availability-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      font-size: 0.82rem;
-      font-weight: 900;
-      padding: 0.35rem 0.85rem;
-      border-radius: 6px;
-      margin-right: 8px;
-    }
-    .avail-available { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
-    .avail-reserved { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
-    .avail-rented { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
-    .avail-sold { background: rgba(112, 0, 255, 0.1); color: var(--neon-cyan); border: 1px solid rgba(112, 0, 255, 0.2); }
-    .avail-rejected { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
-
-    .reason-box {
-      background: rgba(239, 68, 68, 0.05);
-      border: 1px solid var(--danger);
-      padding: 1rem;
-      border-radius: 10px;
-      color: var(--danger);
-      font-size: 0.88rem;
-      font-weight: 600;
-      margin-top: 10px;
-      line-height: 1.6;
-    }
-
-    .seo-alert-box { background: rgba(0, 242, 255, 0.03); border: 1px solid rgba(0,242,255,0.15); padding: 0.85rem 1.1rem; border-radius: 10px; font-size: 0.85rem; margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem; color: #fff; font-weight: 600; line-height: 1.6; }
-
-    /* مظهر مخصص ومحسّن لأزرار التحكم والعمليات المزدوجة */
-    .actions-panel-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      width: 100%;
-      margin-top: 1.5rem;
-      padding-top: 1.25rem;
-      border-top: 1px solid var(--glass-border);
-    }
-
-    .btn-action-asset {
-      background: var(--bg-tertiary);
-      color: #fff;
-      padding: 0.65rem 1.25rem;
-      border: 1px solid var(--glass-border);
-      border-radius: 10px;
-      font-weight: 700;
-      font-size: 0.85rem;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-family: 'Cairo', sans-serif;
-      transition: var(--transition);
-    }
-    .btn-action-asset:hover {
-      border-color: var(--neon-cyan);
-      background: rgba(0,242,255,0.05);
-    }
-    .btn-action-edit-resubmit {
-      background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan));
-      color: #fff;
-      border: none;
-      box-shadow: 0 4px 15px rgba(112,0,255,0.2);
-    }
-    .btn-action-edit-resubmit:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(112,0,255,0.35);
-    }
-
-    /* منسدل ومظهر اختيار وتغيير الحالة الشخصية */
-    .status-select-wrapper {
-      position: relative;
-      display: inline-block;
-    }
-    .status-select-el {
-      background: var(--bg-deep);
-      border: 1px solid var(--glass-border);
-      color: #fff;
-      padding: 0.4rem 1rem;
-      border-radius: 8px;
-      font-family: 'Cairo', sans-serif;
-      font-weight: 700;
-      font-size: 0.82rem;
-      outline: none;
-      cursor: pointer;
-      transition: var(--transition);
-    }
-    .status-select-el:focus {
-      border-color: var(--neon-cyan);
-    }
-
-    /* مواءمة تصميم SweetAlert مع ثيم الموقع المظلم */
-    .swal-custom-popup {
-      background-color: var(--bg-deep) !important;
-      border: 1px solid var(--glass-border) !important;
-      border-radius: 20px !important;
-      color: #fff !important;
-      font-family: 'Cairo', sans-serif !important;
-    }
-
-    @media (max-width: 768px) {
-      .prop-card { flex-direction: column; align-items: stretch; padding: 1.5rem; }
-      .prop-img-wrapper { width: 100%; height: 200px; }
-      .actions-panel-row { justify-content: center; }
-      .btn-action-asset { width: 100%; justify-content: center; }
-      .status-select-wrapper { width: 100%; }
-      .status-select-el { width: 100%; text-align: center; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>عقاراتي | AM</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root{--bg:#f6f8fb;--card:#fff;--text:#0b1220;--muted:#566175;--line:#e2e8f0;--primary:#0284c7;--on-primary:#fff;--accent:#d97706;--ok:#16a34a;--bad:#dc2626;--warn:#b45309;--glow:rgba(2,132,199,.12);
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#060b16;--card:#0f1626;--text:#f1f5f9;--muted:#94a3b8;--line:#1e293b;--primary:#38bdf8;--on-primary:#04121f;--accent:#facc15;--ok:#4ade80;--bad:#f87171;--warn:#facc15;--glow:rgba(56,189,248,.14)}}
+:root[data-theme="dark"]{--bg:#060b16;--card:#0f1626;--text:#f1f5f9;--muted:#94a3b8;--line:#1e293b;--primary:#38bdf8;--on-primary:#04121f;--accent:#facc15;--ok:#4ade80;--bad:#f87171;--warn:#facc15;--glow:rgba(56,189,248,.14)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:'Cairo',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;padding:20px 16px 40px;background-image:radial-gradient(ellipse 70% 35% at 50% 0,var(--glow),transparent)}
+a{color:inherit;text-decoration:none}button{font:inherit;cursor:pointer;color:inherit}[hidden]{display:none!important}
+.wrap{max-width:1080px;margin:0 auto}
+.back{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-weight:700;margin-bottom:10px}.back:hover{color:var(--primary)}
+.head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+h1{margin:0;font-size:1.7rem;font-weight:900}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-weight:700;font-size:.9rem}
+.btn.p{background:var(--primary);color:var(--on-primary);border-color:transparent}.btn:hover:not(:disabled){filter:brightness(1.07)}.btn:disabled{opacity:.55;cursor:not-allowed}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:18px}
+.stats div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px}
+.stats b{display:block;font-size:1.4rem;font-weight:900;color:var(--primary)}.stats span{color:var(--muted);font-size:.85rem;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+.pc{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
+.pc.off .ph img{filter:grayscale(.7);opacity:.75}
+.ph{position:relative;aspect-ratio:16/10;background:var(--line)}.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.badge{position:absolute;top:12px;right:12px;padding:3px 14px;border-radius:99px;font-size:.8rem;font-weight:700;background:var(--card)}
+.badge.sale{color:var(--primary)}.badge.rent{color:var(--ok)}
+.rib{position:absolute;inset:auto 0 0 0;padding:6px;text-align:center;color:#fff;font-weight:900;font-size:.9rem;background:rgba(15,23,42,.78)}
+.pb{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 12px;border-radius:99px;font-size:.78rem;font-weight:700;border:1px solid var(--line)}
+.chip.pending{color:var(--warn);border-color:var(--warn)}.chip.approved{color:var(--ok);border-color:var(--ok)}.chip.rejected{color:var(--bad);border-color:var(--bad)}
+.chip.av{color:var(--primary);border-color:var(--primary)}
+.pb h3{margin:2px 0 0;font-size:1.08rem;line-height:1.5}
+.price{font-size:1.2rem;font-weight:900;color:var(--primary)}.price small{font-size:.78rem;color:var(--muted);font-weight:600}
+.geo,.dt{margin:0;color:var(--muted);font-size:.86rem}
+.why{background:rgba(220,38,38,.07);border:1px solid var(--bad);color:var(--bad);border-radius:12px;padding:9px 12px;font-size:.86rem;font-weight:600}
+.acts{margin-top:auto;padding-top:12px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap}
+.acts .btn,.acts select{flex:1 1 130px}
+select{font:inherit;font-size:.9rem;font-weight:700;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;outline:none}
+select:focus-visible,.btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.empty{grid-column:1/-1;text-align:center;padding:50px 10px;color:var(--muted);font-weight:700}
+.empty i{font-size:2.4rem;color:var(--primary);display:block;margin-bottom:10px}
+dialog{border:1px solid var(--line);border-radius:18px;background:var(--card);color:var(--text);padding:22px;max-width:380px;width:90%}
+dialog::backdrop{background:rgba(0,0,0,.4)}dialog p{margin:0 0 16px;line-height:1.8}dialog .r{display:flex;gap:8px;justify-content:flex-end}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 20px;border-radius:12px;font-weight:700;z-index:50}
+@media(max-width:600px){.grid{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-
-  <div class="properties-container">
-    <a href="dashboard.html" class="btn-back"><i class="fas fa-arrow-right"></i> العودة للوحة التحكم الإدارية</a>
-    
-    <h1>أصول عقاراتي </h1>
-    <div id="myPropertiesList">جاري تحميل وسحب قائمة الأصول العقارية الخاصة بك...</div>
+<div class="wrap">
+  <a class="back" href="dashboard.html"><i class="fas fa-arrow-right"></i> العودة للوحة التحكم</a>
+  <div class="head">
+    <h1>عقاراتي</h1>
+    <a class="btn p" href="add-property.html"><i class="fas fa-plus"></i> إضافة عقار</a>
   </div>
+  <div class="stats" id="stats" hidden></div>
+  <div class="grid" id="list"><p class="empty">جارٍ التحميل...</p></div>
+</div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, doc, updateDoc, deleteDoc, collection, query, where, getDocs, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+<dialog id="dlg"><p id="dlgText"></p><div class="r"><button class="btn" id="dlgNo" type="button">إلغاء</button><button class="btn p" id="dlgYes" type="button">تأكيد</button></div></dialog>
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-        authDomain: "am--rewards.firebaseapp.com",
-        projectId: "am--rewards",
-        storageBucket: "am--rewards.firebasestorage.app"
-    };
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, doc, updateDoc, serverTimestamp, collection, query, where, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
+const app = initializeApp({
+  apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+  authDomain: "am--rewards.firebaseapp.com",
+  projectId: "am--rewards",
+});
+const db = getFirestore(app), auth = getAuth(app);
 
-    onAuthStateChanged(auth, async (user) => {
-        if (!user) {
-            document.getElementById('myPropertiesList').innerHTML = "يرجى تسجيل الدخول لعرض عقاراتك الاستثمارية.";
-            return;
-        }
-        
-        try {
-            // مراقبة حية ومباشرة لقائمة العقارات التابعة للمالك
-            const q = query(collection(db, "properties"), where("ownerId", "==", user.uid), orderBy("createdAt", "desc"));
-            
-            onSnapshot(q, (snapshot) => {
-                const listContainer = document.getElementById('myPropertiesList');
-                listContainer.innerHTML = '';
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const PH = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250"><rect width="400" height="250" fill="#cbd5e1"/><path d="M130 190v-60l70-55 70 55v60z" fill="#94a3b8"/></svg>');
+// صور Cloudinary بحجم أصغر وصيغة أخف (WebP/AVIF) لتحميل أسرع
+const thumb = (u, w = 600) => (/^https?:\/\//i.test(u || "") ? (u.includes("/upload/") ? u.replace("/upload/", `/upload/f_auto,q_auto,w_${w}/`) : u) : PH);
+const num = (n) => Number(n || 0).toLocaleString("ar-EG");
+const FEES = { sale: 0.005, rent: 0.1 };
 
-                if (snapshot.empty) {
-                    listContainer.innerHTML = `<p style="color: var(--muted); text-align:center; padding: 3rem; font-weight:700;">لم تقم بإضافة أي أصول عقارية أو أراضي حتى الآن بملفك.</p>`;
-                    return;
-                }
+function toast(t) {
+  const el = document.createElement("div"); el.className = "toast"; el.textContent = t;
+  document.body.appendChild(el); setTimeout(() => el.remove(), 3000);
+}
+function ask(text) {
+  return new Promise((res) => {
+    const d = $("#dlg"); $("#dlgText").textContent = text;
+    const done = (v) => { d.close(); res(v); };
+    $("#dlgYes").onclick = () => done(true); $("#dlgNo").onclick = () => done(false);
+    d.oncancel = () => res(false);
+    d.showModal();
+  });
+}
 
-                snapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    const id = docSnap.id;
+const AV = {
+  available: "متاح", reserved: "محجوز مؤقتاً", rented: "تم التأجير", sold: "تم البيع", unavailable: "غير متاح حالياً",
+};
+const ST = {
+  pending: ['<i class="fas fa-hourglass-half"></i> قيد المراجعة', "pending"],
+  approved: ['<i class="fas fa-check-circle"></i> منشور', "approved"],
+  rejected: ['<i class="fas fa-times-circle"></i> مرفوض', "rejected"],
+};
+let items = [];
 
-                    const card = document.createElement('div');
-                    // تقليل الشفافية في حال كان العقار غير متاح أو مؤجر
-                    const isInactive = data.isHidden || data.availability === 'rented' || data.availability === 'sold' || data.availability === 'unavailable';
-                    card.className = `prop-card ${isInactive ? 'inactive-asset' : ''}`;
+function card(p) {
+  const sale = p.purpose !== "rent", av = p.availability || "available";
+  const closed = av === "sold" || av === "rented";
+  const off = p.isHidden === true || closed || av === "unavailable";
+  const st = ST[p.status] || ST.pending;
+  const when = p.createdAt?.toDate?.().toLocaleDateString("ar-EG", { day: "numeric", month: "long" }) || "قبل لحظات";
+  const geo = [p.governorate, p.city].filter(Boolean).join("، ");
+  const ribbon = p.isHidden ? "مخفي مؤقتاً" : closed ? AV[av] : "";
+  const opts = (sale ? ["available", "reserved", "sold", "unavailable"] : ["available", "reserved", "rented", "unavailable"])
+    .map((k) => `<option value="${k}" ${k === av ? "selected" : ""}>${AV[k]}</option>`).join("");
+  const approved = p.status === "approved";
+  const edit = p.status === "pending"
+    ? `<button class="btn" type="button" data-locked><i class="fas fa-lock"></i> قيد المراجعة</button>`
+    : `<a class="btn ${p.status === "rejected" ? "p" : ""}" href="edit-property.html?id=${encodeURIComponent(p.id)}"><i class="fas fa-edit"></i> ${p.status === "rejected" ? "تعديل وإعادة الإرسال" : "تعديل"}</a>`;
+  return `<article class="pc ${off ? "off" : ""}" data-id="${esc(p.id)}">
+    <div class="ph"><img loading="lazy" alt="" src="${esc(thumb(p.coverImage || (p.images && p.images[0])))}"><span class="badge ${sale ? "sale" : "rent"}">${sale ? "للبيع" : "للإيجار"}</span>${ribbon ? `<div class="rib">${ribbon}</div>` : ""}</div>
+    <div class="pb">
+      <div class="chips"><span class="chip ${st[1]}">${st[0]}</span>${approved ? `<span class="chip av">${AV[av] || ""}</span>` : ""}</div>
+      <h3>${esc(p.title || "عقار")}</h3>
+      <div class="price">${num(p.price)} <small>${sale ? "ج.م" : "ج.م / شهر"}</small></div>
+      <p class="geo"><i class="fas fa-map-marker-alt"></i> ${esc(geo)} • ${num(p.area)} م² • ${esc(p.propertyType || "")}</p>
+      <p class="dt">تاريخ الإضافة: ${when}</p>
+      ${p.status === "rejected" ? `<div class="why"><b>سبب الرفض:</b> ${esc(p.rejectReason || "الإعلان مخالف لسياسة المحتوى")}</div>` : ""}
+      <div class="acts">
+        ${edit}
+        ${approved ? `<select data-av aria-label="حالة العقار">${opts}</select>
+        <button class="btn" type="button" data-hide="${p.isHidden ? 1 : 0}"><i class="fas ${p.isHidden ? "fa-eye" : "fa-eye-slash"}"></i> ${p.isHidden ? "إظهار الإعلان" : "إخفاء الإعلان"}</button>` : ""}
+      </div>
+    </div></article>`;
+}
 
-                    const imgUrl = data.coverImage || (data.images && data.images[0]) || 'https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop';
-                    
-                    // 1. معالجة البادج الخاص بالإدارة
-                    let statusMarkup = '';
-                    if (data.status === 'pending') {
-                        statusMarkup = `<span class="status-badge status-pending"><i class="fas fa-hourglass-half"></i> قيد المراجعة الإدارية</span>`;
-                    } else if (data.status === 'approved') {
-                        statusMarkup = `<span class="status-badge status-approved"><i class="fas fa-check-circle"></i> معتمد ونشط</span>`;
-                    } else if (data.status === 'rejected') {
-                        statusMarkup = `
-                            <span class="status-badge status-rejected"><i class="fas fa-times-circle"></i> تم رفض الإعلان</span>
-                            <div class="reason-box"><strong>سبب الرفض:</strong> ${data.rejectReason || 'مخالف لسياسة المحتوى والوسائط'}</div>
-                        `;
-                    }
+function render() {
+  const list = $("#list");
+  if (!items.length) {
+    list.innerHTML = `<p class="empty"><i class="fas fa-building"></i>لم تضف أي عقار بعد.<br><br><a class="btn p" href="add-property.html">أضف أول عقار</a></p>`;
+    $("#stats").hidden = true; return;
+  }
+  const live = items.filter((p) => p.status === "approved" && !p.isHidden && (p.availability || "available") === "available").length;
+  $("#stats").hidden = false;
+  $("#stats").innerHTML = [[items.length, "إجمالي العقارات"], [live, "منشور ومتاح"], [items.filter((p) => p.status === "pending").length, "قيد المراجعة"], [items.filter((p) => p.status === "rejected").length, "مرفوض"]]
+    .map(([n, l]) => `<div><b>${num(n)}</b><span>${l}</span></div>`).join("");
+  list.innerHTML = items.map(card).join("");
+  list.querySelectorAll("img").forEach((i) => i.addEventListener("error", () => { i.src = PH; }, { once: true }));
+}
 
-                    // 2. معالجة حالة الوفرة الشخصية للمالك (متاح، مؤجر، تم البيع...)
-                    const avail = data.availability || 'available';
-                    let availBadge = '';
-                    if (avail === 'available') {
-                        availBadge = `<span class="availability-badge avail-available"><i class="fas fa-circle" style="font-size:0.6rem;"></i> متاح</span>`;
-                    } else if (avail === 'reserved') {
-                        availBadge = `<span class="availability-badge avail-reserved"><i class="fas fa-circle" style="font-size:0.6rem;"></i> محجوز مؤقتاً</span>`;
-                    } else if (avail === 'rented') {
-                        availBadge = `<span class="availability-badge avail-rented"><i class="fas fa-circle" style="font-size:0.6rem;"></i> مؤجر للنزلاء</span>`;
-                    } else if (avail === 'sold') {
-                        availBadge = `<span class="availability-badge avail-sold"><i class="fas fa-circle" style="font-size:0.6rem;"></i> تم البيع</span>`;
-                    } else if (avail === 'unavailable') {
-                        availBadge = `<span class="availability-badge avail-rejected"><i class="fas fa-circle" style="font-size:0.6rem;"></i> غير متاح حالياً</span>`;
-                    }
+const find = (el) => items.find((p) => p.id === el.closest(".pc")?.dataset.id);
 
-                    // 3. معالجة التنبيهات الذكية (تحسين الـ SEO للبحث المتقدم)
-                    let seoMarkup = '';
-                    const hasOptionalDetails = data.finishing || data.electricityCard || (data.features && Object.values(data.features).includes(true));
-                    if (!hasOptionalDetails && data.status === 'approved') {
-                        seoMarkup = `
-                            <div class="seo-alert-box">
-                              <i class="fas fa-lightbulb" style="color:var(--neon-cyan)"></i>
-                              <span>أضف المزيد من التفاصيل والتشطيبات والمميزات بداخل إعدادات العقار لتصدر نتائج البحث العقاري والترشيحات بالمنصة.</span>
-                            </div>
-                        `;
-                    }
+$("#list").addEventListener("click", async (e) => {
+  if (e.target.closest("[data-locked]")) return toast("لا يمكن التعديل أثناء المراجعة، سنخبرك عند الانتهاء.");
+  const b = e.target.closest("[data-hide]"); if (!b) return;
+  const p = find(b); if (!p) return;
+  b.disabled = true;
+  try {
+    await updateDoc(doc(db, "properties", p.id), { isHidden: !p.isHidden, updatedAt: serverTimestamp() });
+    toast(p.isHidden ? "تم إظهار الإعلان" : "تم إخفاء الإعلان مؤقتاً");
+  } catch (err) { console.error(err); toast("تعذّر التحديث، حاول مرة أخرى"); b.disabled = false; }
+});
 
-                    // 4. معالجة تاريخ النشر المنسق
-                    const timeText = data.createdAt ? new Date(data.createdAt.toDate()).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long' }) : "قريباً";
+$("#list").addEventListener("change", async (e) => {
+  const s = e.target.closest("[data-av]"); if (!s) return;
+  const p = find(s); if (!p) return;
+  const prev = p.availability || "available", v = s.value;
+  if (v === "sold" || v === "rented") {
+    const fee = Number(p.price) * (p.purpose === "rent" ? FEES.rent : FEES.sale);
+    const ok = await ask(`مبروك! تذكير: عمولة AM المستحقة عليك ${num(fee)} ج.م، وتُدفع عند إتمام الاتفاق. هل تم ${v === "sold" ? "البيع" : "التأجير"} فعلاً؟`);
+    if (!ok) { s.value = prev; return; }
+  }
+  s.disabled = true;
+  try {
+    await updateDoc(doc(db, "properties", p.id), { availability: v, updatedAt: serverTimestamp() });
+    toast("تم تحديث حالة العقار");
+  } catch (err) { console.error(err); toast("تعذّر التحديث، حاول مرة أخرى"); s.value = prev; s.disabled = false; }
+});
 
-                    // 5. نوع العملية والأسعار
-                    const isRent = data.purpose === 'rent';
-                    const operationTypeMarkup = isRent ? `<span style="color: var(--neon-cyan); font-weight:700; font-size:0.85rem;">للإيجار الـ${data.rentCycle || 'شهري'}</span>` : `<span style="color: var(--warning); font-weight:700; font-size:0.85rem;">للبيع والتمليك</span>`;
-                    const priceFormatted = Number(data.price || 0).toLocaleString('ar-EG');
-                    const priceText = isRent ? `${priceFormatted} ج.م / ${data.rentCycle || 'شهر'}` : `${priceFormatted} ج.م كاش`;
-
-                    // 6. شريط تغطية الكارد في حال عدم الإتاحة
-                    let ribbonMarkup = '';
-                    if (data.isHidden) {
-                        ribbonMarkup = `<div class="asset-overlay-ribbon" style="background: rgba(239, 68, 68, 0.85);"><i class="fas fa-eye-slash"></i> إعلان مخفي مؤقتاً</div>`;
-                    } else if (avail === 'rented') {
-                        ribbonMarkup = `<div class="asset-overlay-ribbon" style="background: rgba(16, 185, 129, 0.85);"><i class="fas fa-key"></i> تم تأجير العقار للنزلاء</div>`;
-                    } else if (avail === 'sold') {
-                        ribbonMarkup = `<div class="asset-overlay-ribbon" style="background: rgba(112, 0, 255, 0.85);"><i class="fas fa-handshake"></i> تم بيع الأصل بالكامل</div>`;
-                    }
-
-                    // 7. 🔒 [منع التعديل المزدوج]: قفل وتجميل أزرار التعديل في حال كان العقار تحت المراجعة الإدارية (Pending)
-                    let editButtonMarkup = '';
-                    if (data.status === 'pending') {
-                        editButtonMarkup = `
-                            <button class="btn-action-asset" style="opacity: 0.5; cursor: not-allowed; border-color: rgba(255,255,255,0.05); background: rgba(0,0,0,0.2);" onclick="window.showPendingEditWarning()">
-                              <i class="fas fa-lock"></i> قيد المراجعة (مغلق)
-                            </button>
-                        `;
-                    } else {
-                        editButtonMarkup = `
-                            <a href="edit-property.html?id=${id}" class="btn-action-asset ${data.status === 'rejected' ? 'btn-action-edit-resubmit' : ''}" style="text-decoration: none;">
-                              <i class="fas fa-edit"></i> ${data.status === 'rejected' ? 'تعديل وإعادة الإرسال' : 'تعديل البيانات'}
-                            </a>
-                        `;
-                    }
-
-                    card.innerHTML = `
-                        <div class="prop-img-wrapper">
-                          <img src="${imgUrl}" class="prop-img" alt="Property Cover" onerror="this.src='https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop'">
-                          ${ribbonMarkup}
-                        </div>
-                        <div class="prop-details">
-                            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
-                              ${statusMarkup} 
-                              ${availBadge}
-                              <span style="font-size:0.75rem; color:var(--muted); font-weight:700; margin-right:auto;">تم النشر: ${timeText}</span>
-                            </div>
-                            <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-top:5px;">
-                              <div class="prop-title">${data.title}</div>
-                              ${operationTypeMarkup}
-                            </div>
-                            <p style="color:var(--neon-cyan); font-weight:900; font-size:1.15rem; margin-top:2px;">${priceText}</p>
-                            <p style="color:var(--muted); font-size:0.85rem; font-weight:600;"><i class="fas fa-map-marker-alt"></i> ${data.governorate}، ${data.city} | ${data.area || 0} م²</p>
-
-                            ${seoMarkup}
-
-                            <!-- لوحة أزرار العمليات والتحكم المتكاملة الخالية من المعاينة والطلبات المحدثة -->
-                            <div class="actions-panel-row">
-                              
-                              <!-- زر التعديل المغلق أو التفاعلي المربوط بالمنطق الجديد -->
-                              ${editButtonMarkup}
-                              
-                              <!-- منسدل تعديل الوفرة حياً -->
-                              <div class="status-select-wrapper">
-                                <select class="status-select-el" onchange="window.updateAssetAvailability('${id}', this.value)">
-                                  <option value="available" ${avail === 'available' ? 'selected' : ''}>متاح للجميع</option>
-                                  <option value="reserved" ${avail === 'reserved' ? 'selected' : ''}>محجوز مؤقتاً</option>
-                                  <option value="rented" ${avail === 'rented' ? 'selected' : ''}>مؤجر للنزلاء</option>
-                                  <option value="sold" ${avail === 'sold' ? 'selected' : ''}>تم البيع</option>
-                                  <option value="unavailable" ${avail === 'unavailable' ? 'selected' : ''}>غير متاح مؤقتاً</option>
-                                </select>
-                              </div>
-
-                              <!-- زر إيقاف وتعطيل الإعلان المؤقت حياً بالـ Firestore -->
-                              <button class="btn-action-asset" style="${data.isHidden ? 'background: rgba(16, 185, 129, 0.1); color: var(--success); border-color: var(--success);' : 'background: rgba(239, 68, 68, 0.1); color: var(--danger); border-color: var(--danger);'}" onclick="window.toggleAssetVisibility('${id}', ${!!data.isHidden})">
-                                <i class="${data.isHidden ? 'fas fa-eye' : 'fas fa-eye-slash'}"></i> ${data.isHidden ? 'إظهار ونشر الإعلان' : 'إخفاء الإعلان'}
-                              </button>
-                            </div>
-                        </div>
-                    `;
-
-                    listContainer.appendChild(card);
-                });
-            });
-
-        } catch (err) {
-            console.error("Error loading customer properties:", err);
-            document.getElementById('myPropertiesList').innerHTML = "حدث خطأ غير متوقع أثناء استدعاء قائمة عقاراتك الاستثمارية.";
-        }
-    });
-
-    // دالة عرض التنبيه الجميل عند نقر زر التعديل المقفل
-    window.showPendingEditWarning = function() {
-      Swal.fire({
-        icon: 'warning',
-        title: 'تحت المراجعة',
-        text: 'لا يمكن تعديل العقار وهو قيد المراجعة الإدارية حالياً لحفظ خصوصية وسرية البيانات العقارية.',
-        confirmButtonColor: '#00f2ff',
-        background: '#020617',
-        color: '#fff',
-        customClass: { popup: 'swal-custom-popup' }
-      });
-    };
-
-    // دالة تغيير حالة الوفرة حياً بداخل الـ Firestore بنوافذ SweetAlert تفاعلية
-    window.updateAssetAvailability = async function(propertyId, newStatus) {
-      try {
-        await updateDoc(doc(db, "properties", propertyId), {
-          availability: newStatus,
-          updated_at: new Date().toISOString()
-        });
-        
-        Swal.fire({
-          icon: 'success',
-          title: 'تم التحديث بنجاح',
-          text: '✅ تم تحديث حالة العقار.',
-          confirmButtonColor: '#10b981',
-          background: '#020617',
-          color: '#fff',
-          customClass: { popup: 'swal-custom-popup' }
-        });
-      } catch (e) {
-        console.error("Failed to update availability status: ", e);
-      }
-    };
-
-    // دالة إيقاف ونشر الإعلان حياً بداخل الـ Firestore بنوافذ SweetAlert تفاعلية
-    window.toggleAssetVisibility = async function(propertyId, currentIsHidden) {
-      try {
-        await updateDoc(doc(db, "properties", propertyId), {
-          isHidden: !currentIsHidden,
-          updated_at: new Date().toISOString()
-        });
-        
-        Swal.fire({
-          icon: 'success',
-          title: currentIsHidden ? 'تم التفعيل والنشر' : 'تم الإخفاء المؤقت',
-          text: currentIsHidden ? '✅ تم إعادة نشر وتفعيل الإعلان بنجاح في القوائم العامة.' : '✅ تم إيقاف وإخفاء الإعلان مؤقتاً بنجاح من القوائم العامة.',
-          confirmButtonColor: '#10b981',
-          background: '#020617',
-          color: '#fff',
-          customClass: { popup: 'swal-custom-popup' }
-        });
-      } catch (e) {
-        console.error("Failed to toggle visibility: ", e);
-      }
-    };
-  </script>
+let unsub = null;
+onAuthStateChanged(auth, (user) => {
+  if (!user) { location.href = "login.html"; return; }
+  if (unsub) unsub();
+  // بدون orderBy حتى لا نحتاج فهرس مركّب في Firestore؛ الترتيب يتم هنا
+  const q = query(collection(db, "properties"), where("ownerId", "==", user.uid), limit(100));
+  unsub = onSnapshot(q, (snap) => {
+    items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    items.sort((a, b) => (b.createdAt?.seconds ?? Infinity) - (a.createdAt?.seconds ?? Infinity));
+    render();
+  }, (err) => {
+    console.error(err);
+    $("#list").innerHTML = '<p class="empty">تعذّر تحميل عقاراتك. حدّث الصفحة وحاول مرة أخرى.</p>';
+  });
+});
+</script>
 </body>
 </html>
