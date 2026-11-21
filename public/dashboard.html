@@ -220,6 +220,7 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const PH = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" fill="#cbd5e1"/><path d="M130 210v-60l70-55 70 55v60z" fill="#94a3b8"/></svg>');
 const img = (u) => (/^https?:\/\//i.test(u || "") ? u : PH);
+const thumb = (u, w = 600) => (u.includes("/upload/") ? u.replace("/upload/", `/upload/f_auto,q_auto,w_${w}/`) : u);
 const num = (n) => Number(n || 0).toLocaleString("ar-EG");
 const norm = (t) => String(t || "").trim().replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").toLowerCase();
 const FEES = { sale: 0.005, rent: 0.1 };
@@ -262,7 +263,7 @@ function card(p) {
   const sp = isLand(p)
     ? `<span><i class="fas fa-expand-arrows-alt"></i> ${num(p.area)} م²</span><span><i class="fas fa-seedling"></i> أرض</span>`
     : `<span><i class="fas fa-bed"></i> ${num(p.rooms)}</span><span><i class="fas fa-bath"></i> ${num(p.bathrooms)}</span><span><i class="fas fa-expand-arrows-alt"></i> ${num(p.area)} م²</span>`;
-  return `<article class="pc" data-id="${esc(p.id)}" tabindex="0" role="button"><div class="ph"><img loading="lazy" alt="" src="${esc(img(cover))}"><span class="badge ${sale ? "sale" : "rent"}">${sale ? "للبيع" : "للإيجار"}</span></div><div class="pb"><div class="price">${num(p.price)} <small>${sale ? "ج.م" : "ج.م / شهر"}</small></div><h3>${esc(p.title || "عقار")}</h3><p class="geo"><i class="fas fa-map-marker-alt"></i> ${esc(geo)}</p><div class="sp">${sp}</div></div></article>`;
+  return `<article class="pc" data-id="${esc(p.id)}" tabindex="0" role="button"><div class="ph"><img loading="lazy" alt="" src="${esc(thumb(img(cover)))}"><span class="badge ${sale ? "sale" : "rent"}">${sale ? "للبيع" : "للإيجار"}</span></div><div class="pb"><div class="price">${num(p.price)} <small>${sale ? "ج.م" : "ج.م / شهر"}</small></div><h3>${esc(p.title || "عقار")}</h3><p class="geo"><i class="fas fa-map-marker-alt"></i> ${esc(geo)}</p><div class="sp">${sp}</div></div></article>`;
 }
 function paint(el, list, empty) {
   el.innerHTML = list.length ? list.map(card).join("") : `<p class="empty">${empty}</p>`;
