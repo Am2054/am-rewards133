@@ -1,14 +1,12 @@
-// /api/upload-media.js
+// /api/upload-media.js — رفع صور العقارات إلى Cloudinary (للمستخدمين المسجلين فقط)
 import { v2 as cloudinary } from "cloudinary";
 import formidable from "formidable";
+import { verifyUser } from "../lib/verifyUser.js";
 
 export const config = {
-  api: {
-    bodyParser: false,
-  },
+  api: { bodyParser: false },
 };
 
-// تهيئة إعدادات كلاوديناري من متغيرات بيئة Vercel الأربعة
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -16,153 +14,81 @@ cloudinary.config({
   secure: true,
 });
 
-export default async function handler(req, res) {
+const ALLOWED = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+const MAX_IMAGE = 10 * 1024 * 1024; // 10MB لكل صورة
 
-  if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "Method Not Allowed",
-    });
-  }
-
+function parseForm(req) {
   const form = formidable({
     multiples: true,
     keepExtensions: true,
-    maxFileSize: 100 * 1024 * 1024,      // 100MB لكل ملف
-    maxTotalFileSize: 250 * 1024 * 1024, // إجمالي الملفات
+    maxFiles: 15,
+    maxFileSize: MAX_IMAGE,
+    maxTotalFileSize: 40 * 1024 * 1024,
   });
+  return new Promise((resolve, reject) => {
+    form.parse(req, (err, fields, files) => (err ? reject(err) : resolve(files)));
+  });
+}
 
-  form.parse(req, async (err, fields, files) => {
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
 
-    if (err) {
-      console.error(err);
-      return res.status(500).json({
-        error: "Failed to parse request.",
-      });
+  // 1) لازم مستخدم مسجل دخول (غير كده أي حد يقدر يرفع على حسابك)
+  const user = await verifyUser(req);
+  if (!user) {
+    return res.status(401).json({ error: "يجب تسجيل الدخول أولاً" });
+  }
+
+  // 2) قراءة الملفات
+  let files;
+  try {
+    files = await parseForm(req);
+  } catch (err) {
+    console.error("Parse error:", err.message);
+    return res.status(400).json({ error: "تعذّر قراءة الصور. تأكد أن حجم كل صورة أقل من 10MB." });
+  }
+
+  let list = files.files;
+  if (!list) return res.status(400).json({ error: "لم يتم إرسال أي صورة" });
+  if (!Array.isArray(list)) list = [list];
+
+  for (const file of list) {
+    if (!ALLOWED.includes(file.mimetype || "")) {
+      return res.status(400).json({ error: "صيغة الصورة غير مدعومة (JPG أو PNG أو WebP فقط)" });
     }
-
-    let uploadedFiles = files.files;
-
-    if (!uploadedFiles) {
-      return res.status(400).json({
-        error: "No files uploaded.",
-      });
+    if (file.size > MAX_IMAGE) {
+      return res.status(400).json({ error: "حجم الصورة أكبر من 10MB" });
     }
+  }
 
-    if (!Array.isArray(uploadedFiles)) {
-      uploadedFiles = [uploadedFiles];
-    }
-
+  // 3) الرفع إلى Cloudinary
+  try {
     const images = [];
-    let video = null;
-
-    try {
-
-      for (const file of uploadedFiles) {
-
-        const mime = file.mimetype || "";
-
-        if (
-          !mime.startsWith("image/") &&
-          !mime.startsWith("video/")
-        ) {
-          return res.status(400).json({
-            error: "Only images and one video are allowed.",
-          });
-        }
-
-        // ============================================
-        // معالجة صور العقارات
-        // ============================================
-        if (mime.startsWith("image/")) {
-
-          if (
-            ![
-              "image/jpeg",
-              "image/png",
-              "image/webp",
-              "image/jpg"
-            ].includes(mime)
-          ) {
-            return res.status(400).json({
-              error: "Unsupported image format.",
-            });
-          }
-
-          if (file.size > 10 * 1024 * 1024) {
-            return res.status(400).json({
-              error: "Each image must be less than 10MB.",
-            });
-          }
-
-          // خيارات رفع الصور السحابية ومجلد الحفظ
-          const uploadOptions = {
-            folder: "properties/images",
-            resource_type: "image"
-          };
-
-          if (process.env.CLOUDINARY_UPLOAD_PRESET) {
-            uploadOptions.upload_preset = process.env.CLOUDINARY_UPLOAD_PRESET;
-          }
-
-          const uploadResult = await cloudinary.uploader.upload(file.filepath, uploadOptions);
-          images.push(uploadResult.secure_url);
-        }
-
-        // ============================================
-        // معالجة فيديو جولة العقار التوضيحية
-        // ============================================
-        else if (mime.startsWith("video/")) {
-
-          if (video) {
-            return res.status(400).json({
-              error: "Only one video is allowed.",
-            });
-          }
-
-          if (mime !== "video/mp4") {
-            return res.status(400).json({
-              error: "Only MP4 videos are supported.",
-            });
-          }
-
-          if (file.size > 100 * 1024 * 1024) {
-            return res.status(400).json({
-              error: "Video must be less than 100MB.",
-            });
-          }
-
-          // خيارات رفع الفيديوهات السحابية ومجلد الحفظ (مهم جداً تحديد النوع كـ video)
-          const uploadOptions = {
-            folder: "properties/videos",
-            resource_type: "video"
-          };
-
-          if (process.env.CLOUDINARY_UPLOAD_PRESET) {
-            uploadOptions.upload_preset = process.env.CLOUDINARY_UPLOAD_PRESET;
-          }
-
-          const uploadResult = await cloudinary.uploader.upload(file.filepath, uploadOptions);
-          video = uploadResult.secure_url;
-        }
-
+    for (const file of list) {
+      const options = {
+        folder: "properties/images",
+        resource_type: "image",
+        tags: [user.uid], // لتتبع من رفع الصورة لو حصلت إساءة استخدام
+      };
+      if (process.env.CLOUDINARY_UPLOAD_PRESET) {
+        options.upload_preset = process.env.CLOUDINARY_UPLOAD_PRESET;
       }
-
-      // إرجاع مخرجات متطابقة كلياً مع كود الإضافة والتعديل لديك بالـ Frontend
-      return res.status(200).json({
-        success: true,
-        coverImage: images[0] || null,
-        images,
-        video,
-      });
-
-    } catch (e) {
-      console.error("UPLOAD ERROR:", e);
-      return res.status(500).json({
-        error: e.message,
-        stack: e.stack
-      });
+      const result = await cloudinary.uploader.upload(file.filepath, options);
+      images.push(result.secure_url);
     }
 
-  });
-
-    }
+    // نفس شكل الرد القديم عشان الصفحات الحالية تفضل شغالة
+    return res.status(200).json({
+      success: true,
+      coverImage: images[0] || null,
+      images,
+      video: null,
+    });
+  } catch (err) {
+    console.error("UPLOAD ERROR:", err);
+    // بدون إرسال تفاصيل الخطأ للمتصفح
+    return res.status(500).json({ error: "فشل رفع الصورة، حاول مرة أخرى" });
+  }
+}
