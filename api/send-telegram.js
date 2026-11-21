@@ -1,79 +1,76 @@
-// /api/send-telegram.js
+// /api/send-telegram.js — إشعارات تليجرام (للمستخدمين المسجلين فقط)
 import { notify } from "../lib/notifications.js";
+import { verifyUser, adminDb } from "../lib/verifyUser.js";
+
+// الأنواع المسموح للمستخدم العادي بإطلاقها من المتصفح.
+// new_user و admin_login غير موجودين هنا لأنهم يُرسلون من السيرفر فقط.
+const TYPES = {
+  new_property: "newProperty",
+  edit_property: "editProperty",
+  new_ticket: "newTicket",
+  new_message: "newMessage",
+  report: "report",
+  delete_account: "deleteAccount",
+};
+
+const clip = (v, n = 500) => String(v ?? "").slice(0, n);
 
 export default async function handler(req, res) {
-  // 1. تفعيل ترويسات CORS للسماح بالاتصال من الصفحات المحلية (Localhost) أو أي نطاق آخر
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  // 2. معالجة طلب OPTIONS (Preflight Request) الذي يرسله المتصفح تلقائياً للتأكد من الأمان
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
   if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "Method Not Allowed"
-    });
+    return res.status(405).json({ error: "Method Not Allowed" });
   }
+
+  const user = await verifyUser(req);
+  if (!user) {
+    return res.status(401).json({ error: "يجب تسجيل الدخول أولاً" });
+  }
+
+  let body = req.body;
+  if (typeof body === "string") {
+    try { body = JSON.parse(body); } catch { body = null; }
+  }
+  const { type, data } = body || {};
+
+  const fn = TYPES[type];
+  if (!fn || !notify[fn]) {
+    return res.status(400).json({ error: "نوع الإشعار غير معروف" });
+  }
+
+  const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() || req.socket?.remoteAddress || "Unknown";
 
   try {
-    // تأمين قراءة محتوى الطلب (Body) سواء كان كائناً جاهزاً أو نصاً خاماً
-    let body = req.body;
-    if (typeof body === "string") {
-      try {
-        body = JSON.parse(body);
-      } catch (e) {
-        console.warn("Failed to parse body string as JSON:", e);
+    let payload;
+
+    if (type === "new_property" || type === "edit_property") {
+      // لا نصدّق البيانات القادمة من المتصفح: نقرأ العقار من قاعدة البيانات ونتأكد أنه ملك المستخدم
+      const id = clip(data?.propertyId, 100);
+      if (!id) return res.status(400).json({ error: "propertyId مطلوب" });
+
+      const snap = await adminDb().collection("properties").doc(id).get();
+      if (!snap.exists || snap.data().ownerId !== user.uid) {
+        return res.status(403).json({ error: "غير مسموح" });
       }
+      const p = snap.data();
+      payload = {
+        title: clip(p.title, 150),
+        type: clip(p.propertyType, 30),
+        price: Number(p.price) || 0,
+        owner: clip(p.ownerName, 80),
+        propertyId: id,
+      };
+    } else {
+      // باقي الأنواع: نقص النصوص ونضيف هوية المرسل من التوكن
+      payload = {};
+      for (const [k, v] of Object.entries(data || {}).slice(0, 20)) {
+        payload[k] = typeof v === "number" ? v : clip(v);
+      }
+      payload.userId = user.uid;
     }
 
-    const { type, data } = body || {};
-
-    if (!type || !data) {
-      return res.status(400).json({
-        error: "Missing type or data parameters in request body."
-      });
-    }
-
-    // قاموس التحويل لمطابقة مسميات الواجهة الأمامية بالخلفية
-    const typeMapping = {
-      "new_user": "newUser",
-      "new_property": "newProperty",
-      "edit_property": "editProperty",
-      "new_ticket": "newTicket",
-      "new_message": "newMessage",
-      "report": "report",
-      "admin_login": "adminLogin",
-      "delete_account": "deleteAccount" // الربط لطلب تصفية الحسابات
-    };
-
-    const mappedType = typeMapping[type] || type;
-
-    // التحقق من وجود الدالة المطلوبة في مركز الإشعارات بعد التحويل
-    if (!notify[mappedType]) {
-      return res.status(400).json({
-        error: `Unknown notification type: ${type}`
-      });
-    }
-
-    // التقاط الـ IP الخاص بالزائر تلقائياً وتمريره للرسالة
-    const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress || "Unknown";
-    const enhancedData = { ...data, ip };
-
-    // تنفيذ الإشعار وإرساله إلى تليجرام باستخدام الاسم المطابق
-    await notify[mappedType](enhancedData);
-
-    return res.status(200).json({
-      success: true
-    });
-
+    await notify[fn]({ ...payload, ip });
+    return res.status(200).json({ success: true });
   } catch (err) {
     console.error("Telegram API Route Error:", err);
-    return res.status(500).json({
-      success: false,
-      error: err.message
-    });
+    return res.status(500).json({ success: false, error: "فشل إرسال الإشعار" });
   }
-      }
+}
