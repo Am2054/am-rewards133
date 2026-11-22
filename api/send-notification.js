@@ -1,95 +1,75 @@
-import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getDatabase } from "firebase-admin/database";
+// /api/send-notification.js — إشعار Push لطرف المحادثة الآخر (للمستخدمين المسجلين فقط)
 import { getMessaging } from "firebase-admin/messaging";
+import { verifyUser, adminDb, adminRtdb } from "../lib/verifyUser.js";
 
-// 1️⃣ تهيئة الـ Firebase Admin باستخدام المفتاح السري وقاعدة البيانات
-if (!getApps().length) {
-    try {
-        let rawKey = process.env.FIREBASE_ADMIN_KEY;
-        if (rawKey) {
-            const serviceAccount = JSON.parse(rawKey.trim());
-            if (serviceAccount.private_key) {
-                serviceAccount.private_key = serviceAccount.private_key.replace(/\n/g, '\n');
-            }
-            initializeApp({
-                credential: cert(serviceAccount),
-                databaseURL: "https://am--rewards-default-rtdb.firebaseio.com"
-            });
-        }
-    } catch (error) { 
-        console.error("❌ Firebase Init Error:", error.message); 
-    }
-}
-
-const db = getDatabase();
-const messaging = getMessaging();
+const SITE = process.env.SITE_URL || "https://am-property.vercel.app";
+const clip = (v, n) => String(v ?? "").slice(0, n);
 
 export default async function handler(req, res) {
-    // تفعيل الـ CORS لتتمكن من إرسال الطلب من المتصفح مباشرة
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
 
-    if (req.method === "OPTIONS") return res.status(200).end();      
-    if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });      
+  // 1) لازم مستخدم مسجل دخول
+  const user = await verifyUser(req);
+  if (!user) return res.status(401).json({ error: "يجب تسجيل الدخول أولاً" });
 
-    try {      
-        // استقبال البيانات الأساسية لإرسال الإشعار
-        const { receiverId, senderName, title, body, roomId } = req.body;   
-        
-        if (!receiverId || !body) {
-            return res.status(400).json({ error: "Missing required fields (receiverId, body)" });
-        }
+  let data = req.body;
+  if (typeof data === "string") {
+    try { data = JSON.parse(data); } catch { data = null; }
+  }
+  const { receiverId, body, roomId } = data || {};
+  if (!receiverId || !body || !roomId) {
+    return res.status(400).json({ error: "receiverId و body و roomId مطلوبين" });
+  }
 
-        // 2️⃣ جلب الـ Token الخاص بالمستلم من قاعدة البيانات (users_tokens)
-        const tokenSnap = await db.ref(`users_tokens/${receiverId}`).once('value');
-        
-        if (!tokenSnap.exists()) {
-            return res.status(404).json({ error: "No FCM token found for this receiver" });
-        }
+  try {
+    const rdb = adminRtdb();
 
-        const receiverToken = tokenSnap.val().token;
-
-        if (receiverToken && typeof receiverToken === 'string' && receiverToken.length > 10) {
-            // 3️⃣ تجهيز هيكل الإشعار (Payload) المتوافق مع الشات الجديد
-            const payload = {      
-                notification: {      
-                    title: title || `💬 رسالة جديدة من ${senderName || 'شخص ما'}`,      
-                    body: body.substring(0, 150), // قص النص إذا كان طويلاً جداً
-                },      
-                data: {   
-                    url: `https://am-rewards.vercel.app/chat.html?roomId=${roomId || ''}`,
-                    senderName: senderName || 'طرف آخر',
-                },  
-                android: {   
-                    priority: 'high',   
-                    notification: { 
-                        tag: 'am-chat-msg',
-                        priority: 'max',
-                        icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png'
-                    }   
-                },  
-                webpush: {   
-                    headers: { "Urgency": "high" },   
-                    notification: { 
-                        tag: 'am-chat-msg',
-                        icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png'
-                    }   
-                },
-                token: receiverToken
-            };      
-            
-            // 4️⃣ إرسال الإشعار للمستلم المحدد
-            console.log(`📢 Sending notification to: ${receiverId}`);
-            const response = await messaging.send(payload);
-            console.log('✅ Notification sent successfully:', response);
-            
-            return res.status(200).json({ success: true, messageId: response });
-        } else {
-            return res.status(400).json({ error: "Invalid FCM Token" });
-        }
-    } catch (error) { 
-        console.error('❌ Notification Sender Error:', error);
-        return res.status(500).json({ error: error.message }); 
+    // 2) المرسل والمستلم لازم يكونوا الطرفين في نفس غرفة المحادثة
+    const room = (await rdb.ref(`chatRooms/${clip(roomId, 200)}`).once("value")).val();
+    const p = room?.participants || {};
+    if (!room || p[user.uid] !== true || p[receiverId] !== true || receiverId === user.uid) {
+      return res.status(403).json({ error: "غير مسموح" });
     }
+
+    // 3) توكن المستلم
+    const token = (await rdb.ref(`users_tokens/${receiverId}`).once("value")).val()?.token;
+    if (typeof token !== "string" || token.length < 10) {
+      return res.status(200).json({ success: false, reason: "no_token" });
+    }
+
+    // 4) اسم المرسل من قاعدة البيانات (لا نصدق الاسم القادم من المتصفح)
+    const snap = await adminDb().collection("users").doc(user.uid).get();
+    const name = clip(snap.exists ? snap.data().name : "", 40) || "طرف آخر";
+
+    const payload = {
+      notification: {
+        title: `💬 رسالة جديدة من ${name}`,
+        body: clip(body, 150),
+      },
+      data: {
+        url: `${SITE}/chat.html?roomId=${encodeURIComponent(clip(roomId, 200))}`,
+        senderName: name,
+      },
+      android: { priority: "high", notification: { tag: "am-chat-msg" } },
+      webpush: { headers: { Urgency: "high" }, notification: { tag: "am-chat-msg" } },
+      token,
+    };
+
+    try {
+      const id = await getMessaging().send(payload);
+      return res.status(200).json({ success: true, messageId: id });
+    } catch (err) {
+      // التوكن قديم أو ملغي: نحذفه حتى لا نحاول عليه مرة أخرى
+      if (err.code === "messaging/registration-token-not-registered" || err.code === "messaging/invalid-registration-token") {
+        await rdb.ref(`users_tokens/${receiverId}`).remove();
+        return res.status(200).json({ success: false, reason: "stale_token" });
+      }
+      throw err;
+    }
+  } catch (err) {
+    console.error("Notification Sender Error:", err);
+    return res.status(500).json({ error: "فشل إرسال الإشعار" });
+  }
 }
