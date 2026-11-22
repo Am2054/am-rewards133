@@ -289,6 +289,7 @@ async function openChat(id) {
   let room = S.rooms.get(id);
   if (!room) { try { room = (await get(ref(rtdb, `chatRooms/${id}`))).val(); } catch (e) { console.error(e); } }
   if (!room) return toast("تعذّر فتح المحادثة");
+  if (room.buyerId !== S.uid && room.ownerId !== S.uid) return toast("لا تملك صلاحية فتح هذه المحادثة");
   S.active = id; S.room = room; S.lastKey = null; S.typingNow = false; S.presence = "";
   S.target = room.buyerId === S.uid ? room.ownerId : room.buyerId; S.targetName = "الطرف الآخر";
   sessionStorage.setItem("activeRoomId", id);
@@ -525,8 +526,10 @@ onAuthStateChanged(auth, async (u) => {
   } catch (e) { console.warn(e); }
   initPresence(); watchRooms();
   if ("Notification" in window && messaging) { if (Notification.permission === "granted") registerPush(); else if (Notification.permission === "default") $("#bell").hidden = false; }
-  const pid = new URLSearchParams(location.search).get("propertyId"), saved = sessionStorage.getItem("activeRoomId");
-  if (pid) openFromProperty(pid); else if (saved) openChat(saved);
+  const qs = new URLSearchParams(location.search), pid = qs.get("propertyId"), rid = qs.get("roomId"), saved = sessionStorage.getItem("activeRoomId");
+  if (pid) openFromProperty(pid);
+  else if (rid) { history.replaceState({}, "", location.pathname); openChat(rid); }
+  else if (saved) openChat(saved);
 });
 </script>
 </body>
