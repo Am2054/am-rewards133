@@ -1,66 +1,66 @@
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+// /firebase-messaging-sw.js — إشعارات الرسائل في الخلفية (يوضع في جذر الموقع)
+importScripts("https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js");
 
-console.log('🔧 Service Worker loaded');
+// تحديث فوري للـ Service Worker عند نشر نسخة جديدة
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+
+const ICON = "/icon-192.png"; // ضع أيقونة الموقع (192×192) في هذا المسار، وإن لم تكن موجودة يظهر الإشعار بدونها
+const CHAT_PATH = "/chat.html";
+
+// مهم: معالج النقر يُسجَّل قبل firebase.messaging()، وإلا يستولي معالج Firebase الافتراضي
+// على الحدث ولا يفتح شيئاً (لأن الرسالة بدون fcmOptions.link).
+self.addEventListener("notificationclick", (event) => {
+  event.stopImmediatePropagation();
+  event.notification.close();
+
+  // نأخذ roomId فقط من الرابط ونبني الرابط على نفس نطاق الموقع (لا نفتح أي نطاق آخر)
+  const data = event.notification.data || {};
+  const raw = data.url || (data.FCM_MSG && data.FCM_MSG.data && data.FCM_MSG.data.url) || "";
+  let roomId = "";
+  try { roomId = new URL(raw, self.location.origin).searchParams.get("roomId") || ""; } catch (e) { /* تجاهل */ }
+  const target = new URL(CHAT_PATH + (roomId ? "?roomId=" + encodeURIComponent(roomId) : ""), self.location.origin).href;
+
+  event.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const c of wins) {
+      if (new URL(c.url).pathname.endsWith(CHAT_PATH)) {
+        // صفحة الشات مفتوحة: نفتح الغرفة المطلوبة بداخلها بدون إعادة تحميل
+        if (roomId) c.postMessage({ type: "open-room", roomId });
+        return c.focus();
+      }
+    }
+    return self.clients.openWindow(target);
+  })());
+});
 
 firebase.initializeApp({
-    apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-    authDomain: "am--rewards.firebaseapp.com",
-    databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
-    projectId: "am--rewards",
-    storageBucket: "am--rewards.firebasestorage.app",
-    messagingSenderId: "744783579735",
-    appId: "1:744783579735:web:45e00de9998893bbc9b112"
+  apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+  authDomain: "am--rewards.firebaseapp.com",
+  databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
+  projectId: "am--rewards",
+  storageBucket: "am--rewards.firebasestorage.app",
+  messagingSenderId: "744783579735",
+  appId: "1:744783579735:web:45e00de9998893bbc9b112",
 });
 
 const messaging = firebase.messaging();
 
-console.log('✅ Firebase initialized in Service Worker');
-
-// استقبال ومعالجة إشعارات المحادثة العقارية في الخلفية (Background Messaging)
 messaging.onBackgroundMessage((payload) => {
-    console.log('📬 Background message received:', payload);
-    
-    const notificationTitle = payload.notification?.title || payload.data?.title || 'رسالة عقارية جديدة';
-    const notificationOptions = {
-        body: payload.notification?.body || payload.data?.body || 'لديك رسالة غير مقروءة بخصوص العقار',
-        icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
-        badge: 'https://cdn-icons-png.flaticon.com/512/633/633600.png',
-        tag: 'am-chat-msg',
-        renotify: true,
-        requireInteraction: true,
-        silent: false,
-        vibrate: [200, 100, 200],
-        data: payload.data || {}
-    };
+  // لو الرسالة فيها notification فـ Firebase يعرضها تلقائياً، وعرضها هنا مرة ثانية يكرر الإشعار
+  if (payload.notification) return;
 
-    console.log('📢 Showing background notification:', notificationTitle);
-    return self.registration.showNotification(notificationTitle, notificationOptions);
+  const d = payload.data || {};
+  return self.registration.showNotification(d.title || "رسالة جديدة", {
+    body: d.body || "لديك رسالة غير مقروءة",
+    icon: ICON,
+    badge: ICON,
+    tag: "am-chat-msg",
+    renotify: true,
+    vibrate: [200, 100, 200],
+    dir: "rtl",
+    lang: "ar",
+    data: d,
+  });
 });
-
-// معالجة توجيه المستخدم بدقة لصفحة chat.html عند النقر على الإشعار الوارد
-self.addEventListener('notificationclick', function(event) {
-    console.log('Notification clicked');
-    event.notification.close();
-    
-    // تأمين الحصول على الرابط الديناميكي أو العودة للشات الافتراضي
-    const urlToOpen = event.notification.data?.url || '/chat.html';
-    
-    event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(windowClients) {
-            for (let i = 0; i < windowClients.length; i++) {
-                const client = windowClients[i];
-                if (client.url.includes('chat.html') && 'focus' in client) {
-                    console.log('🔍 Found existing chat window, focusing');
-                    return client.focus();
-                }
-            }
-            if (clients.openWindow) {
-                console.log('📂 Opening new chat window');
-                return clients.openWindow(urlToOpen);
-            }
-        })
-    );
-});
-
-console.log('✅ Service Worker ready for AM Chat');
