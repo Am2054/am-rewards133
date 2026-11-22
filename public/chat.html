@@ -498,6 +498,13 @@ $("#lbx").addEventListener("click", () => { $("#lb").hidden = true; });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("#lb").hidden = true; });
 window.addEventListener("pagehide", () => { if (S.typingOn && S.active) set(ref(rtdb, `typing/${S.active}/${S.uid}`), null); });
 
+/* ---------- فتح غرفة من إشعار (الـ Service Worker يرسل رسالة للصفحة المفتوحة) ---------- */
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("message", (e) => {
+    if (S.uid && e.data && e.data.type === "open-room" && e.data.roomId) openChat(e.data.roomId);
+  });
+}
+
 /* ---------- start from a property page ---------- */
 async function openFromProperty(propertyId) {
   try {
