@@ -1,1842 +1,533 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>المحادثات الفورية - AM. Chat</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-  <!-- مكتبة SweetAlert2 الفخمة للنوافذ التنبيهية التفاعلية -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-  <style>
-    /* ============================================
-       THEME VARIABLES & BASE STYLES
-       ============================================ */
-    :root {
-      --neon-cyan: #00f2ff; 
-      --neon-purple: #7000ff; 
-      --bg-deep: #020617;
-      --bg-tertiary: rgba(30, 41, 59, 0.7);
-      --glass-bg: rgba(15, 23, 42, 0.75); 
-      --glass-border: rgba(255, 255, 255, 0.08);
-      --text-main: #f1f5f9; 
-      --muted: #94a3b8;
-      --success: #22c55e; 
-      --danger: #f87171; 
-      --radius: 20px;
-      --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Cairo', sans-serif;
-      background-color: var(--bg-deep);
-      color: var(--text-main);
-      overflow: hidden;
-      height: 100vh;
-      background-image: 
-        radial-gradient(circle at 0% 0%, rgba(112, 0, 255, 0.12) 0%, transparent 35%),
-        radial-gradient(circle at 100% 100%, rgba(0, 242, 255, 0.12) 0%, transparent 35%);
-    }
-
-    body::after {
-      content: ""; position: fixed; inset: 0; z-index: -1;
-      background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
-      opacity: 0.15; pointer-events: none;
-    }
-
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--neon-cyan); }
-
-    /* ============================================
-       LAYOUT STRUCTURE
-       ============================================ */
-    .app-layout {
-      display: grid;
-      grid-template-columns: 360px 1fr;
-      height: 100vh;
-      width: 100%;
-      overflow: hidden;
-    }
-
-    /* ============================================
-       SIDEBAR & THREADS LIST
-       ============================================ */
-    .sidebar {
-      background: rgba(15, 23, 42, 0.85);
-      border-left: 1px solid var(--glass-border);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .sidebar-header {
-      padding: 20px;
-      border-bottom: 1px solid var(--glass-border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .back-dashboard-btn {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid var(--glass-border);
-      color: var(--text-main);
-      padding: 8px 14px;
-      border-radius: 10px;
-      text-decoration: none;
-      font-size: 0.85rem;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: var(--transition);
-    }
-
-    .back-dashboard-btn:hover {
-      border-color: var(--neon-cyan);
-      box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
-      color: var(--neon-cyan);
-    }
-
-    .threads-container {
-      flex: 1;
-      overflow-y: auto;
-    }
-
-    .thread-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 18px;
-      border-bottom: 1px solid var(--glass-border);
-      cursor: pointer;
-      user-select: none; /* لمنع تحديد النصوص أثناء الضغط المطول */
-      -webkit-user-select: none;
-      transition: var(--transition);
-    }
-
-    .thread-item:hover, .thread-item.active {
-      background: rgba(0, 242, 255, 0.04);
-      border-left: 3px solid var(--neon-cyan);
-    }
-
-    .thread-avatar {
-      width: 50px;
-      height: 50px;
-      border-radius: 12px;
-      object-fit: cover;
-      border: 1px solid var(--glass-border);
-    }
-
-    .thread-info {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .thread-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .thread-title {
-      font-weight: 900;
-      color: #fff;
-      font-size: 0.9rem;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .thread-time {
-      font-size: 0.7rem;
-      color: var(--muted);
-    }
-
-    .thread-preview {
-      font-size: 0.8rem;
-      color: var(--muted);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .unread-badge {
-      background: var(--neon-cyan);
-      color: #020617;
-      font-size: 0.7rem;
-      font-weight: 900;
-      padding: 2px 7px;
-      border-radius: 10px;
-      min-width: 18px;
-      text-align: center;
-    }
-
-    /* ============================================
-       CHAT VIEWPORT & PREMIUM BACKGROUND
-       ============================================ */
-    .chat-viewport {
-      display: flex;
-      flex-direction: column;
-      background: rgba(2, 6, 23, 0.4);
-      height: 100%;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .chat-header {
-      padding: 15px 25px;
-      background: rgba(15, 23, 42, 0.8);
-      border-bottom: 1px solid var(--glass-border);
-      backdrop-filter: blur(20px);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .header-info {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      min-width: 0;
-    }
-
-    .header-avatar {
-      width: 45px;
-      height: 45px;
-      border-radius: 10px;
-      object-fit: cover;
-      border: 1px solid var(--glass-border);
-    }
-
-    .header-details {
-      min-width: 0;
-    }
-
-    .header-title {
-      font-weight: 900;
-      color: #fff;
-      font-size: 1rem;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .header-presence {
-      font-size: 0.75rem;
-      color: var(--muted);
-    }
-
-    .chat-messages-container {
-      flex: 1;
-      padding: 25px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      background: linear-gradient(rgba(2, 6, 23, 0.83), rgba(2, 6, 23, 0.88)), url('https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=1200&auto=format&fit=crop') no-repeat center center;
-      background-size: cover;
-      background-attachment: local;
-    }
-
-    /* ============================================
-       BUBBLES DESIGN
-       ============================================ */
-    .msg-bubble {
-      max-width: 65%;
-      padding: 12px 18px;
-      border-radius: 16px;
-      font-size: 0.95rem;
-      line-height: 1.6;
-      font-weight: 600;
-      margin-bottom: 15px;
-      position: relative;
-      cursor: pointer;
-      animation: bubbleIn 0.3s ease;
-    }
-
-    @keyframes bubbleIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .msg-bubble.sent {
-      background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan));
-      color: #fff;
-      align-self: flex-start;
-      border-top-right-radius: 2px;
-      margin-right: auto;
-    }
-
-    .msg-bubble.received {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      color: var(--text-main);
-      align-self: flex-end;
-      border-top-left-radius: 2px;
-      margin-left: auto;
-    }
-
-    .msg-meta-row {
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.65rem;
-      color: var(--muted);
-      margin-top: 4px;
-    }
-
-    .quoted-msg-box {
-      background: rgba(0, 0, 0, 0.25);
-      border-right: 3px solid var(--neon-cyan);
-      padding: 8px 12px;
-      border-radius: 6px;
-      margin-bottom: 8px;
-      direction: rtl;
-      text-align: right;
-    }
-    .quoted-sender {
-      font-weight: 900;
-      color: var(--neon-cyan);
-      font-size: 0.72rem;
-      margin-bottom: 2px;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    /* ============================================
-       CHAT FOOTER & INPUTS
-       ============================================ */
-    .chat-footer {
-      padding: 18px 25px;
-      background: rgba(15, 23, 42, 0.9);
-      border-top: 1px solid var(--glass-border);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .chat-input-wrapper {
-      flex: 1;
-      position: relative;
-    }
-
-    .chat-text-input {
-      width: 100%;
-      background: rgba(0, 0, 0, 0.35);
-      border: 1px solid var(--glass-border);
-      color: #fff;
-      padding: 14px 20px;
-      border-radius: 12px;
-      font-family: 'Cairo', sans-serif;
-      font-size: 0.9rem;
-      outline: none;
-      transition: var(--transition);
-    }
-
-    .chat-text-input:focus {
-      border-color: var(--neon-cyan);
-      box-shadow: 0 0 15px rgba(0, 242, 255, 0.15);
-    }
-
-    .action-btn {
-      background: none;
-      border: none;
-      color: var(--neon-cyan);
-      font-size: 1.25rem;
-      cursor: pointer;
-      padding: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: var(--transition);
-    }
-
-    .action-btn:hover {
-      transform: scale(1.1);
-      text-shadow: 0 0 10px rgba(0, 242, 255, 0.4);
-    }
-
-    .send-btn {
-      background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan));
-      border: none;
-      color: #fff;
-      padding: 12px 22px;
-      border-radius: 12px;
-      font-family: 'Cairo', sans-serif;
-      font-weight: 700;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: var(--transition);
-    }
-
-    .send-btn:hover {
-      box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
-    }
-
-    /* ============================================
-       UTILITIES & DELETED BANNER
-       ============================================ */
-    .deleted-banner {
-      background: rgba(248, 113, 113, 0.1);
-      border: 1px solid var(--danger);
-      border-radius: 14px;
-      padding: 22px;
-      margin-bottom: 22px;
-      text-align: center;
-      font-size: 0.85rem;
-      font-weight: 700;
-      border-radius: 8px;
-      margin: 15px 25px 0 25px;
-    }
-
-    .empty-state {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 15px;
-      color: var(--muted);
-      text-align: center;
-    }
-
-    .empty-state i {
-      font-size: 4rem;
-      color: var(--glass-border);
-      text-shadow: 0 0 30px rgba(0, 242, 255, 0.05);
-    }
-
-    .overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.75);
-      backdrop-filter: blur(8px);
-      z-index: 9000;
-      display: none;
-      opacity: 0;
-      transition: var(--transition);
-    }
-    .overlay.active { display: block; opacity: 1; }
-
-    /* خيارات مخصصة للمودال */
-    .custom-modal {
-      position: fixed;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%) scale(0.9);
-      background: var(--bg-deep);
-      border: 1px solid var(--glass-border);
-      border-radius: 20px;
-      padding: 2.2rem;
-      width: 90%;
-      max-width: 420px;
-      z-index: 10000;
-      display: none;
-      opacity: 0;
-      transition: var(--transition);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-    }
-    .custom-modal.active {
-      display: block;
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-    }
-    .modal-title { font-size: 1.4rem; font-weight: 900; margin-bottom: 1rem; text-align: center; color: #fff; }
-    .modal-options-list { display: flex; flex-direction: column; gap: 1.25rem; margin-top: 1.5rem; }
-    .modal-opt-btn {
-      display: flex; align-items: center; gap: 1rem;
-      width: 100%; padding: 1.1rem; background: rgba(255, 255, 255, 0.02);
-      border: 1px solid var(--glass-border); border-radius: 12px;
-      color: #fff; font-family: 'Cairo', sans-serif;
-      font-weight: 700; cursor: pointer; text-align: right;
-    }
-    .modal-opt-btn:hover { border-color: var(--neon-cyan); background: rgba(0,242,255,0.05); }
-    .modal-opt-btn i { font-size: 1.35rem; }
-    .modal-close-btn {
-      margin-top: 1.75rem; width: 100%; background: transparent;
-      border: none; color: var(--muted); cursor: pointer;
-      font-family: 'Cairo', sans-serif; font-size: 0.95rem; text-align: center;
-      font-weight: 700;
-    }
-    .modal-close-btn:hover { color: var(--danger); }
-
-    /* ============================================
-       RESPONSIVE MOBILE LOGIC
-       ============================================ */
-    .mobile-back-btn {
-      display: none;
-    }
-
-    @media (max-width: 768px) {
-      .app-layout {
-        grid-template-columns: 1fr;
-      }
-      .sidebar {
-        display: flex;
-      }
-      .chat-viewport {
-        display: none;
-        position: fixed;
-        inset: 0;
-        z-index: 100;
-      }
-      .app-layout.show-active-chat .sidebar {
-        display: none;
-      }
-      .app-layout.show-active-chat .chat-viewport {
-        display: flex;
-      }
-      .mobile-back-btn {
-        display: block;
-      }
-    }
-
-    /* مواءمة تصميم SweetAlert مع ثيم الموقع المظلم */
-    .swal-custom-popup {
-      background-color: var(--bg-deep) !important;
-      border: 1px solid var(--glass-border) !important;
-      border-radius: 20px !important;
-      color: #fff !important;
-      font-family: 'Cairo', sans-serif !important;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>الرسائل | AM</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root{--bg:#f6f8fb;--card:#fff;--text:#0b1220;--muted:#566175;--line:#e2e8f0;--primary:#0284c7;--on-primary:#fff;--accent:#d97706;--ok:#16a34a;--bad:#dc2626;--glow:rgba(2,132,199,.12);
+box-sizing:border-box}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#060b16;--card:#0f1626;--text:#f1f5f9;--muted:#94a3b8;--line:#1e293b;--primary:#38bdf8;--on-primary:#04121f;--accent:#facc15;--ok:#4ade80;--bad:#f87171;--glow:rgba(56,189,248,.14)}}
+:root[data-theme="dark"]{--bg:#060b16;--card:#0f1626;--text:#f1f5f9;--muted:#94a3b8;--line:#1e293b;--primary:#38bdf8;--on-primary:#04121f;--accent:#facc15;--ok:#4ade80;--bad:#f87171;--glow:rgba(56,189,248,.14)}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:'Cairo',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow:hidden}
+button{font:inherit;cursor:pointer;color:inherit}[hidden]{display:none!important}
+.layout{display:grid;grid-template-columns:340px minmax(0,1fr);height:100vh;height:100dvh}
+.side{background:var(--card);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.sh{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line);padding-top:calc(14px + env(safe-area-inset-top,0px))}
+.sh h1{margin:0;font-size:1.2rem;font-weight:900;flex:1}
+.ib{width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:var(--bg);display:grid;place-items:center;color:var(--muted)}
+.ib:hover{color:var(--primary);border-color:var(--primary)}
+.threads{flex:1;overflow-y:auto}
+.th{display:flex;gap:12px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);cursor:pointer}
+.th:hover,.th.on{background:var(--glow)}
+.th img{width:50px;height:50px;border-radius:12px;object-fit:cover;background:var(--line);flex-shrink:0}
+.ti{flex:1;min-width:0}.tr{display:flex;justify-content:space-between;gap:8px}
+.tt{font-weight:900;font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tm{font-size:.72rem;color:var(--muted);flex-shrink:0}
+.tp{display:flex;justify-content:space-between;gap:8px;font-size:.82rem;color:var(--muted)}
+.tp span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ub{background:var(--primary);color:var(--on-primary);border-radius:99px;min-width:20px;padding:0 6px;text-align:center;font-size:.72rem;font-weight:900;flex-shrink:0}
+.none{padding:40px 20px;text-align:center;color:var(--muted);font-weight:600}
+.main{display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--bg)}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted);text-align:center;padding:20px}
+.empty i{font-size:3.2rem;color:var(--primary);opacity:.6}.empty h2{margin:0;color:var(--text)}
+.chat{flex:1;display:flex;flex-direction:column;min-height:0}
+.ch{display:flex;align-items:center;gap:12px;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top,0px));background:var(--card);border-bottom:1px solid var(--line)}
+.back{display:none}
+.hi{display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer}
+.hi img{width:44px;height:44px;border-radius:12px;object-fit:cover;background:var(--line)}
+.ht{font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hs{font-size:.78rem;color:var(--muted)}.hs.typing{color:var(--primary);font-weight:700}
+.banner{background:rgba(220,38,38,.08);border-bottom:1px solid var(--bad);color:var(--bad);text-align:center;padding:8px;font-weight:700;font-size:.88rem}
+.msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px}
+.tip{align-self:center;background:var(--glow);border-radius:12px;padding:8px 14px;font-size:.8rem;color:var(--muted);text-align:center;max-width:560px}
+.day{align-self:center;font-size:.75rem;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:99px;padding:1px 12px;margin:6px 0}
+.b{max-width:min(70%,520px);padding:9px 14px;border-radius:16px;font-size:.95rem;cursor:pointer;overflow-wrap:anywhere}
+.b.me{align-self:flex-start;background:var(--primary);color:var(--on-primary);border-top-right-radius:4px}
+.b.other{align-self:flex-end;background:var(--card);border:1px solid var(--line);border-top-left-radius:4px}
+.b.del{opacity:.6;font-style:italic;cursor:default}
+.who{font-size:.7rem;font-weight:900;opacity:.8;margin-bottom:2px}
+.quote{border-right:3px solid currentColor;background:rgba(0,0,0,.12);border-radius:6px;padding:3px 10px;margin-bottom:6px;font-size:.78rem;font-weight:700;opacity:.9}
+.txt{white-space:pre-wrap}.pic{display:block;max-width:100%;max-height:240px;border-radius:10px;object-fit:cover;margin-bottom:4px;cursor:zoom-in}
+.mt{display:flex;justify-content:flex-end;gap:6px;font-size:.68rem;opacity:.75;margin-top:2px}
+.sys{align-self:center;background:rgba(220,38,38,.1);border:1px solid var(--bad);border-right:4px solid var(--bad);color:var(--bad);border-radius:12px;padding:8px 16px;font-size:.85rem;font-weight:700;text-align:center;max-width:90%}
+.bar{display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--card);border-top:1px solid var(--line);border-right:4px solid var(--primary)}
+.bar b{display:block;color:var(--primary);font-size:.75rem}.bar span{display:block;color:var(--muted);font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar img{width:42px;height:42px;border-radius:8px;object-fit:cover}.bar .g{flex:1;min-width:0}
+.ft{display:flex;align-items:center;gap:10px;padding:10px 16px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));background:var(--card);border-top:1px solid var(--line)}
+.ft input[type=text]{flex:1;min-width:0;font:inherit;font-size:16px;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:11px 14px;outline:none}
+.ft input:focus-visible{border-color:var(--primary);box-shadow:0 0 0 3px var(--glow)}
+.send{width:44px;height:44px;border-radius:12px;border:0;background:var(--primary);color:var(--on-primary);display:grid;place-items:center}.send:disabled{opacity:.5}
+button:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+dialog{border:1px solid var(--line);border-radius:18px;background:var(--card);color:var(--text);padding:20px;width:90%;max-width:400px}
+dialog::backdrop{background:rgba(0,0,0,.45)}dialog h3{margin:0 0 12px;text-align:center}
+.dbtn{display:block;width:100%;padding:11px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-weight:700;margin-top:8px}
+.dbtn.p{background:var(--primary);color:var(--on-primary);border-color:transparent}.dbtn.bad{color:var(--bad);border-color:var(--bad)}
+.pi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.pi div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:.85rem}.pi span{display:block;color:var(--muted);font-size:.72rem}
+.pimg{width:100%;height:170px;object-fit:cover;border-radius:12px;background:var(--line)}
+.lb{position:fixed;inset:0;background:rgba(2,6,23,.95);z-index:100;display:flex;flex-direction:column}
+.lbt{display:flex;gap:10px;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top,0px))}.lbt button{width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff}
+.lbb{flex:1;overflow:auto;display:flex}.lbb img{margin:auto;width:100%;max-width:none;object-fit:contain;display:block}
+.lbc{color:#fff;text-align:center;padding:8px 16px 16px}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 20px;border-radius:12px;font-weight:700;z-index:120;max-width:90%;text-align:center}
+@media(max-width:768px){
+ .layout{grid-template-columns:1fr}
+ .main{display:none;position:fixed;inset:0;z-index:50}
+ .layout.open .side{display:none}.layout.open .main{display:flex}
+ .back{display:grid}.b{max-width:85%}
+}
+</style>
 </head>
 <body>
-
-  <div class="overlay" id="overlay"></div>
-
-  <!-- مودال لتأكيد حذف المحادثة بالضغط المطول -->
-  <div id="deleteThreadModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:15000; align-items:center; justify-content:center;">
-    <div class="modal-content" onclick="event.stopPropagation()" style="background:var(--bg-deep); border:1px solid var(--danger); padding:20px; border-radius:20px; width:80%; max-width:320px; display:flex; flex-direction:column; gap:8px;">
-        <h3 style="font-family:'Cairo'; text-align:center; color:#fff; font-size:1.05rem; margin-bottom:10px; line-height:1.6;">🗑️ هل تريد حذف هذه المحادثة ومسحها نهائياً؟</h3>
-        <button class="modal-btn" style="background:var(--danger); color:#fff; font-family:'Cairo'; font-weight:bold; width:100%; padding:12px; border:none; border-radius:10px; cursor:pointer;" id="confirmDeleteThreadBtn">حذف المحادثة</button>
-        <button class="modal-btn" style="background:transparent; border:none; color:var(--muted); font-family:'Cairo'; font-weight:bold; width:100%; padding:8px; cursor:pointer;" onclick="document.getElementById('deleteThreadModal').style.display='none'">إلغاء</button>
+<div class="layout" id="layout">
+  <aside class="side">
+    <div class="sh">
+      <h1>الرسائل</h1>
+      <button class="ib" id="bell" type="button" hidden aria-label="تفعيل الإشعارات" title="تفعيل الإشعارات"><i class="fas fa-bell"></i></button>
+      <a class="ib" href="dashboard.html" aria-label="لوحة التحكم" title="لوحة التحكم"><i class="fas fa-home"></i></a>
     </div>
-  </div>
+    <div class="threads" id="threads"><p class="none">جارٍ تحميل المحادثات...</p></div>
+  </aside>
 
-  <div id="image-viewer-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); backdrop-filter:blur(15px); z-index:20000; align-items:center; justify-content:center; flex-direction:column; direction:rtl; select-none;">
-    <div style="position:absolute; top:20px; left:20px; right:20px; display:flex; justify-content:space-between; align-items:center; z-index:20001; direction:rtl;">
-      <div style="display:flex; gap:10px;">
-        <button id="viewer-zoom-in" style="background:rgba(255,255,255,0.08); border:1px solid var(--glass-border); color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:1.1rem; display:flex; align-items:center; justify-content:center; transition:0.2s;"><i class="fas fa-search-plus"></i></button>
-        <button id="viewer-zoom-out" style="background:rgba(255,255,255,0.08); border:1px solid var(--glass-border); color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:1.1rem; display:flex; align-items:center; justify-content:center; transition:0.2s;"><i class="fas fa-search-minus"></i></button>
-        <button id="viewer-reset" style="background:rgba(255,255,255,0.08); border:1px solid var(--glass-border); color:#fff; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:1.1rem; display:flex; align-items:center; justify-content:center; transition:0.2s;"><i class="fas fa-undo"></i></button>
+  <main class="main">
+    <div class="empty" id="empty"><i class="far fa-comments"></i><h2>صندوق الرسائل</h2><p>اختر محادثة من القائمة للبدء بالتواصل مع المالك أو الباحث.</p></div>
+    <section class="chat" id="chat" hidden>
+      <div class="ch">
+        <button class="ib back" id="back" type="button" aria-label="رجوع"><i class="fas fa-arrow-right"></i></button>
+        <div class="hi" id="hInfo"><img id="hImg" alt=""><div style="min-width:0"><div class="ht" id="hTitle">...</div><div class="hs" id="hSub"></div></div></div>
+        <button class="ib" id="menuBtn" type="button" aria-label="خيارات"><i class="fas fa-ellipsis-v"></i></button>
       </div>
-      <span id="close-viewer" style="color:#fff; font-size:2rem; cursor:pointer; transition:0.2s; padding:5px;"><i class="fas fa-times"></i></span>
-    </div>
-    
-    <div id="viewer-image-container" style="width:100%; height:80%; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; cursor:grab;">
-      <img id="viewer-img" src="" style="max-width:90%; max-height:100%; object-fit:contain; border-radius:8px; box-shadow:0 0 35px rgba(0,242,255,0.35); transform-origin: center center; transition: transform 0.1s ease-out; user-select:none; -webkit-user-drag:none;" draggable="false">
-    </div>
-    <p id="viewer-caption" style="color:#fff; margin-top:15px; font-weight:700; font-size:1rem; text-shadow:0 2px 10px rgba(0,0,0,0.5); z-index:20001;"></p>
-  </div>
-
-  <div id="actionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:15000; align-items:center; justify-content:center;">
-    <div class="modal-content" onclick="event.stopPropagation()" style="background:var(--bg-deep); border:1px solid var(--neon-cyan); padding:20px; border-radius:20px; width:80%; max-width:300px; display:flex; flex-direction:column; gap:8px;">
-        <button class="modal-btn" style="background:var(--neon-cyan); color:#000; font-family:'Cairo'; font-weight:bold; width:100%; padding:12px; border:none; border-radius:10px; cursor:pointer;" id="editBtn">✏️ تعديل الهمسة</button>
-        <button class="modal-btn" style="background:var(--danger); color:#fff; font-family:'Cairo'; font-weight:bold; width:100%; padding:12px; border:none; border-radius:10px; cursor:pointer;" id="deleteBtn">🗑️ حذف الرسالة</button>
-        <button class="modal-btn" style="background:transparent; border:none; color:var(--muted); font-family:'Cairo'; font-weight:bold; width:100%; padding:8px; cursor:pointer;" onclick="document.getElementById('actionModal').style.display='none'">إلغاء</button>
-    </div>
-  </div>
-
-  <div id="property-info-modal" class="custom-modal" style="display:none; z-index:15000; max-width:600px; max-height:85vh; overflow-y:auto;">
-    <h3 class="modal-title" style="font-size:1.15rem; color:var(--neon-cyan);"><i class="fas fa-building"></i> مواصفات وبيانات العقار المعني</h3>
-    <div id="prop-modal-loader" style="text-align:center; padding:2rem; color:var(--neon-cyan);"><i class="fas fa-spinner fa-spin"></i> جاري جلب مواصفات العقار...</div>
-    <div id="prop-modal-content" style="display:none; text-align:right; direction:rtl;">
-       <img id="prop-modal-cover" src="" style="width:100%; height:180px; object-fit:cover; border-radius:12px; border:1px solid var(--glass-border); margin-bottom:15px;">
-       <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px; font-size:0.85rem;">
-         <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:8px; border:1px solid var(--glass-border);"><b>العنوان:</b> <span id="pm-title"></span></div>
-         <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:8px; border:1px solid var(--glass-border);"><b>السعر:</b> <span id="pm-price" style="color:var(--neon-cyan); font-weight:bold;"></span></div>
-         <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:8px; border:1px solid var(--glass-border);"><b>المساحة:</b> <span id="pm-area"></span> م²</div>
-         <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:8px; border:1px solid var(--glass-border);"><b>نوع العملية:</b> <span id="pm-purpose"></span></div>
-         <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:8px; border:1px solid var(--glass-border);"><b>الغرف:</b> <span id="pm-rooms"></span></div>
-         <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:8px; border:1px solid var(--glass-border);"><b>الحمامات:</b> <span id="pm-baths"></span></div>
-       </div>
-       <div style="background:rgba(255,255,255,0.02); padding:12px; border-radius:10px; border:1px solid var(--glass-border); font-size:0.85rem; line-height:1.6; color:var(--text-main);" id="pm-desc"></div>
-    </div>
-    <button class="modal-close-btn" id="close-prop-modal">إغلاق المواصفات</button>
-  </div>
-
-  <div class="app-layout" id="app-layout-wrapper">
-    
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <h2 style="font-weight: 900; font-size: 1.25rem;">الرسائل</h2>
-        <a href="dashboard.html" class="back-dashboard-btn">
-          <i class="fas fa-home"></i> لوحة التحكم
-        </a>
+      <div class="banner" id="banner" hidden>⚠️ هذا العقار لم يعد متاحاً حالياً.</div>
+      <div class="msgs" id="msgs"></div>
+      <div class="bar" id="bar" hidden><div class="g"><b id="barT"></b><span id="barS"></span></div><button class="ib" id="barX" type="button" aria-label="إلغاء"><i class="fas fa-times"></i></button></div>
+      <div class="bar" id="imgbar" hidden><img id="imgThumb" alt=""><div class="g"><b>صورة جاهزة للإرسال</b><span>اكتب وصفاً (اختياري) ثم اضغط إرسال.</span></div><button class="ib" id="imgX" type="button" aria-label="إلغاء الصورة"><i class="fas fa-times"></i></button></div>
+      <div class="ft">
+        <button class="ib" id="attach" type="button" aria-label="إرفاق صورة"><i class="fas fa-camera"></i></button>
+        <input type="file" id="file" accept="image/*" hidden>
+        <input type="text" id="txt" maxlength="2000" placeholder="اكتب رسالتك..." autocomplete="off">
+        <button class="send" id="send" type="button" aria-label="إرسال"><i class="fas fa-paper-plane"></i></button>
       </div>
-      <div class="threads-container" id="threads-list-renderer">
-        <p style="color:var(--muted); text-align:center; padding:3rem; font-size:0.85rem;">جاري تحميل المحادثات...</p>
-      </div>
-    </aside>
+    </section>
+  </main>
+</div>
 
-    <main class="chat-viewport" id="active-chat-viewport">
-      <div class="empty-state">
-        <i class="far fa-comments"></i>
-        <h3 style="font-weight: 900; color: #fff;">صندوق الوارد العقاري</h3>
-        <p style="font-size: 0.85rem;">اختر محادثة عقار من القائمة الجانبية للبدء بالتواصل الفوري.</p>
-      </div>
-    </main>
+<dialog id="propDlg"><h3><i class="fas fa-building"></i> بيانات العقار</h3><div id="propBody"><p class="none">جارٍ التحميل...</p></div><button class="dbtn" id="propX" type="button">إغلاق</button></dialog>
+<dialog id="actDlg"><button class="dbtn p" id="actEdit" type="button">✏️ تعديل الرسالة</button><button class="dbtn bad" id="actDel" type="button">🗑️ حذف الرسالة</button><button class="dbtn" id="actX" type="button">إلغاء</button></dialog>
+<dialog id="hideDlg"><h3>إخفاء المحادثة؟</h3><p style="text-align:center;color:var(--muted);margin:0 0 6px">ستختفي من قائمتك وتعود تلقائياً إذا وصلتك رسالة جديدة. تبقى نسخة منها محفوظة للطرفين.</p><button class="dbtn bad" id="hideYes" type="button">إخفاء المحادثة</button><button class="dbtn" id="hideNo" type="button">إلغاء</button></dialog>
 
-  </div>
+<div class="lb" id="lb" hidden>
+  <div class="lbt"><button id="zi" type="button" aria-label="تكبير"><i class="fas fa-search-plus"></i></button><button id="zo" type="button" aria-label="تصغير"><i class="fas fa-search-minus"></i></button><button id="zr" type="button" aria-label="إعادة"><i class="fas fa-undo"></i></button><button id="lbx" type="button" aria-label="إغلاق" style="margin-right:auto"><i class="fas fa-times"></i></button></div>
+  <div class="lbb"><img id="lbImg" alt=""></div><div class="lbc" id="lbCap"></div>
+</div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getDatabase, ref, set, get, push, onValue, off, update, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-    import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getDatabase, ref, set, get, push, onValue, update, query, orderByChild, equalTo, limitToLast, increment, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-      authDomain: "am--rewards.firebaseapp.com",
-      databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
-      projectId: "am--rewards",
-      storageBucket: "am--rewards.firebasestorage.app",
-      messagingSenderId: "744783579735",
-      appId: "1:744783579735:web:45e00de9998893bbc9b112"
+const firebaseApp = initializeApp({
+  apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+  authDomain: "am--rewards.firebaseapp.com",
+  databaseURL: "https://am--rewards-default-rtdb.firebaseio.com",
+  projectId: "am--rewards",
+  storageBucket: "am--rewards.firebasestorage.app",
+  messagingSenderId: "744783579735",
+  appId: "1:744783579735:web:45e00de9998893bbc9b112",
+});
+const db = getFirestore(firebaseApp), auth = getAuth(firebaseApp), rtdb = getDatabase(firebaseApp);
+let messaging = null;
+try { messaging = getMessaging(firebaseApp); } catch (e) { console.warn("FCM not supported", e); }
+const VAPID = "BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws";
+const NOTIFY_ADMIN_EVERY_MESSAGE = true; // إشعار تليجرام لكل رسالة (اجعلها false لأول رسالة فقط)
+
+const $ = (s) => document.querySelector(s);
+const PH = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#cbd5e1"/><path d="M25 70V45l25-20 25 20v25z" fill="#94a3b8"/></svg>');
+const safeImg = (u) => (/^(https:\/\/|data:image\/)/i.test(u || "") ? u : PH);
+const thumb = (u, w) => (u.includes("/upload/") ? u.replace("/upload/", `/upload/f_auto,q_auto,w_${w}/`) : u);
+const num = (n) => Number(n || 0).toLocaleString("ar-EG");
+const tm = (t) => (t ? new Date(t).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }) : "");
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function toast(t) { const e = el("div", "toast", t); document.body.appendChild(e); setTimeout(() => e.remove(), 3200); }
+function dayLabel(ts) {
+  const d = new Date(ts), today = new Date(), y = new Date(); y.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return "اليوم";
+  if (d.toDateString() === y.toDateString()) return "أمس";
+  return d.toLocaleDateString("ar-EG", { day: "numeric", month: "long" });
+}
+const cleanCaption = (c) => (c && !/^(jpg|png)\./i.test(c) && !c.toLowerCase().includes("screenshot") ? c : "");
+
+const S = { uid: null, name: "مستخدم AM", rooms: new Map(), unread: new Map(), unreadUnsubs: new Map(), active: null, room: null, target: null, targetName: "الطرف الآخر", unsubs: [], edit: null, reply: null, staged: null, lastKey: null, presence: "", typingNow: false, typingOn: false, typingTimer: null, pendingMsg: null };
+
+/* ---------- API helpers (كلها بتوكن المستخدم) ---------- */
+async function token() { return auth.currentUser.getIdToken(); }
+async function authPost(url, body) {
+  try {
+    await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + (await token()) }, body: JSON.stringify(body) });
+  } catch (e) { console.warn(url, e); }
+}
+async function uploadImage(file) {
+  const fd = new FormData(); fd.append("files", file);
+  const r = await fetch("/api/upload-media", { method: "POST", headers: { Authorization: "Bearer " + (await token()) }, body: fd });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || !d.images?.[0]) throw new Error(d.error || "فشل رفع الصورة");
+  return d.images[0];
+}
+function compress(file, max, q) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = im.naturalWidth, h = im.naturalHeight;
+      if (Math.max(w, h) > max) { const k = max / Math.max(w, h); w = Math.round(w * k); h = Math.round(h * k); }
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      c.getContext("2d").drawImage(im, 0, 0, w, h);
+      c.toBlob((b) => (b ? res(new File([b], "chat.jpg", { type: "image/jpeg" })) : rej(new Error("compress"))), "image/jpeg", q);
     };
+    im.onerror = () => { URL.revokeObjectURL(url); rej(new Error("bad image")); };
+    im.src = url;
+  });
+}
 
-    const firebaseApp = initializeApp(firebaseConfig);
-    const db = getFirestore(firebaseApp);
-    const auth = getAuth(firebaseApp);
-    const rtdb = getDatabase(firebaseApp);
-    
-    let messaging = null;
+/* ---------- presence + push ---------- */
+function initPresence() {
+  const st = ref(rtdb, `status/${S.uid}`);
+  onValue(ref(rtdb, ".info/connected"), (s) => {
+    if (s.val() !== true) return;
+    set(st, { state: "online", lastChanged: Date.now() });
+    onDisconnect(st).set({ state: "offline", lastSeen: Date.now(), lastChanged: Date.now() });
+  });
+}
+async function registerPush() {
+  if (!messaging || !("serviceWorker" in navigator)) return;
+  try {
+    const reg = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
+    const t = await getToken(messaging, { vapidKey: VAPID, serviceWorkerRegistration: reg });
+    if (t) await set(ref(rtdb, `users_tokens/${S.uid}`), { token: t, timestamp: Date.now() });
+    onMessage(messaging, (p) => {
+      if (Notification.permission === "granted" && document.hidden) new Notification(p.notification?.title || "رسالة جديدة", { body: p.notification?.body || "" });
+    });
+  } catch (e) { console.error("FCM setup error:", e); }
+}
+$("#bell").addEventListener("click", async () => {
+  if (!("Notification" in window) || !messaging) return toast("الإشعارات غير مدعومة في متصفحك");
+  const p = await Notification.requestPermission();
+  if (p !== "granted") return toast("لم يتم السماح بالإشعارات");
+  await registerPush(); $("#bell").hidden = true; toast("تم تفعيل الإشعارات");
+});
+
+/* ---------- threads list (غرفك فقط) ---------- */
+function watchRooms() {
+  const parts = { buyerId: {}, ownerId: {} };
+  const merge = () => {
+    S.rooms = new Map();
+    Object.values(parts).forEach((o) => Object.entries(o).forEach(([id, r]) => S.rooms.set(id, r)));
+    syncUnread(); renderThreads();
+  };
+  ["buyerId", "ownerId"].forEach((k) => onValue(query(ref(rtdb, "chatRooms"), orderByChild(k), equalTo(S.uid)), (snap) => { parts[k] = snap.val() || {}; merge(); },
+    (err) => { console.error(err); $("#threads").innerHTML = '<p class="none">تعذّر تحميل المحادثات، حدّث الصفحة.</p>'; }));
+}
+function syncUnread() {
+  for (const id of S.rooms.keys()) {
+    if (S.unreadUnsubs.has(id)) continue;
+    S.unreadUnsubs.set(id, onValue(ref(rtdb, `unreadCounts/${id}/${S.uid}`), (s) => { S.unread.set(id, s.val() || 0); renderThreads(); }));
+  }
+  for (const [id, un] of S.unreadUnsubs) if (!S.rooms.has(id)) { un(); S.unreadUnsubs.delete(id); S.unread.delete(id); }
+}
+function renderThreads() {
+  const box = $("#threads");
+  const list = [...S.rooms.values()].filter((r) => !(r.hiddenFor && r.hiddenFor[S.uid])).sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0));
+  const total = list.reduce((n, r) => n + (S.unread.get(r.roomId) || 0), 0);
+  document.title = (total ? `(${total}) ` : "") + "الرسائل | AM";
+  if (!list.length) { box.innerHTML = '<p class="none">لا توجد محادثات حتى الآن.<br>ابدأ من صفحة أي عقار بالضغط على «تواصل مع المالك».</p>'; return; }
+  box.innerHTML = "";
+  list.forEach((r) => {
+    const u = S.unread.get(r.roomId) || 0;
+    const row = el("div", "th" + (r.roomId === S.active ? " on" : "")); row.dataset.id = r.roomId; row.tabIndex = 0; row.setAttribute("role", "button");
+    const img = el("img"); img.alt = ""; img.loading = "lazy"; img.src = safeImg(r.propertyImage ? thumb(r.propertyImage, 120) : ""); img.onerror = () => { img.src = PH; };
+    const info = el("div", "ti"), top = el("div", "tr"), bot = el("div", "tp");
+    top.append(el("span", "tt", r.propertyTitle || "عقار"), el("span", "tm", tm(r.lastMessageTime)));
+    bot.append(el("span", "", r.lastMessage || ""));
+    if (u) bot.append(el("span", "ub", String(u)));
+    info.append(top, bot); row.append(img, info); box.appendChild(row);
+  });
+}
+$("#threads").addEventListener("click", (e) => { const r = e.target.closest(".th"); if (r) openChat(r.dataset.id); });
+$("#threads").addEventListener("keydown", (e) => { if (e.key === "Enter") { const r = e.target.closest(".th"); if (r) openChat(r.dataset.id); } });
+
+/* ---------- open / close chat ---------- */
+function teardown() {
+  S.unsubs.forEach((f) => f()); S.unsubs = [];
+  if (S.typingOn && S.active) { set(ref(rtdb, `typing/${S.active}/${S.uid}`), null); S.typingOn = false; }
+}
+function closeChat() {
+  teardown(); S.active = null; S.room = null; clearBar(); cancelImage();
+  $("#chat").hidden = true; $("#empty").hidden = false; $("#layout").classList.remove("open");
+  sessionStorage.removeItem("activeRoomId"); renderThreads();
+}
+$("#back").addEventListener("click", closeChat);
+
+function paintSub() {
+  const s = $("#hSub"); s.classList.toggle("typing", S.typingNow);
+  s.textContent = S.typingNow ? "يكتب الآن..." : S.presence;
+}
+async function checkProperty(room) {
+  let ok = false, price = "";
+  try {
+    const s = await getDoc(doc(db, "properties", room.propertyId));
+    if (s.exists()) { const p = s.data(); ok = p.status === "approved" && p.isHidden !== true && (p.availability || "available") === "available"; price = ` (${num(p.price)} ج.م)`; }
+  } catch (e) { console.warn("property check:", e); }
+  if (S.active !== room.roomId) return;
+  $("#hTitle").textContent = (room.propertyTitle || "عقار") + price;
+  $("#banner").hidden = ok;
+}
+async function openChat(id) {
+  teardown(); clearBar(); cancelImage();
+  let room = S.rooms.get(id);
+  if (!room) { try { room = (await get(ref(rtdb, `chatRooms/${id}`))).val(); } catch (e) { console.error(e); } }
+  if (!room) return toast("تعذّر فتح المحادثة");
+  S.active = id; S.room = room; S.lastKey = null; S.typingNow = false; S.presence = "";
+  S.target = room.buyerId === S.uid ? room.ownerId : room.buyerId; S.targetName = "الطرف الآخر";
+  sessionStorage.setItem("activeRoomId", id);
+  $("#empty").hidden = true; $("#chat").hidden = false; $("#layout").classList.add("open");
+  $("#hImg").src = safeImg(room.propertyImage ? thumb(room.propertyImage, 120) : ""); $("#hTitle").textContent = room.propertyTitle || "عقار"; paintSub();
+  $("#msgs").innerHTML = ""; $("#banner").hidden = true;
+  set(ref(rtdb, `unreadCounts/${id}/${S.uid}`), 0); renderThreads(); checkProperty(room);
+  getDoc(doc(db, "users", S.target)).then((s) => { if (s.exists() && S.active === id) S.targetName = s.data().name || S.targetName; }).catch(() => {});
+
+  S.unsubs.push(onValue(ref(rtdb, `chatRooms/${id}`), (s) => { if (!s.exists()) { closeChat(); return; } S.room = s.val(); }));
+  S.unsubs.push(onValue(ref(rtdb, `status/${S.target}`), (s) => {
+    const v = s.val();
+    S.presence = !v ? "غير متصل" : v.state === "online" ? "● نشط الآن" : v.lastSeen ? `آخر ظهور: ${tm(v.lastSeen)}` : "غير متصل";
+    paintSub();
+  }));
+  S.unsubs.push(onValue(ref(rtdb, `typing/${id}/${S.target}`), (s) => { S.typingNow = s.val() === true; paintSub(); }));
+  S.unsubs.push(onValue(query(ref(rtdb, `messages/${id}`), limitToLast(200)), renderMessages));
+}
+
+/* ---------- messages ---------- */
+function bubble(m, key) {
+  const me = m.senderId === S.uid, b = el("div", `b ${me ? "me" : "other"}`);
+  if (m.deleted) { b.classList.add("del"); b.textContent = "🚫 تم حذف الرسالة"; return b; }
+  b.appendChild(el("div", "who", me ? "أنت" : S.targetName));
+  let text = m.text || "";
+  if (text.startsWith("رد على @")) {
+    const i = text.indexOf(": ");
+    if (i > 0) { const q = el("div", "quote"); q.textContent = "↩ " + text.slice(0, i); b.appendChild(q); text = text.slice(i + 2); }
+  }
+  if (m.type === "image") {
+    const im = el("img", "pic"); im.loading = "lazy"; im.alt = "صورة"; im.src = safeImg(m.preview || m.image); im.onerror = () => { im.src = PH; };
+    im.addEventListener("click", (e) => { e.stopPropagation(); openLB(safeImg(m.original || m.image || m.preview), cleanCaption(m.caption)); });
+    b.appendChild(im);
+    const cap = cleanCaption(m.caption); if (cap) b.appendChild(el("div", "txt", cap));
+  } else b.appendChild(el("div", "txt", text));
+  const meta = el("div", "mt");
+  if (m.edited) meta.appendChild(el("span", "", "(معدلة)"));
+  meta.appendChild(el("span", "", tm(m.createdAt)));
+  if (me) { const t = el("i", m.status === "sent" || !m.status ? "fas fa-check" : "fas fa-check-double"); if (m.status === "seen") t.style.color = "var(--accent)"; meta.appendChild(t); }
+  b.appendChild(meta);
+  b.addEventListener("click", () => (me ? msgActions(key, m) : startReply(m, text)));
+  return b;
+}
+function renderMessages(snap) {
+  const box = $("#msgs"), near = box.scrollHeight - box.scrollTop - box.clientHeight < 140;
+  box.innerHTML = "";
+  box.appendChild(el("div", "tip", "تنبيه: AM وسيط تعارف فقط. لا تحوّل أي مبلغ قبل معاينة العقار ومراجعة مستنداته بنفسك."));
+  if (!snap.exists()) {
+    const purged = S.room && S.room.lastMessage && S.room.lastMessage.includes("تفريغ");
+    box.appendChild(el("div", purged ? "sys" : "tip", purged ? "تم تفريغ محتوى هذه المحادثة بواسطة الدعم الفني." : "لا توجد رسائل بعد. أرسل استفسارك الأول بخصوص هذا العقار."));
+    return;
+  }
+  const updates = {}; let lastDay = "";
+  snap.forEach((c) => {
+    const m = c.val(), key = c.key; S.lastKey = key;
+    const d = m.createdAt ? new Date(m.createdAt).toDateString() : "";
+    if (d && d !== lastDay) { lastDay = d; box.appendChild(el("div", "day", dayLabel(m.createdAt))); }
+    if (m.senderId === "SYSTEM") {
+      const s = el("div", "sys", String(m.text || "").replace("🚨 [تنبيه إداري رسمي]: ", "")); box.appendChild(s); return;
+    }
+    if (m.senderId !== S.uid && m.status !== "seen" && !document.hidden) updates[`messages/${S.active}/${key}/status`] = "seen";
+    box.appendChild(bubble(m, key));
+  });
+  if (Object.keys(updates).length) { updates[`unreadCounts/${S.active}/${S.uid}`] = 0; update(ref(rtdb), updates).catch(() => {}); }
+  if (near || S.justSent) { box.scrollTop = box.scrollHeight; S.justSent = false; }
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden && S.active) openChat(S.active); });
+
+/* ---------- reply / edit bars ---------- */
+function showBar(title, text) { $("#barT").textContent = title; $("#barS").textContent = text; $("#bar").hidden = false; }
+function clearBar() { S.reply = null; S.edit = null; $("#bar").hidden = true; }
+function startReply(m, text) {
+  S.edit = null; S.reply = { name: S.targetName };
+  showBar(`رد على ${S.targetName}`, m.type === "image" ? "📷 صورة" : text); $("#txt").focus();
+}
+$("#barX").addEventListener("click", () => { clearBar(); $("#txt").value = ""; });
+
+function msgActions(key, m) {
+  S.pendingMsg = { key, m };
+  $("#actEdit").hidden = m.type !== "text";
+  $("#actDlg").showModal();
+}
+$("#actX").addEventListener("click", () => $("#actDlg").close());
+$("#actEdit").addEventListener("click", () => {
+  const { key, m } = S.pendingMsg; $("#actDlg").close();
+  let t = m.text || ""; if (t.startsWith("رد على @")) { const i = t.indexOf(": "); if (i > 0) t = t.slice(i + 2); }
+  S.reply = null; S.edit = { key, text: m.text }; $("#txt").value = t; showBar("تعديل الرسالة", t); $("#txt").focus();
+});
+$("#actDel").addEventListener("click", async () => {
+  const { key } = S.pendingMsg; $("#actDlg").close();
+  try {
+    const up = { [`messages/${S.active}/${key}/deleted`]: true, [`messages/${S.active}/${key}/preview`]: null, [`messages/${S.active}/${key}/original`]: null };
+    if (key === S.lastKey) { up[`chatRooms/${S.active}/lastMessage`] = "🚫 تم حذف الرسالة"; up[`chatRooms/${S.active}/lastMessageTime`] = Date.now(); }
+    await update(ref(rtdb), up);
+  } catch (e) { console.error(e); toast("تعذّر حذف الرسالة"); }
+});
+
+/* ---------- sending ---------- */
+async function afterSend(to, preview) {
+  authPost("/api/send-notification", { receiverId: to, senderName: S.name, title: `💬 رسالة جديدة من ${S.name}`, body: preview, roomId: S.active });
+  if (NOTIFY_ADMIN_EVERY_MESSAGE) authPost("/api/send-telegram", { type: "new_message", data: { property: S.room?.propertyTitle || "عقار", sender: S.name } });
+}
+async function deliveredStatus(to) {
+  try { return (await get(ref(rtdb, `status/${to}`))).val()?.state === "online" ? "delivered" : "sent"; } catch { return "sent"; }
+}
+async function sendText() {
+  const input = $("#txt"); let text = input.value.trim();
+  if (!text || !S.active) return;
+  if (text.length > 2000) text = text.slice(0, 2000);
+  const id = S.active, to = S.target;
+
+  if (S.edit) {
+    const { key, text: old } = S.edit;
+    let save = text;
+    if ((old || "").startsWith("رد على @")) { const i = old.indexOf(": "); if (i > 0) save = `${old.slice(0, i)}: ${text}`; }
+    input.value = ""; clearBar();
     try {
-      messaging = getMessaging(firebaseApp);
-    } catch (e) {
-      console.warn("FCM messaging is not supported in this environment/browser.", e);
-    }
-
-    const ChatState = {
-      currentUserId: null,
-      currentUserName: "مستخدم المنصة", // سيتم ملؤه من الفايرستور لاحقاً لدعم الإشعارات
-      activeRoomId: null,
-      activeRoomData: null,
-      editingMessageId: null,
-      replyingToMsg: null,
-      stagedFile: null, 
-      listeners: {}
-    };
-
-    let zoomScale = 1;
-    let isDragging = false;
-    let startX = 0;
-    let startY = 0;
-    let translateX = 0;
-    let translateY = 0;
-
-    const viewerImg = document.getElementById('viewer-img');
-    const viewerContainer = document.getElementById('viewer-image-container');
-
-    const updateImageTransform = () => {
-      viewerImg.style.transform = `scale(${zoomScale}) translate(${translateX}px, ${translateY}px)`;
-    };
-
-    const resetViewerState = () => {
-      zoomScale = 1;
-      translateX = 0;
-      translateY = 0;
-      updateImageTransform();
-      if (viewerContainer) viewerContainer.style.cursor = 'grab';
-    };
-
-    const StorageService = {
-      async compressImage(file, maxWidth, maxHeight, quality) {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-              const canvas = document.createElement('canvas');
-              let width = img.width;
-              let height = img.height;
-
-              if (width > height) {
-                if (width > maxWidth) {
-                  height = Math.round((height * maxWidth) / width);
-                  width = maxWidth;
-                }
-              } else {
-                if (height > maxHeight) {
-                  width = Math.round((width * maxHeight) / height);
-                  height = maxHeight;
-                }
-              }
-
-              canvas.width = width;
-              canvas.height = height;
-              const ctx = canvas.getContext('2d');
-              ctx.drawImage(img, 0, 0, width, height);
-
-              canvas.toBlob((blob) => {
-                if (blob) {
-                  resolve(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
-                    type: 'image/jpeg',
-                    lastModified: Date.now()
-                  }));
-                } else {
-                  reject(new Error("فشل ضغط الصورة محلياً"));
-                }
-              }, 'image/jpeg', quality);
-            };
-            img.onerror = reject;
-          };
-          reader.onerror = reject;
-        });
-      },
-
-      // ☁️ تحديث دالة الرفع لتتصل بخادم كلاوديناري السحابي الجديد بدلاً من Vercel Blob
-      async uploadToCloudinary(file) {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        try {
-          const response = await fetch('https://am-property.vercel.app/api/upload', {
-            method: 'POST',
-            body: formData
-          });
-
-          if (!response.ok) {
-            throw new Error("فشل الرفع من خادم الويب السحابي");
-          }
-
-          const result = await response.json();
-          return result.url; // يعود برابط الصورة المباشر والآمن والمحسن من كلاوديناري
-        } catch (e) {
-          console.warn("Cloudinary Upload fallback base64 used:", e);
-          return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(file);
-          });
-        }
-      }
-    };
-
-    class StandaloneChatApp {
-      constructor() {
-        this.initAuth();
-        this.initGlobalEvents();
-      }
-
-      initGlobalEvents() {
-        document.getElementById('close-viewer').addEventListener('click', () => {
-          document.getElementById('image-viewer-modal').style.display = 'none';
-          resetViewerState();
-        });
-
-        document.getElementById('viewer-zoom-in').addEventListener('click', () => {
-          zoomScale = Math.min(zoomScale + 0.25, 4);
-          updateImageTransform();
-        });
-
-        document.getElementById('viewer-zoom-out').addEventListener('click', () => {
-          zoomScale = Math.max(zoomScale - 0.25, 0.5);
-          updateImageTransform();
-        });
-
-        document.getElementById('viewer-reset').addEventListener('click', resetViewerState);
-
-        viewerContainer.addEventListener('mousedown', (e) => {
-          e.preventDefault();
-          isDragging = true;
-          viewerContainer.style.cursor = 'grabbing';
-          startX = e.clientX - translateX * zoomScale;
-          startY = e.clientY - translateY * zoomScale;
-        });
-
-        window.addEventListener('mousemove', (e) => {
-          if (!isDragging) return;
-          translateX = (e.clientX - startX) / zoomScale;
-          translateY = (e.clientY - startY) / zoomScale;
-          updateImageTransform();
-        });
-
-        window.addEventListener('mouseup', () => {
-          isDragging = false;
-          viewerContainer.style.cursor = 'grab';
-        });
-
-        viewerContainer.addEventListener('touchstart', (e) => {
-          if (e.touches.length === 1) {
-            isDragging = true;
-            startX = e.touches[0].clientX - translateX * zoomScale;
-            startY = e.touches[0].clientY - translateY * zoomScale;
-          }
-        });
-
-        viewerContainer.addEventListener('touchmove', (e) => {
-          if (!isDragging || e.touches.length !== 1) return;
-          translateX = (e.touches[0].clientX - startX) / zoomScale;
-          translateY = (e.touches[0].clientY - startY) / zoomScale;
-          updateImageTransform();
-        });
-
-        viewerContainer.addEventListener('touchend', () => {
-          isDragging = false;
-        });
-
-        document.getElementById('actionModal').addEventListener('click', () => {
-          document.getElementById('actionModal').style.display = 'none';
-        });
-
-        document.getElementById('close-prop-modal').addEventListener('click', () => {
-          document.getElementById('property-info-modal').classList.remove('active');
-          document.getElementById('property-info-modal').style.display = 'none';
-          document.getElementById('overlay').classList.remove('active');
-        });
-      }
-
-      initAuth() {
-        onAuthStateChanged(auth, async (user) => {
-          if (!user) {
-            window.location.href = "login.html";
-            return;
-          }
-
-          ChatState.currentUserId = user.uid;
-          
-          // جلب اسم المستخدم الحالي لإرساله بالإشعارات
-          try {
-            const userSnap = await getDoc(doc(db, "users", user.uid));
-            if (userSnap.exists()) {
-              ChatState.currentUserName = userSnap.data().name || "مستخدم AM. Chat";
-            }
-          } catch(e) {
-            console.warn("Error fetching current user info:", e);
-          }
-
-          this.initPresence(user.uid);
-          this.loadThreads(user.uid);
-
-          if (messaging) {
-            this.requestNotificationPermission(user.uid);
-          }
-
-          const urlParams = new URLSearchParams(window.location.search);
-          const paramPropertyId = urlParams.get('propertyId');
-          const paramOwnerId = urlParams.get('ownerId');
-
-          // قراءة المحادثة المحفوظة سابقاً من الجلسة في حال أعدنا تحميل الصفحة (Reload)
-          const savedRoomId = sessionStorage.getItem('activeRoomId');
-          const savedTargetUserId = sessionStorage.getItem('activeTargetUserId');
-
-          if (paramPropertyId && paramOwnerId) {
-            const currentUserId = user.uid;
-            const roomId = `room_${currentUserId}_${paramOwnerId}_${paramPropertyId}`;
-            const roomRef = ref(rtdb, `chatRooms/${roomId}`);
-
-            try {
-              const roomSnap = await get(roomRef);
-              
-              if (!roomSnap.exists()) {
-                const docRef = doc(db, "properties", paramPropertyId);
-                const docSnap = await getDoc(docRef);
-                
-                let propertyTitle = "عقار معتمد";
-                let propertyImage = "https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop";
-
-                if (docSnap.exists()) {
-                  const prop = docSnap.data();
-                  propertyTitle = prop.title || propertyTitle;
-                  propertyImage = prop.coverImage || (prop.images && prop.images[0]) || propertyImage;
-                }
-
-                const currentTimestamp = Date.now();
-                const newRoomData = {
-                  roomId: roomId,
-                  propertyId: paramPropertyId,
-                  propertyTitle: propertyTitle,
-                  propertyImage: propertyImage,
-                  ownerId: paramOwnerId,
-                  buyerId: currentUserId,
-                  participants: {
-                    [paramOwnerId]: true,
-                    [currentUserId]: true
-                  },
-                  lastMessage: "تم بدء المحادثة",
-                  lastMessageTime: currentTimestamp,
-                  createdAt: currentTimestamp,
-                  propertyStatus: "available"
-                };
-
-                await set(roomRef, newRoomData);
-              }
-
-              window.history.replaceState({}, document.title, window.location.pathname);
-              document.getElementById('app-layout-wrapper').classList.add('show-active-chat');
-              this.openChat(roomId, currentUserId, paramOwnerId);
-            } catch (err) {
-              console.error("Error auto-initializing chat from parameters:", err);
-            }
-          } 
-          // 💡 إذا تمت إعادة تحميل الصفحة وكان المستخدم يتحدث مع طرف آخر، نقوم بإعادة فتح الروم تلقائياً
-          else if (savedRoomId && savedTargetUserId) {
-            setTimeout(() => {
-              document.getElementById('app-layout-wrapper').classList.add('show-active-chat');
-              this.openChat(savedRoomId, user.uid, savedTargetUserId);
-            }, 500); // تأخير خفيف 500ms لضمان اكتمال تحميل القائمة الجانبية وعناصر الـ DOM
-          }
-        });
-      }
-
-      initPresence(userId) {
-        const userStatusRef = ref(rtdb, `status/${userId}`);
-        const connectedRef = ref(rtdb, '.info/connected');
-
-        onValue(connectedRef, (snap) => {
-          if (snap.val() === true) {
-            set(userStatusRef, {
-              state: 'online',
-              lastChanged: Date.now()
-            });
-
-            onDisconnect(userStatusRef).set({
-              state: 'offline',
-              lastSeen: Date.now(),
-              lastChanged: Date.now()
-            });
-          }
-        });
-      }
-
-      async requestNotificationPermission(userId) {
-        try {
-          console.log('🔔 Requesting notification permission...');
-          const permission = await Notification.requestPermission();
-          console.log(`📢 Notification permission: ${permission}`);
-          
-          if (permission === 'granted') {
-            if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.register('./firebase-messaging-sw.js')
-                .then(registration => {
-                  console.log('✅ Service Worker registered');
-                  return getToken(messaging, { 
-                    vapidKey: 'BMwqkR2kvqo82g9YHUATcYO4c2yNJ0becNFKtpC91DZLTyl2xlWXlfTRqxLkSzvUJ0QjZkwq0utZhTKzIj-shws',
-                    serviceWorkerRegistration: registration
-                  });
-                })
-                .then(token => {
-                  console.log('✅ FCM Token obtained successfully:', token);
-                  if (token) {
-                    return set(ref(rtdb, `users_tokens/${userId}`), { 
-                      token: token, 
-                      timestamp: Date.now()
-                    });
-                  }
-                })
-                .catch(err => console.error('❌ FCM setup error:', err));
-            }
-            
-            onMessage(messaging, (payload) => {
-              console.log('📬 Message received in foreground:', payload);
-              if (Notification.permission === 'granted' && document.hidden) {
-                new Notification(payload.notification?.title || 'رسالة جديدة', {
-                  body: payload.notification?.body || '',
-                  icon: 'https://cdn-icons-png.flaticon.com/512/633/633600.png'
-                });
-              }
-            });
-          }
-        } catch (err) { 
-          console.error("❌ FCM Error setup:", err); 
-        }
-      }
-
-      loadThreads(currentUserId) {
-        const threadsContainer = document.getElementById('threads-list-renderer');
-        if (!threadsContainer) return;
-
-        const roomsRef = ref(rtdb, 'chatRooms');
-
-        onValue(roomsRef, (snapshot) => {
-          let rooms = [];
-          snapshot.forEach((childSnap) => {
-            const room = childSnap.val();
-            if (room.participants && room.participants[currentUserId]) {
-              rooms.push(room);
-            }
-          });
-
-          rooms.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0));
-
-          if (rooms.length === 0) {
-            threadsContainer.innerHTML = `<p style="color:var(--muted); text-align:center; padding:3rem; font-size:0.85rem;">لا توجد محادثات سابقة حتى الآن.</p>`;
-            return;
-          }
-
-          threadsContainer.innerHTML = '';
-
-          rooms.forEach((room) => {
-            const targetUserId = room.buyerId === currentUserId ? room.ownerId : room.buyerId;
-            const unreadCountRef = ref(rtdb, `unreadCounts/${room.roomId}/${currentUserId}`);
-            
-            onValue(unreadCountRef, (unreadSnap) => {
-              const unreadCount = unreadSnap.val() || 0;
-              const badgeHtml = unreadCount > 0 ? `<span class="unread-badge">${unreadCount}</span>` : '';
-              
-              const isAvailable = room.propertyStatus === 'available';
-              const statusBadge = isAvailable 
-                ? `<span style="color:var(--success); font-size:0.75rem; font-weight:bold;">● متاح</span>` 
-                : `<span style="color:var(--danger); font-size:0.75rem; font-weight:bold;">● غير متاح</span>`;
-
-              const timeString = room.lastMessageTime ? new Date(room.lastMessageTime).toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'}) : '';
-              
-              const savedRoomId = sessionStorage.getItem('activeRoomId');
-              const isActive = ChatState.activeRoomId === room.roomId || savedRoomId === room.roomId ? 'active' : '';
-
-              const threadItem = document.createElement('div');
-              threadItem.className = `thread-item ${isActive}`;
-              threadItem.id = `thread-element-${room.roomId}`;
-              
-              threadItem.innerHTML = `
-                <img src="${room.propertyImage}" class="thread-avatar">
-                <div class="thread-info">
-                  <div class="thread-meta">
-                    <span class="thread-title">${room.propertyTitle}</span>
-                    <span class="thread-time">${timeString}</span>
-                  </div>
-                  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
-                    <span class="thread-preview">${room.lastMessage}</span>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                      ${statusBadge}
-                      ${badgeHtml}
-                    </div>
-                  </div>
-                </div>
-              `;
-
-              // برمجة مستشعرات اللمس والضغط للموبايل والكمبيوتر لدعم الضغط المطول
-              let pressTimer;
-              let isLongPress = false;
-              let startTx, startTy;
-
-              const startPress = (e) => {
-                isLongPress = false;
-                if (e.touches) {
-                  startTx = e.touches[0].clientX;
-                  startTy = e.touches[0].clientY;
-                }
-                pressTimer = setTimeout(() => {
-                  isLongPress = true;
-                  if (navigator.vibrate) navigator.vibrate(50); // اهتزاز خفيف كدليل على الضغط المطول
-                  this.showDeleteThreadModal(room.roomId);
-                }, 700); // الضغط مستمر لمدة 700 مللي ثانية
-              };
-
-              const cancelPress = () => {
-                clearTimeout(pressTimer);
-              };
-
-              const movePress = (e) => {
-                if (e.touches) {
-                  const moveX = e.touches[0].clientX;
-                  const moveY = e.touches[0].clientY;
-                  // إذا تحرك الإصبع أكثر من 10 بكسل، نلغي الضغطة المطولة لتجنب التمرير
-                  if (Math.abs(moveX - startTx) > 10 || Math.abs(moveY - startTy) > 10) {
-                    clearTimeout(pressTimer);
-                  }
-                } else {
-                  clearTimeout(pressTimer);
-                }
-              };
-
-              // أحداث الماوس للكمبيوتر
-              threadItem.addEventListener('mousedown', startPress);
-              threadItem.addEventListener('mouseup', (e) => {
-                clearTimeout(pressTimer);
-                if (isLongPress) {
-                  e.preventDefault();
-                  return;
-                }
-                // نقرة عادية
-                document.querySelectorAll('.thread-item').forEach(el => el.classList.remove('active'));
-                threadItem.classList.add('active');
-                document.getElementById('app-layout-wrapper').classList.add('show-active-chat');
-                this.openChat(room.roomId, currentUserId, targetUserId);
-              });
-              threadItem.addEventListener('mouseleave', cancelPress);
-
-              // أحداث اللمس للهواتف
-              threadItem.addEventListener('touchstart', startPress, { passive: true });
-              threadItem.addEventListener('touchend', (e) => {
-                clearTimeout(pressTimer);
-                if (isLongPress) {
-                  e.preventDefault();
-                }
-              });
-              threadItem.addEventListener('touchmove', movePress, { passive: true });
-
-              const existingNode = document.getElementById(`thread-element-${room.roomId}`);
-              if (existingNode) {
-                existingNode.replaceWith(threadItem);
-              } else {
-                threadsContainer.appendChild(threadItem);
-              }
-            });
-          });
-        });
-      }
-
-      // دالة مضافة لعرض نافذة تأكيد حذف المحادثة
-      showDeleteThreadModal(roomId) {
-        const modal = document.getElementById('deleteThreadModal');
-        modal.style.display = 'flex';
-        
-        document.getElementById('confirmDeleteThreadBtn').onclick = async () => {
-          try {
-            // حذف المحادثة والبيانات التابعة لها نهائياً من قاعدة البيانات
-            await Promise.all([
-              set(ref(rtdb, `chatRooms/${roomId}`), null),
-              set(ref(rtdb, `messages/${roomId}`), null),
-              set(ref(rtdb, `unreadCounts/${roomId}`), null),
-              set(ref(rtdb, `typing/${roomId}`), null)
-            ]);
-
-            // إذا كانت المحادثة المحذوفة مفتوحة حالياً، نقوم بإغلاق عرض الشات
-            if (ChatState.activeRoomId === roomId) {
-              ChatState.activeRoomId = null;
-              ChatState.activeRoomData = null;
-              const viewport = document.getElementById('active-chat-viewport');
-              if (viewport) {
-                viewport.innerHTML = `
-                  <div class="empty-state">
-                    <i class="far fa-comments"></i>
-                    <h3 style="font-weight: 900; color: #fff;">صندوق الوارد العقاري</h3>
-                    <p style="font-size: 0.85rem;">اختر محادثة عقار من القائمة الجانبية للبدء بالتواصل الفوري.</p>
-                  </div>
-                `;
-              }
-              document.getElementById('app-layout-wrapper').classList.remove('show-active-chat');
-            }
-          } catch (err) {
-            console.error("Error deleting chat room:", err);
-            alert("⚠️ فشل حذف المحادثة.");
-          } finally {
-            modal.style.display = 'none';
-          }
-        };
-      }
-
-      async openChat(roomId, currentUserId, targetUserId) {
-        ChatState.activeRoomId = roomId;
-        
-        // 💾 حفظ المحادثة النشطة في الجلسة للاستمرار التلقائي بعد إعادة تحميل الصفحة (Reload)
-        sessionStorage.setItem('activeRoomId', roomId);
-        sessionStorage.setItem('activeTargetUserId', targetUserId);
-
-        this.cancelReply(); 
-
-        set(ref(rtdb, `unreadCounts/${roomId}/${currentUserId}`), 0);
-
-        const viewport = document.getElementById('active-chat-viewport');
-        if (!viewport) return;
-
-        if (ChatState.listeners['messages']) off(ChatState.listeners['messages']);
-        if (ChatState.listeners['presence']) off(ChatState.listeners['presence']);
-        if (ChatState.listeners['typing']) off(ChatState.listeners['typing']);
-        if (ChatState.listeners['room']) off(ChatState.listeners['room']);
-
-        viewport.innerHTML = `
-          <div class="chat-header">
-            <div class="header-info" id="active-chat-header-info" style="display:flex; align-items:center; gap:12px; min-width:0; cursor:pointer;">
-              <button class="action-btn mobile-back-btn" style="margin-left:5px; flex-shrink:0;" onclick="event.stopPropagation(); document.getElementById('app-layout-wrapper').classList.remove('show-active-chat')">
-                <i class="fas fa-arrow-right"></i>
-              </button>
-              <img src="" class="header-avatar" id="active-header-img" style="width:45px; height:45px; border-radius:10px; object-fit:cover; border:1px solid var(--glass-border);">
-              <div class="header-details" style="min-width:0;">
-                <h3 class="header-title" id="active-header-title" style="font-weight:900; color:#fff; font-size:1rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">تحميل...</h3>
-                <span class="header-presence" id="active-header-presence" style="font-size:0.75rem; color:var(--muted);">جاري فحص الاتصال...</span>
-              </div>
-            </div>
-            <div style="display:flex; align-items:center; gap:10px;">
-              <div id="typing-indicator-node" style="font-size:0.75rem; color:var(--neon-cyan); font-weight:bold; display:none;">يكتب الآن...</div>
-            </div>
-          </div>
-          <div id="chat-deleted-banner-wrapper"></div>
-          <div class="chat-messages-container" id="chat-messages-stream-node"></div>
-          
-          <div id="imageStagingContainer" style="display:none; background:rgba(30, 41, 59, 0.95); border-top:1px solid var(--glass-border); border-right:4px solid var(--neon-cyan); padding:12px 25px; align-items:center; justify-content:space-between; direction:rtl;">
-            <div style="display:flex; align-items:center; gap:12px; min-width:0; flex:1;">
-               <img id="staged-thumb" src="" style="width:45px; height:45px; border-radius:8px; object-fit:cover; border:1px solid var(--glass-border);">
-               <div style="text-align:right; min-width:0;">
-                  <div style="color: var(--neon-cyan); font-weight: 900; font-size: 0.75rem; margin-bottom: 2px;">صورة محضرة للإرسال</div>
-                  <div style="font-size: 0.8rem; color: var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width: 90%;">اكتب وصفاً أو شرحاً للصورة بالأسفل، ثم انقر إرسال.</div>
-               </div>
-            </div>
-            <button type="button" style="background:none; border:none; color:var(--danger); cursor:pointer; padding:6px; font-size:1.15rem; display:flex; align-items:center; justify-content:center; transition: 0.2s;" onclick="chatApp.cancelImageStaging()">
-              <i class="fas fa-times-circle"></i>
-            </button>
-          </div>
-
-          <div id="replyContainer" class="reply-preview" style="display:none; background:rgba(30, 41, 59, 0.95); border-top:1px solid var(--glass-border); border-right:4px solid var(--neon-cyan); padding:12px 25px; align-items:center; justify-content:space-between; direction:rtl;">
-            <div style="min-width:0; flex:1; text-align:right;">
-               <div style="color: var(--neon-cyan); font-weight: 900; font-size: 0.75rem; margin-bottom: 4px;" id="replyTargetName"></div>
-               <div id="replyTargetText" style="font-size: 0.85rem; color: var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width: 80%;"></div>
-            </div>
-            <button type="button" style="background:none; border:none; color:var(--danger); cursor:pointer; padding:6px; font-size:1.15rem; display:flex; align-items:center; justify-content:center; transition: 0.2s;" onclick="chatApp.cancelReply()">
-              <i class="fas fa-times-circle"></i>
-            </button>
-          </div>
-
-          <div class="chat-footer">
-            <button class="action-btn" id="attach-image-btn"><i class="fas fa-camera"></i></button>
-            <input type="file" id="hidden-file-input" accept="image/*" style="display:none;">
-            <div class="chat-input-wrapper">
-              <input type="text" class="chat-text-input" id="message-text-field" placeholder="اكتب استفسارك #...">
-            </div>
-            <button class="send-btn" id="send-msg-btn">✦</button>
-          </div>
-        `;
-
-        const headerTitle = document.getElementById('active-header-title');
-        const headerImg = document.getElementById('active-header-img');
-        const bannerWrapper = document.getElementById('chat-deleted-banner-wrapper');
-        const messagesStream = document.getElementById('chat-messages-stream-node');
-
-        ChatState.listeners['room'] = onValue(ref(rtdb, `chatRooms/${roomId}`), async (roomSnap) => {
-          if (!roomSnap.exists()) return;
-          const room = roomSnap.val();
-          ChatState.activeRoomData = room;
-
-          headerImg.src = room.propertyImage;
-
-          let priceText = 'غير متوفر السعر';
-          let isDeleted = room.propertyStatus !== 'available';
-
-          try {
-            const docRef = doc(db, "properties", room.propertyId);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-              const prop = docSnap.data();
-              priceText = `${Number(prop.price).toLocaleString()} ج.م`;
-            } else {
-              isDeleted = true;
-            }
-          } catch(e) {
-            console.warn("Firestore fetch error inside chat:", e);
-          }
-
-          headerTitle.textContent = `${room.propertyTitle} (${priceText})`;
-
-          if (isDeleted) {
-            bannerWrapper.innerHTML = `
-              <div class="deleted-banner">
-                ⚠️ هذا العقار لم يعد متاحًا.
-              </div>
-            `;
-          } else {
-            bannerWrapper.innerHTML = '';
-          }
-
-          const headerInfoNode = document.getElementById('active-chat-header-info');
-          if (headerInfoNode) {
-            headerInfoNode.onclick = () => {
-              this.openPropertyInfoModal(room.propertyId);
-            };
-          }
-        });
-
-        let targetUserName = 'الطرف الآخر';
-        try {
-          const userSnap = await getDoc(doc(db, "users", targetUserId));
-          if (userSnap.exists()) {
-            targetUserName = userSnap.data().name || 'الطرف الآخر';
-          }
-        } catch (e) {
-          console.warn("Firestore fetch error for target user name:", e);
-        }
-
-        ChatState.listeners['presence'] = onValue(ref(rtdb, `status/${targetUserId}`), (statusSnap) => {
-          const presenceNode = document.getElementById('active-header-presence');
-          if (!presenceNode) return;
-
-          if (statusSnap.exists()) {
-            const status = statusSnap.val();
-            if (status.state === 'online') {
-              presenceNode.innerHTML = `<span style="color:var(--success); font-weight:700;">● نشط الآن</span>`;
-            } else {
-              const lastSeenDate = new Date(status.lastSeen);
-              presenceNode.textContent = `نشط منذ: ${lastSeenDate.toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'})}`;
-            }
-          } else {
-            presenceNode.textContent = 'غير متصل';
-          }
-        });
-
-        ChatState.listeners['typing'] = onValue(ref(rtdb, `typing/${roomId}/${targetUserId}`), (typingSnap) => {
-          const typingInd = document.getElementById('typing-indicator-node');
-          if (typingInd) {
-            typingInd.style.display = typingSnap.val() === true ? 'block' : 'none';
-          }
-        });
-
-        const messagesRef = ref(rtdb, `messages/${roomId}`);
-        ChatState.listeners['messages'] = onValue(messagesRef, (snapshot) => {
-          messagesStream.innerHTML = '';
-          let updates = {};
-
-          if (!snapshot.exists()) {
-            const isPurgedByAdmin = ChatState.activeRoomData && ChatState.activeRoomData.lastMessage && ChatState.activeRoomData.lastMessage.includes('تفريغ');
-            if (isPurgedByAdmin) {
-              const emptyBanner = document.createElement('div');
-              emptyBanner.style.cssText = `
-                align-self: center;
-                background: rgba(239, 68, 68, 0.15);
-                border: 1px solid var(--danger);
-                border-right: 4px solid var(--danger);
-                color: #fca5a5;
-                padding: 15px 25px;
-                border-radius: 12px;
-                font-size: 0.9rem;
-                font-weight: 700;
-                text-align: center;
-                max-width: 90%;
-                margin: 30px auto;
-                box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
-                direction: rtl;
-              `;
-              emptyBanner.innerHTML = `<div><i class="fas fa-exclamation-triangle"></i> تم تفريغ وحذف محتوى هذه المحادثة بالكامل بواسطة الدعم الفني لإجراءات الصيانة والتأمين.</div>`;
-              messagesStream.appendChild(emptyBanner);
-            } else {
-              messagesStream.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding: 2rem; font-size:0.85rem;">لا توجد رسائل سابقة. أرسل استفسارك الأول لبدء المحادثة الفورية بخصوص هذا العقار.</p>';
-            }
-            return;
-          }
-
-          snapshot.forEach((childSnap) => {
-            const msg = childSnap.val();
-            const isMe = msg.senderId === currentUserId;
-            const msgId = childSnap.key;
-            const isSystem = msg.senderId === 'SYSTEM';
-            
-            if (!isMe && msg.status !== 'seen') {
-              updates[`messages/${roomId}/${childSnap.key}/status`] = 'seen';
-            }
-
-            const bubble = document.createElement('div');
-            bubble.id = `msg-${msgId}`;
-
-            const msgTime = new Date(msg.createdAt).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'});
-
-            if (isSystem) {
-              bubble.className = ''; 
-              bubble.style.cssText = `
-                align-self: center;
-                background: rgba(239, 68, 68, 0.15);
-                border: 1px solid var(--danger);
-                color: #fca5a5;
-                padding: 12px 20px;
-                border-radius: 12px;
-                font-size: 0.85rem;
-                font-weight: 700;
-                text-align: center;
-                max-width: 90%;
-                margin: 10px auto;
-                width: max-content;
-                direction: rtl;
-                box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
-                border-right: 4px solid var(--danger);
-              `;
-              const cleanText = msg.text.replace('🚨 [تنبيه إداري رسمي]: ', '');
-              bubble.innerHTML = `
-                <div style="font-size: 10px; font-weight: 900; color: var(--danger); margin-bottom: 4px; text-align: right;">
-                  <span>الدعم</span>
-                </div>
-                <div>${cleanText}</div>
-                <div style="font-size: 10px; color: var(--text-muted); text-align: left; margin-top: 4px;">${msgTime}</div>
-              `;
-              messagesStream.appendChild(bubble);
-              return; 
-            }
-
-            if (msg.deleted) {
-                bubble.className = `msg msg-deleted msg-bubble ${isMe ? 'sent' : 'received'}`;
-                bubble.style.opacity = '0.65';
-                bubble.style.fontStyle = 'italic';
-                bubble.innerHTML = `<div class="text">🚫 تم حذف الرسالة</div>`;
-                messagesStream.appendChild(bubble);
-                return;
-            }
-
-            bubble.className = `msg msg-bubble ${isMe ? 'sent' : 'received'}`;
-            
-            let statusTicks = '';
-            if (isMe) {
-              if (msg.status === 'seen') {
-                statusTicks = `<i class="fas fa-check-double" style="color:var(--neon-cyan); font-size:0.75rem; margin-right:4px;"></i>`;
-              } else if (msg.status === 'delivered') {
-                statusTicks = `<i class="fas fa-check-double" style="color:var(--muted); font-size:0.75rem; margin-right:4px;"></i>`;
-              } else {
-                statusTicks = `<i class="fas fa-check" style="color:var(--muted); font-size:0.75rem; margin-right:4px;"></i>`;
-              }
-            }
-
-            const isReply = msg.text && msg.text.startsWith('رد على @');
-            let replyQuoteHtml = '';
-            let displayTargetText = msg.text;
-
-            if (isReply) {
-              const parts = msg.text.split(': ');
-              const targetName = parts[0].replace('رد على @', '');
-              displayTargetText = parts.slice(1).join(': ');
-              replyQuoteHtml = `
-                <div class="quoted-msg-box" style="background: rgba(0, 0, 0, 0.2); border-right: 3px solid var(--neon-cyan); padding: 8px 12px; border-radius: 6px; margin-bottom: 8px; text-align: right; direction: rtl;">
-                  <div style="font-size: 0.72rem; font-weight: 900; color: var(--neon-cyan); margin-bottom: 2px; display: flex; align-items: center; gap: 5px;">
-                    <i class="fas fa-reply" style="font-size:0.65rem;"></i> رد على @${targetName}
-                  </div>
-                </div>
-              `;
-            }
-
-            if (msg.type === 'image') {
-              const chatPreviewSrc = msg.preview || msg.image || "https://images.unsplash.com/photo-1545324418-cc1a9917ecff?w=500&fit=crop";
-              const targetOriginalSrc = msg.original || msg.image || chatPreviewSrc;
-
-              bubble.innerHTML = `
-                <div class="sender" style="font-size: 10px; font-weight: 900; color: var(--neon-cyan); margin-bottom: 6px; text-align: right;">
-                  <span>${isMe ? 'أنت' : targetUserName}</span>
-                </div>
-                <div style="position:relative; border-radius:8px; overflow:hidden; margin-bottom:4px;">
-                  <img src="${chatPreviewSrc}" class="chat-image-previewable" style="max-width:100%; max-height:220px; display:block; object-fit:cover; border-radius:8px;" loading="lazy">
-                </div>
-                ${(msg.caption && !msg.caption.startsWith('jpg.') && !msg.caption.startsWith('png.') && !msg.caption.toLowerCase().includes('screenshot')) ? `<div class="text" style="font-size:0.85rem; color:#fff; margin-bottom:4px; font-weight:600;">${msg.caption}</div>` : ''}
-                <div class="msg-meta-row" style="display:flex; justify-content:flex-end; align-items:center; font-size:0.65rem; color:var(--muted); gap:4px; margin-top:4px;">
-                  <span>${msgTime}</span>
-                  ${statusTicks}
-                </div>
-              `;
-              
-              bubble.querySelector('.chat-image-previewable').addEventListener('click', (e) => {
-                e.stopPropagation();
-                resetViewerState();
-                viewerImg.src = targetOriginalSrc;
-                document.getElementById('viewer-caption').textContent = (msg.caption && !msg.caption.startsWith('jpg.') && !msg.caption.startsWith('png.') && !msg.caption.toLowerCase().includes('screenshot')) ? msg.caption : '';
-                document.getElementById('image-viewer-modal').style.display = 'flex';
-              });
-            } else {
-              bubble.innerHTML = `
-                <div class="sender" style="font-size: 10px; font-weight: 900; color: var(--neon-cyan); margin-bottom: 6px; text-align: right;">
-                  <span>${isMe ? 'أنت' : targetUserName}</span>
-                </div>
-                ${replyQuoteHtml}
-                <div class="text">${displayTargetText}</div>
-                <div class="msg-meta-row" style="display:flex; justify-content:flex-end; align-items:center; font-size:0.65rem; color:var(--muted); gap:4px; margin-top:4px;">
-                  <span>${msgTime}</span>
-                  ${statusTicks}
-                </div>
-              `;
-            }
-
-            bubble.onclick = () => {
-                if (isMe) {
-                    this.showMsgActions(msgId, msg);
-                } else {
-                    ChatState.replyingToMsg = {
-                        id: msgId,
-                        text: msg.type === 'image' ? "📷 صورة" : displayTargetText,
-                        senderName: targetUserName
-                    };
-                    document.getElementById('replyTargetName').innerText = `رد على ${targetUserName}`;
-                    document.getElementById('replyTargetText').innerText = ChatState.replyingToMsg.text;
-                    document.getElementById('replyContainer').style.display = 'flex';
-                }
-            };
-
-            messagesStream.appendChild(bubble);
-          });
-
-          if (Object.keys(updates).length > 0) {
-            update(ref(rtdb), updates);
-          }
-
-          messagesStream.scrollTop = messagesStream.scrollHeight;
-        });
-
-        const textInput = document.getElementById('message-text-field');
-        const sendBtn = document.getElementById('send-msg-btn');
-        const attachBtn = document.getElementById('attach-image-btn');
-        const fileInput = document.getElementById('hidden-file-input');
-
-        textInput.addEventListener('input', () => {
-          set(ref(rtdb, `typing/${roomId}/${currentUserId}`), true);
-          clearTimeout(this.typingTimeout);
-          this.typingTimeout = setTimeout(() => {
-            set(ref(rtdb, `typing/${roomId}/${currentUserId}`), null);
-          }, 1500);
-        });
-
-        const handleSend = async () => {
-          if (ChatState.stagedFile) {
-            const file = ChatState.stagedFile;
-            const captionText = textInput.value.trim();
-
-            this.cancelImageStaging(); 
-
-            const streamContainer = document.getElementById('chat-messages-stream-node');
-            const loadingBubble = document.createElement('div');
-            loadingBubble.style.cssText = "align-self: center; background: rgba(0, 242, 255, 0.08); border: 1px solid var(--neon-cyan); color: #fff; padding: 10px 18px; border-radius: 12px; font-size: 0.85rem; text-align: center; margin: 10px auto; width: max-content; font-weight: 700;";
-            loadingBubble.innerHTML = `<span><i class="fas fa-spinner fa-spin"></i> جاري معالجة ورفع الصورة للـ CDN...</span>`;
-            streamContainer.appendChild(loadingBubble);
-            streamContainer.scrollTop = streamContainer.scrollHeight;
-
-            try {
-              const compressedPreview = await StorageService.compressImage(file, 400, 400, 0.65);
-              const compressedOriginal = await StorageService.compressImage(file, 1920, 1920, 0.91);
-
-              const previewUrl = await StorageService.uploadToCloudinary(compressedPreview);
-              const originalUrl = await StorageService.uploadToCloudinary(compressedOriginal);
-
-              await this.sendMessageImage(roomId, currentUserId, targetUserId, previewUrl, originalUrl, captionText);
-            } catch(err) {
-              console.error("Staged image upload error:", err);
-              Swal.fire({
-                  icon: 'error',
-                  title: 'فشل الرفع',
-                  text: '⚠️ عذراً، فشل رفع ومعالجة الصورة للسيرفر السحابي حالياً.',
-                  customClass: { popup: 'swal-custom-popup' }
-              });
-            } finally {
-              loadingBubble.remove();
-            }
-            return;
-          }
-
-          this.sendMessageText(roomId, currentUserId, targetUserId, textInput.value);
-          textInput.value = '';
-        };
-
-        textInput.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') handleSend();
-        });
-
-        sendBtn.addEventListener('click', handleSend);
-
-        attachBtn.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', async (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
-
-          ChatState.stagedFile = file;
-          const localPreviewUrl = URL.createObjectURL(file);
-          
-          document.getElementById('staged-thumb').src = localPreviewUrl;
-          document.getElementById('imageStagingContainer').style.display = 'flex';
-
-          textInput.placeholder = "اكتب شرحاً أو وصفاً لهذه الصورة قبل الإرسال (اختياري)...";
-          textInput.focus();
-        });
-      }
-
-      showMsgActions(msgId, msg) {
-        const modal = document.getElementById('actionModal');
-        modal.style.display = 'flex';
-        
-        document.getElementById('deleteBtn').onclick = async () => {
-          try {
-            const roomId = ChatState.activeRoomId;
-            await update(ref(rtdb, `messages/${roomId}/${msgId}`), {
-              deleted: true,
-              preview: null,
-              original: null
-            });
-            
-            if (ChatState.activeRoomData && (ChatState.activeRoomData.lastMessage === msg.text || ChatState.activeRoomData.lastMessage === "📷 صورة" || ChatState.activeRoomData.lastMessage.startsWith('رد على @'))) {
-              await update(ref(rtdb, `chatRooms/${roomId}`), {
-                lastMessage: '🚫 تم حذف الرسالة',
-                lastMessageTime: Date.now()
-              });
-            }
-          } catch (e) {
-            console.error("Error deleting message: ", e);
-          }
-          modal.style.display = 'none';
-        };
-        
-        const editBtn = document.getElementById('editBtn');
-        if (msg.type === 'text') {
-          editBtn.style.display = 'block';
-          editBtn.onclick = () => {
-            let currentText = msg.text;
-            if (msg.text.startsWith('رد على @')) {
-              const parts = msg.text.split(': ');
-              currentText = parts.slice(1).join(': ');
-            }
-            
-            const input = document.getElementById('message-text-field');
-            input.value = currentText;
-            ChatState.editingMessageId = msgId;
-            modal.style.display = 'none';
-            input.focus();
-            
-            document.getElementById('replyTargetName').innerText = `تعديل الرسالة`;
-            document.getElementById('replyTargetText').innerText = currentText;
-            document.getElementById('replyContainer').style.display = 'flex';
-          };
-        } else {
-          editBtn.style.display = 'none';
-        }
-      }
-
-      cancelReply() {
-        ChatState.replyingToMsg = null;
-        ChatState.editingMessageId = null;
-        const replyContainer = document.getElementById('replyContainer');
-        if (replyContainer) replyContainer.style.display = 'none';
-        const textInput = document.getElementById('message-text-field');
-        if (textInput) {
-          textInput.placeholder = "اهمس أو اعترف بـ #...";
-          textInput.value = '';
-        }
-      }
-
-      cancelImageStaging() {
-        ChatState.stagedFile = null;
-        const stagingContainer = document.getElementById('imageStagingContainer');
-        if (stagingContainer) stagingContainer.style.display = 'none';
-        const textInput = document.getElementById('message-text-field');
-        if (textInput) {
-          textInput.placeholder = "اكتب استفسارك #...";
-          textInput.value = '';
-        }
-      }
-
-      async openPropertyInfoModal(propertyId) {
-        const modal = document.getElementById('property-info-modal');
-        const loader = document.getElementById('prop-modal-loader');
-        const content = document.getElementById('prop-modal-content');
-        const overlay = document.getElementById('overlay');
-
-        overlay.classList.add('active');
-        modal.classList.add('active');
-        modal.style.display = 'block';
-        loader.style.display = 'block';
-        content.style.display = 'none';
-
-        try {
-          const docRef = doc(db, "properties", propertyId);
-          const docSnap = await getDoc(docRef);
-          
-          if (docSnap.exists()) {
-            const prop = docSnap.data();
-            
-            document.getElementById('prop-modal-cover').src = prop.coverImage || (prop.images && prop.images[0]) || '';
-            document.getElementById('pm-title').textContent = prop.title || 'عقار معتمد بالمنصة';
-            document.getElementById('pm-price').textContent = `${Number(prop.price || 0).toLocaleString()} ج.م`;
-            document.getElementById('pm-area').textContent = prop.area || 0;
-            document.getElementById('pm-purpose').textContent = prop.purpose === 'sale' ? 'بيع' : 'إيجار';
-            document.getElementById('pm-rooms').textContent = prop.rooms || 0;
-            document.getElementById('pm-baths').textContent = prop.bathrooms || 0;
-            document.getElementById('pm-desc').textContent = prop.description || 'لا يوجد وصف كتابي مضاف.';
-
-            loader.style.display = 'none';
-            content.style.display = 'block';
-          } else {
-            loader.innerHTML = '<span style="color:var(--danger)">⚠️ تعذر العثور على مواصفات هذا العقار بالسيرفر.</span>';
-          }
-        } catch (e) {
-          console.error("Error loading property detail card inside chat:", e);
-          loader.innerHTML = '<span style="color:var(--danger)">⚠️ حدث خطأ فني أثناء جلب مستندات العقار.</span>';
-        }
-      }
-
-      // 📢 دالة مساعدة لإرسال طلب الـ Push Notification لخادم الـ Vercel API الجديد
-      async triggerPushNotification(receiverId, bodyText, titleText = null) {
-        try {
-          const response = await fetch('https://am-property.vercel.app/api/send-notification', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              receiverId: receiverId,
-              senderName: ChatState.currentUserName, // اسمك الفعلي لجعل الإشعار مميزاً
-              title: titleText || `💬 رسالة جديدة من ${ChatState.currentUserName}`,
-              body: bodyText,
-              roomId: ChatState.activeRoomId
-            })
-          });
-          const resData = await response.json();
-          console.log("📨 Push notification Vercel status:", resData);
-        } catch (err) {
-          console.error("❌ Failed to send push notification via Vercel:", err);
-        }
-      }
-
-      // 🔔 دالة مساعدة مضافة لإرسال إشعار تليجرام للمسؤول بوجود رسالة جديدة في الشات
-      async triggerTelegramNotification(propertyTitle, senderName) {
-        try {
-          await fetch("https://am-property.vercel.app/api/send-telegram", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              type: "new_message",
-              data: {
-                property: propertyTitle || "عقار غير محدد",
-                sender: senderName || "مستخدم مجهول"
-              }
-            })
-          });
-        } catch (err) {
-          console.error("❌ Failed to send Telegram message notification:", err);
-        }
-      }
-
-      async sendMessageText(roomId, senderId, receiverId, text) {
-        if (!text.trim()) return;
-
-        if (ChatState.editingMessageId) {
-          const msgId = ChatState.editingMessageId;
-          try {
-            let textToSave = text;
-            const msgRef = ref(rtdb, `messages/${roomId}/${msgId}`);
-            const originalSnap = await get(msgRef);
-            
-            if (originalSnap.exists() && originalSnap.val().text.startsWith('رد على @')) {
-              const originalText = originalSnap.val().text;
-              const prefix = originalText.split(': ')[0];
-              textToSave = `${prefix}: ${text}`;
-            }
-
-            await update(ref(rtdb, `messages/${roomId}/${msgId}`), {
-              text: textToSave,
-              edited: true
-            });
-
-            await update(ref(rtdb, `chatRooms/${roomId}`), {
-              lastMessage: textToSave,
-              lastMessageTime: Date.now()
-            });
-          } catch(e) {
-            console.error("Error editing message:", e);
-          }
-          this.cancelReply();
-          return;
-        }
-
-        const msgRef = push(ref(rtdb, `messages/${roomId}`));
-        const timestamp = Date.now();
-
-        let textToSend = ChatState.replyingToMsg ? `رد على @${ChatState.replyingToMsg.senderName}: ${text}` : text;
-
-        const newMsg = {
-          senderId: senderId,
-          receiverId: receiverId,
-          type: "text",
-          text: textToSend,
-          image: "",
-          createdAt: timestamp,
-          status: "sent"
-        };
-
-        const targetStatusSnap = await get(ref(rtdb, `status/${receiverId}`));
-        if (targetStatusSnap.exists() && targetStatusSnap.val().state === 'online') {
-          newMsg.status = 'delivered';
-        }
-
-        await set(msgRef, newMsg);
-
-        await update(ref(rtdb, `chatRooms/${roomId}`), {
-          lastMessage: textToSend,
-          lastMessageTime: timestamp
-        });
-
-        const unreadRef = ref(rtdb, `unreadCounts/${roomId}/${receiverId}`);
-        const unreadSnap = await get(unreadRef);
-        const currentUnread = unreadSnap.exists() ? unreadSnap.val() : 0;
-        await set(unreadRef, currentUnread + 1);
-
-        // 🔔 تشغيل الإشعار العادي
-        this.triggerPushNotification(receiverId, textToSend);
-
-        // 🔔 إرسال إشعار تليجرام للمسؤول بوجود رسالة جديدة داخل غرفة التفاوض
-        this.triggerTelegramNotification(
-          ChatState.activeRoomData ? ChatState.activeRoomData.propertyTitle : "عقار معتمد",
-          ChatState.currentUserName
-        );
-
-        this.cancelReply();
-      }
-
-      async sendMessageImage(roomId, senderId, receiverId, previewUrl, originalUrl, captionText) {
-        const msgRef = push(ref(rtdb, `messages/${roomId}`));
-        const timestamp = Date.now();
-
-        const newMsg = {
-          senderId: senderId,
-          receiverId: receiverId,
-          type: "image",
-          preview: previewUrl,
-          original: originalUrl,
-          image: previewUrl,
-          caption: captionText || "",
-          createdAt: timestamp,
-          status: "sent"
-        };
-
-        if (ChatState.replyingToMsg) {
-          newMsg.replyTo = {
-            senderName: ChatState.replyingToMsg.senderName,
-            text: ChatState.replyingToMsg.text
-          };
-          this.cancelReply();
-        }
-
-        const targetStatusSnap = await get(ref(rtdb, `status/${receiverId}`));
-        if (targetStatusSnap.exists() && targetStatusSnap.val().state === 'online') {
-          newMsg.status = 'delivered';
-        }
-
-        await set(msgRef, newMsg);
-
-        await update(ref(rtdb, `chatRooms/${roomId}`), {
-          lastMessage: "📷 صورة",
-          lastMessageTime: timestamp
-        });
-
-        const unreadRef = ref(rtdb, `unreadCounts/${roomId}/${receiverId}`);
-        const unreadSnap = await get(unreadRef);
-        const currentUnread = unreadSnap.exists() ? unreadSnap.val() : 0;
-        await set(unreadRef, currentUnread + 1);
-
-        // 🔔 تشغيل الإشعار العادي للصورة
-        const notificationText = captionText ? `📷 صورة: ${captionText}` : "📷 أرسل إليك صورة";
-        this.triggerPushNotification(receiverId, notificationText);
-
-        // 🔔 إرسال إشعار تليجرام للمسؤول بوجود صورة جديدة داخل غرفة التفاوض
-        this.triggerTelegramNotification(
-          ChatState.activeRoomData ? ChatState.activeRoomData.propertyTitle : "عقار معتمد",
-          ChatState.currentUserName
-        );
-      }
-    }
-
-    window.chatApp = new StandaloneChatApp();
-  </script>
+      const up = { [`messages/${id}/${key}/text`]: save, [`messages/${id}/${key}/edited`]: true };
+      if (key === S.lastKey) { up[`chatRooms/${id}/lastMessage`] = save; up[`chatRooms/${id}/lastMessageTime`] = Date.now(); }
+      await update(ref(rtdb), up);
+    } catch (e) { console.error(e); toast("تعذّر تعديل الرسالة"); }
+    return;
+  }
+
+  const body = S.reply ? `رد على @${S.reply.name}: ${text}` : text, ts = Date.now();
+  input.value = ""; clearBar(); S.justSent = true;
+  try {
+    const key = push(ref(rtdb, `messages/${id}`)).key;
+    await update(ref(rtdb), {
+      [`messages/${id}/${key}`]: { senderId: S.uid, receiverId: to, type: "text", text: body, image: "", createdAt: ts, status: await deliveredStatus(to) },
+      [`chatRooms/${id}/lastMessage`]: body, [`chatRooms/${id}/lastMessageTime`]: ts,
+      [`chatRooms/${id}/hiddenFor/${to}`]: null,
+      [`unreadCounts/${id}/${to}`]: increment(1),
+    });
+    afterSend(to, body);
+  } catch (e) { console.error(e); toast("تعذّر إرسال الرسالة، حاول مرة أخرى"); input.value = text; }
+}
+async function sendImage() {
+  const file = S.staged, caption = $("#txt").value.trim().slice(0, 500), id = S.active, to = S.target;
+  if (!file || !id) return;
+  cancelImage(); $("#txt").value = ""; S.justSent = true;
+  const wait = el("div", "tip", "جارٍ رفع الصورة..."); $("#msgs").appendChild(wait); $("#msgs").scrollTop = $("#msgs").scrollHeight;
+  try {
+    const url = await uploadImage(await compress(file, 1600, 0.85)), ts = Date.now();
+    const key = push(ref(rtdb, `messages/${id}`)).key;
+    await update(ref(rtdb), {
+      [`messages/${id}/${key}`]: { senderId: S.uid, receiverId: to, type: "image", preview: thumb(url, 400), original: url, image: thumb(url, 400), caption, createdAt: ts, status: await deliveredStatus(to) },
+      [`chatRooms/${id}/lastMessage`]: "📷 صورة", [`chatRooms/${id}/lastMessageTime`]: ts,
+      [`chatRooms/${id}/hiddenFor/${to}`]: null,
+      [`unreadCounts/${id}/${to}`]: increment(1),
+    });
+    afterSend(to, caption ? `📷 صورة: ${caption}` : "📷 أرسل إليك صورة");
+  } catch (e) { console.error(e); toast("تعذّر رفع الصورة، حاول مرة أخرى"); }
+  wait.remove();
+}
+function cancelImage() { S.staged = null; $("#imgbar").hidden = true; $("#txt").placeholder = "اكتب رسالتك..."; }
+$("#send").addEventListener("click", () => (S.staged ? sendImage() : sendText()));
+$("#txt").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) (S.staged ? sendImage() : sendText()); });
+$("#txt").addEventListener("input", () => {
+  if (!S.active) return;
+  if (!S.typingOn) { S.typingOn = true; set(ref(rtdb, `typing/${S.active}/${S.uid}`), true); }
+  clearTimeout(S.typingTimer);
+  S.typingTimer = setTimeout(() => { S.typingOn = false; set(ref(rtdb, `typing/${S.active}/${S.uid}`), null); }, 1500);
+});
+$("#attach").addEventListener("click", () => $("#file").click());
+$("#file").addEventListener("change", (e) => {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  if (!f.type.startsWith("image/")) return toast("اختر صورة فقط");
+  if (f.size > 25 * 1024 * 1024) return toast("الصورة كبيرة جداً");
+  S.staged = f; $("#imgThumb").src = URL.createObjectURL(f); $("#imgbar").hidden = false;
+  $("#txt").placeholder = "اكتب وصفاً للصورة (اختياري)..."; $("#txt").focus();
+});
+$("#imgX").addEventListener("click", cancelImage);
+
+/* ---------- property info, hide chat, lightbox ---------- */
+$("#hInfo").addEventListener("click", async () => {
+  if (!S.room) return;
+  const body = $("#propBody"); body.innerHTML = '<p class="none">جارٍ التحميل...</p>'; $("#propDlg").showModal();
+  try {
+    const s = await getDoc(doc(db, "properties", S.room.propertyId));
+    if (!s.exists()) { body.innerHTML = '<p class="none">تعذّر العثور على هذا العقار.</p>'; return; }
+    const p = s.data(); body.innerHTML = "";
+    const im = el("img", "pimg"); im.alt = ""; im.src = safeImg(thumb(p.coverImage || p.images?.[0] || "", 700)); im.onerror = () => { im.src = PH; }; body.appendChild(im);
+    const grid = el("div", "pi");
+    [["العنوان", p.title || "-"], ["السعر", `${num(p.price)} ج.م${p.purpose === "rent" ? " / شهر" : ""}`], ["المساحة", `${num(p.area)} م²`], ["العملية", p.purpose === "rent" ? "إيجار" : "بيع"], ["النوع", p.propertyType || "-"], ["الموقع", [p.governorate, p.city].filter(Boolean).join("، ") || "-"]].forEach(([k, v]) => { const d = el("div"); d.append(el("span", "", k), document.createTextNode(v)); grid.appendChild(d); });
+    body.appendChild(grid); body.appendChild(el("p", "", p.description || "لا يوجد وصف."));
+  } catch (e) { console.warn(e); body.innerHTML = '<p class="none">تعذّر تحميل بيانات العقار.</p>'; }
+});
+$("#propX").addEventListener("click", () => $("#propDlg").close());
+$("#menuBtn").addEventListener("click", () => $("#hideDlg").showModal());
+$("#hideNo").addEventListener("click", () => $("#hideDlg").close());
+$("#hideYes").addEventListener("click", async () => {
+  $("#hideDlg").close();
+  try { await update(ref(rtdb, `chatRooms/${S.active}/hiddenFor`), { [S.uid]: true }); closeChat(); }
+  catch (e) { console.error(e); toast("تعذّر إخفاء المحادثة"); }
+});
+
+let zoom = 1;
+const setZoom = (z) => { zoom = Math.max(1, Math.min(4, z)); $("#lbImg").style.width = zoom * 100 + "%"; };
+function openLB(src, cap) { $("#lbImg").src = src; $("#lbCap").textContent = cap || ""; setZoom(1); $("#lb").hidden = false; }
+$("#zi").addEventListener("click", () => setZoom(zoom + 0.5));
+$("#zo").addEventListener("click", () => setZoom(zoom - 0.5));
+$("#zr").addEventListener("click", () => setZoom(1));
+$("#lbx").addEventListener("click", () => { $("#lb").hidden = true; });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("#lb").hidden = true; });
+window.addEventListener("pagehide", () => { if (S.typingOn && S.active) set(ref(rtdb, `typing/${S.active}/${S.uid}`), null); });
+
+/* ---------- start from a property page ---------- */
+async function openFromProperty(propertyId) {
+  try {
+    // المالك يُقرأ من العقار نفسه ولا نثق في أي قيمة من الرابط
+    const ps = await getDoc(doc(db, "properties", propertyId));
+    if (!ps.exists()) return toast("هذا العقار غير موجود");
+    const p = ps.data(), owner = p.ownerId || p.uid;
+    if (!owner) return toast("تعذّر تحديد مالك العقار");
+    if (owner === S.uid) return toast("هذا عقارك أنت");
+    const id = `room_${S.uid}_${owner}_${propertyId}`, rr = ref(rtdb, `chatRooms/${id}`), s = await get(rr);
+    if (!s.exists()) {
+      const now = Date.now();
+      await set(rr, { roomId: id, propertyId, propertyTitle: p.title || "عقار", propertyImage: p.coverImage || p.images?.[0] || "", ownerId: owner, buyerId: S.uid, participants: { [owner]: true, [S.uid]: true }, lastMessage: "تم بدء المحادثة", lastMessageTime: now, createdAt: now, propertyStatus: "available" });
+    } else if (s.val().hiddenFor?.[S.uid]) await update(rr, { [`hiddenFor/${S.uid}`]: null });
+    history.replaceState({}, "", location.pathname);
+    openChat(id);
+  } catch (e) { console.error(e); toast("تعذّر فتح المحادثة"); }
+}
+
+onAuthStateChanged(auth, async (u) => {
+  if (!u) { location.href = "login.html"; return; }
+  S.uid = u.uid;
+  try {
+    const us = await getDoc(doc(db, "users", u.uid));
+    if (us.exists()) { if (us.data().isBanned) { await signOut(auth); location.href = "login.html"; return; } S.name = us.data().name || S.name; }
+  } catch (e) { console.warn(e); }
+  initPresence(); watchRooms();
+  if ("Notification" in window && messaging) { if (Notification.permission === "granted") registerPush(); else if (Notification.permission === "default") $("#bell").hidden = false; }
+  const pid = new URLSearchParams(location.search).get("propertyId"), saved = sessionStorage.getItem("activeRoomId");
+  if (pid) openFromProperty(pid); else if (saved) openChat(saved);
+});
+</script>
 </body>
 </html>
