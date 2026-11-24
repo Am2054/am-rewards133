@@ -1,678 +1,199 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>لوحة التحكم الإدارية | AM</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700;900&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --primary: #00f2ff;
-      --secondary: #00FFC3;
-      --bg: #020617;
-      --card: rgba(15, 23, 42, 0.7);
-      --border: rgba(0, 242, 255, 0.1);
-      --danger: #ff0055;
-      --purple: #bc13fe;
-      --success: #22c55e;
-      --warning: #facc15;
-      --neon-glow: 0 0 15px rgba(0, 242, 255, 0.2);
-      --gold: #FFD369;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>لوحة الإدارة | AM</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f8fb;--card:#fff;--text:#0b1220;--muted:#566175;--line:#e2e8f0;--primary:#0284c7;--on-primary:#fff;--accent:#d97706;--ok:#16a34a;--bad:#dc2626;--warn:#b45309;--glow:rgba(2,132,199,.12);
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#060b16;--card:#0f1626;--text:#f1f5f9;--muted:#94a3b8;--line:#1e293b;--primary:#38bdf8;--on-primary:#04121f;--accent:#facc15;--ok:#4ade80;--bad:#f87171;--warn:#facc15;--glow:rgba(56,189,248,.14)}}
+:root[data-theme="dark"]{--bg:#060b16;--card:#0f1626;--text:#f1f5f9;--muted:#94a3b8;--line:#1e293b;--primary:#38bdf8;--on-primary:#04121f;--accent:#facc15;--ok:#4ade80;--bad:#f87171;--warn:#facc15;--glow:rgba(56,189,248,.14)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:'Cairo',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;min-height:100vh}
+a{color:inherit;text-decoration:none}button{font:inherit;cursor:pointer;color:inherit}[hidden]{display:none!important}
+.box{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px}
+.mark{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--accent));color:var(--on-primary);display:grid;place-items:center;font-size:.95rem;font-weight:900}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-weight:700;font-size:.92rem}
+.btn.p{background:var(--primary);color:var(--on-primary);border-color:transparent}.btn.bad{color:var(--bad);border-color:var(--bad)}
+.btn:hover:not(:disabled){filter:brightness(1.07)}.btn:disabled{opacity:.6;cursor:not-allowed}
+.btn:focus-visible,input:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+#login{min-height:100vh;display:grid;place-items:center;padding:20px;background-image:radial-gradient(ellipse 70% 40% at 50% 0,var(--glow),transparent)}
+.lc{width:100%;max-width:400px;text-align:center}
+.lc .mark{margin:0 auto 12px;width:52px;height:52px;border-radius:16px;font-size:1.1rem}
+.lc h1{margin:0 0 4px;font-size:1.5rem;font-weight:900}.lc p{margin:0 0 18px;color:var(--muted);font-size:.92rem}
+.lc input{width:100%;font:inherit;font-size:16px;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px;outline:none}
+.lc input:focus-visible{border-color:var(--primary)}
+.lc .btn{width:100%}
+#err{min-height:22px;margin:12px 0 0;color:var(--bad);font-weight:700;font-size:.9rem}
 
-    body {
-      font-family: 'Cairo', sans-serif;
-      background: var(--bg);
-      color: #E5E7EB;
-      min-height: 100vh;
-      overflow-x: hidden;
-      background-image:
-        radial-gradient(circle at 10% 10%, rgba(0, 242, 255, 0.05) 0%, transparent 30%),
-        radial-gradient(circle at 90% 90%, rgba(188, 19, 254, 0.05) 0%, transparent 30%);
-    }
-
-    body::after {
-      content: ""; position: fixed; inset: 0; z-index: -1;
-      background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
-      opacity: 0.15; pointer-events: none;
-    }
-
-    .navbar {
-      background: rgba(2, 6, 23, 0.95);
-      border-bottom: 1px solid var(--border);
-      padding: 20px 30px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      backdrop-filter: blur(10px);
-    }
-
-    .navbar-left {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-
-    .navbar-brand {
-      font-family: 'Syncopate', sans-serif;
-      font-size: 1.3rem;
-      font-weight: 700;
-      letter-spacing: 3px;
-      color: var(--primary);
-      text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
-    }
-
-    .navbar-status {
-      display: flex;
-      gap: 15px;
-      align-items: center;
-    }
-
-    .status-badge {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 15px;
-      background: rgba(34, 197, 94, 0.1);
-      border: 1px solid rgba(34, 197, 94, 0.3);
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 700;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      background: var(--success);
-      border-radius: 50%;
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-
-    .logout-btn {
-      background: transparent;
-      border: 2px solid var(--danger);
-      color: var(--danger);
-      padding: 10px 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-family: 'Cairo';
-      font-weight: 700;
-      font-size: 0.9rem;
-      transition: 0.3s all;
-    }
-
-    .logout-btn:hover {
-      background: var(--danger);
-      color: #fff;
-      box-shadow: 0 0 20px rgba(255, 0, 85, 0.3);
-    }
-
-    .dashboard-content {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 30px 20px;
-    }
-
-    .dashboard-header {
-      margin-bottom: 40px;
-    }
-
-    .header-title {
-      font-size: 2rem;
-      font-weight: 900;
-      color: var(--primary);
-      text-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
-      margin-bottom: 10px;
-    }
-
-    .header-subtitle {
-      color: #666;
-      font-size: 0.95rem;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
-      margin-bottom: 40px;
-    }
-
-    .stat-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      padding: 25px;
-      border-radius: 15px;
-      position: relative;
-      transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      backdrop-filter: blur(10px);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 3px;
-      height: 100%;
-      background: linear-gradient(180deg, var(--primary), transparent);
-    }
-
-    .stat-card:hover {
-      border-color: var(--primary);
-      background: rgba(0, 242, 255, 0.03);
-      transform: translateY(-5px);
-      box-shadow: 0 10px 30px rgba(0, 242, 255, 0.1);
-    }
-
-    .stat-label {
-      font-size: 0.85rem;
-      color: #888;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      font-weight: 800;
-      margin-bottom: 10px;
-    }
-
-    .stat-number {
-      font-family: 'Cairo', sans-serif;
-      font-size: 2rem;
-      font-weight: 700;
-      color: var(--primary);
-      margin-bottom: 8px;
-    }
-
-    .stat-subtext {
-      font-size: 0.8rem;
-      color: var(--secondary);
-      font-weight: 600;
-      opacity: 0.8;
-    }
-
-    .admin-section {
-      margin-bottom: 50px;
-    }
-
-    .section-title {
-      font-family: 'Cairo', sans-serif;
-      font-size: 1.3rem;
-      color: var(--primary);
-      margin-bottom: 25px;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      font-weight: 700;
-      letter-spacing: 1px;
-    }
-
-    .section-title::after {
-      content: '';
-      height: 1px;
-      flex: 1;
-      background: linear-gradient(90deg, var(--border), transparent);
-    }
-
-    .action-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-    }
-
-    .action-card {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid var(--border);
-      padding: 25px;
-      border-radius: 12px;
-      text-align: center;
-      cursor: pointer;
-      transition: 0.3s all;
-      text-decoration: none;
-      color: #ccc;
-      font-weight: 700;
-      font-size: 1rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .action-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      opacity: 0;
-      transition: 0.3s;
-      z-index: -1;
-    }
-
-    .action-card:hover:not(.disabled)::before {
-      opacity: 0.1;
-    }
-
-    .action-card:hover:not(.disabled) {
-      background: rgba(0, 242, 255, 0.05);
-      border-color: var(--primary);
-      color: var(--primary);
-      transform: translateY(-3px);
-      box-shadow: 0 10px 25px rgba(0, 242, 255, 0.15);
-    }
-
-    .action-card.disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-      pointer-events: none;
-      filter: grayscale(1);
-    }
-
-    .action-icon {
-      font-size: 2rem;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    #auth-overlay {
-      position: fixed;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.9));
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      backdrop-filter: blur(5px);
-    }
-
-    .auth-card {
-      width: 100%;
-      max-width: 420px;
-      padding: 40px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      backdrop-filter: blur(20px);
-      text-align: center;
-      box-shadow: 0 0 50px rgba(0, 0, 0, 1), 0 0 100px rgba(0, 242, 255, 0.1);
-    }
-
-    .auth-card h2 {
-      font-family: 'Cairo', sans-serif;
-      font-size: 1.3rem;
-      letter-spacing: 3px;
-      color: var(--primary);
-      margin-bottom: 25px;
-      text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
-    }
-
-    .input-group {
-      margin-bottom: 15px;
-    }
-
-    .input-group input {
-      width: 100%;
-      padding: 14px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.02);
-      color: white;
-      outline: none;
-      font-family: 'Cairo';
-      text-align: center;
-      transition: 0.3s;
-      box-sizing: border-box;
-      font-size: 0.95rem;
-    }
-
-    .input-group input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 12px rgba(0, 242, 255, 0.4);
-      background: rgba(0, 242, 255, 0.05);
-    }
-
-    .btn-prime {
-      width: 100%;
-      padding: 15px;
-      border-radius: 10px;
-      border: none;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: #000;
-      font-weight: 900;
-      cursor: pointer;
-      transition: 0.4s;
-      font-family: 'Cairo';
-      font-size: 0.9rem;
-      letter-spacing: 2px;
-    }
-
-    .btn-prime:hover:not(:disabled) {
-      box-shadow: 0 0 30px rgba(0, 242, 255, 0.5);
-      transform: translateY(-2px);
-    }
-
-    .btn-prime:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    #error-msg {
-      color: var(--danger);
-      font-size: 0.85rem;
-      margin-top: 15px;
-      font-weight: 700;
-      min-height: 20px;
-    }
-
-    @media (max-width: 768px) {
-      .navbar {
-        flex-direction: column;
-        gap: 15px;
-      }
-      .header-title {
-        font-size: 1.5rem;
-      }
-      .stats-grid {
-        grid-template-columns: 1fr;
-      }
-      .action-grid {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      }
-      .stat-number {
-        font-size: 1.5rem;
-      }
-    }
-  </style>
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.tin{max-width:1100px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:1.15rem}
+.live{display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--muted);margin-right:auto}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}.dot.off{background:var(--bad)}
+main{max-width:1100px;margin:0 auto;padding:24px 20px 40px}
+h1.t{margin:0 0 4px;font-size:1.7rem;font-weight:900}.sub{margin:0 0 22px;color:var(--muted)}
+h2{margin:30px 0 14px;font-size:1.15rem;font-weight:900}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.st{display:block;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}
+a.st:hover{border-color:var(--primary);transform:translateY(-2px)}
+.st span{display:block;color:var(--muted);font-weight:700;font-size:.88rem}
+.st b{display:block;font-size:2rem;font-weight:900;margin:4px 0}.st small{color:var(--muted);font-size:.8rem}
+.st.warn b{color:var(--warn)}.st.good b{color:var(--ok)}.st.badc b{color:var(--bad)}.st.pri b{color:var(--primary)}
+.st.todo{border-color:var(--warn)}
+.acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.ac{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;font-weight:700}
+.ac:hover{border-color:var(--primary);color:var(--primary)}.ac i{font-style:normal;font-size:1.5rem}
+@media(prefers-reduced-motion:reduce){a.st:hover{transform:none}}
+</style>
 </head>
 <body>
 
-<div id="auth-overlay">
-  <div class="auth-card">
-    <h2>🔐 تحقق الهوية</h2>
-    <div class="input-group">
-      <input type="email" id="email" placeholder="بريد الإدارة" autocomplete="username">
-    </div>
-    <div class="input-group">
-      <input type="password" id="pass" placeholder="كود الدخول" autocomplete="current-password">
-    </div>
-    <button class="btn-prime" id="unlock-btn">منح التصريح</button>
-    <p id="error-msg"></p>
-  </div>
-</div>
+<section id="login" hidden>
+  <form class="box lc" id="form" novalidate>
+    <div class="mark">AM</div>
+    <h1>دخول الإدارة</h1>
+    <p>للمصرّح لهم فقط</p>
+    <input id="email" type="email" placeholder="بريد الإدارة" autocomplete="username" inputmode="email" aria-label="البريد">
+    <input id="pass" type="password" placeholder="كلمة المرور" autocomplete="current-password" aria-label="كلمة المرور">
+    <button class="btn p" id="go" type="submit">دخول</button>
+    <p id="err" role="alert"></p>
+  </form>
+</section>
 
-<div id="main-panel" class="hidden">
-  <nav class="navbar">
-    <div class="navbar-left">
-      <div class="navbar-brand">AM PORTAL</div>
-      <div class="navbar-status">
-        <div class="status-badge">
-          <div class="status-dot"></div>
-          <span>نظام نشط</span>
-        </div>
-      </div>
-    </div>
-    <button onclick="logout()" class="logout-btn">إنهاء الجلسة 🚪</button>
-  </nav>
+<div id="panel" hidden>
+  <header class="top"><div class="tin">
+    <div class="brand"><span class="mark">AM</span> لوحة الإدارة</div>
+    <div class="live"><span class="dot" id="dot"></span><span id="upd">جارٍ التحميل...</span></div>
+    <button class="btn" id="refresh" type="button">تحديث</button>
+    <button class="btn bad" id="logout" type="button">خروج</button>
+  </div></header>
 
-  <div class="dashboard-content">
-    <div class="dashboard-header">
-      <h1 class="header-title">لوحة التحكم التنفيذية</h1>
-      <p class="header-subtitle">النسخة 4.0 • آخر تحديث الآن</p>
-    </div>
+  <main>
+    <h1 class="t">نظرة عامة</h1>
+    <p class="sub">أرقام حيّة من قاعدة البيانات. تتحدث كل دقيقة تلقائياً.</p>
 
-    <!-- الإحصائيات العامة الست المدمجة حياً (Unified Responsive Grid Layout) -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <span class="stat-label">👥 إجمالي الأعضاء</span>
-        <span class="stat-number" id="stat-users">---</span>
-        <span class="stat-subtext">مستخدمين نشطين</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">🏠 إجمالي العقارات</span>
-        <span class="stat-number" id="stat-points">---</span>
-        <span class="stat-subtext">الوحدات المسجلة بالمنصة</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">⏳ العقارات قيد الانتظار</span>
-        <span class="stat-number" id="stat-total-distributed" style="color: var(--warning);">---</span>
-        <span class="stat-subtext">تنتظر الموافقة أو الرفض</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">✅ العقارات المنشورة</span>
-        <span class="stat-number" id="stat-ref" style="color: var(--success);">---</span>
-        <span class="stat-subtext" id="stat-ref-count">نشطة ومتاحة للجمهور</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">❌ العقارات المرفوضة</span>
-        <span class="stat-number" id="stat-pending" style="color: var(--danger);">---</span>
-        <span class="stat-subtext">عقارات لم تطابق الشروط</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">💬 غرف التفاوض النشطة</span>
-        <span class="stat-number" id="stat-support-count" style="color: var(--primary);">---</span>
-        <span class="stat-subtext">قنوات الاتصال المفتوحة بالـ RTDB</span>
-      </div>
+    <div class="stats">
+      <a class="st warn" id="cPending" href="admin-properties.html"><span>⏳ عقارات تنتظر المراجعة</span><b id="sPending">-</b><small>اضغط للمراجعة</small></a>
+      <a class="st warn" id="cEdits" href="admin-properties.html"><span>✏️ طلبات تعديل معلّقة</span><b id="sEdits">-</b><small>تعديلات من الملاك</small></a>
+      <div class="st good"><span>✅ عقارات منشورة</span><b id="sApproved">-</b><small>ظاهرة للجمهور</small></div>
+      <div class="st badc"><span>❌ عقارات مرفوضة</span><b id="sRejected">-</b><small>لم تطابق الشروط</small></div>
+      <div class="st"><span>🏠 إجمالي العقارات</span><b id="sProps">-</b><small>كل الحالات</small></div>
+      <div class="st pri"><span>👥 الأعضاء</span><b id="sUsers">-</b><small>حسابات مسجلة</small></div>
+      <div class="st pri"><span>💬 غرف المحادثة</span><b id="sRooms">-</b><small>بين الملاك والباحثين</small></div>
     </div>
 
-    <!-- إدارة العمليات -->
-    <div class="admin-section">
-      <h2 class="section-title">⚙️ إدارة العمليات</h2>
-      <div class="action-grid" id="action-btns-container">
-        <a href="users.html" class="action-card disabled">
-          <span class="action-icon">👤</span>
-          <span>الأعضاء</span>
-        </a>
-        <a href="admin-properties.html" class="action-card disabled">
-          <span class="action-icon">🏠</span>
-          <span>مراجعة العقارات</span>
-        </a>
-        <a href="admin-messages.html" class="action-card disabled">
-          <span class="action-icon">💬</span>
-          <span>إدارة المحادثات</span>
-        </a>
-      </div>
+    <h2>الإدارة</h2>
+    <div class="acts">
+      <a class="ac" href="admin-properties.html"><i>🏠</i> مراجعة العقارات</a>
+      <a class="ac" href="users.html"><i>👤</i> الأعضاء</a>
+      <a class="ac" href="admin-messages.html"><i>💬</i> إدارة المحادثات</a>
+      <a class="ac" href="supportAdmin.html"><i>📩</i> مركز الدعم</a>
     </div>
-
-    <!-- النظام والأمان -->
-    <div class="admin-section">
-      <h2 class="section-title">🔒 النظام والأمان</h2>
-      <div class="action-grid">
-        <a href="supportAdmin.html" class="action-card disabled">
-          <span class="action-icon">📩</span>
-          <span>مركز الدعم</span>
-        </a>
-        <a href="fraudAdmin.html" class="action-card disabled">
-          <span class="action-icon">🛡️</span>
-          <span>كشف الاحتيال والـ VPN</span>
-        </a>
-      </div>
-    </div>
-  </div>
+  </main>
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
-    authDomain: "am--rewards.firebaseapp.com",
-    projectId: "am--rewards",
-  };
+const app = initializeApp({
+  apiKey: "AIzaSyBfOJPkWbmcJ6s29bDNysr-H0Kx-Js3Gy0",
+  authDomain: "am--rewards.firebaseapp.com",
+  projectId: "am--rewards",
+});
+const auth = getAuth(app);
+const $ = (s) => document.querySelector(s);
+const num = (n) => Number(n || 0).toLocaleString("ar-EG");
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+let timer = null, loggingIn = false;
 
-  let isSessionValid = false;
-  let refreshInterval;
+async function api(path, opt = {}) {
+  const r = await fetch(path, { credentials: "same-origin", cache: "no-store", ...opt });
+  const d = await r.json().catch(() => ({}));
+  return { ok: r.ok, status: r.status, d };
+}
+function view(panel) { $("#login").hidden = panel; $("#panel").hidden = !panel; }
+function stopPolling() { clearInterval(timer); timer = null; }
 
-  function toggleControls(enable) {
-    const btns = document.querySelectorAll('.action-card');
-    btns.forEach(btn => {
-      if (enable) btn.classList.remove('disabled');
-      else btn.classList.add('disabled');
-    });
+async function loadStats() {
+  const { ok, status, d } = await api("/api/admin?action=stats");
+  if (status === 401) { await toLogin("انتهت الجلسة، سجّل الدخول من جديد"); return; }
+  if (!ok) { $("#dot").classList.add("off"); $("#upd").textContent = "تعذّر التحديث"; return; }
+  $("#dot").classList.remove("off");
+  $("#sPending").textContent = num(d.pendingProperties);
+  $("#sEdits").textContent = num(d.pendingEdits);
+  $("#sApproved").textContent = num(d.approvedProperties);
+  $("#sRejected").textContent = num(d.rejectedProperties);
+  $("#sProps").textContent = num(d.totalProperties);
+  $("#sUsers").textContent = num(d.totalUsers);
+  $("#sRooms").textContent = num(d.activeRooms);
+  $("#cPending").classList.toggle("todo", d.pendingProperties > 0);
+  $("#cEdits").classList.toggle("todo", d.pendingEdits > 0);
+  $("#upd").textContent = "آخر تحديث: " + new Date().toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
+}
+function startPolling() {
+  stopPolling(); loadStats();
+  timer = setInterval(() => { if (!document.hidden) loadStats(); }, 60000);
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden && !$("#panel").hidden) loadStats(); });
+$("#refresh").addEventListener("click", loadStats);
+
+async function toLogin(msg) {
+  stopPolling();
+  try { await signOut(auth); } catch { /* تجاهل */ }
+  view(false); $("#err").textContent = msg || "";
+}
+
+const ERR = {
+  "auth/invalid-credential": "بيانات الدخول غير صحيحة",
+  "auth/wrong-password": "بيانات الدخول غير صحيحة",
+  "auth/user-not-found": "بيانات الدخول غير صحيحة",
+  "auth/invalid-email": "صيغة البريد غير صحيحة",
+  "auth/too-many-requests": "محاولات كثيرة، انتظر قليلاً ثم حاول مرة أخرى",
+};
+
+$("#form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = $("#email").value.trim(), pass = $("#pass").value;
+  if (!email || !pass) { $("#err").textContent = "اكتب البريد وكلمة المرور"; return; }
+  const btn = $("#go"); btn.disabled = true; $("#err").textContent = "جارٍ التحقق..."; loggingIn = true;
+  try {
+    // كلمة المرور تذهب إلى Firebase فقط، والسيرفر يتحقق من التوكن
+    const cred = await signInWithEmailAndPassword(auth, email, pass);
+    const idToken = await cred.user.getIdToken();
+    const { ok, d } = await api("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "login", idToken }) });
+    if (!ok) { await signOut(auth); $("#err").textContent = d.message || "تعذّر الدخول"; return; }
+    if (d.claimsUpdated) await cred.user.getIdToken(true); // تحديث صلاحية admin داخل التوكن
+    $("#pass").value = ""; $("#err").textContent = "";
+    view(true); startPolling();
+  } catch (err) {
+    console.error(err);
+    $("#err").textContent = ERR[err.code] || "تعذّر الدخول، حاول مرة أخرى";
+  } finally {
+    btn.disabled = false; loggingIn = false;
   }
+});
 
-  // التحقق من الجلسة الأمنية للأدمن
-  async function verifyServerSession() {
-    try {
-      const res = await fetch("/api/admin-auth", {
-        credentials: "include"
-      });
-      const data = await res.json();
-      isSessionValid = (res.ok && data.valid === true);
-      return isSessionValid;
-    } catch {
-      isSessionValid = false;
-      return false;
-    }
-  }
+$("#logout").addEventListener("click", async () => {
+  if (!confirm("هل تريد تسجيل الخروج؟")) return;
+  stopPolling();
+  await api("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "logout" }) });
+  try { await signOut(auth); } catch { /* تجاهل */ }
+  location.reload();
+});
 
-  // تحديث وبث الإحصائيات الجديدة وحذف معاملات الصفقات الملغاة
-  async function loadAdminStats() {
-    if (!isSessionValid) return;
-    try {
-      const user = auth.currentUser;
-      if (!user) return;
-
-      const res = await fetch("/api/admin-stats", {
-        credentials: "include"
-      });
-
-      if (!res.ok) throw new Error("Unauthorized");
-
-      const data = await res.json();
-
-      document.getElementById('stat-users').textContent = data.totalUsers.toLocaleString();
-      document.getElementById('stat-points').textContent = data.totalProperties.toLocaleString();
-      document.getElementById('stat-total-distributed').textContent = data.pendingProperties.toLocaleString();
-      document.getElementById('stat-ref').textContent = data.approvedProperties.toLocaleString();
-      document.getElementById('stat-ref-count').textContent = "نشطة ومتاحة للجمهور";
-      document.getElementById('stat-pending').textContent = data.rejectedProperties.toLocaleString();
-      document.getElementById('stat-support-count').textContent = data.activeRooms.toLocaleString();
-
-      toggleControls(true);
-    } catch (e) {
-      console.error("Access Denied:", e);
-      toggleControls(false);
-    }
-  }
-
-  // زر تفويض الدخول الإداري
-  document.getElementById('unlock-btn').onclick = async () => {
-    const emailInput = document.getElementById('email').value.trim();
-    const passInput = document.getElementById('pass').value.trim();
-    const errMsg = document.getElementById('error-msg');
-    const unlockBtn = document.getElementById('unlock-btn');
-
-    if (!emailInput || !passInput) {
-      errMsg.textContent = "⚠️ يرجى إدخال البيانات كاملة";
-      return;
-    }
-
-    unlockBtn.disabled = true;
-    errMsg.textContent = "⏳ جاري التحقق...";
-
-    try {
-      const res = await fetch("/api/admin-auth", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          action: "login",
-          email: emailInput,
-          password: passInput
-        })
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        errMsg.textContent = "❌ " + (errorData.message || "بيانات خاطئة");
-        unlockBtn.disabled = false;
-        return;
-      }
-
-      await signInWithEmailAndPassword(auth, emailInput, passInput);
-      isSessionValid = true;
-      errMsg.textContent = "✅ تم التحقق بنجاح...";
-
-      setTimeout(() => {
-        document.getElementById('auth-overlay').classList.add('hidden');
-        document.getElementById('main-panel').classList.remove('hidden');
-        loadAdminStats();
-        refreshInterval = setInterval(loadAdminStats, 30000);
-      }, 800);
-    } catch (e) {
-      console.error(e);
-      errMsg.textContent = "❌ خطأ في الدخول: " + e.message;
-      unlockBtn.disabled = false;
-    }
-  };
-
-  onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      const verified = await verifyServerSession();
-      if (verified) {
-        document.getElementById('auth-overlay').classList.add('hidden');
-        document.getElementById('main-panel').classList.remove('hidden');
-        loadAdminStats();
-        refreshInterval = setInterval(loadAdminStats, 30000);
-      } else {
-        await signOut(auth);
-      }
-    } else {
-      isSessionValid = false;
-      document.getElementById('auth-overlay').classList.remove('hidden');
-      document.getElementById('main-panel').classList.add('hidden');
-      clearInterval(refreshInterval);
-      toggleControls(false);
-    }
-  });
-
-  window.logout = async () => {
-    if (confirm('هل أنت متأكد من رغبتك في تسجيل الخروج؟')) {
-      try {
-        isSessionValid = false;
-        clearInterval(refreshInterval);
-        await fetch("/api/admin-auth", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "logout" })
-        });
-        await signOut(auth);
-        location.reload();
-      } catch (e) {
-        location.reload();
-      }
-    }
-  };
+onAuthStateChanged(auth, async (u) => {
+  if (loggingIn) return;
+  if (!u) { stopPolling(); view(false); return; }
+  const s = await api("/api/admin?action=session");
+  if (s.ok && s.d.valid) { view(true); startPolling(); }
+  else { try { await signOut(auth); } catch { /* تجاهل */ } view(false); }
+});
 </script>
 </body>
 </html>
